@@ -2266,18 +2266,19 @@ const handleSaveUser = async (e) => {
     };
 const handleSaveBoosting = async (e) => {
       e.preventDefault();
-const type = e.target.boostType.value;
+      const type = e.target.boostType.value;
       const boostData = {
         id: editingBoosting ? editingBoosting.id : Date.now(),
         type: type,
         require_login: type === 'event' ? e.target.requireLogin.checked : true,
         price: parseInt(e.target.price.value), 
         image: adminBoostingImage,
-        // Nếu là Sự Kiện thì lưu tên/số lượng vào cột game/title/desc để tận dụng DB cũ
-        game: type === 'rank' ? e.target.game.value : 'Cày Sự Kiện',
-        title: type === 'rank' ? e.target.title.value : e.target.eventName.value,
-        desc: type === 'rank' ? e.target.desc.value : e.target.amount.value
+        // Dùng dấu ?. để tránh lỗi đơ web khi các ô này bị ẩn đi
+        game: type === 'rank' ? (e.target.game?.value || '') : 'Cày Sự Kiện',
+        title: type === 'rank' ? (e.target.title?.value || '') : (e.target.eventName?.value || ''),
+        desc: type === 'rank' ? (e.target.desc?.value || '') : (e.target.amount?.value || '')
       };
+
       if (editingBoosting) {
         // Đẩy lên Supabase (Sửa)
         await supabase.from('boosting').update(boostData).eq('id', editingBoosting.id);
@@ -3576,22 +3577,36 @@ const voucherData = {
                   <button onClick={() => setShowBoostingModal(false)} className="text-slate-400 hover:text-white"><X size={20}/></button>
                 </div>
                 <div className="space-y-4">
-                    {/* KHU VỰC UP ẢNH GIỮ NGUYÊN NHƯ BẠN ĐÃ LÀM */}
-                    <div>
-                      <label className="text-xs text-slate-400 font-bold">Ảnh mô tả dịch vụ (Tùy chọn)</label>
-                      <div className="mt-1 border border-dashed border-slate-600 rounded-xl p-4 text-center hover:bg-slate-800/50 transition-colors relative group bg-[#0B1120]">
-                        <input type="file" accept="image/*" onChange={handleBoostingImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                        {adminBoostingImage ? (
-                            <div className="relative">
-                              <img src={adminBoostingImage} className="mx-auto h-24 object-cover rounded-lg shadow-md w-full" alt="Preview" />
-                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity rounded-lg">Đổi Ảnh Khác</div>
-                            </div>
-                        ) : (
-                            <div className="text-slate-500 flex flex-col items-center"><ImageIcon size={28} className="mb-2"/><span className="text-[10px] font-bold">Bấm để tải Ảnh lên</span></div>
-                        )}
-                      </div>
+{/* --- KHU VỰC UP ẢNH CÀY THUÊ CÓ NÚT X --- */}
+                  <div>
+                    <label className="text-xs text-slate-400 font-bold">Ảnh mô tả dịch vụ (Tùy chọn)</label>
+                    <div className="mt-1 border border-dashed border-slate-600 rounded-xl p-4 text-center hover:bg-slate-800/50 transition-colors relative group bg-[#0B1120]">
+                      {/* Dòng input ẩn để click tải ảnh */}
+                      <input type="file" accept="image/*" onChange={handleBoostingImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                      
+                      {adminBoostingImage ? (
+                          <div className="relative z-20">
+                            <img src={adminBoostingImage} className="mx-auto h-24 object-cover rounded-lg shadow-md w-full" alt="Preview" />
+                            
+                            {/* NÚT X XÓA ẢNH */}
+                            <button 
+                              type="button" 
+                              onClick={(e) => { 
+                                e.preventDefault(); 
+                                e.stopPropagation(); // Chặn việc bấm nhầm vào nút Upload bên dưới
+                                setAdminBoostingImage(null); 
+                              }} 
+                              className="absolute top-2 right-2 bg-rose-500 hover:bg-rose-600 text-white p-1.5 rounded-full shadow-lg transition-colors z-30"
+                              title="Xóa ảnh này"
+                            >
+                              <X size={14}/>
+                            </button>
+                          </div>
+                      ) : (
+                          <div className="text-slate-500 flex flex-col items-center"><ImageIcon size={28} className="mb-2"/><span className="text-[10px] font-bold">Bấm để tải Ảnh lên</span></div>
+                      )}
                     </div>
-
+                  </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="text-xs text-slate-400 block mb-1">Cày gì?</label>
