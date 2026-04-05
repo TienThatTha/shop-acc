@@ -950,22 +950,28 @@ setConfirmDialog({
         <div className="flex items-center gap-3">
           {currentUser ? (
             <>
-              <div className="hidden sm:flex items-center gap-3 bg-[#0B1120] border border-slate-700 rounded-full px-4 py-1.5 cursor-pointer hover:border-slate-500 transition-colors">
-                <div className="flex items-center gap-1.5" title="Số dư">
-                  <Wallet size={16} className="text-emerald-400" />
-                  <span className="text-emerald-400 font-bold text-sm">{new Intl.NumberFormat('vi-VN').format(currentUser.balance)} đ</span>
+{/* --- KHU VỰC HIỂN THỊ SỐ DƯ ĐÃ CHỈNH RESPONSIVE (GIỮ NGUYÊN CHỮ) --- */}
+              <div className="flex items-center gap-1.5 sm:gap-3 bg-[#0B1120] border border-slate-700 rounded-full px-2.5 sm:px-4 py-1 sm:py-1.5 cursor-pointer hover:border-slate-500 transition-colors overflow-hidden max-w-full">
+                
+                <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap" title="Số dư">
+                  <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
+                  <span className="text-emerald-400 font-bold text-[10px] sm:text-sm">{new Intl.NumberFormat('vi-VN').format(currentUser.balance)} đ</span>
                 </div>
-                <div className="w-[1px] h-4 bg-slate-700"></div>
-                {/* THÊM Ô GIỜ DƯ Ở ĐÂY */}
-<div className="flex items-center gap-1.5" title="Quỹ tiền thuê bảo lưu">
-                  <Clock size={16} className="text-yellow-400" />
-                  <span className="text-yellow-400 font-bold text-sm">{new Intl.NumberFormat('vi-VN').format(currentUser.rentFund || 0)} đ</span>
+                
+                <div className="w-[1px] h-3 sm:h-4 bg-slate-700 shrink-0"></div>
+                
+                <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap" title="Quỹ tiền thuê bảo lưu">
+                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400 shrink-0" />
+                  <span className="text-yellow-400 font-bold text-[10px] sm:text-sm">{new Intl.NumberFormat('vi-VN').format(currentUser.rentFund || 0)} đ</span>
                 </div>
-                <div className="w-[1px] h-4 bg-slate-700"></div>
-                <div className="flex items-center gap-1.5" title="Lượt quay">
-                  <Ticket size={16} className="text-rose-400" />
-                  <span className="text-rose-400 font-bold text-sm">{currentUser.spins || 0} Lượt</span>
+                
+                <div className="w-[1px] h-3 sm:h-4 bg-slate-700 shrink-0"></div>
+                
+                <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap" title="Lượt quay">
+                  <Ticket className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400 shrink-0" />
+                  <span className="text-rose-400 font-bold text-[10px] sm:text-sm">{currentUser.spins || 0} Lượt</span>
                 </div>
+                
               </div>
               {/* Nút cá nhân ẩn bớt trên màn hình cực nhỏ vì đã có bottom nav */}
               <button onClick={() => setCurrentView('security')} className="hidden sm:flex items-center gap-2 text-slate-300 hover:text-white transition-colors bg-[#0B1120] p-2 rounded-full sm:rounded-lg sm:px-3 sm:py-2 border border-slate-700 relative">
@@ -981,9 +987,8 @@ setConfirmDialog({
             </>
           ) : (
             <>
-              <button onClick={() => setCurrentView('login')} className="hidden sm:block text-slate-300 hover:text-white text-sm font-semibold px-4 py-2">Đăng Nhập</button>
-              <button onClick={() => setCurrentView('register')} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-lg shadow-blue-600/20">Đăng Ký</button>
-            </>
+<button onClick={() => setCurrentView('login')} className="text-slate-300 hover:text-white text-xs sm:text-sm font-semibold px-2 sm:px-4 py-2 transition-colors">Đăng Nhập</button>
+              <button onClick={() => setCurrentView('register')} className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg shadow-lg shadow-blue-600/20 transition-colors">Đăng Ký</button>            </>
           )}
         </div>
       </div>
