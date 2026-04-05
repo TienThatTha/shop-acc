@@ -2316,14 +2316,15 @@ const validRentOptions = adminRentOptions.filter(opt => opt.time.trim() !== '' &
 
 const handleSaveUser = async (e) => {
       e.preventDefault();
-      const userData = {
+ const userData = {
         name: e.target.name.value, 
         phone: e.target.phone.value, 
         email: e.target.email.value,
         balance: parseInt(e.target.balance.value), 
         spins: parseInt(e.target.spins.value || 0), 
-        rentFund: parseInt(e.target.rentFund.value || 0), // <--- THÊM DÒNG NÀY
-        role: e.target.role.value
+        rentFund: parseInt(e.target.rentFund.value || 0),
+        role: e.target.role.value,
+        is_trusted: e.target.is_trusted.checked // <--- THÊM DÒNG NÀY ĐỂ LƯU KHÁCH QUEN
       };
       // ... phần dưới giữ nguyên
 
@@ -2827,8 +2828,10 @@ const voucherData = {
                         {r.status === 'Đã trả acc' && <div className="absolute top-0 right-0 bg-slate-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10">ĐÃ TRẢ ACC</div>}
                         {r.status === 'Từ chối' && <div className="absolute top-0 right-0 bg-rose-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10 shadow-md">ĐÃ TỪ CHỐI</div>}
                        <div className="w-full lg:w-40 h-28 bg-slate-900 rounded-lg flex items-center justify-center overflow-hidden border border-slate-800 shrink-0 relative">
-                          {r.info.kycMethod === 'vip' ? (
+                      {r.info.kycMethod === 'vip' ? (
                             <div className="flex flex-col items-center text-yellow-500"><Sparkles size={28} className="mb-2"/><span className="font-black text-sm uppercase">Khách VIP</span><span className="text-[9px] text-slate-400 text-center">Miễn CCCD & Cọc</span></div>
+                          ) : r.info.kycMethod === 'khach_quen' ? (
+                            <div className="flex flex-col items-center text-emerald-500"><CheckCircle2 size={28} className="mb-2"/><span className="font-black text-sm uppercase">Khách Quen</span><span className="text-[9px] text-slate-400 text-center">Đã miễn CCCD & Cọc</span></div>
                           ) : r.info.kycMethod === 'deposit' ? (
                             <div className="flex flex-col items-center text-rose-500"><Wallet size={28} className="mb-2"/><span className="font-black text-sm uppercase">Đã cọc 500k</span><span className="text-[9px] text-slate-400 text-center">Sẽ hoàn khi trả nick</span></div>
                           ) : (
@@ -3411,12 +3414,19 @@ const parseTimeStr = (str) => {
                       <input name="rentFund" type="number" defaultValue={editingUser?.rentFund || 0} className="w-full p-2 bg-[#0B1120] border border-slate-600 rounded text-yellow-400 font-bold outline-none" required/>
                     </div>
                     {/* KẾT THÚC ĐOẠN CODE THÊM MỚI */}
-                    <div>
+<div>
                       <label className="text-[10px] text-blue-400 font-bold block mb-1">Quyền</label>
                       <select name="role" defaultValue={editingUser?.role} className="w-full p-2 bg-[#0B1120] border border-slate-600 rounded text-blue-400 font-bold outline-none">
                         <option value="user">User</option>
                         <option value="admin">Admin</option>
                       </select>
+                    </div>
+                    {/* TÍCH CHỌN KHÁCH QUEN NẰM Ở ĐÂY */}
+                    <div className="col-span-4 mt-1 border-t border-slate-700 pt-2">
+                      <label className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg cursor-pointer hover:bg-emerald-500/20 transition-colors shadow-inner">
+                        <input type="checkbox" name="is_trusted" defaultChecked={editingUser?.is_trusted} className="w-5 h-5 accent-emerald-500 cursor-pointer" />
+                        <span className="text-sm font-bold text-emerald-400">Đánh dấu là Khách Quen (Miễn nạp cọc & CCCD)</span>
+                      </label>
                     </div>
                   </div>                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl mt-4">Lưu Thay Đổi</button>
                 </form>
@@ -4221,9 +4231,12 @@ const parseTimeStr = (str) => {
         {rentModalData && (() => {
           const totalRecharged = calculateTotalRecharged(currentUser?.id);
           const isVIP = totalRecharged >= 3000000; // Khách VIP (Nạp trên 3tr)
+          const isTrusted = currentUser?.is_trusted; // Nhận diện Khách quen
+          const skipKyc = isVIP || isTrusted; // Lệnh tối cao: Gặp 1 trong 2 là cho qua hết
           
           // Nếu là VIP thì miễn cọc. Nếu Khách thường chọn 'deposit' thì tốn 500k cọc.
-          const needsDeposit = !isVIP && rentKycMethod === 'deposit';
+          // Sửa điều kiện cọc
+          const needsDeposit = !skipKyc && rentKycMethod === 'deposit';
           const totalRentCost = rentModalData.opt.price + (needsDeposit ? 500000 : 0);
 
           return (
@@ -4326,15 +4339,14 @@ const processRent = async (imgBase64) => {
                     date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
                     info: { 
                       bonusTime: opt.bonusTime || '',
-                      kycMethod: isVIP ? 'vip' : (currentUser.is_cccd_verified && rentKycMethod === 'cccd' ? 'verified_cccd' : rentKycMethod),
-cccdImage: (!isVIP && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified ? currentUser.cccd_image : imgBase64) : null, 
+                      kycMethod: skipKyc ? (isVIP ? 'vip' : 'khach_quen') : (currentUser.is_cccd_verified && rentKycMethod === 'cccd' ? 'verified_cccd' : rentKycMethod),
+                      cccdImage: (!skipKyc && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified ? currentUser.cccd_image : imgBase64) : null, 
                       
-                      // Bổ sung dòng Gửi Ảnh Selfie (Đọc từ ô có ID là selfieUploadInput)
-                      cccdSelfie: (!isVIP && rentKycMethod === 'cccd' && !currentUser.is_cccd_verified && document.getElementById('selfieUploadInput')?.files[0]) 
+                      cccdSelfie: (!skipKyc && rentKycMethod === 'cccd' && !currentUser.is_cccd_verified && document.getElementById('selfieUploadInput')?.files[0]) 
                                   ? await new Promise(resolve => { const r = new FileReader(); r.onload = () => resolve(r.result); r.readAsDataURL(document.getElementById('selfieUploadInput').files[0]); }) 
                                   : null,
 
-                      cccdNumber: (!isVIP && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified ? currentUser.cccd_number : e.target.cccd?.value) : '',                      phone: e.target.phone.value, 
+                      cccdNumber: (!skipKyc && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified ? currentUser.cccd_number : e.target.cccd?.value) : '',                      phone: e.target.phone.value, 
                       awesunId: e.target.awesunId.value, 
                       awesunPass: e.target.awesunPass.value,
                       depositAmount: needsDeposit ? 500000 : 0,
@@ -4376,8 +4388,9 @@ cccdImage: (!isVIP && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified 
                   setCurrentView('lichsu');
                 };
 
+              
                 // Bắt buộc ảnh CCCD chỉ khi là Khách Thường VÀ chọn up CCCD
-                if(!isVIP && rentKycMethod === 'cccd' && !currentUser.is_cccd_verified) {
+                if(!skipKyc && rentKycMethod === 'cccd' && !currentUser.is_cccd_verified) {
                   if (!fileInput?.files[0]) return showToast("Vui lòng tải lên ảnh CCCD!", "error");
                   const reader = new FileReader();
                   reader.onload = () => processRent(reader.result);
@@ -4405,11 +4418,17 @@ cccdImage: (!isVIP && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified 
                     </div>
                   </label>
                 )}
-                {isVIP ? (
+ {isVIP ? (
                    <div className="bg-gradient-to-r from-yellow-500/10 to-amber-600/10 p-4 rounded-xl border border-yellow-500/50 mb-4 text-center">
                      <Sparkles size={24} className="text-yellow-400 mx-auto mb-1"/>
                      <p className="text-yellow-400 font-bold uppercase tracking-widest text-sm">Đặc Quyền Khách VIP</p>
                      <p className="text-sm text-slate-300 mt-2">Bạn được <span className="text-emerald-400 font-bold">MIỄN CHỤP CCCD</span> và <span className="text-emerald-400 font-bold">MIỄN CỌC 500K</span> khi thuê nick.</p>
+                   </div>
+                ) : isTrusted ? (
+                   <div className="bg-gradient-to-r from-emerald-500/10 to-teal-600/10 p-4 rounded-xl border border-emerald-500/50 mb-4 text-center shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                     <CheckCircle2 size={24} className="text-emerald-400 mx-auto mb-1"/>
+                     <p className="text-emerald-400 font-black uppercase tracking-widest text-lg">Khách Quen Uy Tín</p>
+                     <p className="text-sm text-slate-300 mt-2">Hệ thống đã nhận diện. Bạn được <span className="text-emerald-400 font-bold">MIỄN CHỤP CCCD</span> và <span className="text-emerald-400 font-bold">MIỄN CỌC 500K</span>.</p>
                    </div>
                 ) : (
                    <div className="bg-[#0B1120] p-4 rounded-xl border border-slate-800 mb-4">
