@@ -1833,10 +1833,12 @@ if (winningItem.type === 'money') {
     };
 
     const colors = ['#f43f5e', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#64748b'];
-    const conicStops = activeDb.map((item, idx) => {
+const conicStops = activeDb.map((item, idx) => {
         const startAngle = (idx * 360) / activeDb.length;
         const endAngle = ((idx + 1) * 360) / activeDb.length;
-        return `${colors[idx % colors.length]} ${startAngle}deg ${endAngle}deg`;
+        // Ưu tiên màu Admin chọn, nếu lỗi thì lấy màu mặc định
+        const sliceColor = item.color || colors[idx % colors.length]; 
+        return `${sliceColor} ${startAngle}deg ${endAngle}deg`;
     }).join(', ');
 
     return (
@@ -1903,8 +1905,14 @@ if (winningItem.type === 'money') {
                            <img src={w.image} className="w-8 h-8 md:w-10 md:h-10 rounded-md object-contain mr-3 md:mr-4 shadow-lg drop-shadow-lg" style={{ transform: 'rotate(90deg)' }} alt="prize" />
                         ) : (
                            <span className="text-white font-black text-[10px] md:text-xs uppercase drop-shadow-lg pr-4 md:pr-6" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
-                             {w.type === 'money' ? '+Tiền' : w.type === 'spin' ? '+Lượt' : w.type === 'other' ? 'Quà' : 'Trượt'}
-                           </span>
+{w.image ? (
+                           <img src={w.image} className="w-8 h-8 md:w-10 md:h-10 rounded-md object-contain mr-3 md:mr-4 shadow-lg drop-shadow-lg" style={{ transform: 'rotate(90deg)' }} alt="prize" />
+                        ) : (
+                           /* ĐÃ SỬA THÀNH HIỂN THỊ TÊN QUÀ (w.name) */
+                           <div className="text-white font-black text-[9px] md:text-[11px] uppercase drop-shadow-lg pr-4 md:pr-6 max-w-[90px] md:max-w-[120px] truncate text-right" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }} title={w.name}>
+                             {w.name}
+                           </div>
+                        )}                           </span>
                         )}
                       </div>
                     );
@@ -1932,7 +1940,7 @@ if (winningItem.type === 'money') {
             {activeDb.map((w, idx) => (
               <div key={w.id} className="bg-[#151D2F] border border-slate-800 p-3 md:p-4 rounded-xl text-center hover:border-blue-500/30 transition-colors flex flex-col items-center shadow-lg">
                 <div className="relative mb-2 md:mb-3">
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] border-2 border-slate-600" style={{backgroundColor: colors[idx % colors.length]}}></div>
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] border-2 border-slate-600" style={{backgroundColor: w.color || colors[idx % colors.length]}}></div>
                   {w.image && <img src={w.image} className="absolute inset-0 w-full h-full object-contain drop-shadow-md scale-125" />}
                 </div>
                 <p className="font-bold text-white text-xs md:text-base line-clamp-1">{w.name}</p>
@@ -2215,7 +2223,8 @@ const handleSaveBoosting = async (e) => {
         type: e.target.type.value, 
         value: parseInt(e.target.value.value) || 0,
 rate: e.target.rate.value,
-        quantity: parseInt(e.target.quantity.value) || 0, // <--- THÊM DÒNG NÀY        image: adminWheelImage,
+        quantity: parseInt(e.target.quantity.value) || 0, 
+        color: e.target.color.value || '#f43f5e', // <--- THÊM DÒNG NÀY// <--- THÊM DÒNG NÀY        image: adminWheelImage,
         wheel_type: adminWheelType // Phân biệt tiền hay lượt
       };
       
@@ -3514,7 +3523,14 @@ const voucherData = {
                   </div>
                   <div><label className="text-xs text-slate-400 font-bold">Tên Quà</label><input name="name" defaultValue={editingWheel?.name} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required/></div>
                   <div className="grid grid-cols-2 gap-3">
-<div>
+<div>{/* Ô CHỌN MÀU SẮC */}
+                  <div className="bg-slate-800/30 p-3 rounded-xl border border-slate-700">
+                    <label className="text-xs text-slate-400 font-bold flex items-center gap-1"><Flame size={14}/> Màu sắc nền của Ô quà này</label>
+                    <div className="flex items-center gap-3 mt-2">
+                      <input name="color" type="color" defaultValue={editingWheel?.color || '#f43f5e'} className="w-12 h-10 rounded cursor-pointer bg-transparent border-0 p-0" />
+                      <span className="text-[10px] text-slate-500">Mã màu sẽ hiển thị trực tiếp lên Vòng Quay của khách</span>
+                    </div>
+                  </div>
                       <label className="text-xs text-slate-400 font-bold">Loại</label>
                       <select name="type" defaultValue={editingWheel?.type || 'none'} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
                         <option value="money">Tiền VNĐ (Ví chính)</option>
