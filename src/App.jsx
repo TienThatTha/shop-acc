@@ -256,11 +256,21 @@ const fetchInitialData = async () => {
       }
 
       // 2. KIỂM TRA ĐĂNG NHẬP NGẦM (Cập nhật lại data mới nhất nếu LocalStorage bị cũ)
+// 2. KIỂM TRA ĐĂNG NHẬP NGẦM & LẤY THÔNG TIN KHÁCH
       const { data: { session } } = await supabase.auth.getSession();
-// 3. TẢI DỮ LIỆU ADMIN HOẶC DỮ LIỆU CÁ NHÂN
+      
       if (session) {
-         // Lấy role thật từ user vừa fetch
-const role = user?.role || 'user';
+         // PHẢI TÌM XEM USER NÀY LÀ AI TRONG DATABASE TRƯỚC ĐÃ (TRÁNH LỖI ĐƠ WEB)
+         const { data: user } = await supabase.from('users').select('*').eq('id', session.user.id).single();
+         
+         if (user && !user.is_locked) {
+           setCurrentUser(user);
+           localStorage.setItem('shop_cached_user', JSON.stringify(user)); // Cập nhật lại bộ nhớ tạm
+         }
+
+         // 3. TẢI DỮ LIỆU ADMIN HOẶC DỮ LIỆU CÁ NHÂN TÙY VÀO CHỨC VỤ
+         const role = user?.role || 'user';
+
          if (role === 'admin') {
            // ADMIN: Tải tất cả để quản lý
            const [usersRes, txRes, depRes, rentRes, msgRes] = await Promise.all([
