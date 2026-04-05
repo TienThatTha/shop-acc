@@ -2072,9 +2072,10 @@ const conicStops = activeDb.map((item, idx) => {
                   const newQuantity = (giftModalData.item.quantity || 999) - 1;
                   await supabase.from('wheel_items').update({ quantity: Math.max(0, newQuantity) }).eq('id', giftModalData.item.id);
 
-                  // CẬP NHẬT TRÊN GIAO DIỆN ĐỂ KHÁCH THẤY SỐ LƯỢNG TỤT XUỐNG NGAY LẬP TỨC
+ // CẬP NHẬT TRÊN GIAO DIỆN ĐỂ KHÁCH THẤY SỐ LƯỢNG TỤT XUỐNG NGAY LẬP TỨC
                   const updateWheelState = (prevDb) => prevDb.map(w => w.id === giftModalData.item.id ? {...w, quantity: Math.max(0, newQuantity)} : w);
-                  if (playMode === 'money') {
+                  // Dùng trực tiếp wheel_type của món quà để xác định vòng quay nào cần được cập nhật
+                  if (giftModalData.item.wheel_type === 'money') {
                     setWheelItemsMoneyDb(updateWheelState(wheelItemsMoneyDb));
                   } else {
                     setWheelItemsSpinDb(updateWheelState(wheelItemsSpinDb));
