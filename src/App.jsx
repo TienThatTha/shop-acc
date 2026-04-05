@@ -87,8 +87,12 @@ const sendAdminAlert = (actionName, detailMessage) => {
   useEffect(() => {
     localStorage.setItem('shop_current_view', currentView);
   }, [currentView]);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [viewingAcc, setViewingAcc] = useState(null);
+// Lấy data tạm từ RAM lên ngay lập tức lúc F5 để web không bị trống
+  const [currentUser, setCurrentUser] = useState(() => {
+    const savedUser = localStorage.getItem('shop_cached_user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+    const [viewingAcc, setViewingAcc] = useState(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('Tất cả');
   const [showPassword, setShowPassword] = useState(false);
@@ -223,11 +227,17 @@ const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState([]);
       setShowSpinRules(false);
     }
   }, [currentView, dismissSpinRules]);  useEffect(() => {
-    const fetchInitialData = async () => {
-// 1. Hút danh sách Nick game (Lọc chữ thường Supabase)
-      const { data: accountsData, error: accError } = await supabase.from('accounts').select('*');
-      if (accountsData && !accError) {
-        const fixedAccounts = accountsData.map(acc => ({
+const fetchInitialData = async () => {
+      // 1. GỌI TẤT CẢ DỮ LIỆU CÔNG KHAI CÙNG MỘT LÚC (SONG SONG)
+      const [accRes, boostRes, wheelRes] = await Promise.all([
+        supabase.from('accounts').select('*'),
+        supabase.from('boosting').select('*').order('id', { ascending: false }),
+        supabase.from('wheel_items').select('*')
+      ]);
+
+      // Xử lý Nick Game
+      if (accRes.data) {
+        const fixedAccounts = accRes.data.map(acc => ({
           ...acc,
           rentedUntil: acc.rentedUntil || acc.renteduntil || null,
           rentStartedAt: acc.rentStartedAt || acc.rentstartedat || null,
@@ -236,31 +246,52 @@ const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState([]);
         setAccountsDb(fixedAccounts);
       }
 
-      // 2. Hút danh sách User & Tự động đăng nhập
-      const { data: usersData, error: userError } = await supabase.from('users').select('*');
-      if (usersData && !userError) {
-        setUsersDb(usersData);
-        // Hút danh sách Voucher
-        const { data: voucherData } = await supabase.from('vouchers').select('*').order('id', { ascending: false });
-        if (voucherData) setVouchersDb(voucherData);
+      // Xử lý Cày Thuê
+      if (boostRes.data) setBoostingDb(boostRes.data);
 
-        // Tự động đăng nhập lại từ phiên làm việc của Supabase
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          const { data: user, error: fetchErr } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (user && !user.is_locked) {
-            setCurrentUser(user);
-          } else if (fetchErr) {
-            console.log("Phiên đăng nhập cũ không khớp dữ liệu mới.");
-          }
-        }
+      // Xử lý Vòng Quay
+      if (wheelRes.data) {
+        setWheelItemsMoneyDb(wheelRes.data.filter(w => w.wheel_type === 'money'));
+        setWheelItemsSpinDb(wheelRes.data.filter(w => w.wheel_type === 'spin'));
       }
 
+      // 2. KIỂM TRA ĐĂNG NHẬP NGẦM (Cập nhật lại data mới nhất nếu LocalStorage bị cũ)
+      const { data: { session } } = await supabase.auth.getSession();
+// 3. TẢI DỮ LIỆU ADMIN HOẶC DỮ LIỆU CÁ NHÂN
+      if (session) {
+         // Lấy role thật từ user vừa fetch
+         const role = session.user.email === 'email_cua_admin@gmail.com' ? 'admin' : 'user'; // Hoặc check user.role
+
+         if (role === 'admin') {
+           // ADMIN: Tải tất cả để quản lý
+           const [usersRes, txRes, depRes, rentRes, msgRes] = await Promise.all([
+              supabase.from('users').select('*'),
+              supabase.from('transactions').select('*').order('id', { ascending: false }),
+              supabase.from('deposit_requests').select('*').order('id', { ascending: false }),
+              supabase.from('rent_requests').select('*').order('id', { ascending: false }),
+              supabase.from('messages').select('*').order('timestamp', { ascending: true })
+           ]);
+           if (usersRes.data) setUsersDb(usersRes.data);
+           if (txRes.data) setTransactionsDb(txRes.data);
+           if (depRes.data) setDepositRequests(depRes.data);
+           if (rentRes.data) setRentRequests(rentRes.data);
+           if (msgRes.data) setMessagesDb(msgRes.data);
+         } else {
+           // KHÁCH THƯỜNG: Chỉ tải những gì liên quan đến khách đó
+           const [myTx, myDep, myRent, myMsg] = await Promise.all([
+              supabase.from('transactions').select('*').eq('user', currentUser?.name).order('id', { ascending: false }),
+              supabase.from('deposit_requests').select('*').eq('userId', session.user.id).order('id', { ascending: false }),
+              supabase.from('rent_requests').select('*').eq('userId', session.user.id).order('id', { ascending: false }),
+              supabase.from('messages').select('*').or(`senderId.eq.${session.user.id},receiverId.eq.${session.user.id}`).order('timestamp', { ascending: true })
+           ]);
+           if (myTx.data) setTransactionsDb(myTx.data);
+           if (myDep.data) setDepositRequests(myDep.data);
+           if (myRent.data) setRentRequests(myRent.data);
+           if (myMsg.data) setMessagesDb(myMsg.data);
+         }
+      }
+
+      // ... (Các phần tải Voucher, Thống kê giữ nguyên)
       // 3. Hút danh sách Lịch sử Giao dịch
       const { data: txData } = await supabase.from('transactions').select('*').order('id', { ascending: false });
       if (txData) setTransactionsDb(txData);
@@ -388,9 +419,11 @@ const handleLogin = async (e) => {
     if (userData) {
       if (userData.is_locked) {
         await supabase.auth.signOut();
+        localStorage.removeItem('shop_cached_user');
         return showToast("Tài khoản của bạn đã bị khóa!", 'error');
       }
       setCurrentUser(userData);
+      localStorage.setItem('shop_cached_user', JSON.stringify(userData));
       setCurrentView('dashboard');
       showToast(`Chào mừng ${userData.name} quay trở lại!`, 'success');
     }
@@ -520,6 +553,7 @@ const handleLogin = async (e) => {
         // 3. Cập nhật lại giao diện Web
         const updatedUser = {...currentUser, balance: newBalance};
 setCurrentUser(updatedUser);
+localStorage.setItem('shop_cached_user', JSON.stringify(userData));
       setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u));
         if (txData) setTransactionsDb([txData[0], ...transactionsDb]);
         
@@ -687,6 +721,7 @@ const handleSendVerification = async () => {
         // 7. Cập nhật giao diện Web
         const updatedUser = { ...currentUser, rentFund: newFund, balance: newBalance };
         setCurrentUser(updatedUser);
+        localStorage.setItem('shop_cached_user', JSON.stringify(userData));
         setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
         setAccountsDb(accountsDb.map(a => a.id === acc.id ? { ...a, rentedUntil: null, currentRenterId: null } : a));
         setViewingAcc(null);
@@ -725,6 +760,7 @@ const handleSendVerification = async () => {
         
         setUsersDb(usersDb.map(u => u.id === userObj.id ? updatedUser : u));
         if (currentUser?.id === userObj.id) setCurrentUser(updatedUser);
+        localStorage.setItem('shop_cached_user', JSON.stringify(userData));
         
         setTransactionsDb(transactionsDb.map(t => t.id === tx.id ? { ...t, status: 'Đã hoàn tác' } : t));
         
@@ -820,7 +856,8 @@ const handleSendVerification = async () => {
 setConfirmDialog({
                    title: 'Xác nhận Đăng xuất', message: 'Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?', 
                    onConfirm: async () => { 
-                       await supabase.auth.signOut(); // <--- Đấm phát chết luôn Session của Supabase
+                       await supabase.auth.signOut();
+                       localStorage.removeItem('shop_cached_user'); // <--- Đấm phát chết luôn Session của Supabase
                        localStorage.removeItem('shop_user_id');
                        setCurrentUser(null); 
                        setCurrentView('dashboard'); 
@@ -1184,6 +1221,7 @@ const handleUpdateInfo = async (e) => {
       // Cập nhật lại state cục bộ để web không bị treo
       const updatedUser = { ...currentUser, name: newName, phone: newPhone, email: newEmail };
       setCurrentUser(updatedUser);
+      localStorage.setItem('shop_cached_user', JSON.stringify(userData));
       setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u)); // Bổ sung dòng này;
     };
 
@@ -1326,7 +1364,8 @@ const handleUpdateInfo = async (e) => {
 setConfirmDialog({
                   title: 'Đăng xuất', message: 'Bạn có chắc muốn đăng xuất khỏi hệ thống?', 
                   onConfirm: async () => { 
-                      await supabase.auth.signOut(); // <--- Hủy hoàn toàn phiên đăng nhập ngầm
+                      await supabase.auth.signOut();
+                      localStorage.removeItem('shop_cached_user'); // <--- Hủy hoàn toàn phiên đăng nhập ngầm
                       localStorage.removeItem('shop_user_id'); 
                       setCurrentUser(null); 
                       setCurrentView('dashboard'); 
@@ -1769,6 +1808,7 @@ const renderVongQuay = () => {
       }
       
 setCurrentUser(updatedUser);
+localStorage.setItem('shop_cached_user', JSON.stringify(userData));
       setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u));
       setTransactionsDb([{
         id: `TX${Date.now()}`, user: currentUser.name,
@@ -4268,6 +4308,7 @@ cccdImage: (!isVIP && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified 
                     rentFund: newFund // <--- Thiếu dòng này là lỗ sặc máu!
                   };
                   setCurrentUser(updatedUser);
+                  localStorage.setItem('shop_cached_user', JSON.stringify(userData));
                   setUsersDb(prev => prev.map(u => u.id === currentUser?.id ? updatedUser : u));                  setTransactionsDb([...txs, ...transactionsDb]);
                   if (rentData) setRentRequests([rentData[0], ...rentRequests]);
 
@@ -4443,6 +4484,7 @@ cccdImage: (!isVIP && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified 
                   const reqId = `BST${Date.now()}`;
                   const updatedUser = {...currentUser, balance: currentUser.balance - boostingModalData.price};
 setCurrentUser(updatedUser);
+localStorage.setItem('shop_cached_user', JSON.stringify(userData));
       setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u));
                   setTransactionsDb([{
                     id: `TX${Math.floor(Math.random() * 10000)}`, user: currentUser.name,
