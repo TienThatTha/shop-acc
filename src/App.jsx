@@ -1161,14 +1161,26 @@ const renderForgotPasswordScreen = () => (
                         )}
                       </div>
                       
-{/* XỬ LÝ NÚT NGOÀI MẶT TIỀN: Phân biệt Chủ Thuê và Khách Vãng Lai */}
+{/* XỬ LÝ NÚT NGOÀI MẶT TIỀN: Phân biệt Chủ Thuê, Khách Vãng Lai và Gói Combo */}
                       {isRented && currentUser?.id === acc.currentRenterId ? (
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleStopRent(acc); }} 
-                          className="w-full py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/20 active:scale-95"
-                        >
-                          <Clock size={16} className="animate-pulse" /> NGƯNG THUÊ & BẢO LƯU
-                        </button>
+                        (() => {
+                          // Dò xem khách đang thuê gói gì
+                          const activeReq = rentRequests.find(r => r.accCode === acc.code && r.status === 'Đã giao acc');
+                          const isCombo = activeReq && (activeReq.time.toLowerCase().includes('combo đêm') || activeReq.time.toLowerCase().includes('combo ngày'));
+                          
+                          return isCombo ? (
+                            <button disabled className="w-full py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors bg-slate-700 text-slate-400 cursor-not-allowed shadow-inner border border-slate-600">
+                              <Clock size={16} /> ĐANG THUÊ GÓI COMBO
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleStopRent(acc); }} 
+                              className="w-full py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/20 active:scale-95"
+                            >
+                              <Clock size={16} className="animate-pulse" /> NGƯNG THUÊ & BẢO LƯU
+                            </button>
+                          );
+                        })()
                       ) : (
                         <button 
                           onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }} 
@@ -1176,7 +1188,8 @@ const renderForgotPasswordScreen = () => (
                         >
                           {isRented ? 'XEM ACC ĐANG THUÊ' : <>XEM CHI TIẾT <ArrowRight size={16}/></>}
                         </button>
-                      )}                    </div>
+                      )}               
+                      </div>
                   </div>
                 </div>
               )})}
@@ -2825,11 +2838,10 @@ const voucherData = {
                           {r.status === 'Chờ xử lý' && (
                              <button onClick={()=>{
                                setConfirmDialog({title: 'Xác nhận giao', message: 'Bạn đã đăng nhập thành công vào máy khách?', onConfirm: async () => {
-                             const parseTimeStr = (str) => {
+const parseTimeStr = (str) => {
                                    if (!str) return 0;
                                    const s = str.toLowerCase();
-                                   if (s.includes('đêm')) return 10 * 60 * 60 * 1000; // Đêm mặc định 10 tiếng
-                                   const match = s.match(/(\d+)/); // Tìm con số trong chuỗi
+                                   const match = s.match(/(\d+)/);
                                    if (match) {
                                      const val = parseInt(match[1]);
                                      if (s.includes('phút') || s.includes('p')) return val * 60 * 1000;
@@ -2839,21 +2851,30 @@ const voucherData = {
                                    return 0;
                                  };
                                  
-                                 // Tự động tính Giờ gốc + Giờ Tặng Thêm
-                                 let durationMs = parseTimeStr(r.time) + parseTimeStr(r.info?.bonusTime);
-                                 if (durationMs === 0) durationMs = 2 * 60 * 60 * 1000; // Nếu lỗi chữ, mặc định cho thuê 2 tiếng
-                                 
-                                 const endTime = Date.now() + durationMs;
-                                 // Tự động lưu CCCD vĩnh viễn cho khách nếu đơn này dùng CCCD mới
-                                 if (r.info.kycMethod === 'cccd' && r.userId) {
-                                    await supabase.from('users').update({ 
-                                      is_cccd_verified: true, 
-                                      cccd_image: r.info.cccdImage, 
-                                      cccd_number: r.info.cccdNumber 
-                                    }).eq('id', r.userId);
-                                 }
+                                 const timeStrLower = r.time.toLowerCase();
+                                 const now = new Date();
+                                 const bonusMs = r.info?.bonusTime ? parseTimeStr(r.info.bonusTime) : 0;
+                                 let endTime;
 
-                                 // Lưu lên Supabase: Cập nhật tài khoản đang cho thuê và trạng thái đơn
+                                 // TỰ ĐỘNG BẮT KEYWORD "COMBO" VÀ TÍNH GIỜ CHUẨN XÁC
+                                 if (timeStrLower.includes('combo đêm')) {
+                                     let end = new Date(now);
+                                     end.setHours(8, 0, 0, 0); // Mặc định là 8h sáng
+                                     if (now.getHours() >= 8) end.setDate(end.getDate() + 1); // Nếu Admin giao lúc 23h, nó sẽ tính 8h sáng hôm sau
+                                     endTime = end.getTime() + bonusMs;
+                                 } 
+                                 else if (timeStrLower.includes('combo ngày')) {
+                                     let end = new Date(now);
+                                     end.setHours(23, 0, 0, 0); // Mặc định là 23h đêm
+                                     if (now.getHours() >= 23) end.setDate(end.getDate() + 1);
+                                     endTime = end.getTime() + bonusMs;
+                                 } 
+                                 else {
+                                     // Tính theo số giờ bình thường
+                                     let durationMs = parseTimeStr(r.time) + bonusMs;
+                                     if (durationMs === 0) durationMs = 2 * 60 * 60 * 1000; // Lỗi chữ thì cho mặc định 2 tiếng
+                                     endTime = Date.now() + durationMs;
+                                 }                                 // Lưu lên Supabase: Cập nhật tài khoản đang cho thuê và trạng thái đơn
 // 1. Cập nhật bảng Accounts BẮT BUỘC TRẢ VỀ DỮ LIỆU
                                  const { data: accData, error: accErr } = await supabase.from('accounts')
                                    .update({ 
@@ -4111,24 +4132,39 @@ const voucherData = {
                       )}
                       <p className="text-xs text-slate-500 font-bold mb-2 uppercase flex items-center gap-1"><Clock size={12}/> Các gói thuê trải nghiệm</p>
                       {isCurrentlyRented && <div className="text-xs text-yellow-500 mb-3 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">Nick đang được thuê bởi khách khác, tạm thời không thể thuê. Bạn vẫn có thể mua đứt ngay lập tức.</div>}                      
-                      {/* NÚT NGƯNG THUÊ DÀNH RIÊNG CHO NGƯỜI ĐANG THUÊ */}
+{/* NÚT NGƯNG THUÊ DÀNH RIÊNG CHO NGƯỜI ĐANG THUÊ */}
                       {isCurrentlyRented && currentUser?.id === viewingAcc.currentRenterId && (
                         <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl mb-4 shadow-[0_0_15px_rgba(225,29,72,0.1)]">
                           <div className="flex items-center gap-2 text-rose-500 mb-3">
                             <Clock size={18} className="animate-pulse"/>
                             <span className="font-bold text-sm uppercase">Bạn đang trong phiên thuê</span>
                           </div>
-                          <button 
-                            onClick={() => handleStopRent(viewingAcc)}
-                            className="w-full bg-rose-600 hover:bg-rose-500 text-white font-black py-3 rounded-xl transition-all shadow-lg active:scale-95"
-                          >
-                            NGƯNG THUÊ & BẢO LƯU GIỜ
-                          </button>
-                          <p className="text-[10px] text-slate-500 mt-2 italic text-center">
-                            * Lưu ý: Hệ thống khấu trừ tối thiểu 2 giờ chơi cho mỗi lần ngưng thuê.
-                          </p>
+                          
+                          {(() => {
+                            const activeReqModal = rentRequests.find(r => r.accCode === viewingAcc.code && r.status === 'Đã giao acc');
+                            const isComboModal = activeReqModal && (activeReqModal.time.toLowerCase().includes('combo đêm') || activeReqModal.time.toLowerCase().includes('combo ngày'));
+                            
+                            return isComboModal ? (
+                               <button disabled className="w-full bg-slate-700 text-slate-400 font-black py-3 rounded-xl transition-all cursor-not-allowed border border-slate-600">
+                                 ĐANG THUÊ GÓI COMBO (KHÔNG HỖ TRỢ NGƯNG)
+                               </button>
+                            ) : (
+                              <>
+                                <button 
+                                  onClick={() => handleStopRent(viewingAcc)}
+                                  className="w-full bg-rose-600 hover:bg-rose-500 text-white font-black py-3 rounded-xl transition-all shadow-lg active:scale-95"
+                                >
+                                  NGƯNG THUÊ & BẢO LƯU GIỜ
+                                </button>
+                                <p className="text-[10px] text-slate-500 mt-2 italic text-center">
+                                  * Lưu ý: Hệ thống khấu trừ tối thiểu 2 giờ chơi cho mỗi lần ngưng thuê.
+                                </p>
+                              </>
+                            );
+                          })()}
                         </div>
-                      )}<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {viewingAcc.rentOptions.map((opt, idx) => (
 <button 
                             key={idx} 
