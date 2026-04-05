@@ -255,26 +255,26 @@ const fetchInitialData = async () => {
         setWheelItemsSpinDb(wheelRes.data.filter(w => w.wheel_type === 'spin'));
       }
 
-      // 2. KIỂM TRA ĐĂNG NHẬP NGẦM (Cập nhật lại data mới nhất nếu LocalStorage bị cũ)
 // 2. KIỂM TRA ĐĂNG NHẬP NGẦM & LẤY THÔNG TIN KHÁCH
       const { data: { session } } = await supabase.auth.getSession();
       
+      let userRole = 'user'; // Mặc định ai cũng là khách
+
       if (session) {
-         // PHẢI TÌM XEM USER NÀY LÀ AI TRONG DATABASE TRƯỚC ĐÃ (TRÁNH LỖI ĐƠ WEB)
+         // TÌM XEM USER NÀY LÀ AI TRONG DATABASE ĐỂ XÁC ĐỊNH QUYỀN
          const { data: user } = await supabase.from('users').select('*').eq('id', session.user.id).single();
          
          if (user && !user.is_locked) {
            setCurrentUser(user);
-           localStorage.setItem('shop_cached_user', JSON.stringify(user)); // Cập nhật lại bộ nhớ tạm
+           localStorage.setItem('shop_cached_user', JSON.stringify(user));
+           userRole = user.role || 'user'; // Lấy quyền thật sự từ Database
          }
 
-         // 3. TẢI DỮ LIỆU ADMIN HOẶC DỮ LIỆU CÁ NHÂN TÙY VÀO CHỨC VỤ
-         const role = user?.role || 'user';
-
-         if (role === 'admin') {
+         // 3. TẢI DỮ LIỆU ADMIN HOẶC KHÁCH THƯỜNG DỰA VÀO QUYỀN VỪA LẤY
+         if (userRole === 'admin') {
            // ADMIN: Tải tất cả để quản lý
            const [usersRes, txRes, depRes, rentRes, msgRes] = await Promise.all([
-              supabase.from('users').select('*'),
+              supabase.from('users').select('*').order('id', { ascending: false }),
               supabase.from('transactions').select('*').order('id', { ascending: false }),
               supabase.from('deposit_requests').select('*').order('id', { ascending: false }),
               supabase.from('rent_requests').select('*').order('id', { ascending: false }),
@@ -288,7 +288,7 @@ const fetchInitialData = async () => {
          } else {
            // KHÁCH THƯỜNG: Chỉ tải những gì liên quan đến khách đó
            const [myTx, myDep, myRent, myMsg] = await Promise.all([
-              supabase.from('transactions').select('*').eq('user', currentUser?.name).order('id', { ascending: false }),
+              supabase.from('transactions').select('*').eq('user', user?.name).order('id', { ascending: false }),
               supabase.from('deposit_requests').select('*').eq('userId', session.user.id).order('id', { ascending: false }),
               supabase.from('rent_requests').select('*').eq('userId', session.user.id).order('id', { ascending: false }),
               supabase.from('messages').select('*').or(`senderId.eq.${session.user.id},receiverId.eq.${session.user.id}`).order('timestamp', { ascending: true })
@@ -299,7 +299,6 @@ const fetchInitialData = async () => {
            if (myMsg.data) setMessagesDb(myMsg.data);
          }
       }
-
       // ... (Các phần tải Voucher, Thống kê giữ nguyên)
       // 3. Hút danh sách Lịch sử Giao dịch
       const { data: txData } = await supabase.from('transactions').select('*').order('id', { ascending: false });
@@ -2587,8 +2586,11 @@ const voucherData = {
                               }} className={`p-2 rounded transition-colors ${u.is_locked ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white' : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white'}`} title={u.is_locked ? 'Mở khoá' : 'Khoá'}>
                                  {u.is_locked ? <Unlock size={16}/> : <Lock size={16}/>}
                               </button>
-                                  <button onClick={() => { setConfirmDialog({ title: 'Xoá User', message: `Bạn chắc chắn muốn xoá ${u.name}?`, onConfirm: () => {setUsersDb(usersDb.filter(x => x.id !== u.id)); showToast("Đã xoá người dùng!"); }}) }} className="p-2 bg-rose-500/20 text-rose-400 rounded hover:bg-rose-500 hover:text-white transition-colors" title="Xoá"><Trash2 size={16}/></button>
-                                </>
+<button onClick={() => { setConfirmDialog({ title: 'Xoá User', message: `Bạn chắc chắn muốn xoá ${u.name}?`, onConfirm: async () => {
+   await supabase.from('users').delete().eq('id', u.id);
+   setUsersDb(usersDb.filter(x => x.id !== u.id)); 
+   showToast("Đã xoá người dùng vĩnh viễn!"); 
+}}) }} className="p-2 bg-rose-500/20 text-rose-400 rounded hover:bg-rose-500 hover:text-white transition-colors" title="Xoá"><Trash2 size={16}/></button>                                </>
                               )}
                             </div>
                           </td>
@@ -2704,8 +2706,11 @@ const voucherData = {
                       </div>
                       <div className="flex flex-col gap-2">
                         <button onClick={() => { setEditingAccount(acc); setAdminCoverImage(acc.coverImage); setAdminDetailImages(acc.detailImages || []); setAdminRentOptions(acc.rentOptions?.length > 0 ? acc.rentOptions : [{ time: '', price: '' }]); setShowAccModal(true); }} className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500 hover:text-white transition-colors" title="Chỉnh sửa"><Edit size={18}/></button>
-                        <button onClick={() => { setConfirmDialog({ title: 'Xoá Nick', message: `Xoá nick mã ${acc.code}?`, onConfirm: () => { setAccountsDb(accountsDb.filter(a => a.id !== acc.id)); showToast("Đã xoá nick!"); }}) }} className="p-2 bg-rose-500/10 text-rose-400 rounded-lg hover:bg-rose-500 hover:text-white transition-colors" title="Xoá"><Trash2 size={18}/></button>
-                      </div>
+<button onClick={() => { setConfirmDialog({ title: 'Xoá Nick', message: `Xoá nick mã ${acc.code}?`, onConfirm: async () => { 
+   await supabase.from('accounts').delete().eq('id', acc.id);
+   setAccountsDb(accountsDb.filter(a => a.id !== acc.id)); 
+   showToast("Đã xoá nick vĩnh viễn!"); 
+}}) }} className="p-2 bg-rose-500/10 text-rose-400 rounded-lg hover:bg-rose-500 hover:text-white transition-colors" title="Xoá"><Trash2 size={18}/></button>                      </div>
                     </div>
                   ))}
                 </div>
@@ -2792,9 +2797,13 @@ const voucherData = {
                                   <button onClick={()=>{
                                     setApproveDepositModal(d);
                                   }} className="bg-emerald-600 px-4 py-2 rounded-lg text-white text-xs font-bold hover:bg-emerald-500 transition-colors shadow-lg">Duyệt Cộng</button>
-                                  <button onClick={()=>{
-                                    setConfirmDialog({ title: 'Từ chối Nạp', message: 'Từ chối yêu cầu này?', onConfirm: () => {
-                                      setDepositRequests(depositRequests.map(req => req.id === d.id ? {...req, status: 'Từ chối'} : req)); showToast("Đã từ chối lệnh!");
+                     <button onClick={()=>{
+                                    setConfirmDialog({ title: 'Từ chối Nạp', message: 'Từ chối yêu cầu này?', onConfirm: async () => {
+                                      // 1. Lưu vĩnh viễn lên Supabase
+                                      await supabase.from('deposit_requests').update({ status: 'Từ chối' }).eq('id', d.id);
+                                      // 2. Tắt trên màn hình
+                                      setDepositRequests(depositRequests.map(req => req.id === d.id ? {...req, status: 'Từ chối'} : req)); 
+                                      showToast("Đã từ chối lệnh!");
                                     }});
                                   }} className="bg-rose-500/20 px-3 py-2 rounded-lg text-rose-400 hover:bg-rose-500 hover:text-white text-xs font-bold transition-colors">Từ chối</button>
                                 </>
@@ -3069,8 +3078,11 @@ const parseTimeStr = (str) => {
                         <p className="text-xs text-slate-500 mb-4 flex-1 line-clamp-2">{b.desc}</p>
                         <div className="flex gap-2 border-t border-slate-800 pt-3">
                            <button onClick={()=>{setEditingBoosting(b); setAdminBoostingImage(b.image || null); setAdminBoostType(b.type || 'rank'); setShowBoostingModal(true);}} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Edit size={14}/> Sửa</button>
-                           <button onClick={()=>setConfirmDialog({title:'Xoá dịch vụ', message:'Xoá dịch vụ cày thuê này?', onConfirm:()=>setBoostingDb(boostingDb.filter(x=>x.id!==b.id))})} className="flex-1 py-1.5 bg-rose-500/10 text-rose-400 rounded hover:bg-rose-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Trash2 size={14}/> Xoá</button>
-                        </div>
+<button onClick={()=>setConfirmDialog({title:'Xoá dịch vụ', message:'Xoá dịch vụ cày thuê này?', onConfirm: async () => {
+   await supabase.from('boosting').delete().eq('id', b.id);
+   setBoostingDb(boostingDb.filter(x=>x.id!==b.id));
+   showToast("Đã xóa dịch vụ vĩnh viễn!");
+}})} className="flex-1 py-1.5 bg-rose-500/10 text-rose-400 rounded hover:bg-rose-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Trash2 size={14}/> Xoá</button>                        </div>
                       </div>
                     ))}
                  </div>
