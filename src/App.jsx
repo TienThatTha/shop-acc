@@ -8,6 +8,7 @@ import {
   Sparkles, TrendingUp, Users, Ticket, Settings2, MessageCircle, Send, Eye, EyeOff
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
+import emailjs from '@emailjs/browser';
 // --- COMPONENT LOGO TÙY CHỈNH ---
 const CustomLogo = ({ className = "" }) => (
   <div className={`flex items-center gap-2 ${className} cursor-pointer`}>
@@ -57,7 +58,26 @@ const enforceNumberInput = (e) => {
 };
 
 const App = () => {
+  // --- BỘ ĐÀM GỬI EMAIL BÁO CHO ADMIN ---
+const sendAdminAlert = (actionName, detailMessage) => {
+  const templateParams = {
+    action: actionName,
+    details: detailMessage,
+  };
+
+  emailjs.send(
+    'service_f2gzbuj',    // Thay mã Service ID vào đây (VD: 'service_f2gzbuj')
+    'template_j21hkig',   // Thay mã Template ID vào đây
+    templateParams, 
+    'PpccbGTjm_SrgZAwu'     // Thay mã Public Key vào đây
+  ).then((response) => {
+    console.log('Đã báo Email cho Admin!', response.status);
+  }).catch((err) => {
+    console.error('Lỗi gửi Email:', err);
+  });
+};
  const [usersDb, setUsersDb] = useState([]);
+ const [visitorCount, setVisitorCount] = useState(0);
   const [accountsDb, setAccountsDb] = useState([]);
   // Tự động nhớ vị trí màn hình hiện tại
   const [currentView, setCurrentView] = useState(() => {
@@ -276,6 +296,21 @@ const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState([]);
 
     
     fetchInitialData();
+    // --- HỆ THỐNG ĐẾM LƯỢT TRUY CẬP ---
+    const trackVisitor = async () => {
+      const { data } = await supabase.from('site_stats').select('views').eq('id', 1).single();
+      if (data) {
+        let currentViews = data.views;
+        // Dùng sessionStorage để khách F5 không bị cộng dồn ảo (Chỉ tính 1 lượt/1 phiên mở web)
+        if (!sessionStorage.getItem('has_visited')) {
+          currentViews += 1;
+          await supabase.from('site_stats').update({ views: currentViews }).eq('id', 1);
+          sessionStorage.setItem('has_visited', 'true');
+        }
+        setVisitorCount(currentViews);
+      }
+    };
+    trackVisitor();
   }, []);
  // Global Time State
   const [now, setNow] = useState(Date.now());
@@ -490,6 +525,7 @@ setCurrentUser(updatedUser);
         setAccountsDb(accountsDb.map(a => a.id === acc.id ? {...a, rentedUntil: null} : a));
         setViewingAcc(null); 
         setSuccessTxData({ type: 'buy', title: 'Mua Tài Khoản Thành Công!', acc: acc });
+        sendAdminAlert('MUA NICK', `Khách ${currentUser.name} vừa mua đứt nick #${acc.code} với giá ${new Intl.NumberFormat('vi-VN').format(acc.price)}đ.`);
       }
     });
   };
@@ -1183,6 +1219,7 @@ const handleUpdateInfo = async (e) => {
       setMessagesDb([...messagesDb, newMsg]);
       e.target.reset();
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      sendAdminAlert('TIN NHẮN HỖ TRỢ', `Khách ${currentUser?.name} vừa nhắn: "${input}"`);
     };
 
     const userMessages = messagesDb.filter(m => m.senderId === currentUser?.id || m.receiverId === currentUser?.id);
@@ -1335,7 +1372,10 @@ setConfirmDialog({
     );
   };
 
-  const renderNaptienScreen = () => {
+const renderNaptienScreen = () => {
+    // 1. TẠO BIẾN KIỂM TRA LỆNH ĐANG CHỜ DUYỆT
+    const hasPendingRequest = depositRequests.some(d => d.userId === currentUser?.id && d.status === 'Chờ duyệt');
+
     const removeAccents = (str) => {
       return str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D') : '';
     }
@@ -1344,12 +1384,14 @@ setConfirmDialog({
 
     const handleCreateDepositDraft = (e) => {
       e.preventDefault();
+      
+      // 2. CHẶN TẠO LỆNH NẾU ĐANG CÓ LỆNH CHỜ
+      if (hasPendingRequest) {
+        return showToast("Bạn đang có lệnh nạp chờ duyệt. Vui lòng đợi Admin xử lý!", "error");
+      }
+
       const parsedAmount = parseInt(depositAmount);
       if(!parsedAmount || parsedAmount < 10000) return showToast("Số tiền tối thiểu 10.000đ", 'error');
-      
-      if (parsedAmount % 10000 !== 0) {
-        return showToast("Số tiền nạp phải là bội số của 10.000đ (VD: 10000, 20000, 50000...)", 'error');
-      }
 
 let bonusAmount = 0;
       let bonusSpins = 0;
@@ -1374,11 +1416,17 @@ let bonusAmount = 0;
       setDepositStep(2); // Chuyển sang bước quét QR
     };
 
- const handleConfirmTransfer = async () => {
+const handleConfirmTransfer = async () => {
       if (!pendingDeposit) return;
+      
+      // CHẶN BẤM ĐÚP XÁC NHẬN KHI ĐÃ CÓ LỆNH CHỜ
+      if (hasPendingRequest) {
+        setDepositStep(1);
+        setPendingDeposit(null);
+        return showToast("Bạn đã gửi 1 lệnh nạp trước đó rồi. Vui lòng chờ Admin duyệt!", "error");
+      }
 
-const newReq = {
-        id: Date.now(),
+      const newReq = {        id: Date.now(),
         user: currentUser.name, 
         userId: currentUser.id,
         amount: pendingDeposit.amount, 
@@ -1663,8 +1711,8 @@ const newReq = {
   );
 
 const renderVongQuay = () => {
-    let activeDb = playMode === 'money' ? wheelItemsMoneyDb : wheelItemsSpinDb;
-
+// CHỈ LẤY NHỮNG QUÀ CÓ SỐ LƯỢNG LỚN HƠN 0
+    let activeDb = (playMode === 'money' ? wheelItemsMoneyDb : wheelItemsSpinDb).filter(item => item.quantity === undefined || item.quantity > 0);
     // 1. Chống sập khi F5 (Đang tải dữ liệu) hoặc Admin chưa cài bất kỳ quà nào
     if (wheelItemsMoneyDb.length === 0 && wheelItemsSpinDb.length === 0) {
       return (
@@ -1765,11 +1813,14 @@ setCurrentUser(updatedUser);
 
         const prizeValue = Number(winningItem.value) || 0;
 
-        if (winningItem.type === 'money') {
+if (winningItem.type === 'money') {
           setGiftModalData({ item: winningItem, prizeValue: prizeValue, prizeType: 'money', updatedUser: updatedUser });
           setIsGiftOpened(true); 
         } else if (winningItem.type === 'spin') {
           setGiftModalData({ item: winningItem, prizeValue: prizeValue, prizeType: 'spin', updatedUser: updatedUser });
+          setIsGiftOpened(true); 
+        } else if (winningItem.type === 'fund') { // <--- THÊM KHỐI NÀY
+          setGiftModalData({ item: winningItem, prizeValue: prizeValue, prizeType: 'fund', updatedUser: updatedUser });
           setIsGiftOpened(true); 
         } else if (winningItem.type === 'other') {
           setGiftModalData({ item: winningItem, prizeValue: 0, prizeType: 'other', updatedUser: updatedUser });
@@ -1886,6 +1937,7 @@ setCurrentUser(updatedUser);
                 </div>
                 <p className="font-bold text-white text-xs md:text-base line-clamp-1">{w.name}</p>
                 <p className="text-[10px] md:text-xs bg-slate-800 inline-block px-2 py-0.5 md:py-1 rounded-full mt-1.5 md:mt-2 text-blue-400 font-bold border border-slate-700">Tỉ lệ: {w.rate}</p>
+                <p className="text-[10px] md:text-xs text-slate-400 mt-1 font-bold bg-[#0B1120] px-2 py-0.5 rounded border border-slate-700 inline-block ml-1">Còn: {w.quantity ?? 999}</p>
               </div>
             ))}
           </div>
@@ -1956,8 +2008,11 @@ setCurrentUser(updatedUser);
               
               <div className={`border rounded-2xl p-4 md:p-6 mb-6 md:mb-8 relative shadow-inner ${giftModalData.isLost ? 'bg-slate-800/50 border-slate-700' : 'bg-yellow-900/30 border-yellow-500/50'}`}>
                 <p className={`text-2xl md:text-3xl font-black ${giftModalData.isLost ? 'text-slate-400' : 'text-white'}`}>{giftModalData.item.name}</p>
-                {giftModalData.prizeValue > 0 && giftModalData.prizeType === 'money' && (
-                  <p className="text-yellow-400 font-black text-xl md:text-2xl mt-2">+ {new Intl.NumberFormat('vi-VN').format(giftModalData.prizeValue)}đ</p>
+{giftModalData.prizeValue > 0 && giftModalData.prizeType === 'money' && (
+                  <p className="text-yellow-400 font-black text-xl md:text-2xl mt-2">+ {new Intl.NumberFormat('vi-VN').format(giftModalData.prizeValue)}đ (Ví)</p>
+                )}
+                {giftModalData.prizeValue > 0 && giftModalData.prizeType === 'fund' && (
+                  <p className="text-yellow-400 font-black text-xl md:text-2xl mt-2">+ {new Intl.NumberFormat('vi-VN').format(giftModalData.prizeValue)}đ (Quỹ Thuê)</p>
                 )}
                 {giftModalData.prizeValue > 0 && giftModalData.prizeType === 'spin' && (
                   <p className="text-rose-400 font-black text-xl md:text-2xl mt-2">+ {giftModalData.prizeValue} Lượt Quay</p>
@@ -1965,25 +2020,40 @@ setCurrentUser(updatedUser);
               </div>
 
               <button onClick={async () => {
-                if (!giftModalData.isLost && (giftModalData.prizeType === 'money' || giftModalData.prizeType === 'spin' || giftModalData.prizeType === 'other')) {
-                  
-                  let winUser = { ...giftModalData.updatedUser };
+if (!giftModalData.isLost && (giftModalData.prizeType === 'money' || giftModalData.prizeType === 'spin' || giftModalData.prizeType === 'fund' || giftModalData.prizeType === 'other')) {                  
+let winUser = { ...giftModalData.updatedUser };
                   let actionText = `Trúng thưởng: ${giftModalData.item.name}`;
                   let statusText = 'Thành công';
                   let txAmount = 0;
                   let isSpin = false;
+                  // THÊM BIẾN MỚI ĐỂ XÁC ĐỊNH LOẠI GIAO DỊCH
+                  let txType = 'spin_win'; 
 
                   if (giftModalData.prizeType === 'money' && giftModalData.prizeValue > 0) {
                     winUser.balance += giftModalData.prizeValue;
-                    txAmount = -giftModalData.prizeValue; // Ghi âm (-) để hệ thống hiểu là Tiền Cộng Vào (+)
+                    txAmount = -giftModalData.prizeValue;
                   } else if (giftModalData.prizeType === 'spin' && giftModalData.prizeValue > 0) {
                     winUser.spins = (winUser.spins || 0) + giftModalData.prizeValue;
-                    txAmount = -giftModalData.prizeValue; // Ghi âm (-) để hệ thống hiểu là Tiền Cộng Vào (+)
+                    txAmount = -giftModalData.prizeValue;
                     isSpin = true;
+                  } else if (giftModalData.prizeType === 'fund' && giftModalData.prizeValue > 0) {
+                    // XỬ LÝ CỘNG TIỀN VÀO QUỸ THUÊ BẢO LƯU (rentFund)
+                    winUser.rentFund = (winUser.rentFund || 0) + giftModalData.prizeValue;
+                    txAmount = -giftModalData.prizeValue;
+                    txType = 'fund_add'; // Gắn type này để lịch sử biết là tiền chạy vào quỹ
                   }
 
-                  // 1. Cập nhật Số dư/Lượt quay lên Supabase
-                  await supabase.from('users').update({ balance: winUser.balance, spins: winUser.spins }).eq('id', winUser.id);
+                  // 1. Cập nhật Số dư/Lượt quay lên Supabase (Gửi cả rentFund)
+                  await supabase.from('users').update({ 
+                    balance: winUser.balance, 
+                    spins: winUser.spins,
+                    rentFund: winUser.rentFund 
+                  }).eq('id', winUser.id);
+                  
+                  // TRỪ SỐ LƯỢNG QUÀ TRONG KHO (Giữ nguyên)
+                  // ...
+                  // CẬP NHẬT TRÊN MÀN HÌNH (Giữ nguyên)
+                  // ...
 
                   // 2. Ghi Lịch sử trúng thưởng lên Supabase
                   const newTx = {
@@ -1991,10 +2061,9 @@ setCurrentUser(updatedUser);
                     action: actionText, amount: txAmount,
                     date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
                     status: statusText,
-                    type: 'spin_win',
+                    type: txType, // Dùng biến txType thay vì 'spin_win' cứng
                     isSpinCost: isSpin
-                  };
-                  const { data: txData } = await supabase.from('transactions').insert([newTx]).select();
+                  };                  const { data: txData } = await supabase.from('transactions').insert([newTx]).select();
 
                   // 3. Cập nhật lại giao diện Web
                   setCurrentUser(winUser);
@@ -2143,8 +2212,8 @@ const handleSaveBoosting = async (e) => {
         name: e.target.name.value, 
         type: e.target.type.value, 
         value: parseInt(e.target.value.value) || 0,
-        rate: e.target.rate.value,
-        image: adminWheelImage,
+rate: e.target.rate.value,
+        quantity: parseInt(e.target.quantity.value) || 0, // <--- THÊM DÒNG NÀY        image: adminWheelImage,
         wheel_type: adminWheelType // Phân biệt tiền hay lượt
       };
       
@@ -2273,7 +2342,7 @@ const voucherData = {
             {/* TAB NGƯỜI DÙNG */}
             {adminTab === 'users' && (
               <div className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                    <div className="bg-[#0B1120] p-4 rounded-xl border border-slate-700 flex items-center gap-4">
                      <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-500"><Users size={24}/></div>
                      <div><p className="text-xs text-slate-400 font-bold uppercase">Tổng Khách Hàng</p><p className="text-2xl font-black text-white">{usersDb.length}</p></div>
@@ -2286,9 +2355,17 @@ const voucherData = {
                      <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500"><TrendingUp size={24}/></div>
                      <div>
                        <p className="text-xs text-slate-400 font-bold uppercase">Tổng Doanh Thu</p>
+                       
                        <p className="text-2xl font-black text-emerald-400">
                          {new Intl.NumberFormat('vi-VN').format(totalRevenue)}đ
                        </p>
+                     </div>
+                   </div>
+                   <div className="bg-[#0B1120] p-4 rounded-xl border border-slate-700 flex items-center gap-4">
+                     <div className="w-12 h-12 bg-rose-500/20 rounded-full flex items-center justify-center text-rose-500"><Eye size={24}/></div>
+                     <div>
+                       <p className="text-xs text-slate-400 font-bold uppercase">Lượt Truy Cập</p>
+                       <p className="text-2xl font-black text-white">{visitorCount}</p>
                      </div>
                    </div>
                 </div>
@@ -2854,13 +2931,14 @@ const voucherData = {
                           <div>
                             <p className="text-white font-bold">{w.name}</p>
                             <p className="text-[10px] text-slate-400 uppercase flex gap-2">
-                               <span>Loại: {w.type==='money'?'Tiền':w.type==='spin'?'Lượt':w.type==='other'?'Khác':'Trượt'}</span>
-                               {w.value > 0 && <span className="text-emerald-400 font-bold">Giá trị: {new Intl.NumberFormat('vi-VN').format(w.value)}</span>}
+<span>Loại: {w.type==='money'?'Tiền':w.type==='spin'?'Lượt':w.type==='fund'?'Quỹ Thuê':w.type==='other'?'Khác':'Trượt'}</span>                               {w.value > 0 && <span className="text-emerald-400 font-bold">Giá trị: {new Intl.NumberFormat('vi-VN').format(w.value)}</span>}
                             </p>
                           </div>
                         </div>
-                        <div className="bg-slate-900 px-3 py-1.5 rounded text-xs text-blue-400 font-bold mb-3 border border-slate-800 text-center">Tỉ lệ trúng: {w.rate}</div>
-                        <div className="flex gap-2">
+<div className="flex gap-2 mb-3">
+                           <div className="flex-1 bg-slate-900 px-2 py-1.5 rounded text-xs text-blue-400 font-bold border border-slate-800 text-center">Tỉ lệ: {w.rate}</div>
+                           <div className="flex-1 bg-slate-900 px-2 py-1.5 rounded text-xs text-emerald-400 font-bold border border-slate-800 text-center">Còn: {w.quantity ?? 999}</div>
+                        </div>                        <div className="flex gap-2">
                            <button onClick={()=>{setEditingWheel(w); setAdminWheelImage(w.image || null); setShowWheelModal(true);}} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors"><Edit size={14} className="mx-auto"/></button>
                       <button onClick={()=>{
                              setConfirmDialog({title:'Xoá phần thưởng', message:'Xoá vật phẩm này khỏi vòng quay?', onConfirm: async () => {
@@ -3429,11 +3507,12 @@ const voucherData = {
                   </div>
                   <div><label className="text-xs text-slate-400 font-bold">Tên Quà</label><input name="name" defaultValue={editingWheel?.name} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required/></div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
+<div>
                       <label className="text-xs text-slate-400 font-bold">Loại</label>
                       <select name="type" defaultValue={editingWheel?.type || 'none'} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
-                        <option value="money">Tiền VNĐ</option>
+                        <option value="money">Tiền VNĐ (Ví chính)</option>
                         <option value="spin">Lượt Quay</option>
+                        <option value="fund">Cộng Tiền Quỹ Thuê</option> {/* <--- THÊM DÒNG NÀY */}
                         <option value="other">Vật Phẩm</option>
                         <option value="none">Trượt</option>
                       </select>
@@ -3443,7 +3522,7 @@ const voucherData = {
                       <input name="value" type="number" defaultValue={editingWheel?.value || 0} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" />
                     </div>
                   </div>
-                  <div><label className="text-xs text-slate-400 font-bold">Tỉ Lệ Trúng (VD: 5%)</label><input name="rate" defaultValue={editingWheel?.rate} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required/></div>
+                  <div><div><label className="text-xs text-slate-400 font-bold">Số lượng còn lại (0 = Ẩn)</label><input name="quantity" type="number" defaultValue={editingWheel?.quantity ?? 999} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required/></div><label className="text-xs text-slate-400 font-bold">Tỉ Lệ Trúng (VD: 5%)</label><input name="rate" defaultValue={editingWheel?.rate} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required/></div>
                   <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl mt-4 transition-colors shadow-lg">Lưu Lại</button>
                 </form>
               </div>
@@ -4008,6 +4087,7 @@ cccdImage: (!isVIP && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified 
         if (rentData) {
           setRentRequests([rentData[0], ...rentRequests]);
           console.log("✅ Đã gửi đơn thành công lên Supabase!");
+          sendAdminAlert('THUÊ NICK', `Khách ${currentUser.name} vừa đặt thuê nick #${acc.code} gói ${opt.time}.`);
         }
 // BẮT BUỘC: Cập nhật cả số dư ví chính và số dư Quỹ bảo lưu lên giao diện ngay lập tức
                   const updatedUser = { 
@@ -4215,6 +4295,7 @@ setCurrentUser(updatedUser);
 
                   setBoostingModalData(null);
                   showToast("Đặt lịch thành công! Admin sẽ sớm đăng nhập và cày cho bạn.");
+                  sendAdminAlert('ĐẶT CÀY THUÊ', `Khách ${currentUser.name} vừa đặt gói cày thuê: ${boostingModalData.title} (Nền tảng: ${e.target.loginMethod.value}).`);
                   setCurrentView('lichsu');
                 }}>
                   <div className="space-y-4">
