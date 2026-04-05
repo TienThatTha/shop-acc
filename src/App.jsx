@@ -4246,8 +4246,7 @@ const parseTimeStr = (str) => {
           const isTrusted = currentUser?.is_trusted; // Nhận diện Khách quen
           const skipKyc = isVIP || isTrusted; // Lệnh tối cao: Gặp 1 trong 2 là cho qua hết
           
-          // Nếu là VIP thì miễn cọc. Nếu Khách thường chọn 'deposit' thì tốn 500k cọc.
-          // Sửa điều kiện cọc
+          // Cọc chỉ áp dụng nếu KHÔNG được skipKyc
           const needsDeposit = !skipKyc && rentKycMethod === 'deposit';
           const totalRentCost = rentModalData.opt.price + (needsDeposit ? 500000 : 0);
 
@@ -4358,7 +4357,8 @@ const processRent = async (imgBase64) => {
                                   ? await new Promise(resolve => { const r = new FileReader(); r.onload = () => resolve(r.result); r.readAsDataURL(document.getElementById('selfieUploadInput').files[0]); }) 
                                   : null,
 
-                      cccdNumber: (!skipKyc && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified ? currentUser.cccd_number : e.target.cccd?.value) : '',                      phone: e.target.phone.value, 
+                      cccdNumber: (!skipKyc && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified ? currentUser.cccd_number : e.target.cccd?.value) : '',                      
+                      phone: e.target.phone.value, 
                       awesunId: e.target.awesunId.value, 
                       awesunPass: e.target.awesunPass.value,
                       depositAmount: needsDeposit ? 500000 : 0,
