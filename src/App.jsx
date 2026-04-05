@@ -183,6 +183,8 @@ const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState([]);
   const [viewUserHistory, setViewUserHistory] = useState(null);
   const [showBoostingModal, setShowBoostingModal] = useState(false);
   const [editingBoosting, setEditingBoosting] = useState(null);
+  const [adminBoostType, setAdminBoostType] = useState('rank');
+  const [adminBoostingImage, setAdminBoostingImage] = useState(null);
   const [showWheelModal, setShowWheelModal] = useState(false);
   const [editingWheel, setEditingWheel] = useState(null);
   const [adminWheelImage, setAdminWheelImage] = useState(null);
@@ -521,8 +523,11 @@ setCurrentUser(updatedUser);
       setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u));
         if (txData) setTransactionsDb([txData[0], ...transactionsDb]);
         
-        // Gỡ trạng thái thuê trên giao diện (nếu có)
-        setAccountsDb(accountsDb.map(a => a.id === acc.id ? {...a, rentedUntil: null} : a));
+// 1. Cập nhật trạng thái "Đã bán" lên Supabase
+        await supabase.from('accounts').update({ is_sold: true, rentedUntil: null, rentStartedAt: null, currentRenterId: null }).eq('id', acc.id);
+
+        // 2. Gỡ tài khoản khỏi giao diện (Lọc bỏ nick vừa mua ra khỏi danh sách)
+        setAccountsDb(accountsDb.filter(a => a.id !== acc.id));
         setViewingAcc(null); 
         setSuccessTxData({ type: 'buy', title: 'Mua Tài Khoản Thành Công!', acc: acc });
         sendAdminAlert('MUA NICK', `Khách ${currentUser.name} vừa mua đứt nick #${acc.code} với giá ${new Intl.NumberFormat('vi-VN').format(acc.price)}đ.`);
@@ -1010,9 +1015,11 @@ const renderForgotPasswordScreen = () => (
   );
 
   const renderDashboardScreen = () => {
-    const gameTabs = ['Tất cả', ...new Set(accountsDb.map(acc => acc.game))];
-    const filteredAccounts = activeTab === 'Tất cả' ? accountsDb : accountsDb.filter(acc => acc.game === activeTab);
+// Chỉ lấy những tài khoản chưa bị đánh dấu Đã Bán
+    const availableAccounts = accountsDb.filter(acc => !acc.is_sold);
 
+    const gameTabs = ['Tất cả', ...new Set(availableAccounts.map(acc => acc.game))];
+    const filteredAccounts = activeTab === 'Tất cả' ? availableAccounts : availableAccounts.filter(acc => acc.game === activeTab);
     return (
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-20">
         {renderNavbar()}
@@ -1646,11 +1653,19 @@ const handleConfirmTransfer = async () => {
           <p className="text-slate-400 mt-2 text-sm md:text-base">Uy tín, tốc độ, bảo mật tuyệt đối. Giá tốt nhất thị trường.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {boostingDb.map(b => (
-            <div key={b.id} className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 md:p-6 hover:border-blue-500/50 transition-colors shadow-xl group">
-              <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-md inline-block mb-3">{b.game}</span>
+{boostingDb.map(b => (
+            <div key={b.id} className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 md:p-6 hover:border-blue-500/50 transition-colors shadow-xl group flex flex-col overflow-hidden">
+              
+              {/* --- ẢNH HIỂN THỊ Ở TRANG KHÁCH --- */}
+              {b.image && (
+                <div className="w-full h-36 md:h-40 mb-4 rounded-xl overflow-hidden shrink-0 border border-slate-700/50 shadow-inner">
+                  <img src={b.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={b.title} />
+                </div>
+              )}
+              
+              <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-md inline-block mb-3 w-fit">{b.game}</span>
               <h3 className="text-base md:text-lg font-bold text-white mb-2 leading-tight">{b.title}</h3>
-              <p className="text-xs md:text-sm text-slate-400 mb-6 h-12 line-clamp-2">{b.desc}</p>
+              {/* Giữ nguyên các phần mô tả và giá tiền bên dưới... */}              <p className="text-xs md:text-sm text-slate-400 mb-6 h-12 line-clamp-2">{b.desc}</p>
               <div className="flex justify-between items-end border-t border-slate-800 pt-4">
                 <div>
                   <p className="text-[10px] text-slate-500 mb-1 font-bold">GIÁ TỪ</p>
@@ -2251,12 +2266,18 @@ const handleSaveUser = async (e) => {
     };
 const handleSaveBoosting = async (e) => {
       e.preventDefault();
+const type = e.target.boostType.value;
       const boostData = {
         id: editingBoosting ? editingBoosting.id : Date.now(),
-        game: e.target.game.value, title: e.target.title.value,
-        price: parseInt(e.target.price.value), desc: e.target.desc.value
+        type: type,
+        require_login: type === 'event' ? e.target.requireLogin.checked : true,
+        price: parseInt(e.target.price.value), 
+        image: adminBoostingImage,
+        // Nếu là Sự Kiện thì lưu tên/số lượng vào cột game/title/desc để tận dụng DB cũ
+        game: type === 'rank' ? e.target.game.value : 'Cày Sự Kiện',
+        title: type === 'rank' ? e.target.title.value : e.target.eventName.value,
+        desc: type === 'rank' ? e.target.desc.value : e.target.amount.value
       };
-
       if (editingBoosting) {
         // Đẩy lên Supabase (Sửa)
         await supabase.from('boosting').update(boostData).eq('id', editingBoosting.id);
@@ -2269,6 +2290,14 @@ const handleSaveBoosting = async (e) => {
         showToast("Thêm dịch vụ thành công!");
       }
       setShowBoostingModal(false);
+    };
+    const handleBoostingImageUpload = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => setAdminBoostingImage(reader.result);
+        reader.readAsDataURL(file);
+      }
     };
     const handleWheelImageUpload = (e) => {
       const file = e.target.files[0];
@@ -2896,9 +2925,8 @@ const voucherData = {
             {/* TAB CÀY THUÊ */}
             {adminTab === 'boosting' && (
               <div className="p-6">
-                 <button onClick={() => { setEditingBoosting(null); setShowBoostingModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18}/> Thêm dịch vụ Cày Thuê</button>
-                 
-                 {boostingRequests.length > 0 && (
+{/* CHÚ Ý LỆNH SET ẢNH VỀ NULL ĐỂ TRÁNH LỖI HIỂN THỊ ẢNH CŨ */}
+<button onClick={() => { setEditingBoosting(null); setAdminBoostingImage(null); setAdminBoostType('rank'); setShowBoostingModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18}/> Thêm dịch vụ Cày Thuê</button>                 {boostingRequests.length > 0 && (
                    <div className="mb-8 border border-blue-500/30 rounded-xl overflow-hidden shadow-lg">
                       <div className="bg-blue-900/30 p-3 font-bold text-blue-400 border-b border-blue-500/30 text-sm flex items-center gap-2">
                         <History size={18} /> QUẢN LÝ ĐƠN KHÁCH ĐẶT CÀY THUÊ
@@ -2952,7 +2980,7 @@ const voucherData = {
                         <span className="text-white font-bold mb-2 line-clamp-2">{b.title}</span>
                         <p className="text-xs text-slate-500 mb-4 flex-1 line-clamp-2">{b.desc}</p>
                         <div className="flex gap-2 border-t border-slate-800 pt-3">
-                           <button onClick={()=>{setEditingBoosting(b); setShowBoostingModal(true);}} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Edit size={14}/> Sửa</button>
+                           <button onClick={()=>{setEditingBoosting(b); setAdminBoostingImage(b.image || null); setAdminBoostType(b.type || 'rank'); setShowBoostingModal(true);}} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Edit size={14}/> Sửa</button>
                            <button onClick={()=>setConfirmDialog({title:'Xoá dịch vụ', message:'Xoá dịch vụ cày thuê này?', onConfirm:()=>setBoostingDb(boostingDb.filter(x=>x.id!==b.id))})} className="flex-1 py-1.5 bg-rose-500/10 text-rose-400 rounded hover:bg-rose-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Trash2 size={14}/> Xoá</button>
                         </div>
                       </div>
@@ -3547,15 +3575,57 @@ const voucherData = {
                   <h3 className="text-xl font-bold text-white flex items-center gap-2"><Target className="text-blue-500"/> {editingBoosting ? 'Sửa Dịch Vụ' : 'Thêm Dịch Vụ Cày Thuê'}</h3>
                   <button onClick={() => setShowBoostingModal(false)} className="text-slate-400 hover:text-white"><X size={20}/></button>
                 </div>
-                <form onSubmit={handleSaveBoosting} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><label className="text-xs text-slate-400">Tên Game</label><input name="game" defaultValue={editingBoosting?.game} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white" required/></div>
-                    <div><label className="text-xs text-rose-400 font-bold">Giá Tối Thiểu (đ)</label><input name="price" type="number" defaultValue={editingBoosting?.price} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-rose-400 font-bold" required/></div>
+                <div className="space-y-4">
+                    {/* KHU VỰC UP ẢNH GIỮ NGUYÊN NHƯ BẠN ĐÃ LÀM */}
+                    <div>
+                      <label className="text-xs text-slate-400 font-bold">Ảnh mô tả dịch vụ (Tùy chọn)</label>
+                      <div className="mt-1 border border-dashed border-slate-600 rounded-xl p-4 text-center hover:bg-slate-800/50 transition-colors relative group bg-[#0B1120]">
+                        <input type="file" accept="image/*" onChange={handleBoostingImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                        {adminBoostingImage ? (
+                            <div className="relative">
+                              <img src={adminBoostingImage} className="mx-auto h-24 object-cover rounded-lg shadow-md w-full" alt="Preview" />
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity rounded-lg">Đổi Ảnh Khác</div>
+                            </div>
+                        ) : (
+                            <div className="text-slate-500 flex flex-col items-center"><ImageIcon size={28} className="mb-2"/><span className="text-[10px] font-bold">Bấm để tải Ảnh lên</span></div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs text-slate-400 block mb-1">Cày gì?</label>
+                        <select name="boostType" value={adminBoostType} onChange={(e) => setAdminBoostType(e.target.value)} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
+                          <option value="rank">Cày Rank</option>
+                          <option value="event">Cày Sự Kiện</option>
+                        </select>
+                      </div>
+                      
+                      {adminBoostType === 'rank' ? (
+                        <div><label className="text-xs text-slate-400 block mb-1">Tên Game</label><input name="game" defaultValue={editingBoosting?.game} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required/></div>
+                      ) : (
+                        <div><label className="text-xs text-rose-400 font-bold block mb-1">Sự Kiện Gì?</label><input name="eventName" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.title : ''} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-rose-500" required/></div>
+                      )}
+                    </div>
+
+                    <div><label className="text-xs text-slate-400 block mb-1">Giá tiền (VNĐ)</label><input name="price" type="number" defaultValue={editingBoosting?.price} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-bold outline-none focus:border-blue-500" required/></div>
+                    
+                    {adminBoostType === 'rank' ? (
+                      <>
+                        <div><label className="text-xs text-slate-400 block mb-1">Tiêu đề Gói</label><input name="title" defaultValue={editingBoosting?.title} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required/></div>
+                        <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingBoosting?.desc} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
+                      </>
+                    ) : (
+                      <>
+                        <div><label className="text-xs text-slate-400 block mb-1">Số lượng / Mô tả</label><textarea name="amount" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.desc : ''} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
+                        <label className="flex items-center gap-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg cursor-pointer">
+                          <input type="checkbox" name="requireLogin" defaultChecked={editingBoosting?.type === 'event' ? editingBoosting.require_login : false} className="w-5 h-5 accent-rose-500 cursor-pointer" />
+                          <span className="text-sm font-bold text-rose-400">Yêu cầu TK/MK khách? (Nếu tắt khách chỉ cần nhập Mã)</span>
+                        </label>
+                      </>
+                    )}
                   </div>
-                  <div><label className="text-xs text-slate-400">Tiêu đề Gói</label><input name="title" defaultValue={editingBoosting?.title} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white" required/></div>
-                  <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingBoosting?.desc} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white" required></textarea></div>
-                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl mt-4">Lưu Dịch Vụ</button>
-                </form>
+                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl mt-6">Lưu Dịch Vụ</button>
               </div>
             </div>
           )}
@@ -4372,10 +4442,10 @@ setCurrentUser(updatedUser);
                     id: reqId, user: currentUser.name, boostingId: boostingModalData.id, boostingTitle: boostingModalData.title,
                     date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
                     status: 'Chờ xử lý',
-                    info: {
-                      loginMethod: e.target.loginMethod.value,
-                      username: e.target.username.value,
-                      password: e.target.password.value,
+info: {
+                      loginMethod: e.target.loginMethod?.value || 'Không Cần',
+                      username: e.target.username?.value || e.target.eventCode?.value, // Lấy TK hoặc Mã
+                      password: e.target.password?.value || 'Bảo Mật Bằng Mã',
                       note: e.target.note.value
                     }
                   }, ...boostingRequests]);
@@ -4385,30 +4455,41 @@ setCurrentUser(updatedUser);
                   sendAdminAlert('ĐẶT CÀY THUÊ', `Khách ${currentUser.name} vừa đặt gói cày thuê: ${boostingModalData.title} (Nền tảng: ${e.target.loginMethod.value}).`);
                   setCurrentView('lichsu');
                 }}>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-xs font-bold text-slate-400 block mb-1">Hình thức đăng nhập</label>
-                      <select name="loginMethod" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
-                        <option value="Garena">Garena</option>
-                        <option value="Facebook">Facebook</option>
-                        <option value="Riot Games">Riot Games</option>
-                        <option value="Google">Google (Cần hỗ trợ mã)</option>
-                        <option value="Khác">Khác</option>
-                      </select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
+<div className="space-y-4">
+                    {/* Kiểm tra xem gói này có bắt buộc TK/MK không */}
+                    {boostingModalData.type === 'event' && boostingModalData.require_login === false ? (
                       <div>
-                        <label className="text-xs font-bold text-slate-400 block mb-1">Tài khoản</label>
-                        <input name="username" type="text" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-mono outline-none focus:border-blue-500" required />
+                        <label className="text-xs font-bold text-emerald-400 block mb-1">Nhập Mã Sự Kiện / Link Liên Kết</label>
+                        <input name="eventCode" type="text" placeholder="VD: SGH-123456..." className="w-full p-3 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-mono outline-none focus:border-emerald-400 shadow-inner" required />
                       </div>
-                      <div>
-                        <label className="text-xs font-bold text-slate-400 block mb-1">Mật khẩu</label>
-                        <input name="password" type="text" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-mono outline-none focus:border-blue-500" required />
-                      </div>
-                    </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="text-xs font-bold text-slate-400 block mb-1">Hình thức đăng nhập</label>
+                          <select name="loginMethod" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
+                            <option value="Garena">Garena</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="Riot Games">Riot Games</option>
+                            <option value="Google">Google (Cần hỗ trợ mã)</option>
+                            <option value="Khác">Khác</option>
+                          </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-bold text-slate-400 block mb-1">Tài khoản</label>
+                            <input name="username" type="text" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-mono outline-none focus:border-blue-500" required />
+                          </div>
+                          <div>
+                            <label className="text-xs font-bold text-slate-400 block mb-1">Mật khẩu</label>
+                            <input name="password" type="text" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-mono outline-none focus:border-blue-500" required />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    
                     <div>
                       <label className="text-xs font-bold text-slate-400 block mb-1">Ghi chú (Không bắt buộc)</label>
-                      <input name="note" type="text" placeholder="Ví dụ: Tướng muốn chơi, khung giờ không nên vào..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" />
+                      <input name="note" type="text" placeholder="Ghi chú thêm cho Admin..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" />
                     </div>
                   </div>
                   <button type="submit" className="w-full mt-6 bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-rose-600/20 transition-colors flex items-center justify-center gap-2">
