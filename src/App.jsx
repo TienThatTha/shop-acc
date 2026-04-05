@@ -260,8 +260,7 @@ const fetchInitialData = async () => {
 // 3. TẢI DỮ LIỆU ADMIN HOẶC DỮ LIỆU CÁ NHÂN
       if (session) {
          // Lấy role thật từ user vừa fetch
-         const role = session.user.email === 'email_cua_admin@gmail.com' ? 'admin' : 'user'; // Hoặc check user.role
-
+const role = user?.role || 'user';
          if (role === 'admin') {
            // ADMIN: Tải tất cả để quản lý
            const [usersRes, txRes, depRes, rentRes, msgRes] = await Promise.all([
@@ -2210,8 +2209,17 @@ const conicStops = activeDb.map((item, idx) => {
   };
 
   const renderAdminScreen = () => {
-    if (currentUser?.role !== 'admin') return <div className="p-10 text-center text-white font-bold bg-[#0B1120] min-h-screen">Bạn không có quyền truy cập!</div>;
-
+if (currentUser?.role !== 'admin') {
+      return (
+        <div className="min-h-screen bg-[#0B1120] flex flex-col items-center justify-center text-slate-300">
+          <AlertCircle size={60} className="text-rose-500 mb-4 animate-bounce" />
+          <h2 className="text-2xl font-bold text-white mb-6">Bạn không có quyền truy cập Panel Admin!</h2>
+          <button onClick={() => setCurrentView('dashboard')} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-bold transition-colors shadow-lg shadow-blue-600/20">
+            Quay Về Trang Chủ
+          </button>
+        </div>
+      );
+    }
     const handleFileUpload = (e, isCover) => {
       const files = Array.from(e.target.files);
       if(isCover && files[0]) {
