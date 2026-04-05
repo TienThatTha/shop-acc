@@ -1765,9 +1765,10 @@ setCurrentUser(updatedUser);
 
       setIsSpinning(true);
 
+// --- ÂM THANH KHI VÒNG QUAY ĐANG LĂN ---
       let spinAudio;
       try {
-        spinAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3');
+        spinAudio = new Audio('https://www.myinstants.com/media/sounds/price-is-right-wheel.mp3');
         spinAudio.volume = 0.5;
         spinAudio.loop = true;
         spinAudio.play();
@@ -1801,16 +1802,16 @@ setCurrentUser(updatedUser);
         setIsSpinning(false);
         if (spinAudio) spinAudio.pause(); 
 
+        // --- ÂM THANH KHI DỪNG LẠI (TRÚNG HOẶC TRƯỢT) ---
         try {
            let resultAudio = new Audio(
-             (winningItem.type === 'money' || winningItem.type === 'spin' || winningItem.type === 'other') 
-             ? 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3' 
-             : 'https://assets.mixkit.co/active_storage/sfx/3148/3148-preview.mp3'
+             (winningItem.type === 'money' || winningItem.type === 'spin' || winningItem.type === 'fund' || winningItem.type === 'other') 
+             ? 'https://www.myinstants.com/media/sounds/success-1-6297.mp3' // Tiếng Ting Ting vỗ tay
+             : 'https://www.myinstants.com/media/sounds/sadtrombone.mp3' // Tiếng kèn buồn tò te tí
            );
            resultAudio.volume = 0.8;
            resultAudio.play();
         } catch(e) {}
-
         const prizeValue = Number(winningItem.value) || 0;
 
 if (winningItem.type === 'money') {
@@ -1841,9 +1842,11 @@ const conicStops = activeDb.map((item, idx) => {
         return `${sliceColor} ${startAngle}deg ${endAngle}deg`;
     }).join(', ');
 
+// LỌC RA 5 NGƯỜI QUAY TRÚNG MỚI NHẤT ĐỂ CHẠY CHỮ
+    const recentWinners = transactionsDb.filter(t => t.type === 'spin_win').slice(0, 5);
+
     return (
-      <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-10 overflow-hidden relative">
-        {renderNavbar()}
+      <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-10 overflow-hidden relative">        {renderNavbar()}
         <div className="max-w-3xl mx-auto mt-4 md:mt-8 p-4 text-center relative z-10">
           <h2 className="text-2xl md:text-4xl font-black text-white flex items-center justify-center gap-2 md:gap-3 mb-6 drop-shadow-[0_0_15px_rgba(225,29,72,0.5)]"><Gift className="text-rose-500 w-8 h-8 md:w-9 md:h-9"/> VÒNG QUAY NHÂN PHẨM</h2>
           
@@ -1855,6 +1858,41 @@ const conicStops = activeDb.map((item, idx) => {
                <button onClick={() => setPlayMode('spin')} className={`px-4 md:px-6 py-2 md:py-2.5 text-xs md:text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${playMode==='spin'?'bg-rose-600 text-white shadow-md':'text-slate-400 hover:text-white'}`}><Ticket size={16}/> Lượt Quay</button>
              )}
           </div>
+          {/* --- THANH THÔNG BÁO NGƯỜI TRÚNG THƯỞNG (MARQUEE) --- */}
+          {recentWinners.length > 0 && (
+            <div className="w-full max-w-2xl mx-auto overflow-hidden bg-rose-950/20 border border-rose-500/30 rounded-full py-2 mb-6 relative flex items-center shadow-inner group">
+               {/* 2 cục bóng mờ 2 bên để tạo hiệu ứng chữ chìm dần */}
+               <div className="absolute left-0 top-0 bottom-0 w-12 md:w-16 bg-gradient-to-r from-[#0B1120] to-transparent z-10 pointer-events-none"></div>
+               <div className="absolute right-0 top-0 bottom-0 w-12 md:w-16 bg-gradient-to-l from-[#0B1120] to-transparent z-10 pointer-events-none"></div>
+               
+               <div className="flex whitespace-nowrap animate-marquee w-max group-hover:pause">
+                 {/* Khối chữ 1 */}
+                 {recentWinners.map((tx, idx) => {
+                   const timeOnly = tx.date.split(' ').pop(); // Chỉ lấy giờ phút giây
+                   return (
+                     <span key={idx} className="text-white text-xs md:text-sm mx-6 flex items-center gap-2">
+                       <Sparkles size={14} className="text-yellow-400 animate-pulse" />
+                       <span className="text-slate-400">[{timeOnly}]</span>
+                       <span className="font-bold text-blue-400">{tx.user}</span> vừa trúng
+                       <span className="font-black text-rose-400">{tx.action.replace('Trúng thưởng: ', '')}</span>
+                     </span>
+                   )
+                 })}
+                 {/* Khối chữ 2 (Nhân bản để tạo vòng lặp chạy mượt không bị đứt đoạn) */}
+                 {recentWinners.map((tx, idx) => {
+                   const timeOnly = tx.date.split(' ').pop();
+                   return (
+                     <span key={`dup-${idx}`} className="text-white text-xs md:text-sm mx-6 flex items-center gap-2">
+                       <Sparkles size={14} className="text-yellow-400 animate-pulse" />
+                       <span className="text-slate-400">[{timeOnly}]</span>
+                       <span className="font-bold text-blue-400">{tx.user}</span> vừa trúng
+                       <span className="font-black text-rose-400">{tx.action.replace('Trúng thưởng: ', '')}</span>
+                     </span>
+                   )
+                 })}
+               </div>
+            </div>
+          )}
 
 {/* --- KHUNG BỌC VÒNG QUAY ĐÃ ĐƯỢC THÊM HIỆU ỨNG CỰC ĐẸP --- */}
         <div className="relative w-full max-w-[320px] md:max-w-[400px] mx-auto aspect-square flex items-center justify-center p-4 md:p-6 mb-8 md:mb-12 mt-8">
@@ -2060,7 +2098,12 @@ const conicStops = activeDb.map((item, idx) => {
                     txAmount = -giftModalData.prizeValue;
                     txType = 'fund_add'; 
                   }
-
+// Tiếng Ting Ting nhặt tiền
+                  try {
+                    let coinAudio = new Audio('https://www.myinstants.com/media/sounds/mario-coin.mp3');
+                    coinAudio.volume = 1.0;
+                    coinAudio.play();
+                  } catch(e){}
                   // 1. Cập nhật Số dư/Lượt quay/Quỹ lên Supabase
                   await supabase.from('users').update({ 
                     balance: winUser.balance, 
@@ -4479,6 +4522,16 @@ setCurrentUser(updatedUser);
         .animate-pulse-slow { animation: pulse-slow 3s ease-in-out infinite; }
         .animate-float { animation: float 5s ease-in-out infinite; }
         .animate-float-delayed { animation: float-delayed 6s ease-in-out infinite 1s; }
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          animation: marquee 20s linear infinite;
+        }
+        .pause {
+          animation-play-state: paused !important;
+        }
       `}} />
     </>
   );
