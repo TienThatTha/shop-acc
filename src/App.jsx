@@ -2159,8 +2159,10 @@ const handleSaveUser = async (e) => {
         email: e.target.email.value,
         balance: parseInt(e.target.balance.value), 
         spins: parseInt(e.target.spins.value || 0), 
+        rentFund: parseInt(e.target.rentFund.value || 0), // <--- THÊM DÒNG NÀY
         role: e.target.role.value
       };
+      // ... phần dưới giữ nguyên
 
       // Đẩy dữ liệu chỉnh sửa lên bảng 'users' của Supabase
       const { error } = await supabase.from('users').update(userData).eq('id', editingUser.id);
@@ -3208,7 +3210,7 @@ const voucherData = {
                       <p className="text-xs text-slate-500 italic text-center py-3 bg-[#0B1120] rounded-lg border border-slate-800 border-dashed">Khách hàng này chưa xác minh CCCD.</p>
                     )}
                   </div></div>
-                  <div className="grid grid-cols-3 gap-2 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+<div className="grid grid-cols-4 gap-2 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
                     <div>
                       <label className="text-[10px] text-emerald-400 font-bold block mb-1">Số Dư (VNĐ)</label>
                       <input name="balance" type="number" defaultValue={editingUser?.balance} className="w-full p-2 bg-[#0B1120] border border-slate-600 rounded text-emerald-400 font-bold outline-none" required/>
@@ -3217,6 +3219,12 @@ const voucherData = {
                       <label className="text-[10px] text-rose-400 font-bold block mb-1">Lượt quay</label>
                       <input name="spins" type="number" defaultValue={editingUser?.spins || 0} className="w-full p-2 bg-[#0B1120] border border-slate-600 rounded text-rose-400 font-bold outline-none" required/>
                     </div>
+                    {/* BẮT ĐẦU ĐOẠN CODE THÊM MỚI */}
+                    <div>
+                      <label className="text-[10px] text-yellow-400 font-bold block mb-1">Quỹ Thuê</label>
+                      <input name="rentFund" type="number" defaultValue={editingUser?.rentFund || 0} className="w-full p-2 bg-[#0B1120] border border-slate-600 rounded text-yellow-400 font-bold outline-none" required/>
+                    </div>
+                    {/* KẾT THÚC ĐOẠN CODE THÊM MỚI */}
                     <div>
                       <label className="text-[10px] text-blue-400 font-bold block mb-1">Quyền</label>
                       <select name="role" defaultValue={editingUser?.role} className="w-full p-2 bg-[#0B1120] border border-slate-600 rounded text-blue-400 font-bold outline-none">
@@ -3224,8 +3232,7 @@ const voucherData = {
                         <option value="admin">Admin</option>
                       </select>
                     </div>
-                  </div>
-                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl mt-4">Lưu Thay Đổi</button>
+                  </div>                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl mt-4">Lưu Thay Đổi</button>
                 </form>
               </div>
             </div>
