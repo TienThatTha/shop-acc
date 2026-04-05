@@ -1856,42 +1856,53 @@ const conicStops = activeDb.map((item, idx) => {
              )}
           </div>
 
-          <div className="relative w-64 h-64 md:w-80 md:h-80 mx-auto mb-12 md:mb-16 mt-6 group">
-            <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-40 text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,1)]">
+{/* --- KHUNG BỌC VÒNG QUAY ĐÃ ĐƯỢC THÊM HIỆU ỨNG CỰC ĐẸP --- */}
+        <div className="relative w-full max-w-[320px] md:max-w-[400px] mx-auto aspect-square flex items-center justify-center p-4 md:p-6 mb-8 md:mb-12 mt-8">
+            
+            {/* LỚP 1: HÀO QUANG NEON ĐỔI MÀU (AURA) - Neon Pulse */}
+            <div className="absolute inset-0 rounded-full blur-[40px] md:blur-[50px] opacity-60 animate-pulse-slow bg-gradient-to-br from-emerald-500 via-blue-600 to-rose-500" style={{ transform: 'scale(1.1)' }}></div>
+            
+            {/* LỚP 2: VÒNG VIỀN ÁNH SÁNG CHẠY (ROTATING BORDER) */}
+            <div className="absolute inset-0 md:inset-2 rounded-full border-[4px] md:border-[6px] border-slate-800 shadow-[0_0_30px_rgba(59,130,246,0.6)]" 
+                 style={{ 
+                   backgroundImage: 'conic-gradient(from 0deg, #34d399, #60a5fa, #f43f5e, #34d399)',
+                   WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                   WebkitMaskComposite: 'destination-out',
+                   maskComposite: 'exclude',
+                   animation: 'rotate360 4s linear infinite'
+                 }}></div>
+
+            {/* LỚP 3: MẤY HẠT NĂNG LƯỢNG BAY LƠ LỬNG (PARTICLES) */}
+            <div className="absolute -top-4 -left-4 md:-top-6 md:-left-6 w-3 h-3 md:w-4 md:h-4 bg-emerald-400 rounded-full opacity-50 blur-[2px] animate-float"></div>
+            <div className="absolute top-1/2 -right-6 md:-right-10 w-2 h-2 md:w-3 md:h-3 bg-rose-400 rounded-full opacity-60 blur-[2px] animate-float-delayed"></div>
+            <div className="absolute -bottom-6 left-1/4 w-4 h-4 md:w-5 md:h-5 bg-blue-400 rounded-full opacity-40 blur-[2px] animate-float"></div>
+            <div className="absolute -bottom-2 -right-1 md:-bottom-4 md:-right-2 w-3 h-3 md:w-4 md:h-4 bg-yellow-400 rounded-full opacity-50 blur-[2px] animate-float-delayed"></div>
+
+            {/* --- CÁI MŨI TÊN CHỈ XUỐNG --- */}
+            <div className="absolute -top-6 md:-top-8 left-1/2 -translate-x-1/2 z-40 text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,1)]">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" className="animate-bounce md:w-[50px] md:h-[50px]">
                  <path d="M12 22 L2 2 h20 Z" />
               </svg>
             </div>
-            
-            <div 
-               className="w-full h-full relative z-20"
-               style={{ 
-                 transform: `rotate(${rotation}deg)`, 
-                 transition: 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)' 
-               }}
-            >
-               <div className="absolute inset-[-16px] md:inset-[-24px] bg-slate-900 rounded-full shadow-[0_0_60px_rgba(225,29,72,0.4)] border-[4px] md:border-[6px] border-slate-800 flex items-center justify-center">
-                 {Array.from({length: 16}).map((_, i) => (
-                    <div key={i} className={`absolute w-2.5 h-2.5 md:w-3.5 md:h-3.5 rounded-full ${i % 2 === 0 ? 'bg-yellow-400 animate-blink-1' : 'bg-rose-400 animate-blink-2'} shadow-[0_0_10px_currentColor]`} style={{
-                        top: `calc(50% - 140px * ${Math.cos(i * 22.5 * Math.PI / 180)})`, /* 140px cho mobile */
-                        left: `calc(50% + 140px * ${Math.sin(i * 22.5 * Math.PI / 180)})`,
-                        transform: 'translate(-50%, -50%)'
-                    }}></div>
-                 ))}
-                 {/* Khắc phục kích thước bóng đèn trên Desktop bằng CSS classes ẩn hiện */}
-                 <style dangerouslySetInnerHTML={{__html: `
-                    @media (min-width: 768px) {
-                      .animate-blink-1, .animate-blink-2 {
-                        top: calc(50% - 176px * var(--cos)) !important;
-                        left: calc(50% + 176px * var(--sin)) !important;
-                      }
-                    }
-                 `}}/>
-               </div>
 
-               <div className="absolute inset-0 rounded-full border-[4px] md:border-[6px] border-slate-700 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] overflow-hidden" style={{ background: `conic-gradient(${conicStops})` }}>
+            {/* --- CÁI VÒNG QUAY CHÍNH CỦA BẠN --- */}
+            <div className="w-full h-full relative rounded-full overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.8)] border-[6px] md:border-[10px] border-slate-700 bg-[#0B1120] z-20" 
+                 style={{ 
+                    transition: isSpinning ? 'transform 4s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none', 
+                    transform: `rotate(${rotation}deg)` 
+                 }}>
+                
+               <div className="absolute inset-0 rounded-full border-[4px] border-slate-700 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] overflow-hidden" style={{ background: `conic-gradient(${conicStops})` }}>
                  {activeDb.map((w, idx) => {
                     const angle = (idx * 360) / activeDb.length + (180 / activeDb.length);
+                    
+                    // --- BỘ DỊCH NGÔN NGỮ TỰ ĐỘNG RÚT GỌN CHỮ ---
+                    let shortLabel = w.name;
+                    if (w.type === 'none') shortLabel = 'TRƯỢT';
+                    else if (w.type === 'money') shortLabel = `+${w.value >= 1000 ? w.value/1000 + 'K' : w.value} VNĐ`;
+                    else if (w.type === 'spin') shortLabel = `+${w.value} LƯỢT`;
+                    else if (w.type === 'fund') shortLabel = `+${w.value >= 1000 ? w.value/1000 + 'K' : w.value} QUỸ`;
+
                     return (
                       <div key={w.id} className="absolute top-1/2 left-1/2 flex items-center justify-end" 
                            style={{ 
@@ -1904,15 +1915,15 @@ const conicStops = activeDb.map((item, idx) => {
                         {w.image ? (
                            <img src={w.image} className="w-8 h-8 md:w-10 md:h-10 rounded-md object-contain mr-3 md:mr-4 shadow-lg drop-shadow-lg" style={{ transform: 'rotate(90deg)' }} alt="prize" />
                         ) : (
-                           <span className="text-white font-black text-[10px] md:text-xs uppercase drop-shadow-lg pr-4 md:pr-6" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
-{w.image ? (
-                           <img src={w.image} className="w-8 h-8 md:w-10 md:h-10 rounded-md object-contain mr-3 md:mr-4 shadow-lg drop-shadow-lg" style={{ transform: 'rotate(90deg)' }} alt="prize" />
-                        ) : (
-                           /* ĐÃ SỬA THÀNH HIỂN THỊ TÊN QUÀ (w.name) */
-                           <div className="text-white font-black text-[9px] md:text-[11px] uppercase drop-shadow-lg pr-4 md:pr-6 max-w-[90px] md:max-w-[120px] truncate text-right" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }} title={w.name}>
-                             {w.name}
+                           // --- CSS ÉP CHỮ NẰM NGANG ĐÃ ĐƯỢC CHÈN VÀO ĐÂY ---
+                           <div className="absolute right-4 md:right-6 text-white font-black text-[10px] md:text-[13px] uppercase drop-shadow-lg text-center whitespace-nowrap" 
+                                style={{ 
+                                  textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+                                  transform: 'rotate(90deg)' 
+                                }} 
+                                title={w.name}>
+                             {shortLabel}
                            </div>
-                        )}                           </span>
                         )}
                       </div>
                     );
@@ -1920,11 +1931,12 @@ const conicStops = activeDb.map((item, idx) => {
                </div>
             </div>
             
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 md:w-20 md:h-20 bg-slate-900 rounded-full border-[4px] md:border-[6px] border-slate-700 flex items-center justify-center z-30 shadow-[0_0_20px_rgba(0,0,0,0.8)]">
-               <Gamepad2 className="text-rose-500 animate-pulse w-6 h-6 md:w-8 md:h-8"/>
+            {/* CỤC TRUNG TÂM */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 md:w-20 md:h-20 bg-slate-900 rounded-full border-[4px] md:border-[6px] border-slate-700 flex items-center justify-center z-30 shadow-[0_0_20px_rgba(0,0,0,0.8)]">
+               <Gamepad2 className="text-rose-500 animate-pulse w-5 h-5 md:w-8 md:h-8"/>
             </div>
-          </div>
-          
+
+        </div>          
           <button 
             onClick={handleSpin} 
             disabled={isSpinning}
@@ -2027,14 +2039,13 @@ const conicStops = activeDb.map((item, idx) => {
                 )}
               </div>
 
-              <button onClick={async () => {
-if (!giftModalData.isLost && (giftModalData.prizeType === 'money' || giftModalData.prizeType === 'spin' || giftModalData.prizeType === 'fund' || giftModalData.prizeType === 'other')) {                  
-let winUser = { ...giftModalData.updatedUser };
+<button onClick={async () => {
+                if (!giftModalData.isLost && (giftModalData.prizeType === 'money' || giftModalData.prizeType === 'spin' || giftModalData.prizeType === 'fund' || giftModalData.prizeType === 'other')) {                  
+                  let winUser = { ...giftModalData.updatedUser };
                   let actionText = `Trúng thưởng: ${giftModalData.item.name}`;
                   let statusText = 'Thành công';
                   let txAmount = 0;
                   let isSpin = false;
-                  // THÊM BIẾN MỚI ĐỂ XÁC ĐỊNH LOẠI GIAO DỊCH
                   let txType = 'spin_win'; 
 
                   if (giftModalData.prizeType === 'money' && giftModalData.prizeValue > 0) {
@@ -2045,23 +2056,30 @@ let winUser = { ...giftModalData.updatedUser };
                     txAmount = -giftModalData.prizeValue;
                     isSpin = true;
                   } else if (giftModalData.prizeType === 'fund' && giftModalData.prizeValue > 0) {
-                    // XỬ LÝ CỘNG TIỀN VÀO QUỸ THUÊ BẢO LƯU (rentFund)
                     winUser.rentFund = (winUser.rentFund || 0) + giftModalData.prizeValue;
                     txAmount = -giftModalData.prizeValue;
-                    txType = 'fund_add'; // Gắn type này để lịch sử biết là tiền chạy vào quỹ
+                    txType = 'fund_add'; 
                   }
 
-                  // 1. Cập nhật Số dư/Lượt quay lên Supabase (Gửi cả rentFund)
+                  // 1. Cập nhật Số dư/Lượt quay/Quỹ lên Supabase
                   await supabase.from('users').update({ 
                     balance: winUser.balance, 
                     spins: winUser.spins,
                     rentFund: winUser.rentFund 
                   }).eq('id', winUser.id);
                   
-                  // TRỪ SỐ LƯỢNG QUÀ TRONG KHO (Giữ nguyên)
-                  // ...
-                  // CẬP NHẬT TRÊN MÀN HÌNH (Giữ nguyên)
-                  // ...
+                  // --- ĐOẠN NÀY LÀ TRỪ SỐ LƯỢNG QUÀ TRONG KHO (CHÍNH LÀ CHỖ BỊ MẤT) ---
+                  const newQuantity = (giftModalData.item.quantity || 999) - 1;
+                  await supabase.from('wheel_items').update({ quantity: Math.max(0, newQuantity) }).eq('id', giftModalData.item.id);
+
+                  // CẬP NHẬT TRÊN GIAO DIỆN ĐỂ KHÁCH THẤY SỐ LƯỢNG TỤT XUỐNG NGAY LẬP TỨC
+                  const updateWheelState = (prevDb) => prevDb.map(w => w.id === giftModalData.item.id ? {...w, quantity: Math.max(0, newQuantity)} : w);
+                  if (playMode === 'money') {
+                    setWheelItemsMoneyDb(updateWheelState(wheelItemsMoneyDb));
+                  } else {
+                    setWheelItemsSpinDb(updateWheelState(wheelItemsSpinDb));
+                  }
+                  // ---------------------------------------------------------------------
 
                   // 2. Ghi Lịch sử trúng thưởng lên Supabase
                   const newTx = {
@@ -2069,21 +2087,23 @@ let winUser = { ...giftModalData.updatedUser };
                     action: actionText, amount: txAmount,
                     date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
                     status: statusText,
-                    type: txType, // Dùng biến txType thay vì 'spin_win' cứng
+                    type: txType, 
                     isSpinCost: isSpin
-                  };                  const { data: txData } = await supabase.from('transactions').insert([newTx]).select();
+                  };                  
+                  const { data: txData } = await supabase.from('transactions').insert([newTx]).select();
 
                   // 3. Cập nhật lại giao diện Web
                   setCurrentUser(winUser);
-              setUsersDb(usersDb.map(u => u.id === winUser.id ? winUser : u));
+                  setUsersDb(usersDb.map(u => u.id === winUser.id ? winUser : u));
                   if (txData) setTransactionsDb([txData[0], ...transactionsDb]);
                 }
+                
+                // Đóng hộp quà
                 setGiftModalData(null);
                 setIsGiftOpened(false);
               }} className={`w-full font-black text-lg md:text-xl py-3 md:py-4 rounded-xl transition-all uppercase ${giftModalData.isLost ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-[#0B1120] shadow-[0_0_30px_rgba(234,179,8,0.4)] hover:scale-105'}`}>
                 {giftModalData.isLost ? 'ĐÓNG LẠI' : 'NHẬN QUÀ NGAY'}
-              </button>
-            </div>
+              </button>            </div>
           </div>
         )}
       </div>
@@ -4451,6 +4471,13 @@ setCurrentUser(updatedUser);
         .animate-confetti { animation: confetti linear forwards; }
         .animate-blink-1 { animation: blink-1 0.5s infinite; }
         .animate-blink-2 { animation: blink-2 0.5s infinite; }
+        @keyframes rotate360 { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pulse-slow { 0%, 100% { opacity: 0.4; filter: blur(40px); } 50% { opacity: 0.8; filter: blur(60px); } }
+        @keyframes float { 0%, 100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-20px) translateX(10px); } }
+        @keyframes float-delayed { 0%, 100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(15px) translateX(-15px); } }
+        .animate-pulse-slow { animation: pulse-slow 3s ease-in-out infinite; }
+        .animate-float { animation: float 5s ease-in-out infinite; }
+        .animate-float-delayed { animation: float-delayed 6s ease-in-out infinite 1s; }
       `}} />
     </>
   );
