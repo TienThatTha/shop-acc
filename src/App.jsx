@@ -789,7 +789,7 @@ const handleSendVerification = async () => {
                 { name: 'Trang Chủ', view: 'dashboard', auth: false, icon: <Gamepad2 size={20}/> },
                 { name: 'Nạp Tiền VNĐ', view: 'naptien', auth: true, icon: <Wallet size={20}/> },
                 { name: 'Dịch Vụ Cày Thuê', view: 'caythue', auth: false, icon: <Target size={20}/> },
-                {...(wheelItemsMoneyDb.length > 0 || wheelItemsSpinDb.length > 0 ? [{ name: 'Vòng Quay May Mắn', view: 'vongquay', auth: true, icon: <Gift size={20}/> }] : [])},
+                ...(wheelItemsMoneyDb.length > 0 || wheelItemsSpinDb.length > 0 ? [{ name: 'Vòng Quay May Mắn', view: 'vongquay', auth: true, icon: <Gift size={20}/> }] : []),
                 { name: 'Lịch Sử Giao Dịch', view: 'lichsu', auth: true, icon: <History size={20}/> },
                 ...(currentUser?.role === 'admin' ? [{ name: 'Panel Quản Trị Hệ Thống', view: 'admin', auth: true, icon: <Settings size={20}/>, adminOnly: true }] : [])
               ].map((item, idx) => (
