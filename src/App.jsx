@@ -1242,12 +1242,32 @@ const renderForgotPasswordScreen = () => (
               {filteredAccounts.map(acc => {
                 const isRented = acc.rentedUntil && acc.rentedUntil > now;
                 let timeStr = "";
-                if (isRented) {
+if (isRented) {
                   const diff = acc.rentedUntil - now;
-                  const h = Math.floor(diff / 3600000);
-                  const m = Math.floor((diff % 3600000) / 60000);
-                  const s = Math.floor((diff % 60000) / 1000);
-                  timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+                  
+                  // NẾU THỜI GIAN ĐÃ HẾT (CHẠM MỐC 0 HOẶC ÂM)
+                  if (diff <= 0) {
+                    timeStr = "00:00:00";
+                    
+                    // CHỈ GỬI MAIL 1 LẦN DUY NHẤT (Kiểm tra xem đã gửi mail chưa, tránh bị gửi liên tục mỗi giây)
+                    if (!acc.is_timeout_alerted && acc.currentRenterId) {
+                      // Gọi hàm gửi Mail thông báo cho Admin
+                      sendAdminAlert(
+                        'HẾT GIỜ THUÊ NICK', 
+                        `Nick mã #${acc.code} đã hết thời gian thuê. Vui lòng vào kiểm tra và thu hồi tài khoản.`
+                      );
+                      
+                      // Cập nhật trạng thái để đánh dấu là "đã gửi mail", tránh bị lặp
+                      acc.is_timeout_alerted = true; 
+                    }
+                  } 
+                  // NẾU VẪN CÒN THỜI GIAN THÌ ĐẾM NGƯỢC BÌNH THƯỜNG
+                  else {
+                    const h = Math.floor(diff / 3600000);
+                    const m = Math.floor((diff % 3600000) / 60000);
+                    const s = Math.floor((diff % 60000) / 1000);
+                    timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+                  }
                 }
 
                 return (
@@ -3019,11 +3039,33 @@ const voucherData = {
                           )}
                         </div>
                         <div className="flex-1 space-y-2 text-sm w-full">
-                          <div className="flex justify-between border-b border-slate-800 pb-2">
-                            <p><span className="text-slate-400">Khách:</span> <span className="text-blue-400 font-bold text-base">{r.user}</span> {r.info.kycMethod === 'vip' && <span className="bg-yellow-500 text-[#0B1120] text-[10px] font-black px-1.5 py-0.5 rounded ml-2 shadow-[0_0_10px_rgba(250,204,21,0.5)]">VIP</span>}</p>
-                            <p><span className="text-slate-400">SĐT:</span> <span className="font-bold">{r.info.phone}</span> {r.info.kycMethod === 'cccd' && <>| CCCD: {r.info.cccdNumber}</>}</p>
-                          </div>
-                          <p><span className="text-slate-400">Thuê Nick mã:</span> <span className="font-bold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">{r.accCode}</span> <span className="text-slate-500">({r.time})</span></p>
+<div className="flex justify-between border-b border-slate-800 pb-2 w-full relative">
+  <p>
+    <span className="text-slate-400">Khách:</span> 
+    <span className="text-blue-400 font-bold text-base ml-1">{r.user}</span> 
+    {r.info.kycMethod === 'vip' && <span className="bg-yellow-500 text-[#0B1120] text-[10px] font-black px-1.5 py-0.5 rounded ml-2 shadow-[0_0_10px_rgba(250,204,21,0.5)]">VIP</span>}
+  </p>
+
+  {/* Ô THỜI GIAN HIỂN THỊ CHÍNH GIỮA */}
+  <div className="absolute left-1/2 -translate-x-1/2 top-0 bg-blue-600/20 px-4 py-1 rounded-full border border-blue-500/40 shadow-sm whitespace-nowrap">
+    <p className="text-blue-400 font-black text-xs uppercase tracking-widest flex items-center gap-2">
+      <Clock size={14} className="animate-pulse"/> {r.date}
+    </p>
+  </div>
+
+  <p>
+    <span className="text-slate-400">SĐT:</span> 
+    <span className="font-bold ml-1">{r.info.phone}</span> 
+    {r.info.kycMethod === 'cccd' && <> | CCCD: {r.info.cccdNumber}</>}
+  </p>
+</div>
+                         <p>
+  <span className="text-slate-400">Thuê Nick mã:</span> 
+  <span className="font-bold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 ml-1">{r.accCode}</span> 
+  <span className="text-slate-500 ml-2">({r.time})</span>
+  {/* DÒNG CHÈN THÊM NGÀY GIỜ THUÊ TẠI ĐÂY */}
+
+</p>
                           <div className="bg-blue-900/20 p-3 rounded-lg border border-blue-500/30 mt-3 flex items-center justify-between">
                             <div>
                               <p className="text-blue-400 font-bold text-xs mb-1 flex items-center gap-1"><Gamepad2 size={12}/> AWESUN CỦA KHÁCH:</p>
