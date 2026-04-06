@@ -2692,15 +2692,16 @@ const voucherData = {
                 <div className="overflow-x-auto rounded-xl border border-slate-800">
                   <table className="w-full text-left text-sm min-w-[700px]">
                     <thead className="bg-[#0B1120] text-slate-400 uppercase text-xs">
-                      <tr><th className="p-4">Khách hàng</th><th className="p-4">Liên hệ</th><th className="p-4">Số dư</th><th className="p-4">Lượt quay</th><th className="p-4 text-center">Hành động</th></tr>
+                     <tr><th className="p-4">Khách hàng</th><th className="p-4">Liên hệ</th><th className="p-4">Số dư</th><th className="p-4">Quỹ thuê</th><th className="p-4">Lượt quay</th><th className="p-4 text-center">Hành động</th></tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
                       {filteredUsersList.map(u => (
                         <tr key={u.id} className="hover:bg-slate-800/30 transition-colors">
                           <td className="p-4 font-bold text-white flex items-center gap-2">{u.name} {u.role==='admin' && <span className="px-2 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-400 uppercase">Admin</span>} {u.isLocked && <Lock size={12} className="text-rose-500"/>}</td>
                           <td className="p-4 text-blue-400"><div className="text-xs"><Phone size={10} className="inline mr-1"/>{u.phone}</div><div className="text-xs mt-1"><Mail size={10} className="inline mr-1"/>{u.email}</div></td>
-                          <td className="p-4 text-emerald-400 font-bold">{new Intl.NumberFormat('vi-VN').format(u.balance)}đ</td>
-                          <td className="p-4 text-rose-400 font-bold flex items-center gap-1 mt-2"><Ticket size={14}/> {u.spins || 0}</td>
+<td className="p-4 text-emerald-400 font-bold">{new Intl.NumberFormat('vi-VN').format(u.balance)}đ</td>
+<td className="p-4 text-yellow-400 font-bold">{new Intl.NumberFormat('vi-VN').format(u.rentFund || 0)}đ</td>                          
+<td className="p-4 text-rose-400 font-bold flex items-center gap-1 mt-2"><Ticket size={14}/> {u.spins || 0}</td>
                           <td className="p-4 text-center">
                             <div className="flex justify-center gap-2">
                               <button onClick={() => setViewUserHistory(u)} className="px-3 py-1.5 bg-indigo-500/20 text-indigo-400 rounded text-xs font-bold hover:bg-indigo-500 hover:text-white transition-colors flex items-center gap-1" title="Lịch sử giao dịch"><History size={14}/> Lịch sử</button>
