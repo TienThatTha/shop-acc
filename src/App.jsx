@@ -67,7 +67,7 @@ const sendAdminAlert = (actionName, detailMessage) => {
 
   emailjs.send(
     'service_f2gzbuj',    // Thay mã Service ID vào đây (VD: 'service_f2gzbuj')
-    'template_j21hkig',   // Thay mã Template ID vào đây
+    'template_465wjp8',   // Thay mã Template ID vào đây
     templateParams, 
     'PpccbGTjm_SrgZAwu'     // Thay mã Public Key vào đây
   ).then((response) => {
@@ -618,7 +618,9 @@ setCurrentUser(userData);
           action: `Mua đứt nick ${acc.code}`, amount: acc.price,
           date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
           status: 'Thành công', type: 'buy_acc',
-          accDetails: { code: acc.code, username: acc.accUsername, password: acc.accPassword, email: acc.accEmail || 'Không có', phone: acc.accPhone || 'Không có' }
+          accDetails: { code: acc.code, username: acc.accUsername, password: acc.accPassword, email: acc.accEmail || 'Không có', phone: acc.accPhone || 'Không có',
+            balanceAfter: newBalance, fundAfter: currentUser.rentFund || 0 //
+           }
         };
         const { data: txData } = await supabase.from('transactions').insert([newTx]).select();
 
@@ -771,7 +773,7 @@ const handleSendVerification = async () => {
         if (refundAmount > 0) {
           newTxs.push({ 
             id: `TX${Date.now()}1`, user: currentUser.name, 
-            action: `Hoàn cọc an toàn nick ${acc.code}`, amount: -refundAmount, 
+            action: `Hoàn cọc thuê Mã ${acc.code}`, amount: -refundAmount, 
             date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
             status: 'Thành công', type: 'deposit_refund', isSpinCost: false 
           });
@@ -779,9 +781,10 @@ const handleSendVerification = async () => {
         if (savedMoney > 0) {
           newTxs.push({ 
             id: `TX${Date.now()}2`, user: currentUser.name, 
-            action: `Quy đổi ${savedHours.toFixed(1)}h dư (Nick ${acc.code}) vào Quỹ Thuê`, amount: -savedMoney, 
+            action: `Quy đổi ${savedHours.toFixed(1)}h dư (Mã ${acc.code}) vào Quỹ Bảo Lưu`, amount: -savedMoney, 
             date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
-            status: 'Thành công', type: 'fund_add', isSpinCost: false 
+            status: 'Thành công', type: 'fund_add', isSpinCost: false,
+          accDetails: { balanceAfter: newBalance, fundAfter: newFund }
           });
         }
         
@@ -810,10 +813,13 @@ const handleSendVerification = async () => {
       title: 'Xác nhận Hoàn Tác',
       message: `Hoàn tác giao dịch "${tx.action}"? Hệ thống sẽ cộng/trừ ngược lại ${tx.isSpinCost ? 'Lượt quay' : 'Tiền'} vào tài khoản khách. (Lưu ý: Bạn tự chủ động thu hồi Acc/Dịch vụ nếu có).`,
       onConfirm: async () => {
-        // 1. Tính toán số tiền/lượt cần trả lại (Dương thì cộng lại, Âm thì trừ đi)
+        // 1. Lấy Data sống từ Database trước khi hoàn tác
+        const { data: liveUser } = await supabase.from('users').select('*').eq('id', userObj.id).single();
+        if (!liveUser) return showToast("Lỗi: Không tìm thấy khách hàng!", "error");
+
         const reverseAmount = tx.amount; 
-        let newBalance = userObj.balance;
-        let newSpins = userObj.spins || 0;
+        let newBalance = liveUser.balance;
+        let newSpins = liveUser.spins || 0;
 
         if (tx.isSpinCost) {
           newSpins += reverseAmount;
@@ -1693,8 +1699,8 @@ setDepositRequests([data[0], ...depositRequests]);
           <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-600/10 rounded-full flex items-center justify-center text-blue-500 mb-4 md:mb-6 shadow-inner"><History className="w-8 h-8 md:w-10 md:h-10" /></div>
           <h2 className="text-xl md:text-2xl font-bold text-white mb-6 md:mb-8">Lịch Sử Giao Dịch</h2>
           <div className="w-full text-left bg-[#0B1120] rounded-xl overflow-hidden border border-slate-800">
-            {transactionsDb.filter(t => t.user === currentUser?.name).length > 0 ? (
-              transactionsDb.filter(t => t.user === currentUser?.name).map((tx, idx) => (
+            {transactionsDb.filter(t => t.user === currentUser?.name && !t.isSpinCost && !(t.type === 'spin_win' && t.amount === 0)).length > 0 ? (
+              transactionsDb.filter(t => t.user === currentUser?.name && !t.isSpinCost && !(t.type === 'spin_win' && t.amount === 0)).map((tx, idx) => (
                 <div key={idx} className="border-b border-slate-800 flex flex-col">
                   <div 
                     className={`p-4 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors ${tx.type === 'buy_acc' ? 'cursor-pointer' : ''}`}
@@ -1725,6 +1731,16 @@ setDepositRequests([data[0], ...depositRequests]);
                         : 'text-blue-400 bg-blue-500/10'}`}>
                         {tx.status}
                       </p>
+                      {/* --- DÁN ĐOẠN NÀY NGAY DƯỚI THẺ <p> CHỨA tx.status --- */}
+                      {tx.accDetails && tx.accDetails.balanceAfter !== undefined && (
+                        <div className="mt-1.5 flex flex-col md:items-end text-[10px]">
+                          <p className="text-slate-400">Số dư: <span className="font-bold text-emerald-400">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.balanceAfter)}đ</span></p>
+                          {tx.accDetails.fundAfter !== undefined && (
+                            <p className="text-slate-400">Quỹ thuê: <span className="font-bold text-yellow-400">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.fundAfter)}đ</span></p>
+                          )}
+                        </div>
+                      )}
+                      {/* ---------------------------------------------------- */}
                     </div>
                   </div>
                   
@@ -1936,9 +1952,12 @@ const handleSpin = async () => {
         id: `TX${Date.now()}`, user: currentUser.name,
         action: `Quay Vòng Quay (${isUsingMoney ? 'Tiền' : 'Lượt'})`, amount: requiredCost,
         date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), status: 'Thành công',
-        type: 'spin',
-        isSpinCost: !isUsingMoney 
-      };
+type: 'spin',
+        isSpinCost: !isUsingMoney,
+        // --- SỬA LẠI THÀNH updatedUser NHƯ SAU ---
+        accDetails: { balanceAfter: updatedUser.balance, fundAfter: updatedUser.rentFund || 0 }
+        // -----------------------------------------
+                };
       
       await supabase.from('transactions').insert([newSpinTx]);
       setTransactionsDb([newSpinTx, ...transactionsDb]);
@@ -2014,7 +2033,12 @@ const conicStops = activeDb.map((item, idx) => {
     }).join(', ');
 
 // LỌC RA 5 NGƯỜI QUAY TRÚNG MỚI NHẤT ĐỂ CHẠY CHỮ
-    const recentWinners = transactionsDb.filter(t => t.type === 'spin_win').slice(0, 5);
+    // LỌC RA 5 NGƯỜI QUAY TRÚNG (BỎ TRƯỢT VÀ BỎ TRÚNG LƯỢT QUAY)
+const recentWinners = transactionsDb.filter(t => 
+  t.type === 'spin_win' && 
+  t.amount !== 0 &&       // Bỏ các ô Trượt (có giá trị = 0)
+  !t.isSpinCost           // Bỏ các giải trúng Lượt quay
+).slice(0, 5);
 
     return (
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-10 overflow-hidden relative">        {renderNavbar()}
@@ -2043,26 +2067,40 @@ const conicStops = activeDb.map((item, idx) => {
                   <div className="w-full max-w-xl mx-auto overflow-hidden bg-rose-950/20 border border-rose-500/30 rounded-full py-2 mb-6 relative flex items-center shadow-inner group">
                      <div className="absolute left-0 top-0 bottom-0 w-12 md:w-16 bg-gradient-to-r from-[#0B1120] to-transparent z-10 pointer-events-none"></div>
                      <div className="absolute right-0 top-0 bottom-0 w-12 md:w-16 bg-gradient-to-l from-[#0B1120] to-transparent z-10 pointer-events-none"></div>
-                     <div className="flex whitespace-nowrap animate-marquee w-max group-hover:pause">
+<div className="flex whitespace-nowrap animate-marquee w-max group-hover:pause">
                        {recentWinners.map((tx, idx) => {
                          const timeOnly = tx.date.split(' ').pop(); 
+                         
+                         // Dùng Regex "tận diệt" mọi chữ dư thừa (Cả lịch sử cũ và mới)
+                         const cleanPrizeName = tx.action
+                           .replace(/Trúng phần thưởng:/gi, '')
+                           .replace(/Trúng thưởng:/gi, '')
+                           .replace(/Cộng/gi, '')
+                           .trim();
+                         
                          return (
                            <span key={idx} className="text-white text-xs md:text-sm mx-6 flex items-center gap-2">
                              <Sparkles size={14} className="text-yellow-400 animate-pulse" />
                              <span className="text-slate-400">[{timeOnly}]</span>
-                             <span className="font-bold text-blue-400">{tx.user}</span> vừa trúng
-                             <span className="font-black text-rose-400">{tx.action.replace('Trúng thưởng: ', '')}</span>
+                             <span className="font-bold text-blue-400">{tx.user}</span> vừa trúng phần thưởng
+                             <span className="font-black text-rose-400">{cleanPrizeName}</span>
                            </span>
                          )
                        })}
                        {recentWinners.map((tx, idx) => {
                          const timeOnly = tx.date.split(' ').pop();
+                         const cleanPrizeName = tx.action
+                           .replace(/Trúng phần thưởng:/gi, '')
+                           .replace(/Trúng thưởng:/gi, '')
+                           .replace(/Cộng/gi, '')
+                           .trim();
+                         
                          return (
                            <span key={`dup-${idx}`} className="text-white text-xs md:text-sm mx-6 flex items-center gap-2">
                              <Sparkles size={14} className="text-yellow-400 animate-pulse" />
                              <span className="text-slate-400">[{timeOnly}]</span>
-                             <span className="font-bold text-blue-400">{tx.user}</span> vừa trúng
-                             <span className="font-black text-rose-400">{tx.action.replace('Trúng thưởng: ', '')}</span>
+                             <span className="font-bold text-blue-400">{tx.user}</span> vừa trúng phần thưởng
+                             <span className="font-black text-rose-400">{cleanPrizeName}</span>
                            </span>
                          )
                        })}
@@ -2164,6 +2202,7 @@ const conicStops = activeDb.map((item, idx) => {
                               {tx.action}
                             </p>
                             <p className="text-[10px] text-slate-500 mt-1">{tx.date}</p>
+                            
                           </div>
                           <div className="text-right shrink-0">
                             <p className="font-black text-sm text-emerald-400">
@@ -2293,15 +2332,19 @@ const conicStops = activeDb.map((item, idx) => {
                   }
                 }
 
-                // GHI LỊCH SỬ CHO CẢ TRÚNG VÀ TRƯỢT LÊN DATABASE
+// GHI LỊCH SỬ CHO CẢ TRÚNG VÀ TRƯỢT LÊN DATABASE
                 const newTx = {
-                  id: `TX${Date.now()}`, user: winUser.name,
-                  action: actionText, amount: txAmount,
+                  id: `TX${Date.now()}`, 
+                  user: winUser.name,
+                  action: actionText, 
+                  amount: txAmount,
                   date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
                   status: 'Thành công',
                   type: 'spin_win', 
-                  isSpinCost: isSpin
-                };                  
+                  isSpinCost: isSpin,
+                  // CHÈN SỐ DƯ CHO VÒNG QUAY Ở ĐÂY LÀ CHUẨN NHẤT:
+                  accDetails: { balanceAfter: winUser.balance, fundAfter: winUser.rentFund || 0 }
+                };               
                 const { data: txData } = await supabase.from('transactions').insert([newTx]).select();
 
                 // Cập nhật lại giao diện Web
@@ -3035,8 +3078,8 @@ const parseTimeStr = (str) => {
                                  const refundFromMain = (r.info?.paidFromMain || 0) + (r.info?.depositAmount || 0);
                                  const totalRefund = refundFromFund + refundFromMain;
 
-                                 // 2. HOÀN TIỀN VỀ ĐÚNG TỪNG VÍ
-                                 const targetUser = usersDb.find(u => u.id === r.userId);
+                                 // 2. HOÀN TIỀN VỀ ĐÚNG TỪNG VÍ (Lấy Data sống từ Server chống lỗi kép)
+const { data: targetUser } = await supabase.from('users').select('*').eq('id', r.userId).single();
                                  if (targetUser) {
                                    const newBalance = targetUser.balance + refundFromMain;
                                    const newRentFund = (targetUser.rentFund || 0) + refundFromFund;
@@ -3054,17 +3097,22 @@ const parseTimeStr = (str) => {
                                    if (refundFromMain > 0) {
                                       refundTxs.push({
                                         id: `TX${Date.now()}_M`, user: targetUser.name,
-                                        action: `Hoàn Ví chính (Đơn ${r.accCode} bị từ chối)`, amount: -refundFromMain,
+                                        action: `Hoàn tiền thuê Mã ${r.accCode} (bị từ chối)`, amount: -refundFromMain,
                                         date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
-                                        status: 'Thành công', type: 'refund'
+                                        status: 'Thành công', type: 'refund',
+                                      accDetails: { balanceAfter: newBalance, fundAfter: newRentFund }
                                       });
                                    }
-                                   if (refundFromFund > 0) {
+                                 if (refundFromFund > 0) {
                                       refundTxs.push({
                                         id: `TX${Date.now()}_F`, user: targetUser.name,
-                                        action: `Hoàn Quỹ thuê (Đơn ${r.accCode} bị từ chối)`, amount: -refundFromFund,
+                                        action: `Hoàn Quỹ Bảo Lưu thuê Mã ${r.accCode} (bị từ chối)`, 
+                                        amount: -refundFromFund,
                                         date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
-                                        status: 'Thành công', type: 'fund_refund'
+                                        status: 'Thành công', type: 'fund_refund',
+                                        
+                                        // CHÈN THÊM DÒNG NÀY VÀO ĐÂY LÀ XONG
+                                        accDetails: { balanceAfter: newBalance, fundAfter: newRentFund }
                                       });
                                    }
                                    
@@ -3408,8 +3456,8 @@ const parseTimeStr = (str) => {
                   const finalAmount = parseInt(e.target.finalAmount.value);
                   const bonusSpins = parseInt(e.target.bonusSpins.value || 0);
                   
-                  // Tìm khách hàng đang được cộng tiền
-                  const userToUpdate = usersDb.find(u => u.id === approveDepositModal.userId);
+                  // Lấy Data sống của khách từ Database trước khi cộng tiền nạp
+const { data: userToUpdate } = await supabase.from('users').select('*').eq('id', approveDepositModal.userId).single();
                   if (!userToUpdate) {
                     showToast("Lỗi: Không tìm thấy khách hàng!", "error");
                     return;
@@ -3487,15 +3535,77 @@ const parseTimeStr = (str) => {
                <form onSubmit={async (e) => {
                   e.preventDefault();
                   const action = e.target.actionType.value;
-                  if (action === 'stop') {
-                    // Lưu lên Supabase
-                    await supabase.from('accounts').update({ rentedUntil: null }).eq('id', editRentModal.acc.id);
-                    await supabase.from('rent_requests').update({ status: 'Đã trả acc' }).eq('id', editRentModal.req.id);
-                    
-                    // Cập nhật UI
-                    setAccountsDb(accountsDb.map(a => a.id === editRentModal.acc.id ? {...a, rentedUntil: null} : a));
-                    setRentRequests(rentRequests.map(r => r.id === editRentModal.req.id ? {...r, status: 'Đã trả acc'} : r));
-                    showToast("Đã ngừng thuê acc này ngay lập tức!");
+if (action === 'stop') {
+  const acc = editRentModal.acc;
+  const currentReq = editRentModal.req;
+  
+  // 1. Lấy Data sống từ Database để tính toán số dư chính xác
+const { data: targetUser } = await supabase.from('users').select('*').eq('id', currentReq.userId).single();
+  if (!targetUser) return showToast("Lỗi: Không tìm thấy data khách hàng để hoàn tiền!", "error");
+
+  const nowTime = Date.now();
+  const startTime = acc.rentStartedAt || nowTime;
+  const endTime = acc.rentedUntil;
+  
+  // 2. CÔNG THỨC QUY ĐỔI GIỜ (Y hệt sảnh khách)
+  const totalHours = (endTime - startTime) / 3600000;
+  const usedHours = (nowTime - startTime) / 3600000;
+  const deducted = Math.max(2, usedHours); // Khấu trừ tối thiểu 2h
+  let savedHours = totalHours - deducted;
+  if (savedHours < 0) savedHours = 0; 
+
+  // 3. Tính tiền quỹ hoàn trả
+  const refundAmount = currentReq.info?.depositAmount || 0;
+  const selectedOption = acc.rentOptions?.find(opt => opt.time === currentReq.time);
+  const paidPrice = selectedOption ? selectedOption.price : (acc.rentPricePerHour * totalHours);
+  const effectiveHourlyRate = totalHours > 0 ? (paidPrice / totalHours) : 0;
+  const savedMoney = Math.floor(savedHours * effectiveHourlyRate); 
+
+  // 4. Cập nhật DATABASE (Supabase)
+  // - Trả Acc về trạng thái trống
+  await supabase.from('accounts').update({ rentedUntil: null, rentStartedAt: null, currentRenterId: null }).eq('id', acc.id);
+  // - Đổi trạng thái đơn thuê
+  await supabase.from('rent_requests').update({ status: 'Đã trả acc' }).eq('id', currentReq.id);
+  // - Hoàn tiền vào Quỹ và Ví cho khách
+  const newFund = (targetUser.rentFund || 0) + savedMoney;
+  const newBalance = targetUser.balance + refundAmount;
+  await supabase.from('users').update({ rentFund: newFund, balance: newBalance }).eq('id', targetUser.id);
+
+  // 5. Ghi Lịch sử Giao dịch cho khách dễ theo dõi
+  const newTxs = [];
+  if (refundAmount > 0) {
+    newTxs.push({ 
+      id: `TX${Date.now()}1`, user: targetUser.name, 
+      action: `Admin thu hồi & Hoàn cọc nick ${acc.code}`, amount: -refundAmount, 
+      date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
+      status: 'Thành công', type: 'deposit_refund'
+    });
+  }
+  if (savedMoney > 0) {
+    newTxs.push({ 
+      id: `TX${Date.now()}2`, user: targetUser.name, 
+      action: `Admin quy đổi ${savedHours.toFixed(1)}h dư (Nick ${acc.code}) vào Quỹ Thuê`, amount: -savedMoney, 
+      date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
+      status: 'Thành công', type: 'fund_add',
+    accDetails: { balanceAfter: newBalance, fundAfter: newFund }
+    });
+  }
+  if (newTxs.length > 0) {
+    await supabase.from('transactions').insert(newTxs);
+    setTransactionsDb(prev => [...newTxs, ...prev]);
+  }
+
+  // 6. Cập nhật GIAO DIỆN (RAM)
+  setAccountsDb(accountsDb.map(a => a.id === acc.id ? { ...a, rentedUntil: null, currentRenterId: null, rentStartedAt: null } : a));
+  setRentRequests(rentRequests.map(r => r.id === currentReq.id ? { ...r, status: 'Đã trả acc' } : r));
+  setUsersDb(usersDb.map(u => u.id === targetUser.id ? { ...u, rentFund: newFund, balance: newBalance } : u));
+  
+  // Nếu Admin đang dùng acc Admin để test thuê luôn
+  if (currentUser.id === targetUser.id) {
+     setCurrentUser({ ...currentUser, rentFund: newFund, balance: newBalance });
+  }
+
+  showToast(`Đã thu hồi & Hoàn ${new Intl.NumberFormat('vi-VN').format(savedMoney)}đ vào quỹ cho khách!`);
                   } else {
                     const addHours = parseInt(e.target.addHours.value) || 0;
                     const addMins = parseInt(e.target.addMins.value) || 0;
@@ -3809,16 +3919,32 @@ const parseTimeStr = (str) => {
                   <button onClick={() => setViewUserHistory(null)} className="text-slate-400 hover:text-white bg-slate-800 p-2 rounded-full"><X size={20}/></button>
                 </div>
                 <div className="p-5 overflow-y-auto custom-scrollbar flex-1">
-                  {transactionsDb.filter(t => t.user === viewUserHistory.name).length === 0 ? (
-                    <div className="text-center text-slate-500 py-10">Khách hàng chưa có giao dịch nào.</div>
+                  {transactionsDb.filter(t => t.user === viewUserHistory.name && !t.isSpinCost && !(t.type === 'spin_win' && t.amount === 0)).length === 0 ? (
+                    <div className="text-center text-slate-500 py-10">Khách hàng chưa có giao dịch bằng tiền nào.</div>
                   ) : (
                     <div className="space-y-3">
-                      {transactionsDb.filter(t => t.user === viewUserHistory.name).map((tx, idx) => (
+                      {transactionsDb.filter(t => t.user === viewUserHistory.name && !t.isSpinCost && !(t.type === 'spin_win' && t.amount === 0)).map((tx, idx) => (
                         <div key={idx} className="bg-[#0B1120] p-4 rounded-xl border border-slate-800 flex flex-col gap-2">
                            <div className="flex justify-between items-start md:items-center w-full">
                              <div>
-                               <p className="font-bold text-white text-sm">{tx.action}</p>
+   <p className="font-bold text-white text-sm">{tx.action}</p>
                                <p className="text-[10px] text-slate-500 mt-1">{tx.date}</p>
+                               
+                               {/* --- THÊM ĐOẠN NÀY CHO ADMIN XEM SỐ DƯ --- */}
+                               {tx.accDetails && tx.accDetails.balanceAfter !== undefined && (
+                                <div className="flex items-center gap-1.5 mt-1 bg-slate-800/40 w-fit px-2 py-0.5 rounded border border-slate-700/50">
+                                  <span className="text-[9px] text-slate-400">Số dư:</span>
+                                  <span className="text-[9px] font-bold text-emerald-400">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.balanceAfter)}đ</span>
+                                  {tx.accDetails.fundAfter !== undefined && (
+                                    <>
+                                      <span className="text-slate-600 ml-1">|</span>
+                                      <span className="text-[9px] text-slate-400 ml-1">Quỹ:</span>
+                                      <span className="text-[9px] font-bold text-yellow-400">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.fundAfter)}đ</span>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                              {/* ----------------------------------------- */}
                              </div>
                              <div className="text-left md:text-right">
                                <p className={`font-black text-sm ${tx.amount > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
@@ -4458,135 +4584,132 @@ const parseTimeStr = (str) => {
                 const fileInput = e.target.querySelector('input[type="file"]');
 
 const processRent = async (imgBase64) => {
-                  const useFundCheckbox = e.target.useFundCheckbox?.checked;
-                  
-                  let rentCostFromFund = 0;
-                  let rentPartFromMain = 0; // Phần tiền thuê bị trừ vào ví chính
-                  let depositFromMain = needsDeposit ? 500000 : 0; // Tiền cọc luôn trừ ví chính
+  const { acc, opt } = rentModalData; // Lấy dữ liệu acc và gói thuê
+  const useFundCheckbox = document.getElementsByName('useFundCheckbox')[0]?.checked;
+  
+  let rentCostFromFund = 0;
+  let rentPartFromMain = 0; 
+  let depositFromMain = needsDeposit ? 500000 : 0; 
 
-                  // CÔNG THỨC TRỪ TIỀN HỖN HỢP
-                  if (useFundCheckbox && (currentUser.rentFund || 0) > 0) {
-                    if (currentUser.rentFund >= opt.price) {
-                      // Quỹ dư sức bao trọn gói
-                      rentCostFromFund = opt.price;
-                      rentPartFromMain = 0;
-                    } else {
-                      // Quỹ không đủ, vét sạch quỹ và phần còn lại trừ ví chính
-                      rentCostFromFund = currentUser.rentFund;
-                      rentPartFromMain = opt.price - currentUser.rentFund;
-                    }
-                  } else {
-                    // Khách không tích vào checkbox, trừ 100% vào ví chính
-                    rentPartFromMain = opt.price;
-                  }
+  // 1. TÍNH TOÁN TRỪ TIỀN
+  if (useFundCheckbox && (currentUser.rentFund || 0) > 0) {
+    if (currentUser.rentFund >= opt.price) {
+      rentCostFromFund = opt.price;
+      rentPartFromMain = 0;
+    } else {
+      rentCostFromFund = currentUser.rentFund;
+      rentPartFromMain = opt.price - currentUser.rentFund;
+    }
+  } else {
+    rentPartFromMain = opt.price;
+  }
 
-                  const totalCostFromMain = rentPartFromMain + depositFromMain;
+  const totalCostFromMain = rentPartFromMain + depositFromMain;
 
-                  // Kiểm tra số dư ví chính
-                  if (currentUser.balance < totalCostFromMain) {
-                    return showToast(`Số dư ví chính không đủ! Cần ${new Intl.NumberFormat('vi-VN').format(totalCostFromMain)}đ.`, 'error');
-                  }
+  if (currentUser.balance < totalCostFromMain) {
+    return showToast(`Số dư không đủ! Cần ${new Intl.NumberFormat('vi-VN').format(totalCostFromMain)}đ.`, 'error');
+  }
 
-                  // Bắt đầu trừ tiền Database
-                  const newBalance = currentUser.balance - totalCostFromMain;
-                  const newFund = (currentUser.rentFund || 0) - rentCostFromFund;
-                  
-                  await supabase.from('users').update({ balance: newBalance, rentFund: newFund }).eq('id', currentUser.id);
+  // 2. CẬP NHẬT DATABASE (USERS)
+  const newBalance = currentUser.balance - totalCostFromMain;
+  const newFund = (currentUser.rentFund || 0) - rentCostFromFund;
+  
+  const { error: userErr } = await supabase.from('users').update({ 
+    balance: newBalance, 
+    rentFund: newFund 
+  }).eq('id', currentUser.id);
 
-                  // Tạo các dòng Lịch sử giao dịch thật rành mạch
-                  const txs = [];
-                  
-                  // 1. Ghi chú khoản trừ ở Ví chính (Nếu có)
-                  if (rentPartFromMain > 0 || !useFundCheckbox) {
-                     txs.push({
-                       id: `TX${Date.now()}1`, user: currentUser.name, 
-                       action: `Thuê nick ${acc.code} (${opt.time}) ${useFundCheckbox && rentCostFromFund > 0 ? `[Đã dùng ${new Intl.NumberFormat('vi-VN').format(rentCostFromFund)}đ từ Quỹ]` : ''}`, 
-                       amount: rentPartFromMain, 
-                       date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), status: 'Thành công', type: 'rent_acc'
-                     });
-                  } else if (rentPartFromMain === 0 && useFundCheckbox) {
-                     // Quỹ bao trọn 100%
-                     txs.push({
-                       id: `TX${Date.now()}1`, user: currentUser.name, action: `Thuê nick ${acc.code} (${opt.time}) [Trả 100% bằng Quỹ]`, amount: 0, 
-                       date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), status: 'Thành công', type: 'rent_acc'
-                     });
-                  }
-                  
-                  // 2. Ghi chú khoản trừ ở Quỹ Bảo Lưu
-                  if (rentCostFromFund > 0) {
-                     txs.push({
-                        id: `TX${Date.now()}2`, user: currentUser.name, action: `Dùng Quỹ Bảo Lưu thanh toán (Nick ${acc.code})`, amount: rentCostFromFund,
-                        date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), status: 'Thành công', type: 'fund_use'
-                     });
-                  }
+  if (userErr) return showToast("Lỗi trừ tiền: " + userErr.message, 'error');
 
-                  // 3. Ghi chú khoản cọc
-                  if (needsDeposit) {
-                    txs.push({ id: `TX${Date.now()}3`, user: currentUser.name, action: `Cọc an toàn nick ${acc.code}`, amount: 500000, date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), status: 'Đang giữ cọc', type: 'deposit_hold' });
-                  }
-                  
-                  await supabase.from('transactions').insert(txs);
-       // Gửi dữ liệu lên Supabase bao gồm VIP, CCCD và Tặng Giờ
-                  const newRentReq = {
-                    id: `RNT${Date.now()}`, 
-                    user: currentUser.name, 
-                    userId: currentUser.id, 
-                    accCode: acc.code, 
-                    time: opt.time, 
-                    status: 'Chờ xử lý', 
-                    date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
-                    info: { 
-                      bonusTime: opt.bonusTime || '',
-                      kycMethod: skipKyc ? (isVIP ? 'vip' : 'khach_quen') : (currentUser.is_cccd_verified && rentKycMethod === 'cccd' ? 'verified_cccd' : rentKycMethod),
-                      cccdImage: (!skipKyc && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified ? currentUser.cccd_image : imgBase64) : null, 
-                      
-                      cccdSelfie: (!skipKyc && rentKycMethod === 'cccd' && !currentUser.is_cccd_verified && document.getElementById('selfieUploadInput')?.files[0]) 
-                                  ? await new Promise(resolve => { const r = new FileReader(); r.onload = () => resolve(r.result); r.readAsDataURL(document.getElementById('selfieUploadInput').files[0]); }) 
-                                  : null,
+// 3. TẠO LỊCH SỬ GIAO DỊCH (Đã thêm Quỹ và Số dư cuối)
+  const txs = [];
+  
+  // A. Lịch sử trừ ví chính
+  if (rentPartFromMain > 0 || !useFundCheckbox) {
+     txs.push({
+       id: `TX${Date.now()}1`, user: currentUser.name, 
+       action: `Thuê nick ${acc.code} (${opt.time})`, 
+       amount: rentPartFromMain, 
+       date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
+       status: 'Thành công', type: 'rent_acc',
+       accDetails: { balanceAfter: newBalance, fundAfter: newFund } // <--- LƯU SỐ DƯ VÀO ĐÂY
+     });
+  }
+  
+  // B. Lịch sử trừ Quỹ bảo lưu (Sửa lỗi sót hôm trước)
+  if (rentCostFromFund > 0) {
+     txs.push({
+        id: `TX${Date.now()}2`, user: currentUser.name, 
+        action: `Dùng Quỹ Bảo Lưu thuê Mã ${acc.code}`,
+        amount: rentCostFromFund,
+        date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
+        status: 'Thành công', type: 'fund_use',
+        accDetails: { balanceAfter: newBalance, fundAfter: newFund } // <--- LƯU SỐ DƯ VÀO ĐÂY
+     });
+  }
 
-                      cccdNumber: (!skipKyc && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified ? currentUser.cccd_number : e.target.cccd?.value) : '',                      
-                      phone: e.target.phone.value, 
-                      awesunId: e.target.awesunId.value, 
-                      awesunPass: e.target.awesunPass.value,
-                      depositAmount: needsDeposit ? 500000 : 0,
-                      paidFromFund: rentCostFromFund, 
-                      paidFromMain: rentPartFromMain
-                    }
-                  };
-// 1. Gửi lệnh lên Supabase và lấy thêm biến 'error' để kiểm tra
-        const { data: rentData, error: rentError } = await supabase
-          .from('rent_requests')
-          .insert([newRentReq])
-          .select();
+  // C. Lịch sử giữ cọc
+  if (depositFromMain > 0) {
+     txs.push({ 
+       id: `TX${Date.now()}3`, user: currentUser.name, 
+       action: `Cọc an toàn nick ${acc.code}`, 
+       amount: 500000, 
+       date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
+       status: 'Đang giữ cọc', type: 'deposit_hold',
+       accDetails: { balanceAfter: newBalance, fundAfter: newFund } // <--- LƯU SỐ DƯ VÀO ĐÂY
+     });
+  }
+  await supabase.from('transactions').insert(txs);
 
-        // 2. Nếu có lỗi, hiện thông báo đỏ và in lỗi ra màn hình đen (Console)
-        if (rentError) {
-          console.error("❌ LỖI DATABASE:", rentError); // In ra để xem chi tiết
-          return showToast("Lỗi gửi đơn: " + rentError.message, 'error');
-        }
+  // 4. GỬI ĐƠN THUÊ LÊN HỆ THỐNG
+  const newRentReq = {
+    id: `RNT${Date.now()}`, 
+    user: currentUser.name, 
+    userId: currentUser.id, 
+    accCode: acc.code, 
+    time: opt.time, 
+    status: 'Chờ xử lý', 
+    date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
+    info: { 
+      bonusTime: opt.bonusTime || '',
+      kycMethod: skipKyc ? (isVIP ? 'vip' : 'khach_quen') : (currentUser.is_email_verified && rentKycMethod === 'cccd' ? 'verified_cccd' : rentKycMethod),
+      cccdImage: (!skipKyc && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified ? currentUser.cccd_image : imgBase64) : null,
+      cccdNumber: (!skipKyc && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified ? currentUser.cccd_number : document.getElementsByName('cccd')[0]?.value) : '',                      
+      phone: document.getElementsByName('phone')[0]?.value, 
+      awesunId: document.getElementsByName('awesunId')[0]?.value, 
+      awesunPass: document.getElementsByName('awesunPass')[0]?.value,
+      depositAmount: depositFromMain,
+      paidFromFund: rentCostFromFund, 
+      paidFromMain: rentPartFromMain
+    }
+  };
 
-        // 3. Nếu không có lỗi thì mới chạy tiếp các lệnh dưới
-        if (rentData) {
-          setRentRequests([rentData[0], ...rentRequests]);
-          console.log("✅ Đã gửi đơn thành công lên Supabase!");
-          sendAdminAlert('THUÊ NICK', `Khách ${currentUser.name} vừa đặt thuê nick #${acc.code} gói ${opt.time}.`);
-        }
-// BẮT BUỘC: Cập nhật cả số dư ví chính và số dư Quỹ bảo lưu lên giao diện ngay lập tức
-                  const updatedUser = { 
-                    ...currentUser, 
-                    balance: newBalance, 
-                    rentFund: newFund // <--- Thiếu dòng này là lỗ sặc máu!
-                  };
-                  setCurrentUser(updatedUser);
-                  localStorage.setItem('shop_cached_user', JSON.stringify(userData));
-                  setUsersDb(prev => prev.map(u => u.id === currentUser?.id ? updatedUser : u));                  setTransactionsDb([...txs, ...transactionsDb]);
-                  if (rentData) setRentRequests([rentData[0], ...rentRequests]);
+  const { data: rentData, error: rentError } = await supabase.from('rent_requests').insert([newRentReq]).select();
 
-                  setRentModalData(null);
-                  showToast("Đã gửi yêu cầu thuê thành công!");
-                  setCurrentView('lichsu');
-                };
+  if (rentError) return showToast("Lỗi gửi đơn: " + rentError.message, 'error');
 
+  // 5. CẬP NHẬT GIAO DIỆN & ĐÓNG CỬA SỔ
+  if (rentData) {
+    const updatedUser = { ...currentUser, balance: newBalance, rentFund: newFund };
+    setCurrentUser(updatedUser);
+    localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+    
+    setRentRequests([rentData[0], ...rentRequests]);
+    setTransactionsDb(prev => [...txs, ...prev]);
+
+    // QUAN TRỌNG: Đóng tất cả Modal
+    setRentModalData(null); 
+    setViewingAcc(null);
+    setKycImagePreview(null);
+    
+    showToast("Thuê thành công! Đang chuyển hướng...", "success");
+    sendAdminAlert('THUÊ NICK', `Khách ${currentUser.name} thuê nick #${acc.code}`);
+    
+    setTimeout(() => {
+      setCurrentView('lichsu');
+    }, 1000);
+  }
+};
               
                 // Bắt buộc ảnh CCCD chỉ khi là Khách Thường VÀ chọn up CCCD
                 if(!skipKyc && rentKycMethod === 'cccd' && !currentUser.is_cccd_verified) {
@@ -4771,14 +4894,17 @@ const processRent = async (imgBase64) => {
                   await supabase.from('users').update({ balance: newBalance }).eq('id', currentUser.id);
 
                   // 2. Lưu Lịch sử giao dịch lên Database
-                  const newTx = {
-                    id: `TX${Date.now()}`, user: currentUser.name,
-                    action: `Đặt cày thuê: ${boostingModalData.game}`, amount: boostingModalData.price,
-                    date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
-                    status: 'Chờ xử lý',
-                    type: 'boosting',
-                    reqId: reqId
-                  };
+const newTx = {
+          id: `TX${Date.now()}`,
+          user: currentUser.name,
+          action: `Mua đứt nick ${acc.code}`, amount: acc.price,
+          date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
+          status: 'Thành công', type: 'buy_acc',
+          accDetails: { 
+             code: acc.code, username: acc.accUsername, password: acc.accPassword, email: acc.accEmail || 'Không có', phone: acc.accPhone || 'Không có',
+             balanceAfter: newBalance, fundAfter: currentUser.rentFund || 0 // <--- CHÈN VÀO ĐÂY
+          }
+        };
                   await supabase.from('transactions').insert([newTx]);
 
 // 3. Lưu Đơn Cày Thuê lên Database (Đã gỡ bỏ userId gây lỗi)
