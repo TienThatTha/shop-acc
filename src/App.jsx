@@ -392,7 +392,44 @@ const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState([]);
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+// --- HỆ THỐNG LẮNG NGHE DỮ LIỆU REALTIME (THỜI GIAN THỰC) ---
+  useEffect(() => {
+    // 1. Lắng nghe TIN NHẮN MỚI
+    const messageChannel = supabase.channel('realtime-messages')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        // Có người nhắn tin là nhét luôn vào state để màn hình tự hiện
+        setMessagesDb(prev => [...prev, payload.new]);
+      })
+      .subscribe();
 
+    // 2. Lắng nghe LỆNH NẠP TIỀN MỚI & CẬP NHẬT TRẠNG THÁI
+    const depositChannel = supabase.channel('realtime-deposits')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'deposit_requests' }, (payload) => {
+        setDepositRequests(prev => [payload.new, ...prev]);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'deposit_requests' }, (payload) => {
+        // Admin vừa duyệt xong là máy khách cũng tự đổi chữ "Thành công" luôn
+        setDepositRequests(prev => prev.map(req => req.id === payload.new.id ? payload.new : req));
+      })
+      .subscribe();
+
+    // 3. Lắng nghe ĐƠN THUÊ NICK MỚI & CẬP NHẬT TRẠNG THÁI
+    const rentChannel = supabase.channel('realtime-rents')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rent_requests' }, (payload) => {
+        setRentRequests(prev => [payload.new, ...prev]);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rent_requests' }, (payload) => {
+        setRentRequests(prev => prev.map(req => req.id === payload.new.id ? payload.new : req));
+      })
+      .subscribe();
+
+    // Dọn dẹp các đường truyền khi khách đóng trình duyệt để chống lag máy
+    return () => {
+      supabase.removeChannel(messageChannel);
+      supabase.removeChannel(depositChannel);
+      supabase.removeChannel(rentChannel);
+    };
+  }, []);
   // Tự động chuyển vòng quay nếu bị trống (Chống lỗi F5)
   useEffect(() => {
     if (playMode === 'money' && wheelItemsMoneyDb.length === 0 && wheelItemsSpinDb.length > 0) {
