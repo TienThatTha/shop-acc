@@ -227,15 +227,16 @@ const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState([]);
       setShowSpinRules(false);
     }
   }, [currentView, dismissSpinRules]);  useEffect(() => {
-const fetchInitialData = async () => {
-      // 1. GỌI TẤT CẢ DỮ LIỆU CÔNG KHAI CÙNG MỘT LÚC (SONG SONG)
-      const [accRes, boostRes, wheelRes] = await Promise.all([
+    const fetchInitialData = async () => {
+      // 1. TẢI CÁC DỮ LIỆU CÔNG KHAI NGAY LẬP TỨC
+      const [accRes, boostRes, wheelRes, voucherRes, boostReqRes] = await Promise.all([
         supabase.from('accounts').select('*'),
         supabase.from('boosting').select('*').order('id', { ascending: false }),
-        supabase.from('wheel_items').select('*')
+        supabase.from('wheel_items').select('*'),
+        supabase.from('vouchers').select('*'),
+        supabase.from('boosting_requests').select('*').order('id', { ascending: false }) // Hút đơn Cày Thuê
       ]);
 
-      // Xử lý Nick Game
       if (accRes.data) {
         const fixedAccounts = accRes.data.map(acc => ({
           ...acc,
@@ -245,98 +246,81 @@ const fetchInitialData = async () => {
         }));
         setAccountsDb(fixedAccounts);
       }
-
-      // Xử lý Cày Thuê
       if (boostRes.data) setBoostingDb(boostRes.data);
-
-      // Xử lý Vòng Quay
       if (wheelRes.data) {
         setWheelItemsMoneyDb(wheelRes.data.filter(w => w.wheel_type === 'money'));
         setWheelItemsSpinDb(wheelRes.data.filter(w => w.wheel_type === 'spin'));
       }
+      if (voucherRes.data) setVouchersDb(voucherRes.data);
+      if (boostReqRes.data) setBoostingRequests(boostReqRes.data);
 
-// 2. KIỂM TRA ĐĂNG NHẬP NGẦM & LẤY THÔNG TIN KHÁCH
+      const savedDepositConfig = localStorage.getItem('shop_deposit_config');
+      if (savedDepositConfig) setDepositBonusConfig(JSON.parse(savedDepositConfig));
+
+      // 2. KIỂM TRA ĐĂNG NHẬP NGẦM & TẢI DỮ LIỆU THEO CHỨC VỤ
       const { data: { session } } = await supabase.auth.getSession();
       
-      let userRole = 'user'; // Mặc định ai cũng là khách
-
       if (session) {
-         // TÌM XEM USER NÀY LÀ AI TRONG DATABASE ĐỂ XÁC ĐỊNH QUYỀN
+         // Tìm xem ai đang đăng nhập
          const { data: user } = await supabase.from('users').select('*').eq('id', session.user.id).single();
          
          if (user && !user.is_locked) {
            setCurrentUser(user);
            localStorage.setItem('shop_cached_user', JSON.stringify(user));
-           userRole = user.role || 'user'; // Lấy quyền thật sự từ Database
-         }
+           
+           // GIẢI QUYẾT LỖI MẤT QUYỀN ADMIN (Chữ Hoa/Thường)
+           const role = (user.role || 'user').toLowerCase();
 
-         // 3. TẢI DỮ LIỆU ADMIN HOẶC KHÁCH THƯỜNG DỰA VÀO QUYỀN VỪA LẤY
-         if (userRole === 'admin') {
-           // ADMIN: Tải tất cả để quản lý
-           const [usersRes, txRes, depRes, rentRes, msgRes] = await Promise.all([
-              supabase.from('users').select('*').order('id', { ascending: false }),
-              supabase.from('transactions').select('*').order('id', { ascending: false }),
-              supabase.from('deposit_requests').select('*').order('id', { ascending: false }),
-              supabase.from('rent_requests').select('*').order('id', { ascending: false }),
-              supabase.from('messages').select('*').order('timestamp', { ascending: true })
-           ]);
-           if (usersRes.data) setUsersDb(usersRes.data);
-           if (txRes.data) setTransactionsDb(txRes.data);
-           if (depRes.data) setDepositRequests(depRes.data);
-           if (rentRes.data) setRentRequests(rentRes.data);
-           if (msgRes.data) setMessagesDb(msgRes.data);
-         } else {
-           // KHÁCH THƯỜNG: Chỉ tải những gì liên quan đến khách đó
-           const [myTx, myDep, myRent, myMsg] = await Promise.all([
-              supabase.from('transactions').select('*').eq('user', user?.name).order('id', { ascending: false }),
-              supabase.from('deposit_requests').select('*').eq('userId', session.user.id).order('id', { ascending: false }),
-              supabase.from('rent_requests').select('*').eq('userId', session.user.id).order('id', { ascending: false }),
-              supabase.from('messages').select('*').or(`senderId.eq.${session.user.id},receiverId.eq.${session.user.id}`).order('timestamp', { ascending: true })
-           ]);
-           if (myTx.data) setTransactionsDb(myTx.data);
-           if (myDep.data) setDepositRequests(myDep.data);
-           if (myRent.data) setRentRequests(myRent.data);
-           if (myMsg.data) setMessagesDb(myMsg.data);
+           if (role === 'admin') {
+// QUYỀN ADMIN: TẢI TOÀN BỘ DATABASE VỀ PANEL
+             const [usersRes, txRes, depRes, rentRes, msgRes, boostReqRes] = await Promise.all([
+                supabase.from('users').select('*').order('id', { ascending: false }),
+                supabase.from('transactions').select('*').order('id', { ascending: false }),
+                supabase.from('deposit_requests').select('*').order('id', { ascending: false }),
+                supabase.from('rent_requests').select('*').order('id', { ascending: false }),
+                supabase.from('messages').select('*').order('timestamp', { ascending: true }),
+                supabase.from('boosting_requests').select('*').order('id', { ascending: false })
+             ]);
+             
+             if (usersRes.data) setUsersDb(usersRes.data);
+             if (txRes.data) setTransactionsDb(txRes.data);
+             if (depRes.data) setDepositRequests(depRes.data);
+             if (msgRes.data) setMessagesDb(msgRes.data);
+             if (boostReqRes.data) setBoostingRequests(boostReqRes.data);
+             if (rentRes.data) {
+                const fixedRentReqs = rentRes.data.map(r => ({
+                  ...r,
+                  accCode: r.accCode || r.acccode || '',
+                  userId: r.userId || r.userid || ''
+                }));
+                setRentRequests(fixedRentReqs);
+             }           } else {
+             // QUYỀN KHÁCH: CHỈ TẢI CỦA KHÁCH
+             const [myTx, myDep, myRent, myMsg] = await Promise.all([
+                supabase.from('transactions').select('*').eq('user', user.name).order('id', { ascending: false }),
+                supabase.from('deposit_requests').select('*').eq('userId', session.user.id).order('id', { ascending: false }),
+                supabase.from('rent_requests').select('*').eq('userId', session.user.id).order('id', { ascending: false }),
+                supabase.from('messages').select('*').or(`senderId.eq.${session.user.id},receiverId.eq.${session.user.id}`).order('timestamp', { ascending: true })
+             ]);
+             
+             if (myTx.data) setTransactionsDb(myTx.data);
+             if (myDep.data) setDepositRequests(myDep.data);
+             if (myMsg.data) setMessagesDb(myMsg.data);
+             if (myRent.data) {
+                const fixedRentReqs = myRent.data.map(r => ({
+                  ...r,
+                  accCode: r.accCode || r.acccode || '',
+                  userId: r.userId || r.userid || ''
+                }));
+                setRentRequests(fixedRentReqs);
+             }
+           }
          }
       }
-      // ... (Các phần tải Voucher, Thống kê giữ nguyên)
-      // 3. Hút danh sách Lịch sử Giao dịch
-      const { data: txData } = await supabase.from('transactions').select('*').order('id', { ascending: false });
-      if (txData) setTransactionsDb(txData);
-
-      // 4. Hút danh sách Yêu cầu Nạp tiền
-      const { data: depData } = await supabase.from('deposit_requests').select('*').order('id', { ascending: false });
-      if (depData) setDepositRequests(depData);
-
-      // 5. Hút danh sách Yêu cầu Thuê Acc (Lọc chữ thường Supabase)
-      const { data: rentReqData } = await supabase.from('rent_requests').select('*').order('id', { ascending: false });
-      if (rentReqData) {
-         const fixedRentReqs = rentReqData.map(r => ({
-           ...r,
-           accCode: r.accCode || r.acccode || '',
-           userId: r.userId || r.userid || ''
-         }));
-         setRentRequests(fixedRentReqs);
-      }      // 6. Hút danh sách Tin nhắn (Hòm thư)
-      const { data: msgData } = await supabase.from('messages').select('*').order('timestamp', { ascending: true });
-      if (msgData) setMessagesDb(msgData);
-
-      // 7. Hút danh sách Vật phẩm Vòng quay
-      const { data: wheelData } = await supabase.from('wheel_items').select('*');
-      if (wheelData && wheelData.length > 0) {
-        setWheelItemsMoneyDb(wheelData.filter(w => w.wheel_type === 'money'));
-        setWheelItemsSpinDb(wheelData.filter(w => w.wheel_type === 'spin'));
-      }
-// Hút danh sách Cày Thuê từ Supabase
-      const { data: boostingData } = await supabase.from('boosting').select('*').order('id', { ascending: false });
-      if (boostingData) setBoostingDb(boostingData);
-      // 9. Đọc cài đặt khuyến mãi nạp tiền
-      const savedDepositConfig = localStorage.getItem('shop_deposit_config');
-      if (savedDepositConfig) setDepositBonusConfig(JSON.parse(savedDepositConfig));
     }; 
 
-    
     fetchInitialData();
+
     // --- HỆ THỐNG ĐẾM LƯỢT TRUY CẬP ---
     const trackVisitor = async () => {
       const { data } = await supabase.from('site_stats').select('views').eq('id', 1).single();
@@ -351,6 +335,7 @@ const fetchInitialData = async () => {
         setVisitorCount(currentViews);
       }
     };
+    
     trackVisitor();
   }, []);
  // Global Time State
@@ -430,13 +415,40 @@ const handleLogin = async (e) => {
         localStorage.removeItem('shop_cached_user');
         return showToast("Tài khoản của bạn đã bị khóa!", 'error');
       }
-      setCurrentUser(userData);
+setCurrentUser(userData);
       localStorage.setItem('shop_cached_user', JSON.stringify(userData));
+      
+// XÚC DỮ LIỆU ADMIN NGAY KHI ĐĂNG NHẬP ĐỂ KHÔNG BỊ TRỐNG PANEL
+      const role = (userData.role || 'user').toLowerCase();
+      if (role === 'admin') {
+         const [usersRes, txRes, depRes, rentRes, msgRes, boostReqRes] = await Promise.all([
+            supabase.from('users').select('*').order('id', { ascending: false }),
+            supabase.from('transactions').select('*').order('id', { ascending: false }),
+            supabase.from('deposit_requests').select('*').order('id', { ascending: false }),
+            supabase.from('rent_requests').select('*').order('id', { ascending: false }),
+            supabase.from('messages').select('*').order('timestamp', { ascending: true }),
+            supabase.from('boosting_requests').select('*').order('id', { ascending: false }) // Phải kéo cái này về
+         ]);
+         if (usersRes.data) setUsersDb(usersRes.data);
+         if (txRes.data) setTransactionsDb(txRes.data);
+         if (depRes.data) setDepositRequests(depRes.data);
+         if (rentRes.data) {
+            // Nhớ lọc chữ hoa/thường cho bảng Thuê Nick
+            const fixedRentReqs = rentRes.data.map(r => ({
+              ...r,
+              accCode: r.accCode || r.acccode || '',
+              userId: r.userId || r.userid || ''
+            }));
+            setRentRequests(fixedRentReqs);
+         }
+         if (msgRes.data) setMessagesDb(msgRes.data);
+         if (boostReqRes.data) setBoostingRequests(boostReqRes.data); // Lưu bảng Cày thuê vào State
+      }
+      
       setCurrentView('dashboard');
       showToast(`Chào mừng ${userData.name} quay trở lại!`, 'success');
     }
-  };
-  const handleRegister = async (e) => {
+  };  const handleRegister = async (e) => {
     e.preventDefault();
     const email = e.target.email.value;
     const password = e.target.password.value;
@@ -1813,7 +1825,7 @@ const renderVongQuay = () => {
       activeDb = playMode === 'money' ? wheelItemsSpinDb : wheelItemsMoneyDb;
     }
 
-    const handleSpin = () => {
+const handleSpin = async () => {
       
       const isUsingMoney = playMode === 'money';
       const requiredCost = isUsingMoney ? wheelConfig.moneyCost : wheelConfig.spinCost;
@@ -1832,28 +1844,36 @@ const renderVongQuay = () => {
       } else {
          updatedUser.spins -= requiredCost;
       }
+
+      // =========================================================
+      // LẤY CÁI LOA Ở DƯỚI CÙNG TRANG WEB LÊN ĐỂ PHÁT NHẠC QUAY
+      // =========================================================
+      const spinAudio = document.getElementById('spinSound');
+      if (spinAudio) {
+         spinAudio.currentTime = 0;
+         spinAudio.volume = 0.5;
+         spinAudio.play().catch(e => console.log("Trình duyệt chặn:", e));
+      }
       
-setCurrentUser(updatedUser);
-localStorage.setItem('shop_cached_user', JSON.stringify(userData));
+      // Gọi máy chủ xử lý
+      await supabase.from('users').update({ balance: updatedUser.balance, spins: updatedUser.spins }).eq('id', currentUser.id);
+
+      setCurrentUser(updatedUser);
+      localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
       setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u));
-      setTransactionsDb([{
+      
+      const newSpinTx = {
         id: `TX${Date.now()}`, user: currentUser.name,
         action: `Quay Vòng Quay (${isUsingMoney ? 'Tiền' : 'Lượt'})`, amount: requiredCost,
         date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), status: 'Thành công',
         type: 'spin',
         isSpinCost: !isUsingMoney 
-      }, ...transactionsDb]);
+      };
+      
+      await supabase.from('transactions').insert([newSpinTx]);
+      setTransactionsDb([newSpinTx, ...transactionsDb]);
 
       setIsSpinning(true);
-
-// --- ÂM THANH KHI VÒNG QUAY ĐANG LĂN ---
-      let spinAudio;
-      try {
-        spinAudio = new Audio('https://www.myinstants.com/media/sounds/price-is-right-wheel.mp3');
-        spinAudio.volume = 0.5;
-        spinAudio.loop = true;
-        spinAudio.play();
-      } catch(e) { }
 
       let rand = Math.random() * 100;
       let cumulative = 0;
@@ -1881,39 +1901,39 @@ localStorage.setItem('shop_cached_user', JSON.stringify(userData));
 
       setTimeout(() => {
         setIsSpinning(false);
-        if (spinAudio) spinAudio.pause(); 
+        if (spinAudio) {
+          spinAudio.pause(); // Tắt nhạc quay
+          spinAudio.currentTime = 0;
+        }
 
-        // --- ÂM THANH KHI DỪNG LẠI (TRÚNG HOẶC TRƯỢT) ---
-        try {
-           let resultAudio = new Audio(
-             (winningItem.type === 'money' || winningItem.type === 'spin' || winningItem.type === 'fund' || winningItem.type === 'other') 
-             ? 'https://www.myinstants.com/media/sounds/success-1-6297.mp3' // Tiếng Ting Ting vỗ tay
-             : 'https://www.myinstants.com/media/sounds/sadtrombone.mp3' // Tiếng kèn buồn tò te tí
-           );
-           resultAudio.volume = 0.8;
-           resultAudio.play();
-        } catch(e) {}
+        // =========================================================
+        // LẤY LOA Ở DƯỚI CÙNG LÊN ĐỂ PHÁT TIẾNG TRÚNG/TRƯỢT
+        // =========================================================
+        const winAudio = document.getElementById('winSound');
+        const loseAudio = document.getElementById('loseSound');
+
+        if (winningItem.type !== 'none') {
+           if (winAudio) { winAudio.currentTime = 0; winAudio.volume = 0.8; winAudio.play().catch(e => {}); }
+        } else {
+           if (loseAudio) { loseAudio.currentTime = 0; loseAudio.volume = 0.8; loseAudio.play().catch(e => {}); }
+        }
+
         const prizeValue = Number(winningItem.value) || 0;
 
-if (winningItem.type === 'money') {
+        if (winningItem.type === 'money') {
           setGiftModalData({ item: winningItem, prizeValue: prizeValue, prizeType: 'money', updatedUser: updatedUser });
-          setIsGiftOpened(true); 
         } else if (winningItem.type === 'spin') {
           setGiftModalData({ item: winningItem, prizeValue: prizeValue, prizeType: 'spin', updatedUser: updatedUser });
-          setIsGiftOpened(true); 
-        } else if (winningItem.type === 'fund') { // <--- THÊM KHỐI NÀY
+        } else if (winningItem.type === 'fund') {
           setGiftModalData({ item: winningItem, prizeValue: prizeValue, prizeType: 'fund', updatedUser: updatedUser });
-          setIsGiftOpened(true); 
         } else if (winningItem.type === 'other') {
           setGiftModalData({ item: winningItem, prizeValue: 0, prizeType: 'other', updatedUser: updatedUser });
-          setIsGiftOpened(true); 
         } else {
           setGiftModalData({ item: winningItem, prizeValue: 0, prizeType: 'none', updatedUser: updatedUser, isLost: true });
-          setIsGiftOpened(true);
         }
+        setIsGiftOpened(true); 
       }, 4000); 
-    };
-
+    };    
     const colors = ['#f43f5e', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#64748b'];
 const conicStops = activeDb.map((item, idx) => {
         const startAngle = (idx * 360) / activeDb.length;
@@ -2179,12 +2199,7 @@ const conicStops = activeDb.map((item, idx) => {
                     txAmount = -giftModalData.prizeValue;
                     txType = 'fund_add'; 
                   }
-// Tiếng Ting Ting nhặt tiền
-                  try {
-                    let coinAudio = new Audio('https://www.myinstants.com/media/sounds/mario-coin.mp3');
-                    coinAudio.volume = 1.0;
-                    coinAudio.play();
-                  } catch(e){}
+                  
                   // 1. Cập nhật Số dư/Lượt quay/Quỹ lên Supabase
                   await supabase.from('users').update({ 
                     balance: winUser.balance, 
@@ -2344,12 +2359,11 @@ const handleSaveBoosting = async (e) => {
       e.preventDefault();
       const type = e.target.boostType.value;
       const boostData = {
-        id: editingBoosting ? editingBoosting.id : Date.now(),
+        id: editingBoosting ? editingBoosting.id : Date.now(), // Phải có dòng sinh ID này
         type: type,
         require_login: type === 'event' ? e.target.requireLogin.checked : true,
         price: parseInt(e.target.price.value), 
         image: adminBoostingImage,
-        // Dùng dấu ?. để tránh lỗi đơ web khi các ô này bị ẩn đi
         game: type === 'rank' ? (e.target.game?.value || '') : 'Cày Sự Kiện',
         title: type === 'rank' ? (e.target.title?.value || '') : (e.target.eventName?.value || ''),
         desc: type === 'rank' ? (e.target.desc?.value || '') : (e.target.amount?.value || '')
@@ -2357,18 +2371,20 @@ const handleSaveBoosting = async (e) => {
 
       if (editingBoosting) {
         // Đẩy lên Supabase (Sửa)
-        await supabase.from('boosting').update(boostData).eq('id', editingBoosting.id);
-        setBoostingDb(boostingDb.map(b => b.id === editingBoosting.id ? boostData : b));
+        const { data, error } = await supabase.from('boosting').update(boostData).eq('id', editingBoosting.id).select();
+        if (error) return showToast("Lỗi cập nhật: " + error.message, 'error');
+        if (data && data.length > 0) setBoostingDb(boostingDb.map(b => b.id === editingBoosting.id ? data[0] : b));
         showToast("Sửa dịch vụ thành công!");
       } else {
         // Đẩy lên Supabase (Thêm)
-        await supabase.from('boosting').insert([boostData]);
-        setBoostingDb([boostData, ...boostingDb]);
+        const { data, error } = await supabase.from('boosting').insert([boostData]).select();
+        if (error) return showToast("Lỗi thêm dịch vụ: " + error.message, 'error');
+        if (data && data.length > 0) setBoostingDb([data[0], ...boostingDb]);
         showToast("Thêm dịch vụ thành công!");
       }
       setShowBoostingModal(false);
-    };
-    const handleBoostingImageUpload = (e) => {
+  }; 
+  const handleBoostingImageUpload = (e) => {
       const file = e.target.files[0];
       if (file) {
         const reader = new FileReader();
@@ -2485,8 +2501,9 @@ const voucherData = {
 
     const currentAdminWheelDb = adminWheelType === 'money' ? wheelItemsMoneyDb : wheelItemsSpinDb;
 
- // Lọc danh sách những người đã gửi tin nhắn ĐẾN Admin hiện tại
-    const usersWithMessagesIds = [...new Set(messagesDb.filter(m => m.receiverId === currentUser?.id).map(m => m.senderId))];
+ 
+   // Lọc danh sách những người đã gửi tin nhắn ĐẾN Admin, HOẶC Admin đã gửi cho họ
+    const usersWithMessagesIds = [...new Set(messagesDb.map(m => m.senderId === currentUser?.id ? m.receiverId : m.senderId))];
     const chatUsersList = usersDb.filter(u => usersWithMessagesIds.includes(u.id));
     
     // Tự động tìm kiếm toàn bộ khách hàng nếu Admin gõ vào ô tìm kiếm
@@ -3023,7 +3040,66 @@ const parseTimeStr = (str) => {
             {adminTab === 'boosting' && (
               <div className="p-6">
 {/* CHÚ Ý LỆNH SET ẢNH VỀ NULL ĐỂ TRÁNH LỖI HIỂN THỊ ẢNH CŨ */}
-<button onClick={() => { setEditingBoosting(null); setAdminBoostingImage(null); setAdminBoostType('rank'); setShowBoostingModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18}/> Thêm dịch vụ Cày Thuê</button>                 {boostingRequests.length > 0 && (
+<button onClick={() => { setEditingBoosting(null); setAdminBoostingImage(null); setAdminBoostType('rank'); setShowBoostingModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18}/> Thêm dịch vụ Cày Thuê</button>
+{/* Modal Admin Thêm Cày Thuê */}
+            {showBoostingModal && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                <div className="bg-[#151D2F] border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2"><Target className="text-blue-500"/> {editingBoosting ? 'Sửa Dịch Vụ' : 'Thêm Dịch Vụ Cày Thuê'}</h3>
+                    <button onClick={() => setShowBoostingModal(false)} className="text-slate-400 hover:text-white"><X size={20}/></button>
+                  </div>
+                  <form onSubmit={handleSaveBoosting} className="space-y-4">
+                    <div>
+                      <label className="text-xs text-slate-400 font-bold">Ảnh mô tả dịch vụ (Tùy chọn)</label>
+                      <div className="mt-1 border border-dashed border-slate-600 rounded-xl p-4 text-center hover:bg-slate-800/50 transition-colors relative group bg-[#0B1120]">
+                        <input type="file" accept="image/*" onChange={handleBoostingImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                        {adminBoostingImage ? (
+                            <div className="relative z-20">
+                              <img src={adminBoostingImage} className="mx-auto h-24 object-cover rounded-lg shadow-md w-full" alt="Preview" />
+                              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAdminBoostingImage(null); }} className="absolute top-2 right-2 bg-rose-500 hover:bg-rose-600 text-white p-1.5 rounded-full shadow-lg transition-colors z-30" title="Xóa ảnh này"><X size={14}/></button>
+                            </div>
+                        ) : (
+                            <div className="text-slate-500 flex flex-col items-center"><ImageIcon size={28} className="mb-2"/><span className="text-[10px] font-bold">Bấm để tải Ảnh lên</span></div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs text-slate-400 block mb-1">Cày gì?</label>
+                        <select name="boostType" value={adminBoostType} onChange={(e) => setAdminBoostType(e.target.value)} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
+                          <option value="rank">Cày Rank</option>
+                          <option value="event">Cày Sự Kiện</option>
+                        </select>
+                      </div>
+                      {adminBoostType === 'rank' ? (
+                        <div><label className="text-xs text-slate-400 block mb-1">Tên Game</label><input name="game" defaultValue={editingBoosting?.game} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required/></div>
+                      ) : (
+                        <div><label className="text-xs text-rose-400 font-bold block mb-1">Sự Kiện Gì?</label><input name="eventName" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.title : ''} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-rose-500" required/></div>
+                      )}
+                    </div>
+                    <div><label className="text-xs text-slate-400 block mb-1">Giá tiền (VNĐ)</label><input name="price" type="number" defaultValue={editingBoosting?.price} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-bold outline-none focus:border-blue-500" required/></div>
+                    {adminBoostType === 'rank' ? (
+                      <>
+                        <div><label className="text-xs text-slate-400 block mb-1">Tiêu đề Gói</label><input name="title" defaultValue={editingBoosting?.title} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required/></div>
+                        <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingBoosting?.desc} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
+                      </>
+                    ) : (
+                      <>
+                        <div><label className="text-xs text-slate-400 block mb-1">Số lượng / Mô tả</label><textarea name="amount" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.desc : ''} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
+                        <label className="flex items-center gap-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg cursor-pointer">
+                          <input type="checkbox" name="requireLogin" defaultChecked={editingBoosting?.type === 'event' ? editingBoosting.require_login : false} className="w-5 h-5 accent-rose-500 cursor-pointer" />
+                          <span className="text-sm font-bold text-rose-400">Yêu cầu TK/MK khách?</span>
+                        </label>
+                      </>
+                    )}
+                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl mt-6">Lưu Dịch Vụ</button>
+                  </form>
+                </div>
+              </div>
+            )}                 
+{/* --- LỊCH SỬ ĐƠN CÀY THUÊ DÀNH CHO ADMIN --- */}
+                {boostingRequests.length > 0 && (
                    <div className="mb-8 border border-blue-500/30 rounded-xl overflow-hidden shadow-lg">
                       <div className="bg-blue-900/30 p-3 font-bold text-blue-400 border-b border-blue-500/30 text-sm flex items-center gap-2">
                         <History size={18} /> QUẢN LÝ ĐƠN KHÁCH ĐẶT CÀY THUÊ
@@ -3043,29 +3119,63 @@ const parseTimeStr = (str) => {
                              </div>
                            </div>
                            <div className="flex flex-row md:flex-col gap-2 shrink-0 w-full md:w-auto">
-                              <select 
+<select 
                                 value={req.status || 'Chờ xử lý'} 
-                                onChange={(e) => {
+                                onChange={async (e) => {
                                   const newStatus = e.target.value;
+                                  
+                                  // 1. Cập nhật trạng thái lên Database
+                                  await supabase.from('boosting_requests').update({ status: newStatus }).eq('id', req.id);
+                                  await supabase.from('transactions').update({ status: newStatus }).eq('reqId', req.id);
+                                  
+                                  // 2. TỰ ĐỘNG BẮN TIN NHẮN THÔNG BÁO CHO KHÁCH
+                                  const targetUser = usersDb.find(u => u.name === req.user);
+                                  if (targetUser && currentUser) {
+                                    let msgContent = `[HỆ THỐNG] Đơn cày thuê "${req.boostingTitle}" của bạn đã chuyển sang trạng thái: ${newStatus.toUpperCase()}`;
+                                    
+                                    // Tùy biến câu chào theo từng trạng thái cho chuyên nghiệp
+                                    if (newStatus === 'Hoàn thành') {
+                                       msgContent = `🎉 Chúc mừng! Đơn cày thuê "${req.boostingTitle}" của bạn đã HOÀN THÀNH. Vui lòng vào game kiểm tra lại nhé! Cảm ơn bạn đã tin tưởng Shop.`;
+                                    } else if (newStatus === 'Đang cày') {
+                                       msgContent = `🎮 Đơn cày thuê "${req.boostingTitle}" của bạn ĐANG ĐƯỢC XỬ LÝ. Vui lòng KHÔNG đăng nhập vào game trong lúc này để tránh làm văng nick người cày nhé!`;
+                                    }
+
+                                    const newMsg = {
+                                      id: `MSG${Date.now()}`,
+                                      senderId: currentUser.id, 
+                                      receiverId: targetUser.id,
+                                      content: msgContent,
+                                      timestamp: Date.now(),
+                                      isRead: false
+                                    };
+                                    
+                                    // Đẩy tin nhắn lên DB và cập nhật màn hình
+                                    await supabase.from('messages').insert([newMsg]);
+                                    setMessagesDb(prev => [...prev, newMsg]);
+                                  }
+
+                                  // 3. Hiển thị trạng thái mới ra màn hình Admin
                                   setBoostingRequests(boostingRequests.map(r => r.id === req.id ? {...r, status: newStatus} : r));
                                   setTransactionsDb(transactionsDb.map(tx => tx.reqId === req.id ? {...tx, status: newStatus} : tx));
-                                  showToast(`Đã chuyển trạng thái đơn thành: ${newStatus}`);
+                                  showToast(`Đã chuyển trạng thái & Gửi tin nhắn tự động cho ${req.user}!`);
                                 }}
                                 className="flex-1 md:flex-none bg-[#151D2F] text-white text-xs p-2 rounded outline-none border border-slate-700 focus:border-blue-500 font-bold cursor-pointer"
                               >
                                 <option value="Chờ xử lý">⏳ Chờ xử lý</option>
                                 <option value="Đang cày">🎮 Đang cày</option>
                                 <option value="Hoàn thành">✅ Hoàn thành</option>
-                              </select>
-                              <button onClick={()=>setConfirmDialog({title:'Xoá đơn', message:'Bạn có chắc chắn muốn xoá đơn cày thuê này không?', onConfirm:()=>{
+                              </select>                              
+                              <button onClick={() => setConfirmDialog({title:'Xoá đơn', message:'Bạn có chắc chắn muốn xoá đơn cày thuê này không?', onConfirm: async () => {
+                                await supabase.from('boosting_requests').delete().eq('id', req.id);
                                 setBoostingRequests(boostingRequests.filter(x=>x.id!==req.id));
-                                showToast("Đã xóa đơn cày thuê!");
+                                showToast("Đã xóa đơn cày thuê khỏi Database!");
                               }})} className="p-2 bg-rose-500/10 text-rose-500 rounded hover:bg-rose-500 hover:text-white flex items-center justify-center text-xs transition-colors font-bold"><Trash2 size={14} className="md:mr-0 mr-1"/> <span className="md:hidden">Xóa đơn</span></button>
                            </div>
                         </div>
                       ))}
                    </div>
                  )}
+                 {/* -------------------------------------------------- */}
 
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {boostingDb.map(b => (
@@ -3183,7 +3293,7 @@ const parseTimeStr = (str) => {
     ? tx.status 
     : (tx.isSpinCost ? `+${Math.abs(tx.amount)} Lượt` : `+${new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ`)
   }
-</td>                             </tr>
+</td></tr>
                            ))}
                          </tbody>
                        </table>
@@ -3682,73 +3792,54 @@ const parseTimeStr = (str) => {
                   <h3 className="text-xl font-bold text-white flex items-center gap-2"><Target className="text-blue-500"/> {editingBoosting ? 'Sửa Dịch Vụ' : 'Thêm Dịch Vụ Cày Thuê'}</h3>
                   <button onClick={() => setShowBoostingModal(false)} className="text-slate-400 hover:text-white"><X size={20}/></button>
                 </div>
-                <div className="space-y-4">
+<form onSubmit={handleSaveBoosting} className="space-y-4">
 {/* --- KHU VỰC UP ẢNH CÀY THUÊ CÓ NÚT X --- */}
                   <div>
                     <label className="text-xs text-slate-400 font-bold">Ảnh mô tả dịch vụ (Tùy chọn)</label>
                     <div className="mt-1 border border-dashed border-slate-600 rounded-xl p-4 text-center hover:bg-slate-800/50 transition-colors relative group bg-[#0B1120]">
-                      {/* Dòng input ẩn để click tải ảnh */}
                       <input type="file" accept="image/*" onChange={handleBoostingImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                      
                       {adminBoostingImage ? (
                           <div className="relative z-20">
                             <img src={adminBoostingImage} className="mx-auto h-24 object-cover rounded-lg shadow-md w-full" alt="Preview" />
-                            
-                            {/* NÚT X XÓA ẢNH */}
-                            <button 
-                              type="button" 
-                              onClick={(e) => { 
-                                e.preventDefault(); 
-                                e.stopPropagation(); // Chặn việc bấm nhầm vào nút Upload bên dưới
-                                setAdminBoostingImage(null); 
-                              }} 
-                              className="absolute top-2 right-2 bg-rose-500 hover:bg-rose-600 text-white p-1.5 rounded-full shadow-lg transition-colors z-30"
-                              title="Xóa ảnh này"
-                            >
-                              <X size={14}/>
-                            </button>
+                            <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAdminBoostingImage(null); }} className="absolute top-2 right-2 bg-rose-500 hover:bg-rose-600 text-white p-1.5 rounded-full shadow-lg transition-colors z-30" title="Xóa ảnh này"><X size={14}/></button>
                           </div>
                       ) : (
                           <div className="text-slate-500 flex flex-col items-center"><ImageIcon size={28} className="mb-2"/><span className="text-[10px] font-bold">Bấm để tải Ảnh lên</span></div>
                       )}
                     </div>
                   </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs text-slate-400 block mb-1">Cày gì?</label>
-                        <select name="boostType" value={adminBoostType} onChange={(e) => setAdminBoostType(e.target.value)} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
-                          <option value="rank">Cày Rank</option>
-                          <option value="event">Cày Sự Kiện</option>
-                        </select>
-                      </div>
-                      
-                      {adminBoostType === 'rank' ? (
-                        <div><label className="text-xs text-slate-400 block mb-1">Tên Game</label><input name="game" defaultValue={editingBoosting?.game} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required/></div>
-                      ) : (
-                        <div><label className="text-xs text-rose-400 font-bold block mb-1">Sự Kiện Gì?</label><input name="eventName" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.title : ''} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-rose-500" required/></div>
-                      )}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Cày gì?</label>
+                      <select name="boostType" value={adminBoostType} onChange={(e) => setAdminBoostType(e.target.value)} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
+                        <option value="rank">Cày Rank</option>
+                        <option value="event">Cày Sự Kiện</option>
+                      </select>
                     </div>
-
-                    <div><label className="text-xs text-slate-400 block mb-1">Giá tiền (VNĐ)</label><input name="price" type="number" defaultValue={editingBoosting?.price} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-bold outline-none focus:border-blue-500" required/></div>
-                    
                     {adminBoostType === 'rank' ? (
-                      <>
-                        <div><label className="text-xs text-slate-400 block mb-1">Tiêu đề Gói</label><input name="title" defaultValue={editingBoosting?.title} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required/></div>
-                        <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingBoosting?.desc} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
-                      </>
+                      <div><label className="text-xs text-slate-400 block mb-1">Tên Game</label><input name="game" defaultValue={editingBoosting?.game} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required/></div>
                     ) : (
-                      <>
-                        <div><label className="text-xs text-slate-400 block mb-1">Số lượng / Mô tả</label><textarea name="amount" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.desc : ''} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
-                        <label className="flex items-center gap-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg cursor-pointer">
-                          <input type="checkbox" name="requireLogin" defaultChecked={editingBoosting?.type === 'event' ? editingBoosting.require_login : false} className="w-5 h-5 accent-rose-500 cursor-pointer" />
-                          <span className="text-sm font-bold text-rose-400">Yêu cầu TK/MK khách? (Nếu tắt khách chỉ cần nhập Mã)</span>
-                        </label>
-                      </>
+                      <div><label className="text-xs text-rose-400 font-bold block mb-1">Sự Kiện Gì?</label><input name="eventName" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.title : ''} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-rose-500" required/></div>
                     )}
                   </div>
+                  <div><label className="text-xs text-slate-400 block mb-1">Giá tiền (VNĐ)</label><input name="price" type="number" defaultValue={editingBoosting?.price} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-bold outline-none focus:border-blue-500" required/></div>
+                  {adminBoostType === 'rank' ? (
+                    <>
+                      <div><label className="text-xs text-slate-400 block mb-1">Tiêu đề Gói</label><input name="title" defaultValue={editingBoosting?.title} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required/></div>
+                      <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingBoosting?.desc} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
+                    </>
+                  ) : (
+                    <>
+                      <div><label className="text-xs text-slate-400 block mb-1">Số lượng / Mô tả</label><textarea name="amount" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.desc : ''} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
+                      <label className="flex items-center gap-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg cursor-pointer">
+                        <input type="checkbox" name="requireLogin" defaultChecked={editingBoosting?.type === 'event' ? editingBoosting.require_login : false} className="w-5 h-5 accent-rose-500 cursor-pointer" />
+                        <span className="text-sm font-bold text-rose-400">Yêu cầu TK/MK khách?</span>
+                      </label>
+                    </>
+                  )}
                   <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl mt-6">Lưu Dịch Vụ</button>
-              </div>
-            </div>
+                </form>
+              </div>            </div>
           )}
 
           {showWheelModal && (
@@ -4546,8 +4637,7 @@ const processRent = async (imgBase64) => {
           </div>
           );
         })()}
-
-        {/* Modal Cày Thuê */}
+{/* Modal Khách Đặt Cày Thuê */}
         {boostingModalData && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-fade-in">
             <div className="bg-[#151D2F] border border-slate-700 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl">
@@ -4562,8 +4652,15 @@ const processRent = async (imgBase64) => {
                   <p className="text-xs text-slate-400 mt-2">Số dư của bạn: <span className="text-emerald-400 font-bold">{new Intl.NumberFormat('vi-VN').format(currentUser?.balance || 0)}đ</span></p>
                 </div>
                 
-                <form onSubmit={(e) => {
+                <form onSubmit={async (e) => {
                   e.preventDefault();
+                  
+                  // LẤY DỮ LIỆU AN TOÀN CHỐNG CRASH NGẦM
+                  const loginMethod = e.target.loginMethod ? e.target.loginMethod.value : 'Không Cần';
+                  const username = e.target.username ? e.target.username.value : (e.target.eventCode ? e.target.eventCode.value : '');
+                  const password = e.target.password ? e.target.password.value : 'Bảo Mật Bằng Mã';
+                  const note = e.target.note ? e.target.note.value : '';
+
                   if (currentUser.balance < boostingModalData.price) {
                     showToast("Số dư không đủ! Vui lòng nạp thêm tiền.", 'error');
                     setCurrentView('naptien');
@@ -4572,37 +4669,51 @@ const processRent = async (imgBase64) => {
                   }
 
                   const reqId = `BST${Date.now()}`;
-                  const updatedUser = {...currentUser, balance: currentUser.balance - boostingModalData.price};
-setCurrentUser(updatedUser);
-localStorage.setItem('shop_cached_user', JSON.stringify(userData));
-      setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u));
-                  setTransactionsDb([{
-                    id: `TX${Math.floor(Math.random() * 10000)}`, user: currentUser.name,
+                  const newBalance = currentUser.balance - boostingModalData.price;
+                  
+                  // 1. Trừ tiền trên Database
+                  await supabase.from('users').update({ balance: newBalance }).eq('id', currentUser.id);
+
+                  // 2. Lưu Lịch sử giao dịch lên Database
+                  const newTx = {
+                    id: `TX${Date.now()}`, user: currentUser.name,
                     action: `Đặt cày thuê: ${boostingModalData.game}`, amount: boostingModalData.price,
                     date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
                     status: 'Chờ xử lý',
                     type: 'boosting',
                     reqId: reqId
-                  }, ...transactionsDb]);
+                  };
+                  await supabase.from('transactions').insert([newTx]);
 
-                  setBoostingRequests([{
+                  // 3. Lưu Đơn Cày Thuê lên Database
+                  const newBoostReq = {
                     id: reqId, user: currentUser.name, boostingId: boostingModalData.id, boostingTitle: boostingModalData.title,
                     date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
                     status: 'Chờ xử lý',
-info: {
-                      loginMethod: e.target.loginMethod?.value || 'Không Cần',
-                      username: e.target.username?.value || e.target.eventCode?.value, // Lấy TK hoặc Mã
-                      password: e.target.password?.value || 'Bảo Mật Bằng Mã',
-                      note: e.target.note.value
+                    info: {
+                      loginMethod: loginMethod,
+                      username: username, 
+                      password: password,
+                      note: note
                     }
-                  }, ...boostingRequests]);
+                  };
+                  await supabase.from('boosting_requests').insert([newBoostReq]);
+
+                  // Cập nhật Giao diện
+                  const updatedUser = {...currentUser, balance: newBalance};
+                  setCurrentUser(updatedUser);
+                  localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+                  setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u));
+                  
+                  setTransactionsDb([newTx, ...transactionsDb]);
+                  setBoostingRequests([newBoostReq, ...boostingRequests]);
 
                   setBoostingModalData(null);
-                  showToast("Đặt lịch thành công! Admin sẽ sớm đăng nhập và cày cho bạn.");
-                  sendAdminAlert('ĐẶT CÀY THUÊ', `Khách ${currentUser.name} vừa đặt gói cày thuê: ${boostingModalData.title} (Nền tảng: ${e.target.loginMethod.value}).`);
+                  showToast("Đặt lịch thành công! Admin sẽ sớm xử lý.");
+                  sendAdminAlert('ĐẶT CÀY THUÊ', `Khách ${currentUser.name} vừa đặt cày thuê: ${boostingModalData.title}`);
                   setCurrentView('lichsu');
                 }}>
-<div className="space-y-4">
+                  <div className="space-y-4">
                     {/* Kiểm tra xem gói này có bắt buộc TK/MK không */}
                     {boostingModalData.type === 'event' && boostingModalData.require_login === false ? (
                       <div>
@@ -4647,8 +4758,7 @@ info: {
             </div>
           </div>
         )}
-
-        {/* Modal Hoá Đơn Mua Thành Công */}
+          {/* Modal Hoá Đơn Mua Thành Công */}
         {successTxData && successTxData.type === 'buy' && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-fade-in">
             <div className="bg-[#151D2F] border border-emerald-500 w-full max-w-sm rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(16,185,129,0.2)] transform transition-all scale-100">
@@ -4682,9 +4792,7 @@ info: {
             </div>
           </div>
         )}
-
-        {/* --- COMPONENT LIÊN HỆ GÓC DƯỚI --- */}
-        {/* --- COMPONENT LIÊN HỆ GÓC DƯỚI --- */}
+{/* --- COMPONENT LIÊN HỆ GÓC DƯỚI --- */}
         <FloatingContact 
           currentUser={currentUser} 
           unreadCount={unreadCount} 
@@ -4698,6 +4806,13 @@ info: {
             }
           }} 
         />
+
+        {/* --- DÀN LOA VÒNG QUAY SIÊU ĐƠN GIẢN CHỐNG LỖI --- */}
+      <audio id="spinSound" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3" preload="auto" loop></audio>
+        <audio id="winSound" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3" preload="auto"></audio>
+        <audio id="loseSound" src="https://assets.mixkit.co/active_storage/sfx/3148/3148-preview.mp3" preload="auto"></audio>
+        {/* ----------------------------------------------- */}
+
       </div>
 
       <style dangerouslySetInnerHTML={{__html: `
