@@ -119,6 +119,9 @@ const [showOtpModal, setShowOtpModal] = useState(false);
   // --- STATE MODALS ---
  const [rentModalData, setRentModalData] = useState(null); 
   const [rentKycMethod, setRentKycMethod] = useState('cccd'); // State quản lý chọn CCCD hay Cọc tiền
+  // STATE MỚI CHO BẢNG QUY ĐỊNH THUÊ NICK
+  const [showRentRules, setShowRentRules] = useState(null);
+  const [isRulesAccepted, setIsRulesAccepted] = useState(false);
   const [successTxData, setSuccessTxData] = useState(null);
   const [boostingModalData, setBoostingModalData] = useState(null);
   const [copiedText, setCopiedText] = useState('');
@@ -646,10 +649,10 @@ localStorage.setItem('shop_cached_user', JSON.stringify(userData));
 const initiateRent = (acc, opt) => {
     if (!currentUser) return requireAuth('login');
     if (!currentUser.is_email_verified) return showToast("Vui lòng vào mục Cá nhân để xác thực Email trước khi giao dịch!", "error");
-    // Bỏ check số dư ở đây để check chi tiết bên trong Modal
-    setRentKycMethod('cccd'); // Đặt mặc định là CCCD
-    setRentModalData({ acc, opt });
-    setKycImagePreview(null);
+    
+    // THAY VÌ MỞ BẢNG THANH TOÁN, CHÚNG TA MỞ BẢNG QUY ĐỊNH TRƯỚC
+    setIsRulesAccepted(false); // Reset lại ô checkbox về rỗng
+    setShowRentRules({ acc, opt }); // Mở bảng quy định và lưu lại thông tin gói khách chọn
   };
 const handleSendVerification = async () => {
     if (verifyCooldown > 0) return; // Đang đếm ngược thì cấm bấm
@@ -4551,7 +4554,58 @@ const { data: targetUser } = await supabase.from('users').select('*').eq('id', c
           </div>
           );
         })()}
+{/* MODAL QUY ĐỊNH THUÊ NICK TỪ ADMIN */}
+        {showRentRules && (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-fade-in">
+            <div className="bg-[#151D2F] border border-rose-500/50 w-full max-w-lg rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(225,29,72,0.2)]">
+              <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-[#0B1120]">
+                <h3 className="text-xl font-bold text-rose-500 flex items-center gap-2"><AlertCircle size={22}/> QUY ĐỊNH THUÊ NICK</h3>
+                <button onClick={() => setShowRentRules(null)} className="text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 p-2 rounded-full transition-colors"><X size={20}/></button>
+              </div>
+              <div className="p-6 md:p-8">
+                <h4 className="text-lg md:text-xl font-black text-white mb-6 text-center tracking-wide">VUI LÒNG ĐỌC KĨ QUY ĐỊNH TRƯỚC KHI THUÊ</h4>
+                
+                <div className="space-y-4 text-sm text-slate-300 mb-8 bg-[#0B1120] p-5 rounded-2xl border border-slate-800 shadow-inner">
+                  <div className="flex gap-3 items-start">
+                    <span className="w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center font-black shrink-0 text-xs shadow-lg shadow-rose-500/30">1</span>
+                    <p><strong className="text-white">HỆ THỐNG SẼ TÍNH TỐI THIỂU 2 GIỜ/LẦN THUÊ</strong><br/><span className="text-slate-400 text-xs mt-0.5 block">(Bạn nghỉ sớm thì vẫn bị tính là 2 giờ chơi)</span></p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <span className="w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center font-black shrink-0 text-xs shadow-lg shadow-rose-500/30">2</span>
+                    <p><strong className="text-rose-400">TUYỆT ĐỐI KHÔNG ĐƯỢC TẮT APP AWESUN</strong><br/><span className="text-slate-400 text-xs mt-0.5 block">(Phát hiện tắt: Xóa sạch tiền thuê và kick ra khỏi acc)</span></p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <span className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center font-black shrink-0 text-xs shadow-lg shadow-blue-500/30">3</span>
+                    <p><strong className="text-white">QUÝ KHÁCH MUỐN NGỪNG THUÊ VUI LÒNG VÀO LẠI WEBSITE BẤM NGỪNG THUÊ</strong><br/><span className="text-slate-400 text-xs mt-0.5 block">Hệ thống sẽ tự động lưu lại giờ dư cho bạn (Nếu có).</span></p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black shrink-0 text-xs shadow-lg shadow-emerald-500/30">4</span>
+                    <p><strong className="text-emerald-400">THÔNG TIN CHI TIẾT LIÊN HỆ ADMIN ĐỂ HỖ TRỢ</strong></p>
+                  </div>
+                </div>
+                
+                <label className="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/30 rounded-2xl cursor-pointer hover:bg-blue-500/20 transition-colors mb-6 group shadow-inner">
+                  <input type="checkbox" checked={isRulesAccepted} onChange={(e) => setIsRulesAccepted(e.target.checked)} className="w-6 h-6 accent-blue-500 cursor-pointer rounded" />
+                  <span className="text-sm font-bold text-blue-400 group-hover:text-blue-300">Tôi đã đọc kỹ quy định & chấp hành theo</span>
+                </label>
 
+                <button 
+                  disabled={!isRulesAccepted}
+                  onClick={() => {
+                    // Chuyển dữ liệu sang Modal Thanh toán
+                    setRentKycMethod('cccd');
+                    setRentModalData({ acc: showRentRules.acc, opt: showRentRules.opt });
+                    setKycImagePreview(null);
+                    setShowRentRules(null); // Tắt bảng quy định đi
+                  }} 
+                  className={`w-full font-black py-4 rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-lg ${isRulesAccepted ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:scale-[1.02]' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
+                >
+                  OK! Đã hiểu
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       {/* Modal KYC Thuê (Đã chia rõ logic VIP và Khách Thường) */}
         {rentModalData && (() => {
           const totalRecharged = calculateTotalRecharged(currentUser?.id);
