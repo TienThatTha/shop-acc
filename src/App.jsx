@@ -142,6 +142,14 @@ const [showOtpModal, setShowOtpModal] = useState(false);
   });
 const [vouchersDb, setVouchersDb] = useState([]);
  const [adminSearchUser, setAdminSearchUser] = useState('');
+ const [historyTab, setHistoryTab] = useState('buy'); // Quản lý Tab đang mở
+  const [visibleHistoryCount, setVisibleHistoryCount] = useState(5); // Số lượng hiển thị mỗi lần cuộn
+ const [visibleUsersCount, setVisibleUsersCount] = useState(8); // Ban đầu chỉ hiện 10 user
+ const [visibleDepsClient, setVisibleDepsClient] = useState(5); // Nạp tiền (Khách)
+  const [visibleDepsAdmin, setVisibleDepsAdmin] = useState(5);   // Nạp tiền (Admin)
+  const [visibleRentsAdmin, setVisibleRentsAdmin] = useState(5); // Thuê nick (Admin)
+  const [visibleSpinsClient, setVisibleSpinsClient] = useState(6); // Vòng quay (Khách)
+  const [visibleSpinsAdmin, setVisibleSpinsAdmin] = useState(5);   // Vòng quay (Admin)
   const [adminMessageSearch, setAdminMessageSearch] = useState('');
   const [wheelConfig, setWheelConfig] = useState({ moneyCost: 20000, spinCost: 1 });
 
@@ -1730,9 +1738,12 @@ setDepositRequests([data[0], ...depositRequests]);
 
             <div className="mt-8 border-t border-slate-800 pt-4">
               <h4 className="text-sm font-bold text-slate-300 mb-3 flex items-center gap-2"><History size={16}/> Lịch sử lệnh nạp của bạn</h4>
-              <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar" onScroll={(e) => {
+  const { scrollTop, scrollHeight, clientHeight } = e.target;
+  if (scrollTop + clientHeight >= scrollHeight - 10) setVisibleDepsClient(prev => prev + 5);
+}}>
                 {depositRequests.filter(d=>d.userId === currentUser?.id).length === 0 ? <p className="text-xs text-slate-500 italic">Chưa có lệnh nạp nào.</p> : 
-                  depositRequests.filter(d=>d.userId === currentUser?.id).map(d => (
+                  depositRequests.filter(d=>d.userId === currentUser?.id).slice(0, visibleDepsClient).map(d => (
                     <div key={d.id} className="flex justify-between items-center text-sm bg-[#0B1120] p-3 rounded-lg border border-slate-800">
                       <div>
                         <span className="font-bold text-white block">{new Intl.NumberFormat('vi-VN').format(d.amount)}đ</span>
@@ -1751,108 +1762,216 @@ setDepositRequests([data[0], ...depositRequests]);
     );
   };
 
-  const renderLichsuScreen = () => {
+const renderLichsuScreen = () => {
+    // Bộ lọc dữ liệu siêu chuẩn cho từng Tab
+    const myTransactions = transactionsDb.filter(t => t.user === currentUser?.name);
+    
+    const historyBuy = myTransactions.filter(t => t.type === 'buy_acc' && !t.action.includes('Cày thuê') && !t.action.includes('cày thuê'));
+    const historyRent = myTransactions.filter(t => t.type?.includes('rent') || t.type?.includes('fund') || t.type?.includes('deposit_') || t.action?.toLowerCase().includes('thuê nick') || t.action?.toLowerCase().includes('quy đổi') || t.action?.toLowerCase().includes('hoàn cọc'));
+    const historySpin = myTransactions.filter(t => t.type === 'spin_win' && t.amount !== 0 && !t.isSpinCost);
+    const historyBoost = boostingRequests.filter(r => r.user === currentUser?.name);
+    const historyDeposit = depositRequests.filter(d => d.userId === currentUser?.id);
+
+    // Cấu hình các Tab
+    const tabs = [
+      { id: 'buy', name: 'Mua Acc', icon: <Gamepad2 size={16}/>, data: historyBuy },
+      { id: 'rent', name: 'Thuê Acc', icon: <Clock size={16}/>, data: historyRent },
+      { id: 'spin', name: 'Vòng Quay', icon: <Gift size={16}/>, data: historySpin },
+      { id: 'boost', name: 'Cày Thuê', icon: <Target size={16}/>, data: historyBoost },
+      { id: 'deposit', name: 'Nạp Tiền', icon: <Wallet size={16}/>, data: historyDeposit }
+    ];
+
+    const currentData = tabs.find(t => t.id === historyTab)?.data || [];
+    const visibleData = currentData.slice(0, visibleHistoryCount); // Chỉ cắt lấy số lượng đang hiển thị
+
     return (
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-10">
         {renderNavbar()}
-      <div className="w-full max-w-5xl mx-auto mt-4 md:mt-10 p-4 md:p-8 bg-[#151D2F] rounded-2xl border border-slate-800 text-center flex flex-col items-center shadow-xl">
+        <div className="w-full max-w-5xl mx-auto mt-4 md:mt-10 p-4 md:p-8 bg-[#151D2F] rounded-2xl border border-slate-800 text-center flex flex-col items-center shadow-xl">
           <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-600/10 rounded-full flex items-center justify-center text-blue-500 mb-4 md:mb-6 shadow-inner"><History className="w-8 h-8 md:w-10 md:h-10" /></div>
-          <h2 className="text-xl md:text-2xl font-bold text-white mb-6 md:mb-8">Lịch Sử Giao Dịch</h2>
-          <div className="w-full text-left bg-[#0B1120] rounded-xl overflow-hidden border border-slate-800">
-            {transactionsDb.filter(t => t.user === currentUser?.name && !t.isSpinCost && !(t.type === 'spin_win' && t.amount === 0)).length > 0 ? (
-              transactionsDb.filter(t => t.user === currentUser?.name && !t.isSpinCost && !(t.type === 'spin_win' && t.amount === 0)).map((tx, idx) => (
-                <div key={idx} className="border-b border-slate-800 flex flex-col">
-                  <div 
-                    className={`p-4 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors ${tx.type === 'buy_acc' ? 'cursor-pointer' : ''}`}
-                    onClick={() => tx.type === 'buy_acc' && setExpandedTx(expandedTx === tx.id ? null : tx.id)}
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-bold text-white text-sm md:text-base">{tx.action}</p>
-                        {tx.type === 'buy_acc' && (
-                          expandedTx === tx.id ? <ChevronUp size={16} className="text-blue-400"/> : <ChevronDown size={16} className="text-blue-400"/>
-                        )}
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-6 md:mb-8 uppercase tracking-wider">Lịch Sử Giao Dịch</h2>
+          
+          {/* MENU CÁC TAB LỊCH SỬ */}
+          <div className="flex gap-2 overflow-x-auto w-full pb-3 mb-6 border-b border-slate-800 scrollbar-hide justify-start md:justify-center">
+            {tabs.map(tab => (
+              <button 
+                key={tab.id}
+                onClick={() => { setHistoryTab(tab.id); setVisibleHistoryCount(5); setExpandedTx(null); }} // Reset về 5 khi đổi tab
+                className={`px-4 py-2.5 font-bold rounded-lg whitespace-nowrap flex items-center gap-2 text-sm transition-all ${historyTab === tab.id ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] border border-blue-500' : 'bg-[#0B1120] text-slate-400 border border-slate-700 hover:text-white hover:bg-slate-800'}`}
+              >
+                {tab.icon} {tab.name} <span className="text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full">{tab.data.length}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* KHUNG DANH SÁCH & CUỘN VÔ HẠN */}
+          <div 
+            className="w-full text-left bg-[#0B1120] rounded-xl overflow-auto max-h-[500px] border border-slate-800 custom-scrollbar relative"
+            onScroll={(e) => {
+              const { scrollTop, scrollHeight, clientHeight } = e.target;
+              if (scrollTop + clientHeight >= scrollHeight - 20) setVisibleHistoryCount(prev => prev + 5); // Kéo xuống đáy nảy thêm 5 dòng
+            }}
+          >
+            {visibleData.length === 0 ? (
+              <div className="p-10 text-center flex flex-col items-center justify-center text-slate-500 h-full min-h-[200px]">
+                <AlertCircle size={40} className="mb-3 opacity-30"/>
+                <p>Chưa có giao dịch nào ở mục này.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col">
+                {/* 1. RENDER LỊCH SỬ MUA ACC (CÓ TÍNH NĂNG MỞ RỘNG XEM PASS) */}
+                {historyTab === 'buy' && visibleData.map(tx => (
+                  <div key={tx.id} className="border-b border-slate-800 flex flex-col">
+                    <div 
+                      className="p-4 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors cursor-pointer"
+                      onClick={() => setExpandedTx(expandedTx === tx.id ? null : tx.id)}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-white text-sm md:text-base">{tx.action}</p>
+                          {expandedTx === tx.id ? <ChevronUp size={16} className="text-blue-400"/> : <ChevronDown size={16} className="text-blue-400"/>}
+                        </div>
+                        <p className="text-[10px] md:text-xs text-slate-500 mt-1">{tx.date}</p>
                       </div>
+                      <div className="text-left md:text-right">
+                        <p className="font-black text-base md:text-lg text-rose-500">-{new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ</p>
+                        <p className="text-[10px] md:text-xs font-bold inline-block px-2 py-0.5 rounded mt-1 text-emerald-500 bg-emerald-500/10">Thành công</p>
+                      </div>
+                    </div>
+                    {expandedTx === tx.id && tx.accDetails && (
+                      <div className="bg-slate-900/80 p-4 border-t border-slate-800 animate-fade-in text-sm">
+                        <p className="text-emerald-400 font-bold mb-3 flex items-center gap-2"><CheckCircle2 size={16}/> Thông tin tài khoản bạn đã mua (Mã: #{tx.accDetails.code}):</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-3">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-slate-400 text-xs font-bold">Tài khoản Game:</span>
+                              <div className="flex items-center">
+                                <input readOnly value={tx.accDetails.username} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono"/>
+                                <button onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.username); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16}/></button>
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-slate-400 text-xs font-bold">Mật khẩu Game:</span>
+                              <div className="flex items-center">
+                                <input readOnly value={tx.accDetails.password} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono"/>
+                                <button onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.password); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16}/></button>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="space-y-3 border-t sm:border-t-0 sm:border-l border-slate-800 pt-3 sm:pt-0 sm:pl-4">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-slate-400 text-xs font-bold">Email đăng ký:</span>
+                              <div className="flex items-center">
+                                <input readOnly value={tx.accDetails.email} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono"/>
+                                <button onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.email); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16}/></button>
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-slate-400 text-xs font-bold">SĐT xác minh:</span>
+                              <div className="flex items-center">
+                                <input readOnly value={tx.accDetails.phone} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono"/>
+                                <button onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.phone); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16}/></button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        {copiedText && <p className="text-emerald-400 text-xs mt-3 italic animate-pulse text-center bg-emerald-500/10 py-1 rounded">Đã copy vào khay nhớ tạm!</p>}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* 2. RENDER LỊCH SỬ THUÊ ACC */}
+                {historyTab === 'rent' && visibleData.map(tx => (
+                  <div key={tx.id} className="p-4 border-b border-slate-800 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors">
+                    <div>
+                      <p className="font-bold text-white text-sm md:text-base">{tx.action}</p>
                       <p className="text-[10px] md:text-xs text-slate-500 mt-1">{tx.date}</p>
                     </div>
                     <div className="text-left md:text-right">
-                      {/* Xử lý hiển thị cả Tiền hoặc Lượt */}
                       <p className={`font-black text-base md:text-lg ${tx.amount > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                        {tx.isSpinCost ? 
-                          `${tx.amount > 0 ? '-' : '+'}${Math.abs(tx.amount)} Lượt` 
-                          : 
-                          `${tx.amount > 0 ? '-' : '+'}${new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ`
-                        }
+                        {tx.amount > 0 ? '-' : '+'}{new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ
                       </p>
                       <p className={`text-[10px] md:text-xs font-bold inline-block px-2 py-0.5 rounded mt-1 
-                        ${tx.status.includes('+') || tx.status === 'Thành công' || tx.status === 'Hoàn thành' ? 'text-emerald-500 bg-emerald-500/10' 
-                        : tx.status === 'Đang cày' ? 'text-blue-400 bg-blue-500/10' 
-                        : tx.status === 'Chờ xử lý' ? 'text-yellow-500 bg-yellow-500/10' 
-                        : 'text-blue-400 bg-blue-500/10'}`}>
+                        ${tx.status.includes('+') || tx.status === 'Thành công' ? 'text-emerald-500 bg-emerald-500/10' 
+                        : tx.status.includes('cọc') ? 'text-yellow-500 bg-yellow-500/10' : 'text-blue-400 bg-blue-500/10'}`}>
                         {tx.status}
                       </p>
-                      {/* --- DÁN ĐOẠN NÀY NGAY DƯỚI THẺ <p> CHỨA tx.status --- */}
                       {tx.accDetails && tx.accDetails.balanceAfter !== undefined && (
                         <div className="mt-1.5 flex flex-col md:items-end text-[10px]">
-                          <p className="text-slate-400">Số dư: <span className="font-bold text-emerald-400">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.balanceAfter)}đ</span></p>
+                          <p className="text-slate-400">Dư ví: <span className="font-bold text-emerald-400">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.balanceAfter)}đ</span></p>
                           {tx.accDetails.fundAfter !== undefined && (
-                            <p className="text-slate-400">Quỹ thuê: <span className="font-bold text-yellow-400">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.fundAfter)}đ</span></p>
+                            <p className="text-slate-400">Dư quỹ: <span className="font-bold text-yellow-400">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.fundAfter)}đ</span></p>
                           )}
                         </div>
                       )}
-                      {/* ---------------------------------------------------- */}
                     </div>
                   </div>
-                  
-                  {expandedTx === tx.id && tx.accDetails && (
-                    <div className="bg-slate-900/80 p-4 border-t border-slate-800 animate-fade-in text-sm">
-                      <p className="text-emerald-400 font-bold mb-3 flex items-center gap-2"><CheckCircle2 size={16}/> Thông tin tài khoản bạn đã mua (Mã: #{tx.accDetails.code}):</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-3">
-                          <div className="flex flex-col gap-1">
-                            <span className="text-slate-400 text-xs font-bold">Tài khoản Game:</span>
-                            <div className="flex items-center">
-                              <input readOnly value={tx.accDetails.username} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono"/>
-                              <button onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.username); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16}/></button>
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="text-slate-400 text-xs font-bold">Mật khẩu Game:</span>
-                            <div className="flex items-center">
-                              <input readOnly value={tx.accDetails.password} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono"/>
-                              <button onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.password); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16}/></button>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-3 border-t sm:border-t-0 sm:border-l border-slate-800 pt-3 sm:pt-0 sm:pl-4">
-                          <div className="flex flex-col gap-1">
-                            <span className="text-slate-400 text-xs font-bold">Email đăng ký:</span>
-                            <div className="flex items-center">
-                              <input readOnly value={tx.accDetails.email} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono"/>
-                              <button onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.email); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16}/></button>
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="text-slate-400 text-xs font-bold">SĐT xác minh:</span>
-                            <div className="flex items-center">
-                              <input readOnly value={tx.accDetails.phone} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono"/>
-                              <button onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.phone); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16}/></button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      {copiedText && <p className="text-emerald-400 text-xs mt-3 italic animate-pulse text-center bg-emerald-500/10 py-1 rounded">Đã copy vào khay nhớ tạm!</p>}
+                ))}
+
+                {/* 3. RENDER LỊCH SỬ VÒNG QUAY (TRÚNG THƯỞNG) */}
+                {historyTab === 'spin' && visibleData.map(tx => (
+                  <div key={tx.id} className="p-4 border-b border-slate-800 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors">
+                    <div>
+                      <p className="font-bold text-white text-sm md:text-base"><Gift size={14} className="inline mr-1 text-rose-500"/> {tx.action}</p>
+                      <p className="text-[10px] md:text-xs text-slate-500 mt-1">{tx.date}</p>
                     </div>
-                  )}
-                </div>
-              ))
-            ) : <div className="p-10 text-center flex flex-col items-center justify-center text-slate-500"><AlertCircle size={30} className="mb-2 opacity-50"/>Chưa có giao dịch nào.</div>}
+                    <div className="text-left md:text-right">
+                      <p className="font-black text-base md:text-lg text-emerald-400">
+                        {tx.isSpinCost ? `+${Math.abs(tx.amount)} Lượt` : `+${new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ`}
+                      </p>
+                      <p className="text-[10px] md:text-xs font-bold inline-block px-2 py-0.5 rounded mt-1 text-emerald-500 bg-emerald-500/10">{tx.status}</p>
+                    </div>
+                  </div>
+                ))}
+
+                {/* 4. RENDER LỊCH SỬ CÀY THUÊ */}
+                {historyTab === 'boost' && visibleData.map(req => (
+                  <div key={req.id} className="p-4 border-b border-slate-800 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-black rounded shadow-sm">GÓI ĐẶT</span>
+                        <p className="font-bold text-white text-sm md:text-base">{req.boostingTitle}</p>
+                      </div>
+                      <p className="text-[10px] md:text-xs text-slate-400 mt-1">TK: <span className="font-mono text-white">{req.info.username}</span> | Nền tảng: <span className="text-white">{req.info.loginMethod}</span></p>
+                      <p className="text-[10px] text-slate-500 mt-1.5">{req.date}</p>
+                    </div>
+                    <div className="text-left md:text-right">
+                      <p className={`text-xs font-bold inline-block px-3 py-1 rounded mt-1 
+                        ${req.status === 'Hoàn thành' ? 'text-emerald-500 bg-emerald-500/10' : req.status === 'Đang cày' ? 'text-blue-400 bg-blue-500/10' : 'text-yellow-500 bg-yellow-500/10'}`}>
+                        {req.status === 'Hoàn thành' ? <CheckCircle2 size={12} className="inline mr-1"/> : req.status === 'Đang cày' ? <RefreshCw size={12} className="inline mr-1 animate-spin"/> : <Clock size={12} className="inline mr-1"/>}
+                        {req.status || 'Chờ xử lý'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+
+                {/* 5. RENDER LỊCH SỬ NẠP TIỀN */}
+                {historyTab === 'deposit' && visibleData.map(d => (
+                  <div key={d.id} className="p-4 border-b border-slate-800 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors">
+                    <div>
+                      <p className="font-bold text-white text-sm md:text-base"><Wallet size={14} className="inline mr-1 text-emerald-500"/> Nạp tiền chuyển khoản</p>
+                      <p className="text-[10px] md:text-xs text-slate-500 mt-1">{d.date}</p>
+                    </div>
+                    <div className="text-left md:text-right">
+                      <p className="font-black text-base md:text-lg text-emerald-400">
+                        +{new Intl.NumberFormat('vi-VN').format(d.amount)}đ
+                      </p>
+                      {d.bonusAmount > 0 && <p className="text-[10px] text-rose-400 font-bold mb-1">+ {new Intl.NumberFormat('vi-VN').format(d.bonusAmount)}đ (Voucher)</p>}
+                      <p className={`text-[10px] md:text-xs font-bold inline-block px-2 py-0.5 rounded mt-1 
+                        ${d.status === 'Thành công' ? 'text-emerald-500 bg-emerald-500/10' : d.status === 'Từ chối' ? 'text-rose-400 bg-rose-500/10' : 'text-yellow-500 bg-yellow-500/10'}`}>
+                        {d.status}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
     );
   };
-
  const renderCayThueScreen = () => (
     <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-10">
       {renderNavbar()}
@@ -2247,12 +2366,15 @@ const recentWinners = transactionsDb.filter(t =>
                   </h3>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-2" onScroll={(e) => {
+                  const { scrollTop, scrollHeight, clientHeight } = e.target;
+                  if (scrollTop + clientHeight >= scrollHeight - 10) setVisibleSpinsClient(prev => prev + 5);
+                }}>
                   {transactionsDb.filter(t => t.type === 'spin_win' && t.user === currentUser?.name).length === 0 ? (
                     <div className="h-full flex items-center justify-center text-center text-slate-500 text-sm p-4">Bạn chưa có lịch sử quay nào.</div>
                   ) : (
                     <div className="flex flex-col gap-2">
-                      {transactionsDb.filter(t => t.type === 'spin_win' && t.user === currentUser?.name).map((tx, idx) => {
+                     {transactionsDb.filter(t => t.type === 'spin_win' && t.user === currentUser?.name).slice(0, visibleSpinsClient).map((tx, idx) => {
                         const isWin = tx.action.includes('Trúng');
                         return (
                         <div key={idx} className="p-3 bg-[#0B1120] rounded-xl border border-slate-800 flex justify-between items-center hover:border-slate-700 transition-colors text-left">
@@ -2743,22 +2865,50 @@ const voucherData = {
 
                 <div className="mb-4 flex relative max-w-md">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                  <input type="text" value={adminSearchUser} onChange={(e) => setAdminSearchUser(e.target.value)} placeholder="Tìm theo tên, SĐT hoặc Email..." className="w-full pl-10 pr-4 py-2 bg-[#0B1120] border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
+                  <input type="text" value={adminSearchUser} onChange={(e) => { setAdminSearchUser(e.target.value); setVisibleUsersCount(10); }} placeholder="Tìm theo tên, SĐT hoặc Email..." className="w-full pl-10 pr-4 py-2 bg-[#0B1120] border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-slate-800">
-                  <table className="w-full text-left text-sm min-w-[700px]">
-                    <thead className="bg-[#0B1120] text-slate-400 uppercase text-xs">
+<div 
+  className="overflow-auto rounded-xl border border-slate-800 max-h-[500px] custom-scrollbar"
+  onScroll={(e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    // Khi Admin cuộn chuột gần chạm đáy bảng, tự động cộng thêm 10 user nữa
+    if (scrollTop + clientHeight >= scrollHeight - 20) {
+      setVisibleUsersCount(prev => prev + 10);
+    }
+  }}
+>
+  <table className="w-full text-left text-sm min-w-[700px]">                    
+    <thead className="bg-[#0B1120] text-slate-400 uppercase text-xs">
                      <tr><th className="p-4">Khách hàng</th><th className="p-4">Liên hệ</th><th className="p-4">Số dư</th><th className="p-4">Quỹ thuê</th><th className="p-4">Lượt quay</th><th className="p-4 text-center">Hành động</th></tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
-                      {filteredUsersList.map(u => (
+                      {filteredUsersList.slice(0, visibleUsersCount).map(u => (
                         <tr key={u.id} className="hover:bg-slate-800/30 transition-colors">
                           <td className="p-4 font-bold text-white flex items-center gap-2">{u.name} {u.role==='admin' && <span className="px-2 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-400 uppercase">Admin</span>} {u.isLocked && <Lock size={12} className="text-rose-500"/>}</td>
-                          <td className="p-4 text-blue-400"><div className="text-xs"><Phone size={10} className="inline mr-1"/>{u.phone}</div><div className="text-xs mt-1"><Mail size={10} className="inline mr-1"/>{u.email}</div></td>
+                          <td className="p-4 text-blue-400">
+  <div className="text-xs"><Phone size={10} className="inline mr-1"/>{u.phone}</div>
+  <div className="text-xs mt-1 flex flex-col gap-1">
+    <div className="flex items-center gap-1"><Mail size={10} className="inline"/>{u.email}</div>
+    {/* DÒNG HIỂN THỊ TRẠNG THÁI XÁC THỰC EMAIL */}
+    {u.is_email_verified ? (
+      <span className="text-[9px] bg-emerald-500/20 text-emerald-400 font-bold px-1.5 py-0.5 rounded w-fit flex items-center gap-0.5 border border-emerald-500/20">
+        <CheckCircle2 size={8}/> Đã xác thực
+      </span>
+    ) : (
+      <span className="text-[9px] bg-rose-500/20 text-rose-400 font-bold px-1.5 py-0.5 rounded w-fit flex items-center gap-0.5 border border-rose-500/20">
+        <AlertCircle size={8}/> Chưa xác thực
+      </span>
+    )}
+  </div>
+</td>
 <td className="p-4 text-emerald-400 font-bold">{new Intl.NumberFormat('vi-VN').format(u.balance)}đ</td>
 <td className="p-4 text-yellow-400 font-bold">{new Intl.NumberFormat('vi-VN').format(u.rentFund || 0)}đ</td>                          
-<td className="p-4 text-rose-400 font-bold flex items-center gap-1 mt-2"><Ticket size={14}/> {u.spins || 0}</td>
+<td className="p-4 text-rose-400 font-bold">
+  <div className="flex items-center gap-1">
+    <Ticket size={14}/> {u.spins || 0}
+  </div>
+</td>
                           <td className="p-4 text-center">
                             <div className="flex justify-center gap-2">
                               <button onClick={() => setViewUserHistory(u)} className="px-3 py-1.5 bg-indigo-500/20 text-indigo-400 rounded text-xs font-bold hover:bg-indigo-500 hover:text-white transition-colors flex items-center gap-1" title="Lịch sử giao dịch"><History size={14}/> Lịch sử</button>
@@ -2968,13 +3118,16 @@ const voucherData = {
                   )}
                 </div>
 
-                <div className="border-t border-slate-800 pt-6 overflow-x-auto">
+                <div className="border-t border-slate-800 pt-6 overflow-auto max-h-[500px] custom-scrollbar" onScroll={(e) => {
+                  const { scrollTop, scrollHeight, clientHeight } = e.target;
+                  if (scrollTop + clientHeight >= scrollHeight - 20) setVisibleDepsAdmin(prev => prev + 5);
+                }}>
                   <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><QrCode className="text-emerald-500"/> Danh sách yêu cầu duyệt nạp</h3>
                   {depositRequests.length === 0 ? <div className="p-10 text-center text-slate-500">Chưa có yêu cầu nạp tiền nào.</div> : 
                     <table className="w-full text-left text-sm min-w-[600px]">
                       <thead className="bg-[#0B1120] text-slate-400 text-xs uppercase"><tr><th className="p-4">Mã GD / Ngày</th><th className="p-4">Khách hàng</th><th className="p-4">Số tiền duyệt</th><th className="p-4 text-center">Hành động</th></tr></thead>
                       <tbody className="divide-y divide-slate-800">
-                        {depositRequests.map(d => (
+                        {depositRequests.slice(0, visibleDepsAdmin).map(d => (
                           <tr key={d.id} className="hover:bg-slate-800/30">
                             <td className="p-4"><div className="text-slate-300 font-mono text-xs">{d.id}</div><div className="text-[10px] text-slate-500 mt-1">{d.date}</div></td>
                             <td className="p-4 text-blue-400 font-bold">{d.user} <span className="text-[10px] text-slate-500 font-normal ml-1">(ID: {d.userId})</span></td>
@@ -3017,8 +3170,11 @@ const voucherData = {
                   <AlertCircle size={18}/> Hướng dẫn: Mở phần mềm Awesun trên máy tính, nhập ID & Passcode của khách để điều khiển máy khách và đăng nhập nick game.
                 </div>
                 {rentRequests.length === 0 ? <div className="text-center text-slate-500 p-10">Chưa có yêu cầu thuê nick nào.</div> : 
-                  <div className="space-y-4">
-                    {rentRequests.map(r => {
+                  <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2" onScroll={(e) => {
+                    const { scrollTop, scrollHeight, clientHeight } = e.target;
+                    if (scrollTop + clientHeight >= scrollHeight - 20) setVisibleRentsAdmin(prev => prev + 5);
+                  }}>
+                    {rentRequests.slice(0, visibleRentsAdmin).map(r => {
                       const accObj = accountsDb.find(a => a.code === r.accCode);
                       const isStillRented = accObj?.rentedUntil && accObj.rentedUntil > Date.now();
 
@@ -3488,7 +3644,10 @@ const { data: targetUser } = await supabase.from('users').select('*').eq('id', r
 
                  <div className="border-t border-slate-800 pt-8 overflow-x-auto">
                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><History className="text-blue-500"/> Lịch Sử Khách Quay Trúng Thưởng</h3>
-                   <div className="bg-[#0B1120] rounded-xl border border-slate-800 overflow-hidden">
+                   <div className="bg-[#0B1120] rounded-xl border border-slate-800 overflow-auto max-h-[500px] custom-scrollbar" onScroll={(e) => {
+                     const { scrollTop, scrollHeight, clientHeight } = e.target;
+                     if (scrollTop + clientHeight >= scrollHeight - 20) setVisibleSpinsAdmin(prev => prev + 5);
+                   }}>
                      {transactionsDb.filter(t => t.type === 'spin_win').length === 0 ? (
                        <div className="p-8 text-center text-slate-500">Chưa có ai quay trúng thưởng.</div>
                      ) : (
@@ -3497,7 +3656,7 @@ const { data: targetUser } = await supabase.from('users').select('*').eq('id', r
                            <tr><th className="p-4">Thời gian</th><th className="p-4">Khách hàng</th><th className="p-4">Phần thưởng trúng</th><th className="p-4 text-right">Giá trị quy đổi</th></tr>
                          </thead>
                          <tbody className="divide-y divide-slate-800">
-                           {transactionsDb.filter(t => t.type === 'spin_win').map((tx, idx) => (
+                           {transactionsDb.filter(t => t.type === 'spin_win').slice(0, visibleSpinsAdmin).map((tx, idx) => (
                              <tr key={idx} className="hover:bg-slate-800/50 transition-colors">
                                <td className="p-4 text-xs text-slate-400 font-mono">{tx.date}</td>
                                <td className="p-4 font-bold text-blue-400">{tx.user}</td>
