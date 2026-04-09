@@ -58,45 +58,48 @@ const enforceNumberInput = (e) => {
 };
 
 const App = () => {
+  
   // --- BỘ ĐÀM GỬI EMAIL BÁO CHO ADMIN ---
-const sendAdminAlert = (actionName, detailMessage) => {
-  // HÀM GỬI MAIL THÔNG BÁO CHO KHÁCH KHI NẠP TIỀN THÀNH CÔNG
+  const sendAdminAlert = (actionName, detailMessage) => {
+    const templateParams = {
+      action: actionName,
+      details: detailMessage,
+    };
+
+    emailjs.send(
+      'service_f2gzbuj',    
+      'template_465wjp8',   
+      templateParams, 
+      'PpccbGTjm_SrgZAwu'     
+    ).then((response) => {
+      console.log('Đã báo Email cho Admin!', response.status);
+    }).catch((err) => {
+      console.error('Lỗi gửi Email:', err);
+    });
+  };
+
+  // --- HÀM GỬI MAIL THÔNG BÁO CHO KHÁCH KHI NẠP TIỀN THÀNH CÔNG ---
   const sendDepositSuccessEmail = async (userEmail, userName, amount) => {
     if (!userEmail) return; // Nếu khách chưa cập nhật email thì bỏ qua không gửi
     
     try {
       await emailjs.send(
-        'service_f2gzbuj',    // Dán Service ID của bạn vào đây (Giống của sendAdminAlert)
-        'template_vf13qjh',   // Dán Template ID báo nạp tiền vừa tạo ở Bước 1
+        'service_f2gzbuj',    // Dán Service ID của bạn vào đây
+        'template_vf13qjh',   // Dán Template ID báo nạp tiền
         {
           to_email: userEmail,
           to_name: userName || 'Khách hàng',
           amount: new Intl.NumberFormat('vi-VN').format(amount) + ' VNĐ',
           date: new Date().toLocaleString('vi-VN')
         },
-        'PpccbGTjm_SrgZAwu'     // Dán Public Key của bạn vào đây (Giống của sendAdminAlert)
+        'PpccbGTjm_SrgZAwu'     // Dán Public Key của bạn vào đây
       );
       console.log("Đã tự động gửi mail báo nạp tiền cho khách!");
     } catch (error) {
       console.error("Lỗi gửi mail nạp tiền cho khách:", error);
     }
   };
-  const templateParams = {
-    action: actionName,
-    details: detailMessage,
-  };
 
-  emailjs.send(
-    'service_f2gzbuj',    // Thay mã Service ID vào đây (VD: 'service_f2gzbuj')
-    'template_465wjp8',   // Thay mã Template ID vào đây
-    templateParams, 
-    'PpccbGTjm_SrgZAwu'     // Thay mã Public Key vào đây
-  ).then((response) => {
-    console.log('Đã báo Email cho Admin!', response.status);
-  }).catch((err) => {
-    console.error('Lỗi gửi Email:', err);
-  });
-};
  const [usersDb, setUsersDb] = useState([]);
  const [visitorCount, setVisitorCount] = useState(0);
   const [accountsDb, setAccountsDb] = useState([]);
