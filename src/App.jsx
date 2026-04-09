@@ -60,6 +60,27 @@ const enforceNumberInput = (e) => {
 const App = () => {
   // --- BỘ ĐÀM GỬI EMAIL BÁO CHO ADMIN ---
 const sendAdminAlert = (actionName, detailMessage) => {
+  // HÀM GỬI MAIL THÔNG BÁO CHO KHÁCH KHI NẠP TIỀN THÀNH CÔNG
+  const sendDepositSuccessEmail = async (userEmail, userName, amount) => {
+    if (!userEmail) return; // Nếu khách chưa cập nhật email thì bỏ qua không gửi
+    
+    try {
+      await emailjs.send(
+        'service_f2gzbuj',    // Dán Service ID của bạn vào đây (Giống của sendAdminAlert)
+        'template_vf13qjh',   // Dán Template ID báo nạp tiền vừa tạo ở Bước 1
+        {
+          to_email: userEmail,
+          to_name: userName || 'Khách hàng',
+          amount: new Intl.NumberFormat('vi-VN').format(amount) + ' VNĐ',
+          date: new Date().toLocaleString('vi-VN')
+        },
+        'PpccbGTjm_SrgZAwu'     // Dán Public Key của bạn vào đây (Giống của sendAdminAlert)
+      );
+      console.log("Đã tự động gửi mail báo nạp tiền cho khách!");
+    } catch (error) {
+      console.error("Lỗi gửi mail nạp tiền cho khách:", error);
+    }
+  };
   const templateParams = {
     action: actionName,
     details: detailMessage,
@@ -3749,7 +3770,11 @@ const { data: userToUpdate } = await supabase.from('users').select('*').eq('id',
                   if(currentUser && currentUser?.id === approveDepositModal.userId) {
                     setCurrentUser({ ...currentUser, balance: newBalance, spins: newSpins });
                   }
-                  
+                  // --- GỌI HÀM GỬI MAIL TỰ ĐỘNG CHO KHÁCH ---
+                  if (userToUpdate && userToUpdate.email) {
+                    sendDepositSuccessEmail(userToUpdate.email, userToUpdate.name, finalAmount);
+                  }
+                  // -----------------------------------------
                   showToast(`Đã cộng ${new Intl.NumberFormat('vi-VN').format(finalAmount)}đ và ${bonusSpins} lượt quay!`);
                   setApproveDepositModal(null);
                 }} className="space-y-4">
