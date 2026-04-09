@@ -405,18 +405,24 @@ const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState([]);
     // 1. Lắng nghe TIN NHẮN MỚI
     const messageChannel = supabase.channel('realtime-messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        // Có người nhắn tin là nhét luôn vào state để màn hình tự hiện
-        setMessagesDb(prev => [...prev, payload.new]);
+        setMessagesDb(prev => {
+          // BỘ LỌC CHỐNG TRÙNG LẶP: Nếu ID tin nhắn đã hiện trên màn hình rồi thì bỏ qua
+          if (prev.find(m => m.id === payload.new.id)) return prev; 
+          return [...prev, payload.new];
+        });
       })
       .subscribe();
 
     // 2. Lắng nghe LỆNH NẠP TIỀN MỚI & CẬP NHẬT TRẠNG THÁI
     const depositChannel = supabase.channel('realtime-deposits')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'deposit_requests' }, (payload) => {
-        setDepositRequests(prev => [payload.new, ...prev]);
+        setDepositRequests(prev => {
+          // BỘ LỌC CHỐNG TRÙNG LẶP CHO ĐƠN NẠP
+          if (prev.find(d => d.id === payload.new.id)) return prev;
+          return [payload.new, ...prev];
+        });
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'deposit_requests' }, (payload) => {
-        // Admin vừa duyệt xong là máy khách cũng tự đổi chữ "Thành công" luôn
         setDepositRequests(prev => prev.map(req => req.id === payload.new.id ? payload.new : req));
       })
       .subscribe();
@@ -424,7 +430,11 @@ const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState([]);
     // 3. Lắng nghe ĐƠN THUÊ NICK MỚI & CẬP NHẬT TRẠNG THÁI
     const rentChannel = supabase.channel('realtime-rents')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rent_requests' }, (payload) => {
-        setRentRequests(prev => [payload.new, ...prev]);
+        setRentRequests(prev => {
+          // BỘ LỌC CHỐNG TRÙNG LẶP CHO ĐƠN THUÊ
+          if (prev.find(r => r.id === payload.new.id)) return prev;
+          return [payload.new, ...prev];
+        });
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rent_requests' }, (payload) => {
         setRentRequests(prev => prev.map(req => req.id === payload.new.id ? payload.new : req));
@@ -659,17 +669,20 @@ setCurrentUser(userData);
         const newBalance = currentUser.balance - acc.price;
         await supabase.from('users').update({ balance: newBalance }).eq('id', currentUser?.id);
 
-        // 2. Ghi Lịch sử Giao dịch lên Supabase
-        const newTx = {
-          id: `TX${Date.now()}`,
-          user: currentUser.name,
-          action: `Mua đứt nick ${acc.code}`, amount: acc.price,
-          date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
-          status: 'Thành công', type: 'buy_acc',
-          accDetails: { code: acc.code, username: acc.accUsername, password: acc.accPassword, email: acc.accEmail || 'Không có', phone: acc.accPhone || 'Không có',
-            balanceAfter: newBalance, fundAfter: currentUser.rentFund || 0 //
-           }
-        };
+ // 2. Lưu Lịch sử giao dịch lên Database
+const newTx = {
+  id: `TX${Date.now()}`,
+  user: currentUser.name,
+  action: `Đặt cày thuê: ${boostingModalData.title}`, 
+  amount: boostingModalData.price,
+  date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
+  status: 'Thành công', 
+  type: 'boosting',
+  accDetails: { 
+    balanceAfter: newBalance, 
+    fundAfter: currentUser.rentFund || 0 
+  }
+};
         const { data: txData } = await supabase.from('transactions').insert([newTx]).select();
 
         // 3. Cập nhật lại giao diện Web
@@ -5187,17 +5200,20 @@ const processRent = async (imgBase64) => {
                   await supabase.from('users').update({ balance: newBalance }).eq('id', currentUser.id);
 
                   // 2. Lưu Lịch sử giao dịch lên Database
+// 2. Lưu Lịch sử giao dịch lên Database
 const newTx = {
-          id: `TX${Date.now()}`,
-          user: currentUser.name,
-          action: `Mua đứt nick ${acc.code}`, amount: acc.price,
-          date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
-          status: 'Thành công', type: 'buy_acc',
-          accDetails: { 
-             code: acc.code, username: acc.accUsername, password: acc.accPassword, email: acc.accEmail || 'Không có', phone: acc.accPhone || 'Không có',
-             balanceAfter: newBalance, fundAfter: currentUser.rentFund || 0 // <--- CHÈN VÀO ĐÂY
-          }
-        };
+  id: `TX${Date.now()}`,
+  user: currentUser.name,
+  action: `Đặt cày thuê: ${boostingModalData.title}`, 
+  amount: boostingModalData.price,
+  date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), 
+  status: 'Thành công', 
+  type: 'boost',
+  accDetails: { 
+    balanceAfter: newBalance, 
+    fundAfter: currentUser.rentFund || 0 
+  }
+};
                   await supabase.from('transactions').insert([newTx]);
 
 // 3. Lưu Đơn Cày Thuê lên Database (Đã gỡ bỏ userId gây lỗi)
