@@ -993,7 +993,7 @@ const handleSendVerification = async () => {
                 { name: 'Trang Chủ', view: 'dashboard', auth: false, icon: <Gamepad2 size={20}/> },
                 { name: 'Nạp Tiền VNĐ', view: 'naptien', auth: true, icon: <Wallet size={20}/> },
                 { name: 'Dịch Vụ Cày Thuê', view: 'caythue', auth: false, icon: <Target size={20}/> },
-                ...(wheelItemsMoneyDb.length > 0 || wheelItemsSpinDb.length > 0 ? [{ name: 'Vòng Quay May Mắn', view: 'vongquay', auth: true, icon: <Gift size={20}/> }] : []),
+                ...(wheelItemsMoneyDb.length > 0 || wheelItemsSpinDb.length > 0 ? [{ name: 'Vòng Quay May Mắn', view: 'vongquay', auth: false, icon: <Gift size={20}/> }] : []),
                 { name: 'Lịch Sử Giao Dịch', view: 'lichsu', auth: true, icon: <History size={20}/> },
                 ...(currentUser?.role === 'admin' ? [{ name: 'Panel Quản Trị Hệ Thống', view: 'admin', auth: true, icon: <Settings size={20}/>, adminOnly: true }] : [])
               ].map((item, idx) => (
@@ -1042,7 +1042,7 @@ setConfirmDialog({
           { id: 'dashboard', name: 'Trang chủ', icon: <Gamepad2 size={22}/>, auth: false },
           { id: 'caythue', name: 'Cày thuê', icon: <Target size={22}/>, auth: false },
           { id: 'naptien', name: 'Nạp tiền', icon: <Wallet size={22}/>, auth: true },
-          ...(wheelItemsMoneyDb.length > 0 || wheelItemsSpinDb.length > 0 ? [{ id: 'vongquay', name: 'Vòng quay', icon: <Gift size={22}/>, auth: true }] : []),
+          ...(wheelItemsMoneyDb.length > 0 || wheelItemsSpinDb.length > 0 ? [{ id: 'vongquay', name: 'Vòng quay', icon: <Gift size={22}/>, auth: false }] : []),
           { id: 'security', name: 'Cá nhân', icon: <User size={22}/>, auth: true }
         ].map(item => {
            const isActive = currentView === item.id;
@@ -1086,7 +1086,7 @@ setConfirmDialog({
             { name: 'Mua Nick', view: 'dashboard', auth: false },
             { name: 'Nạp Tiền', view: 'naptien', auth: true },
             { name: 'Cày Thuê', view: 'caythue', auth: false },
-            ...(wheelItemsMoneyDb.length > 0 || wheelItemsSpinDb.length > 0 ? [{ name: 'Vòng Quay', view: 'vongquay', auth: true }] : []),
+            ...(wheelItemsMoneyDb.length > 0 || wheelItemsSpinDb.length > 0 ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false }] : []),
             { name: 'Lịch Sử', view: 'lichsu', auth: true }
           ].map((item, idx) => (
             <button key={idx} onClick={() => item.auth ? requireAuth(item.view) : setCurrentView(item.view)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${currentView === item.view ? 'bg-blue-600/10 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
@@ -2128,7 +2128,13 @@ const renderVongQuay = () => {
     }
 
 const handleSpin = async () => {
-      
+      // 1. Chặn khách vãng lai (Chưa đăng nhập mà đòi quay)
+      if (!currentUser) {
+        showToast("Vui lòng đăng nhập tài khoản để tham gia Vòng Quay!", 'error');
+        setCurrentView('login');
+        return;
+      }
+
       const isUsingMoney = playMode === 'money';
       const requiredCost = isUsingMoney ? wheelConfig.moneyCost : wheelConfig.spinCost;
       
