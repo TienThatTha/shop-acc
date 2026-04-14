@@ -1244,7 +1244,7 @@ const App = () => {
                   TRẢI NGHIỆM GAMING <br className="hidden md:block" />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-rose-400">ĐỈNH CAO NHẤT</span>
                 </h2>
-                <p className="text-slate-300 mb-8 max-w-xl text-sm md:text-base leading-relaxed">Hệ thống Shop Tiến Gaming uy tín chất lượng số 1 Việt Nam. Hàng ngàn tài khoản VIP với giá cực sinh viên. Mua ngay nhận tài khoản trong 1 giây, bảo hành 1 đổi 1 nếu sai thông tin.</p>
+                <p className="text-slate-300 mb-8 max-w-xl text-sm md:text-base leading-relaxed">Hệ thống Shop Tiến Gaming uy tín chất lượng số 1 Việt Nam. Hàng ngàn tài khoản VIP cho thuê và mua bán với giá cực sinh viên. Mua ngay nhận tài khoản trong 1 giây, bảo hành 1 đổi 1 nếu sai thông tin.</p>
 
                 <div className="relative max-w-xl w-full group">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
@@ -4560,7 +4560,7 @@ const App = () => {
                   <span className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">4</span>
                   <p>Sau khi cài xong, mở ứng dụng ra bạn sẽ thấy 2 dòng là <strong className="text-white">Mã ID</strong> và <strong className="text-white">Passcode</strong>.</p>
                 </div>
-                
+
                 {awesunGuideType === 'inside' && (
                   <div className="flex gap-3 items-start mt-2 pt-4 border-t border-slate-800">
                     <span className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold shrink-0"><CheckCircle2 size={18} /></span>
