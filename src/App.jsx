@@ -57,6 +57,36 @@ const enforceNumberInput = (e) => {
   e.target.value = e.target.value.replace(/[^0-9]/g, '');
 };
 
+let isProcessingAction = false;
+
+// --- TÍCH HỢP IMGBB TỰ ĐỘNG ---
+const IMGBB_API_KEY = '129f0f9c5449d2dc93e7cc00b153eeab';
+
+const uploadToImgBB = async (base64String) => {
+  if (!base64String || !base64String.startsWith('data:image')) return base64String;
+  try {
+    const base64Data = base64String.split(',')[1];
+    const formData = new FormData();
+    formData.append('image', base64Data);
+    
+    // Yêu cầu Fetch Upload ImgBB
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (data.success) {
+      return data.data.url;
+    } else {
+      console.error("Lỗi ImgBB:", data);
+      throw new Error(data.error?.message || "Không thể upload ảnh lên máy chủ ImgBB");
+    }
+  } catch (err) {
+    console.error("Lỗi upload ảnh:", err);
+    throw err;
+  }
+};
+
 const App = () => {
 
   // --- BỘ ĐÀM GỬI EMAIL BÁO CHO ADMIN ---
@@ -271,8 +301,7 @@ const App = () => {
         localStorage.removeItem('shop_last_active');
         setCurrentUser(null);
         showToast("Phiên đăng nhập đã hết hạn! Vui lòng đăng nhập lại.", "error");
-        // Có thể mở dòng dưới nếu muốn tự động chuyển về trang Đăng nhập
-        // setCurrentView('login'); 
+        setCurrentView('login'); 
       }
       // -------------------------------------------------------------
 
@@ -582,6 +611,8 @@ const App = () => {
 
       setCurrentView('dashboard');
       showToast(`Chào mừng ${userData.name} quay trở lại!`, 'success');
+    } else {
+      showToast("Lỗi: Tài khoản Auth tồn tại nhưng không tìm thấy Data trong bảng Users!", 'error');
     }
   }; const handleRegister = async (e) => {
     e.preventDefault();
@@ -751,11 +782,17 @@ const App = () => {
     });
 
     if (error) {
-      // Nếu mạng lỗi hoặc Supabase lỗi -> Mở khóa nút và tắt bảng đi
+      // Mở khóa nút đếm ngược
       setVerifyCooldown(0);
-      setShowOtpModal(false);
-      if (error.status === 429) return showToast("Hệ thống mail đang quá tải, vui lòng thử lại sau!", 'error');
-      return showToast("Lỗi gửi mã: " + error.message, 'error');
+      
+      if (error.status === 429) {
+        // Lỗi đẩy mail quá nhanh (Spam OTP) -> Không tắt bảng, để nguyên cho khách xài lại mã cũ ở hòm thư
+        return showToast("Hệ thống mail đang bảo vệ an ninh! Vui lòng mở hòm thư lấy Mã để nhập tiếp.", 'error');
+      } else {
+        // Lỗi khác nghiêm trọng -> Tắt bảng
+        setShowOtpModal(false);
+        return showToast("Lỗi gửi mã: " + error.message, 'error');
+      }
     }
   };
 
@@ -1413,7 +1450,16 @@ const App = () => {
   };
 
   const renderSecurityScreen = () => {
-    if (!currentUser) return <div className="min-h-screen bg-[#0B1120] flex items-center justify-center text-white">Đang tải thông tin...</div>;
+    if (!currentUser) return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center text-slate-300">
+        <AlertCircle size={60} className="text-yellow-500 mb-4 animate-bounce" />
+        <h2 className="text-2xl font-bold text-white mb-4">Phiên đăng nhập đã hết hạn</h2>
+        <p className="text-slate-400 mb-6">Vui lòng đăng nhập lại để xem thông tin cá nhân của bạn.</p>
+        <button onClick={() => setCurrentView('login')} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-bold transition-colors shadow-lg shadow-blue-600/20">
+          Đi Trở Về Form Đăng Nhập
+        </button>
+      </div>
+    );
 
     // ... tất cả code còn lại của hàm giữ nguyên ...
     const handleUpdateInfo = async (e) => {
@@ -2656,10 +2702,10 @@ const App = () => {
         price: parseInt(e.target.price.value),
         rentPricePerHour: parseInt(e.target.rentPricePerHour.value) || 0,
         rentOptions: validRentOptions,
-        // GIỮ LẠI THÔNG TIN THUÊ KHI ADMIN CHỈNH SỬA
         rentedUntil: editingAccount ? editingAccount.rentedUntil : null,
         rentStartedAt: editingAccount ? editingAccount.rentStartedAt : null,
-        currentRenterId: editingAccount ? editingAccount.currentRenterId : null, coverImage: adminCoverImage || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=600&h=300',
+        currentRenterId: editingAccount ? editingAccount.currentRenterId : null,
+        coverImage: adminCoverImage || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=600&h=300',
         detailImages: adminDetailImages,
         description: e.target.desc.value,
         tagColor: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
@@ -2669,28 +2715,37 @@ const App = () => {
         accPhone: e.target.accPhone.value
       };
 
-      if (editingAccount) {
-        // Gửi lệnh CẬP NHẬT lên Supabase
-        const { data, error } = await supabase.from('accounts').update(accData).eq('id', editingAccount.id).select();
+      if (isGlobalProcessing) return;
+      setIsGlobalProcessing(true);
+      setShowAccModal(false);
+      showToast("Đang lưu chỉnh sửa dữ liệu Nick...", "info");
 
-        if (error) {
-          showToast("Lỗi cập nhật: " + error.message, 'error');
-        } else if (data && data.length > 0) {
-          setAccountsDb(accountsDb.map(a => a.id === editingAccount.id ? data[0] : a));
-          showToast("Đã lưu chỉnh sửa Nick!");
-          setShowAccModal(false);
-        }
-      } else {
-        // Gửi lệnh THÊM MỚI lên Supabase
-        const { data, error } = await supabase.from('accounts').insert([accData]).select();
+      try {
+        if (editingAccount) {
+          // Gửi lệnh CẬP NHẬT lên Supabase
+          const { data, error } = await supabase.from('accounts').update(accData).eq('id', editingAccount.id).select();
 
-        if (error) {
-          showToast("Lỗi đăng bán: " + error.message, 'error');
-        } else if (data && data.length > 0) {
-          setAccountsDb([data[0], ...accountsDb]);
-          showToast("Đăng bán Nick thành công!");
-          setShowAccModal(false);
+          if (error) {
+            showToast("Lỗi cập nhật: " + error.message, 'error');
+            setShowAccModal(true); // Mở lại nếu lỗi
+          } else if (data && data.length > 0) {
+            setAccountsDb(accountsDb.map(a => a.id === editingAccount.id ? data[0] : a));
+            showToast("Đã lưu chỉnh sửa Nick!");
+          }
+        } else {
+          // Gửi lệnh THÊM MỚI lên Supabase
+          const { data, error } = await supabase.from('accounts').insert([accData]).select();
+
+          if (error) {
+            showToast("Lỗi đăng bán: " + error.message, 'error');
+            setShowAccModal(true); // Mở lại nếu lỗi
+          } else if (data && data.length > 0) {
+            setAccountsDb([data[0], ...accountsDb]);
+            showToast("Đăng bán Nick thành công!");
+          }
         }
+      } finally {
+        setIsGlobalProcessing(false);
       }
     };
 
@@ -2704,49 +2759,78 @@ const App = () => {
         spins: parseInt(e.target.spins.value || 0),
         rentFund: parseInt(e.target.rentFund.value || 0),
         role: e.target.role.value,
-        is_trusted: e.target.is_trusted.checked // <--- THÊM DÒNG NÀY ĐỂ LƯU KHÁCH QUEN
+        is_trusted: e.target.is_trusted.checked
       };
-      // ... phần dưới giữ nguyên
 
-      // Đẩy dữ liệu chỉnh sửa lên bảng 'users' của Supabase
-      const { error } = await supabase.from('users').update(userData).eq('id', editingUser.id);
-      // ... phần dưới giữ nguyên ...
-      if (error) {
-        showToast("Lỗi cập nhật hệ thống: " + error.message, 'error');
-      } else {
-        const finalUser = { ...editingUser, ...userData };
-        setUsersDb(usersDb.map(u => u.id === editingUser.id ? finalUser : u));
-        if (currentUser && currentUser?.id === editingUser.id) setCurrentUser(finalUser);
-        showToast("Cập nhật thông tin Người dùng thành công!");
-        setShowUserModal(false);
+      if (isGlobalProcessing) return;
+      setIsGlobalProcessing(true);
+      setShowUserModal(false);
+      showToast("Đang xử lý thông tin người dùng...", "info");
+
+      try {
+        const { error } = await supabase.from('users').update(userData).eq('id', editingUser.id);
+        if (error) {
+          showToast("Lỗi cập nhật hệ thống: " + error.message, 'error');
+          setShowUserModal(true);
+        } else {
+          const finalUser = { ...editingUser, ...userData };
+          setUsersDb(usersDb.map(u => u.id === editingUser.id ? finalUser : u));
+          if (currentUser && currentUser?.id === editingUser.id) setCurrentUser(finalUser);
+          showToast("Cập nhật thông tin Người dùng thành công!");
+        }
+      } finally {
+        setIsGlobalProcessing(false);
       }
     };
     const handleSaveBoosting = async (e) => {
       e.preventDefault();
-      const type = e.target.boostType.value;
-      const boostData = {
-        id: editingBoosting ? editingBoosting.id : Date.now(),
-        type: type,
-        require_login: type === 'event' ? e.target.requireLogin.checked : true,
-        price: parseInt(e.target.price.value),
-        image: adminBoostingImage,
-        game: e.target.game?.value || '', // <--- Đã mở khóa: Bắt buộc lấy Tên Game cho cả Sự kiện
-        title: type === 'rank' ? (e.target.title?.value || '') : (e.target.eventName?.value || ''),
-        desc: type === 'rank' ? (e.target.desc?.value || '') : (e.target.amount?.value || '')
-      };
 
-      if (editingBoosting) {
-        const { data, error } = await supabase.from('boosting').update(boostData).eq('id', editingBoosting.id).select();
-        if (error) return showToast("Lỗi cập nhật: " + error.message, 'error');
-        if (data && data.length > 0) setBoostingDb(boostingDb.map(b => b.id === editingBoosting.id ? data[0] : b));
-        showToast("Sửa dịch vụ thành công!");
-      } else {
-        const { data, error } = await supabase.from('boosting').insert([boostData]).select();
-        if (error) return showToast("Lỗi thêm dịch vụ: " + error.message, 'error');
-        if (data && data.length > 0) setBoostingDb([data[0], ...boostingDb]);
-        showToast("Thêm dịch vụ thành công!");
-      }
+      if (isGlobalProcessing) return;
+      setIsGlobalProcessing(true);
       setShowBoostingModal(false);
+
+      try {
+        let finalImage = adminBoostingImage;
+        if (adminBoostingImage && adminBoostingImage.startsWith('data:image')) {
+          showToast("Đang tải ảnh lên Server ImgBB...", "info");
+          finalImage = await uploadToImgBB(adminBoostingImage);
+        } else {
+          showToast("Đang xử lý dịch vụ...", "info");
+        }
+
+        const type = e.target.boostType.value;
+        const boostData = {
+          id: editingBoosting ? editingBoosting.id : Date.now(),
+          type: type,
+          require_login: type === 'event' ? e.target.requireLogin.checked : true,
+          price: parseInt(e.target.price.value),
+          image: finalImage,
+          game: e.target.game?.value || '', // <--- Đã mở khóa: Bắt buộc lấy Tên Game cho cả Sự kiện
+          title: type === 'rank' ? (e.target.title?.value || '') : (e.target.eventName?.value || ''),
+          desc: type === 'rank' ? (e.target.desc?.value || '') : (e.target.amount?.value || '')
+        };
+        if (editingBoosting) {
+          const { data, error } = await supabase.from('boosting').update(boostData).eq('id', editingBoosting.id).select();
+          if (error) {
+            showToast("Lỗi cập nhật: " + error.message, 'error');
+            setShowBoostingModal(true);
+            return;
+          }
+          if (data && data.length > 0) setBoostingDb(boostingDb.map(b => b.id === editingBoosting.id ? data[0] : b));
+          showToast("Sửa dịch vụ thành công!");
+        } else {
+          const { data, error } = await supabase.from('boosting').insert([boostData]).select();
+          if (error) {
+            showToast("Lỗi thêm dịch vụ: " + error.message, 'error');
+            setShowBoostingModal(true);
+            return;
+          }
+          if (data && data.length > 0) setBoostingDb([data[0], ...boostingDb]);
+          showToast("Thêm dịch vụ thành công!");
+        }
+      } finally {
+        setIsGlobalProcessing(false);
+      }
     };
     const handleBoostingImageUpload = (e) => {
       const file = e.target.files[0];
@@ -2767,41 +2851,66 @@ const App = () => {
 
     const handleSaveWheel = async (e) => {
       e.preventDefault();
-      const wheelData = {
-        id: editingWheel ? editingWheel.id : `WHEEL${Date.now()}`,
-        name: e.target.name.value,
-        type: e.target.type.value,
-        value: parseInt(e.target.value.value) || 0,
-        rate: e.target.rate.value,
-        quantity: parseInt(e.target.quantity.value) || 0,
-        color: e.target.color.value || '#f43f5e', // <--- THÊM DÒNG NÀY// <--- THÊM DÒNG NÀY        image: adminWheelImage,
-        wheel_type: adminWheelType // Phân biệt tiền hay lượt
-      };
 
-      // Đẩy lên Supabase
-      if (editingWheel) {
-        await supabase.from('wheel_items').update(wheelData).eq('id', editingWheel.id);
-      } else {
-        await supabase.from('wheel_items').insert([wheelData]);
-      }
-
-      // Cập nhật màn hình
-      if (adminWheelType === 'money') {
-        if (editingWheel) {
-          setWheelItemsMoneyDb(wheelItemsMoneyDb.map(w => w.id === editingWheel.id ? wheelData : w));
-        } else {
-          setWheelItemsMoneyDb([...wheelItemsMoneyDb, wheelData]);
-        }
-      } else {
-        if (editingWheel) {
-          setWheelItemsSpinDb(wheelItemsSpinDb.map(w => w.id === editingWheel.id ? wheelData : w));
-        } else {
-          setWheelItemsSpinDb([...wheelItemsSpinDb, wheelData]);
-        }
-      }
-
-      showToast(editingWheel ? "Sửa phần thưởng thành công!" : "Thêm phần thưởng thành công!");
+      if (isGlobalProcessing) return;
+      setIsGlobalProcessing(true);
       setShowWheelModal(false);
+
+      try {
+        let finalImage = adminWheelImage;
+        if (adminWheelImage && adminWheelImage.startsWith('data:image')) {
+          showToast("Đang tải ảnh lên Server ImgBB...", "info");
+          finalImage = await uploadToImgBB(adminWheelImage);
+        } else {
+          showToast("Đang xử lý phần thưởng...", "info");
+        }
+
+        const wheelData = {
+          id: editingWheel ? editingWheel.id : `WHEEL${Date.now()}`,
+          name: e.target.name.value,
+          type: e.target.type.value,
+          value: parseInt(e.target.value.value) || 0,
+          rate: e.target.rate.value,
+          quantity: parseInt(e.target.quantity.value) || 0,
+          color: e.target.color.value || '#f43f5e',
+          image: finalImage,
+          wheel_type: adminWheelType // Phân biệt tiền hay lượt
+        };
+        // Đẩy lên Supabase
+        let queryError = null;
+        if (editingWheel) {
+          const { error } = await supabase.from('wheel_items').update(wheelData).eq('id', editingWheel.id);
+          queryError = error;
+        } else {
+          const { error } = await supabase.from('wheel_items').insert([wheelData]);
+          queryError = error;
+        }
+
+        if (queryError) {
+          showToast("Lỗi: " + queryError.message, 'error');
+          setShowWheelModal(true);
+          return;
+        }
+
+        // Cập nhật màn hình
+        if (adminWheelType === 'money') {
+          if (editingWheel) {
+            setWheelItemsMoneyDb(wheelItemsMoneyDb.map(w => w.id === editingWheel.id ? wheelData : w));
+          } else {
+            setWheelItemsMoneyDb([...wheelItemsMoneyDb, wheelData]);
+          }
+        } else {
+          if (editingWheel) {
+            setWheelItemsSpinDb(wheelItemsSpinDb.map(w => w.id === editingWheel.id ? wheelData : w));
+          } else {
+            setWheelItemsSpinDb([...wheelItemsSpinDb, wheelData]);
+          }
+        }
+
+        showToast(editingWheel ? "Sửa phần thưởng thành công!" : "Thêm phần thưởng thành công!");
+      } finally {
+        setIsGlobalProcessing(false);
+      }
     };
 
     const handleSaveVoucher = async (e) => {
@@ -2815,22 +2924,39 @@ const App = () => {
         userLimit: parseInt(e.target.userLimit.value) || 1,   // <--- Hút số lượt/khách
         isActive: e.target.isActive.value === 'true'
       };
-      if (editingVoucher) {
-        // Cập nhật trên Supabase
-        const { data, error } = await supabase.from('vouchers').update(voucherData).eq('id', editingVoucher.id).select();
-        if (error) return showToast("Lỗi sửa: " + error.message, 'error');
 
-        setVouchersDb(vouchersDb.map(v => v.id === editingVoucher.id ? data[0] : v));
-        showToast("Sửa mã khuyến mãi thành công!");
-      } else {
-        // Thêm mới trên Supabase (Để ID tự tăng hoặc dùng Date.now nếu cột ID không tự tăng)
-        const { data, error } = await supabase.from('vouchers').insert([{ ...voucherData, id: Date.now() }]).select();
-        if (error) return showToast("Lỗi tạo: " + error.message, 'error');
-
-        setVouchersDb([data[0], ...vouchersDb]);
-        showToast("Tạo mã khuyến mãi thành công!");
-      }
+      if (isGlobalProcessing) return;
+      setIsGlobalProcessing(true);
       setShowVoucherModal(false);
+      showToast("Đang xử lý voucher...", "info");
+
+      try {
+        if (editingVoucher) {
+          // Cập nhật trên Supabase
+          const { data, error } = await supabase.from('vouchers').update(voucherData).eq('id', editingVoucher.id).select();
+          if (error) {
+            showToast("Lỗi sửa: " + error.message, 'error');
+            setShowVoucherModal(true);
+            return;
+          }
+
+          setVouchersDb(vouchersDb.map(v => v.id === editingVoucher.id ? data[0] : v));
+          showToast("Sửa mã khuyến mãi thành công!");
+        } else {
+          // Thêm mới trên Supabase (Để ID tự tăng hoặc dùng Date.now nếu cột ID không tự tăng)
+          const { data, error } = await supabase.from('vouchers').insert([{ ...voucherData, id: Date.now() }]).select();
+          if (error) {
+            showToast("Lỗi tạo: " + error.message, 'error');
+            setShowVoucherModal(true);
+            return;
+          }
+
+          setVouchersDb([data[0], ...vouchersDb]);
+          showToast("Tạo mã khuyến mãi thành công!");
+        }
+      } finally {
+        setIsGlobalProcessing(false);
+      }
     };
 
     const handleAdminSendMessage = async (e) => {
@@ -3263,14 +3389,14 @@ const App = () => {
                           {r.status === 'Đã trả acc' && <div className="absolute top-0 right-0 bg-slate-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10">ĐÃ TRẢ ACC</div>}
                           {r.status === 'Từ chối' && <div className="absolute top-0 right-0 bg-rose-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10 shadow-md">ĐÃ TỪ CHỐI</div>}
                           <div className="w-full lg:w-40 h-28 bg-slate-900 rounded-lg flex items-center justify-center overflow-hidden border border-slate-800 shrink-0 relative">
-                            {r.info.kycMethod === 'vip' ? (
+                            {r.info?.kycMethod === 'vip' ? (
                               <div className="flex flex-col items-center text-yellow-500"><Sparkles size={28} className="mb-2" /><span className="font-black text-sm uppercase">Khách VIP</span><span className="text-[9px] text-slate-400 text-center">Miễn CCCD & Cọc</span></div>
-                            ) : r.info.kycMethod === 'khach_quen' ? (
+                            ) : r.info?.kycMethod === 'khach_quen' ? (
                               <div className="flex flex-col items-center text-emerald-500"><CheckCircle2 size={28} className="mb-2" /><span className="font-black text-sm uppercase">Khách Quen</span><span className="text-[9px] text-slate-400 text-center">Đã miễn CCCD & Cọc</span></div>
-                            ) : r.info.kycMethod === 'deposit' ? (
+                            ) : r.info?.kycMethod === 'deposit' ? (
                               <div className="flex flex-col items-center text-rose-500"><Wallet size={28} className="mb-2" /><span className="font-black text-sm uppercase">Đã cọc 500k</span><span className="text-[9px] text-slate-400 text-center">Sẽ hoàn khi trả nick</span></div>
                             ) : (
-                              r.info.cccdImage ? <img src={r.info.cccdImage} onClick={() => setFullScreenImage(r.info.cccdImage)} className="w-full h-full object-cover hover:scale-110 transition-transform cursor-pointer" title="Phóng to ảnh" /> : <span className="text-xs text-slate-500">Khách chưa up ảnh</span>
+                              r.info?.cccdImage ? <img src={r.info.cccdImage} onClick={() => setFullScreenImage(r.info.cccdImage)} className="w-full h-full object-cover hover:scale-110 transition-transform cursor-pointer" title="Phóng to ảnh" /> : <span className="text-xs text-slate-500">Khách chưa up ảnh</span>
                             )}
                           </div>
                           <div className="flex-1 space-y-2 text-sm w-full">
@@ -3278,7 +3404,7 @@ const App = () => {
                               <p>
                                 <span className="text-slate-400">Khách:</span>
                                 <span className="text-blue-400 font-bold text-base ml-1">{r.user}</span>
-                                {r.info.kycMethod === 'vip' && <span className="bg-yellow-500 text-[#0B1120] text-[10px] font-black px-1.5 py-0.5 rounded ml-2 shadow-[0_0_10px_rgba(250,204,21,0.5)]">VIP</span>}
+                                {r.info?.kycMethod === 'vip' && <span className="bg-yellow-500 text-[#0B1120] text-[10px] font-black px-1.5 py-0.5 rounded ml-2 shadow-[0_0_10px_rgba(250,204,21,0.5)]">VIP</span>}
                               </p>
 
                               {/* Ô THỜI GIAN HIỂN THỊ CHÍNH GIỮA */}
@@ -3290,8 +3416,8 @@ const App = () => {
 
                               <p>
                                 <span className="text-slate-400">SĐT:</span>
-                                <span className="font-bold ml-1">{r.info.phone}</span>
-                                {r.info.kycMethod === 'cccd' && <> | CCCD: {r.info.cccdNumber}</>}
+                                <span className="font-bold ml-1">{r.info?.phone}</span>
+                                {r.info?.kycMethod === 'cccd' && <> | CCCD: {r.info?.cccdNumber}</>}
                               </p>
                             </div>
                             <p>
@@ -3304,9 +3430,9 @@ const App = () => {
                             <div className="bg-blue-900/20 p-3 rounded-lg border border-blue-500/30 mt-3 flex items-center justify-between">
                               <div>
                                 <p className="text-blue-400 font-bold text-xs mb-1 flex items-center gap-1"><Gamepad2 size={12} /> AWESUN CỦA KHÁCH:</p>
-                                <p className="text-base">ID: <span className="text-white font-mono bg-black/30 px-2 py-0.5 rounded">{r.info.awesunId}</span> <span className="mx-2 text-slate-600">|</span> Pass: <span className="text-white font-mono bg-black/30 px-2 py-0.5 rounded">{r.info.awesunPass}</span></p>
+                                <p className="text-base">ID: <span className="text-white font-mono bg-black/30 px-2 py-0.5 rounded">{r.info?.awesunId}</span> <span className="mx-2 text-slate-600">|</span> Pass: <span className="text-white font-mono bg-black/30 px-2 py-0.5 rounded">{r.info?.awesunPass}</span></p>
                               </div>
-                              <button onClick={() => copyToClipboard(`${r.info.awesunId} ${r.info.awesunPass}`)} className="p-2 bg-blue-500/20 rounded text-blue-400 hover:bg-blue-500 hover:text-white transition-colors" title="Copy cả ID & Pass"><Copy size={16} /></button>
+                              <button onClick={() => copyToClipboard(`${r.info?.awesunId} ${r.info?.awesunPass}`)} className="p-2 bg-blue-500/20 rounded text-blue-400 hover:bg-blue-500 hover:text-white transition-colors" title="Copy cả ID & Pass"><Copy size={16} /></button>
                             </div>
                           </div>
                           <div className="flex lg:flex-col gap-2 w-full lg:w-auto mt-4 lg:mt-0">
@@ -3786,11 +3912,16 @@ const App = () => {
 
                 <form onSubmit={async (e) => {
                   e.preventDefault();
+                  if (isProcessingAction) return;
+                  isProcessingAction = true;
+                  try {
                   const finalAmount = parseInt(e.target.finalAmount.value);
                   const bonusSpins = parseInt(e.target.bonusSpins.value || 0);
+                  const targetModal = approveDepositModal;
+                  setApproveDepositModal(null);
 
                   // Lấy Data sống của khách từ Database trước khi cộng tiền nạp
-                  const { data: userToUpdate } = await supabase.from('users').select('*').eq('id', approveDepositModal.userId).single();
+                  const { data: userToUpdate } = await supabase.from('users').select('*').eq('id', targetModal.userId).single();
                   if (!userToUpdate) {
                     showToast("Lỗi: Không tìm thấy khách hàng!", "error");
                     return;
@@ -3803,7 +3934,7 @@ const App = () => {
                   const { error: userError } = await supabase
                     .from('users')
                     .update({ balance: newBalance, spins: newSpins })
-                    .eq('id', approveDepositModal.userId);
+                    .eq('id', targetModal.userId);
 
                   if (userError) {
                     showToast("Lỗi hệ thống khi cộng tiền: " + userError.message, 'error');
@@ -3814,17 +3945,17 @@ const App = () => {
                   await supabase
                     .from('deposit_requests')
                     .update({ status: 'Thành công' })
-                    .eq('id', approveDepositModal.id);
+                    .eq('id', targetModal.id);
 
                   // Cập nhật lại giao diện web
-                  setDepositRequests(depositRequests.map(req => req.id === approveDepositModal.id ? { ...req, status: 'Thành công' } : req));
+                  setDepositRequests(depositRequests.map(req => req.id === targetModal.id ? { ...req, status: 'Thành công' } : req));
 
                   const updatedUsers = usersDb.map(u =>
-                    u.id === approveDepositModal.userId ? { ...u, balance: newBalance, spins: newSpins } : u
+                    u.id === targetModal.userId ? { ...u, balance: newBalance, spins: newSpins } : u
                   );
                   setUsersDb(updatedUsers);
 
-                  if (currentUser && currentUser?.id === approveDepositModal.userId) {
+                  if (currentUser && currentUser?.id === targetModal.userId) {
                     setCurrentUser({ ...currentUser, balance: newBalance, spins: newSpins });
                   }
                   // --- GỌI HÀM GỬI MAIL TỰ ĐỘNG CHO KHÁCH ---
@@ -3833,7 +3964,7 @@ const App = () => {
                   }
                   // -----------------------------------------
                   showToast(`Đã cộng ${new Intl.NumberFormat('vi-VN').format(finalAmount)}đ và ${bonusSpins} lượt quay!`);
-                  setApproveDepositModal(null);
+                  } finally { isProcessingAction = false; }
                 }} className="space-y-4">
                   <div>
                     <label className="text-xs text-emerald-400 font-bold block mb-1">Số Tiền Thực Cộng (VNĐ)</label>
@@ -3871,10 +4002,15 @@ const App = () => {
                 </div>
                 <form onSubmit={async (e) => {
                   e.preventDefault();
+                  if (isProcessingAction) return;
+                  isProcessingAction = true;
+                  try {
                   const action = e.target.actionType.value;
+                  const targetModal = editRentModal;
+                  setEditRentModal(null);
                   if (action === 'stop') {
-                    const acc = editRentModal.acc;
-                    const currentReq = editRentModal.req;
+                    const acc = targetModal.acc;
+                    const currentReq = targetModal.req;
 
                     // 1. Lấy Data sống từ Database để tính toán số dư chính xác
                     const { data: targetUser } = await supabase.from('users').select('*').eq('id', currentReq.userId).single();
@@ -3947,16 +4083,16 @@ const App = () => {
                     const addHours = parseInt(e.target.addHours.value) || 0;
                     const addMins = parseInt(e.target.addMins.value) || 0;
                     const extraMs = (addHours * 3600000) + (addMins * 60000);
-                    const newRentedUntil = (editRentModal.acc.rentedUntil || Date.now()) + extraMs;
+                    const newRentedUntil = (targetModal.acc.rentedUntil || Date.now()) + extraMs;
 
                     // Lưu lên Supabase
-                    await supabase.from('accounts').update({ rentedUntil: newRentedUntil }).eq('id', editRentModal.acc.id);
+                    await supabase.from('accounts').update({ rentedUntil: newRentedUntil }).eq('id', targetModal.acc.id);
 
                     // Cập nhật UI
-                    setAccountsDb(accountsDb.map(a => a.id === editRentModal.acc.id ? { ...a, rentedUntil: newRentedUntil } : a));
+                    setAccountsDb(accountsDb.map(a => a.id === targetModal.acc.id ? { ...a, rentedUntil: newRentedUntil } : a));
                     showToast(`Đã cộng thêm ${addHours} giờ ${addMins} phút vào thời gian thuê!`);
                   }
-                  setEditRentModal(null);
+                  } catch(e) { console.error(e); } finally { isProcessingAction = false; }
                 }} className="space-y-4">
                   <div>
                     <label className="text-xs text-slate-400 font-bold block mb-2">Hành động</label>
@@ -3997,9 +4133,9 @@ const App = () => {
                     <div><label className="text-xs text-slate-400">Số ĐT</label><input name="phone" type="tel" pattern="[0-9]{10,11}" maxLength="11" onInput={enforceNumberInput} defaultValue={editingUser?.phone} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white" title="Nhập 10-11 số" required /></div>
                     <div><label className="text-xs text-slate-400">Mật khẩu (Đã bảo mật)</label><input type="password" disabled value="********" className="w-full mt-1 p-3 bg-[#0B1120]/50 border border-slate-800 rounded-lg text-slate-500 cursor-not-allowed" title="Chuẩn bảo mật: Admin không thể xem hoặc sửa mật khẩu của khách" /></div>                  </div>
                   <div><label className="text-xs text-slate-400">Email</label><input name="email" defaultValue={editingUser?.email} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white" required />
-                    {/* --- KHU VỰC HIỂN THỊ CCCD & SELFIE CỦA KHÁCH --- */}
+                    {/* --- KHU VỰC HIỂN THỊ CCCD CỦA KHÁCH --- */}
                     <div className="bg-slate-800/30 p-3 rounded-xl border border-slate-700">
-                      <label className="text-xs text-slate-400 font-bold mb-2 flex items-center gap-1"><ShieldCheck size={14} className="text-emerald-400" /> Hồ sơ Định danh (CCCD & Selfie)</label>
+                      <label className="text-xs text-slate-400 font-bold mb-2 flex items-center gap-1"><ShieldCheck size={14} className="text-emerald-400" /> Hồ sơ Định danh (CCCD)</label>
                       {editingUser?.is_cccd_verified ? (
                         <div className="flex flex-col gap-3">
                           <div>
@@ -4022,27 +4158,6 @@ const App = () => {
                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                   <ZoomIn size={20} className="text-white" />
                                 </div>
-                              </div>
-                            </div>
-
-                            {/* Ảnh SELFIE */}
-                            <div className="flex-1">
-                              <p className="text-[10px] text-slate-400 mb-1 text-center font-bold">Ảnh Selfie khuôn mặt</p>
-                              <div
-                                className="w-full h-20 bg-slate-900 rounded-lg overflow-hidden border border-slate-600 cursor-pointer relative group shadow-md"
-                                onClick={() => editingUser.cccd_selfie ? setFullScreenImage(editingUser.cccd_selfie) : showToast('Khách này thuê từ bản cũ, chưa up Selfie', 'error')}
-                                title="Bấm để phóng to Selfie"
-                              >
-                                {editingUser.cccd_selfie ? (
-                                  <img src={editingUser.cccd_selfie} className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" alt="Selfie" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-500 italic">Trống (Bản cũ)</div>
-                                )}
-                                {editingUser.cccd_selfie && (
-                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <ZoomIn size={20} className="text-white" />
-                                  </div>
-                                )}
                               </div>
                             </div>
                           </div>
@@ -4718,7 +4833,13 @@ const App = () => {
               <div className="flex border-t border-slate-800 bg-[#0B1120]">
                 <button onClick={() => setConfirmDialog(null)} className="flex-1 p-4 font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">Hủy</button>
                 <div className="w-[1px] bg-slate-800"></div>
-                <button onClick={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }} className="flex-1 p-4 font-bold text-blue-500 hover:bg-blue-600 hover:text-white transition-colors">Đồng Ý</button>
+                <button onClick={async () => {
+                  if (isProcessingAction) return;
+                  isProcessingAction = true;
+                  const action = confirmDialog.onConfirm;
+                  setConfirmDialog(null);
+                  try { await action(); } catch(e) { console.error(e); } finally { isProcessingAction = false; }
+                }} className="flex-1 p-4 font-bold text-blue-500 hover:bg-blue-600 hover:text-white transition-colors">Đồng Ý</button>
               </div>
             </div>
           </div>
@@ -4971,10 +5092,17 @@ const App = () => {
 
                 <form onSubmit={(e) => {
                   e.preventDefault();
+                  if (isProcessingAction) return;
+                  isProcessingAction = true;
                   const { acc, opt } = rentModalData;
                   const fileInput = e.target.querySelector('input[type="file"]');
 
                   const processRent = async (imgBase64) => {
+                    try {
+                    let finalImgBase64 = imgBase64;
+                    // ĐÃ XÓA logic đẩy CCCD lên ImgBB ở đây để bảo mật tuyệt đối dữ liệu cá nhân của khách hàng.
+                    // Toàn bộ ảnh CCCD (Base64) được lưu thẳng vào Supabase Database như cũ thay vì sang Server bên thứ 3.
+
                     const { acc, opt } = rentModalData; // Lấy dữ liệu acc và gói thuê
                     const useFundCheckbox = document.getElementsByName('useFundCheckbox')[0]?.checked;
 
@@ -5064,7 +5192,7 @@ const App = () => {
                       info: {
                         bonusTime: opt.bonusTime || '',
                         kycMethod: skipKyc ? (isVIP ? 'vip' : 'khach_quen') : (currentUser.is_email_verified && rentKycMethod === 'cccd' ? 'verified_cccd' : rentKycMethod),
-                        cccdImage: (!skipKyc && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified ? currentUser.cccd_image : imgBase64) : null,
+                        cccdImage: (!skipKyc && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified ? currentUser.cccd_image : finalImgBase64) : null,
                         cccdNumber: (!skipKyc && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified ? currentUser.cccd_number : document.getElementsByName('cccd')[0]?.value) : '',
                         phone: document.getElementsByName('phone')[0]?.value,
                         awesunId: document.getElementsByName('awesunId')[0]?.value,
@@ -5100,11 +5228,15 @@ const App = () => {
                         setCurrentView('lichsu');
                       }, 1000);
                     }
+                    } finally { isProcessingAction = false; }
                   };
 
                   // Bắt buộc ảnh CCCD chỉ khi là Khách Thường VÀ chọn up CCCD
                   if (!skipKyc && rentKycMethod === 'cccd' && !currentUser.is_cccd_verified) {
-                    if (!fileInput?.files[0]) return showToast("Vui lòng tải lên ảnh CCCD!", "error");
+                    if (!fileInput?.files[0]) {
+                      isProcessingAction = false;
+                      return showToast("Vui lòng tải lên ảnh CCCD!", "error");
+                    }
                     const reader = new FileReader();
                     reader.onload = () => processRent(reader.result);
                     reader.readAsDataURL(fileInput.files[0]);
@@ -5167,7 +5299,7 @@ const App = () => {
                           </div>
                         ) : (
                           <div className="grid grid-cols-2 gap-3 animate-fade-in mb-4">
-                            <div className="col-span-2 grid grid-cols-2 gap-3">
+                            <div className="col-span-2 grid grid-cols-1 gap-3">
                               {/* Ô MẶT TRƯỚC CCCD */}
                               <div className="relative border border-dashed border-slate-600 rounded-lg p-3 text-center hover:bg-slate-800/50 transition-colors min-h-[100px] flex items-center justify-center overflow-hidden">
                                 <input type="file" accept="image/*" onChange={(e) => {
@@ -5181,29 +5313,6 @@ const App = () => {
                                     <span className="text-[10px] font-bold">Up ảnh CCCD</span>
                                   </div>
                                 )}
-                              </div>
-
-                              {/* Ô SELFIE KHUÔN MẶT */}
-                              <div className="relative border border-dashed border-slate-600 rounded-lg p-3 text-center hover:bg-slate-800/50 transition-colors min-h-[100px] flex items-center justify-center overflow-hidden">
-                                <input type="file" accept="image/*" id="selfieUploadInput" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" title="Tải ảnh Selfie" required />
-                                <div className="text-slate-500 pointer-events-none flex flex-col items-center justify-center relative z-0" id="selfiePreviewContainer">
-                                  <User size={20} className="mb-1 text-slate-400" />
-                                  <span className="text-[10px] font-bold">Up ảnh Selfie</span>
-                                </div>
-                                {/* Script chạy ngầm để hiển thị ảnh Selfie ngay khi chọn */}
-                                <script dangerouslySetInnerHTML={{
-                                  __html: `
-                                  document.getElementById('selfieUploadInput')?.addEventListener('change', function(e) {
-                                    const file = e.target.files[0];
-                                    if(file) {
-                                      const reader = new FileReader();
-                                      reader.onload = function(event) {
-                                        document.getElementById('selfiePreviewContainer').innerHTML = '<img src="' + event.target.result + '" class="absolute inset-0 w-full h-full object-cover rounded-lg z-0" />';
-                                      };
-                                      reader.readAsDataURL(file);
-                                    }
-                                  });
-                                `}} />
                               </div>
                             </div>                            <div className="col-span-2"><input name="cccd" placeholder="Nhập số CCCD" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white outline-none" required /></div>
                           </div>
@@ -5287,17 +5396,21 @@ const App = () => {
 
                 <form onSubmit={async (e) => {
                   e.preventDefault();
-
+                  if (isProcessingAction) return;
+                  isProcessingAction = true;
+                  try {
                   // LẤY DỮ LIỆU AN TOÀN CHỐNG CRASH NGẦM
                   const loginMethod = e.target.loginMethod ? e.target.loginMethod.value : 'Không Cần';
                   const username = e.target.username ? e.target.username.value : (e.target.eventCode ? e.target.eventCode.value : '');
                   const password = e.target.password ? e.target.password.value : 'Bảo Mật Bằng Mã';
                   const note = e.target.note ? e.target.note.value : '';
+                  
+                  const targetModal = boostingModalData;
+                  setBoostingModalData(null); // Đóng ngay lập tức để làm khách hài lòng
 
-                  if (currentUser.balance < boostingModalData.price) {
+                  if (currentUser.balance < targetModal.price) {
                     showToast("Số dư không đủ! Vui lòng nạp thêm tiền.", 'error');
                     setCurrentView('naptien');
-                    setBoostingModalData(null);
                     return;
                   }
 
@@ -5358,10 +5471,10 @@ const App = () => {
                   setTransactionsDb([newTx, ...transactionsDb]);
                   setBoostingRequests([newBoostReq, ...boostingRequests]);
 
-                  setBoostingModalData(null);
                   showToast("Đặt lịch thành công! Admin sẽ sớm xử lý.");
-                  sendAdminAlert('ĐẶT CÀY THUÊ', `Khách ${currentUser.name} vừa đặt cày thuê: ${boostingModalData.title}`);
+                  sendAdminAlert('ĐẶT CÀY THUÊ', `Khách ${currentUser.name} vừa đặt đơn cày ${targetModal.title}.`);
                   setCurrentView('lichsu');
+                  } finally { isProcessingAction = false; }
                 }}>
                   <div className="space-y-4">
                     {/* Kiểm tra xem gói này có bắt buộc TK/MK không */}
