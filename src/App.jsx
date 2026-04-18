@@ -458,16 +458,19 @@ const App = () => {
     // --- HỆ THỐNG ĐẾM LƯỢT TRUY CẬP ---
     const trackVisitor = async () => {
       const { data } = await supabase.from('site_stats').select('views').eq('id', 1).maybeSingle();
-      if (data) {
-        let currentViews = data.views;
-        // Dùng sessionStorage để khách F5 không bị cộng dồn ảo (Chỉ tính 1 lượt/1 phiên mở web)
-        if (!sessionStorage.getItem('has_visited')) {
-          currentViews += 1;
+      let currentViews = data ? data.views : 0;
+
+      // Dùng sessionStorage để khách F5 không bị cộng dồn ảo (Chỉ tính 1 lượt/1 phiên mở web)
+      if (!sessionStorage.getItem('has_visited')) {
+        currentViews += 1;
+        if (data) {
           await supabase.from('site_stats').update({ views: currentViews }).eq('id', 1);
-          sessionStorage.setItem('has_visited', 'true');
+        } else {
+          await supabase.from('site_stats').insert([{ id: 1, views: currentViews }]);
         }
-        setVisitorCount(currentViews);
+        sessionStorage.setItem('has_visited', 'true');
       }
+      setVisitorCount(currentViews);
     };
 
     trackVisitor();
@@ -525,11 +528,21 @@ const App = () => {
       })
       .subscribe();
 
+    // 4. Lắng nghe LƯỢT TRUY CẬP (SITE STATS)
+    const statsChannel = supabase.channel('realtime-stats')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_stats' }, (payload) => {
+        if (payload.new && payload.new.views !== undefined) {
+          setVisitorCount(payload.new.views);
+        }
+      })
+      .subscribe();
+
     // Dọn dẹp các đường truyền khi khách đóng trình duyệt để chống lag máy
     return () => {
       supabase.removeChannel(messageChannel);
       supabase.removeChannel(depositChannel);
       supabase.removeChannel(rentChannel);
+      supabase.removeChannel(statsChannel);
     };
   }, []);
   // Tự động chuyển vòng quay nếu bị trống (Chống lỗi F5)
@@ -2141,87 +2154,87 @@ const App = () => {
                 <p className="text-slate-400">Đang cập nhật các gói dịch vụ cho {activeBoostingTab}...</p>
               </div>
             ) : filteredBoosting.map(b => (
-            <div key={b.id} className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 md:p-6 hover:border-blue-500/50 transition-colors shadow-xl group flex flex-col overflow-hidden">
+              <div key={b.id} className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 md:p-6 hover:border-blue-500/50 transition-colors shadow-xl group flex flex-col overflow-hidden">
 
-              {/* --- ẢNH HIỂN THỊ Ở TRANG KHÁCH (TỰ MỞ RỘNG & PHÓNG TO ĐƯỢC) --- */}
-              {b.image && (
-                <div
-                  className="w-full mb-4 rounded-xl overflow-hidden shrink-0 border border-slate-700/50 shadow-inner relative group/img cursor-zoom-in bg-black/40"
-                  onClick={() => setFullScreenImage(b.image)}
-                  title="Bấm để phóng to ảnh"
-                >
-                  <img
-                    src={b.image}
-                    className="w-full h-auto object-contain transition-transform duration-500 group-hover/img:scale-105"
-                    alt={b.title}
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity">
-                    <div className="bg-black/60 p-2 rounded-full text-white flex items-center gap-1 text-xs font-bold">
-                      <ZoomIn size={16} /> Phóng to
-                    </div>
-                  </div>
-                </div>
-              )}
-              <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-md inline-block mb-3 w-fit">{b.game}</span>
-              <h3 className="text-base md:text-lg font-bold text-white mb-2 leading-tight">{b.title}</h3>
-              {/* Giữ nguyên các phần mô tả và giá tiền bên dưới... */}              <p className="text-xs md:text-sm text-slate-400 mb-6 h-12 line-clamp-2">{b.desc}</p>
-              <div className="flex justify-between items-end border-t border-slate-800 pt-4">
-                <div>
-                  <p className="text-[10px] text-slate-500 mb-1 font-bold">GIÁ TỪ</p>
-                  <p className="text-rose-500 font-black text-lg md:text-xl">{new Intl.NumberFormat('vi-VN').format(b.price)}đ</p>
-                </div>
-                <button onClick={() => {
-                  if (!currentUser) return requireAuth('login');
-                  if (!currentUser.is_email_verified) return showToast("Vui lòng vào mục Cá nhân để xác thực Email trước khi giao dịch!", "error");
-                  setBoostingModalData(b);
-                }} className="bg-blue-600 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-sm font-bold text-white hover:bg-blue-500 shadow-lg shadow-blue-600/20 md:group-hover:-translate-y-1 transition-transform">Đặt Lịch</button>
-              </div>
-            </div>
-          ))}
-        </div>
-        {/* LỊCH SỬ CÀY THUÊ RIÊNG CHO BẠN */}
-        <div className="mt-16 border-t border-slate-800 pt-8">
-          <div className="flex items-center gap-2 mb-6">
-            <History size={24} className="text-blue-500" />
-            <h3 className="text-xl font-bold text-white uppercase tracking-wider">Đơn cày thuê của bạn</h3>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4">
-            {boostingRequests.filter(r => r.user === currentUser?.name).length === 0 ? (
-              <div className="bg-[#151D2F] p-10 rounded-2xl border border-slate-800 text-center text-slate-500 border-dashed">
-                <Target size={40} className="mx-auto mb-3 opacity-20" />
-                <p>Bạn chưa đặt đơn cày thuê nào ở shop.</p>
-              </div>
-            ) : (
-              boostingRequests.filter(r => r.user === currentUser?.name).map(req => (
-                <div key={req.id} className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row justify-between gap-4 items-start md:items-center hover:border-blue-500/30 transition-colors shadow-lg">
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-3 mb-2">
-                      <span className="px-3 py-1 bg-blue-600 text-white text-xs font-black rounded-lg shadow-lg shadow-blue-600/20">{req.boostingTitle}</span>
-                      <span className="text-xs text-slate-500 font-medium">{req.date}</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <p className="text-sm text-slate-300">Tài khoản: <span className="text-white font-mono font-bold bg-[#0B1120] px-2 py-0.5 rounded">{req.info.username}</span></p>
-                      <p className="text-[11px] text-slate-500">Hình thức: <span className="text-slate-400 font-bold">{req.info.loginMethod}</span></p>
-                    </div>
-                  </div>
-
-                  <div className="w-full md:w-auto border-t md:border-t-0 border-slate-800 pt-4 md:pt-0 flex items-center justify-between md:justify-end gap-6">
-                    <div className="text-left md:text-right">
-                      <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Trạng thái đơn</p>
-                      <div className={`flex items-center gap-1.5 font-black text-sm ${req.status === 'Hoàn thành' ? 'text-emerald-400' : req.status === 'Đang cày' ? 'text-blue-400' : 'text-yellow-500'}`}>
-                        {req.status === 'Hoàn thành' ? <CheckCircle2 size={16} /> : req.status === 'Đang cày' ? <RefreshCw size={16} className="animate-spin" /> : <Clock size={16} />}
-                        {req.status || 'Chờ xử lý'}
+                {/* --- ẢNH HIỂN THỊ Ở TRANG KHÁCH (TỰ MỞ RỘNG & PHÓNG TO ĐƯỢC) --- */}
+                {b.image && (
+                  <div
+                    className="w-full mb-4 rounded-xl overflow-hidden shrink-0 border border-slate-700/50 shadow-inner relative group/img cursor-zoom-in bg-black/40"
+                    onClick={() => setFullScreenImage(b.image)}
+                    title="Bấm để phóng to ảnh"
+                  >
+                    <img
+                      src={b.image}
+                      className="w-full h-auto object-contain transition-transform duration-500 group-hover/img:scale-105"
+                      alt={b.title}
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity">
+                      <div className="bg-black/60 p-2 rounded-full text-white flex items-center gap-1 text-xs font-bold">
+                        <ZoomIn size={16} /> Phóng to
                       </div>
                     </div>
                   </div>
+                )}
+                <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-md inline-block mb-3 w-fit">{b.game}</span>
+                <h3 className="text-base md:text-lg font-bold text-white mb-2 leading-tight">{b.title}</h3>
+                {/* Giữ nguyên các phần mô tả và giá tiền bên dưới... */}              <p className="text-xs md:text-sm text-slate-400 mb-6 h-12 line-clamp-2">{b.desc}</p>
+                <div className="flex justify-between items-end border-t border-slate-800 pt-4">
+                  <div>
+                    <p className="text-[10px] text-slate-500 mb-1 font-bold">GIÁ TỪ</p>
+                    <p className="text-rose-500 font-black text-lg md:text-xl">{new Intl.NumberFormat('vi-VN').format(b.price)}đ</p>
+                  </div>
+                  <button onClick={() => {
+                    if (!currentUser) return requireAuth('login');
+                    if (!currentUser.is_email_verified) return showToast("Vui lòng vào mục Cá nhân để xác thực Email trước khi giao dịch!", "error");
+                    setBoostingModalData(b);
+                  }} className="bg-blue-600 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-sm font-bold text-white hover:bg-blue-500 shadow-lg shadow-blue-600/20 md:group-hover:-translate-y-1 transition-transform">Đặt Lịch</button>
                 </div>
-              ))
-            )}
+              </div>
+            ))}
+          </div>
+          {/* LỊCH SỬ CÀY THUÊ RIÊNG CHO BẠN */}
+          <div className="mt-16 border-t border-slate-800 pt-8">
+            <div className="flex items-center gap-2 mb-6">
+              <History size={24} className="text-blue-500" />
+              <h3 className="text-xl font-bold text-white uppercase tracking-wider">Đơn cày thuê của bạn</h3>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              {boostingRequests.filter(r => r.user === currentUser?.name).length === 0 ? (
+                <div className="bg-[#151D2F] p-10 rounded-2xl border border-slate-800 text-center text-slate-500 border-dashed">
+                  <Target size={40} className="mx-auto mb-3 opacity-20" />
+                  <p>Bạn chưa đặt đơn cày thuê nào ở shop.</p>
+                </div>
+              ) : (
+                boostingRequests.filter(r => r.user === currentUser?.name).map(req => (
+                  <div key={req.id} className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row justify-between gap-4 items-start md:items-center hover:border-blue-500/30 transition-colors shadow-lg">
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <span className="px-3 py-1 bg-blue-600 text-white text-xs font-black rounded-lg shadow-lg shadow-blue-600/20">{req.boostingTitle}</span>
+                        <span className="text-xs text-slate-500 font-medium">{req.date}</span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-sm text-slate-300">Tài khoản: <span className="text-white font-mono font-bold bg-[#0B1120] px-2 py-0.5 rounded">{req.info.username}</span></p>
+                        <p className="text-[11px] text-slate-500">Hình thức: <span className="text-slate-400 font-bold">{req.info.loginMethod}</span></p>
+                      </div>
+                    </div>
+
+                    <div className="w-full md:w-auto border-t md:border-t-0 border-slate-800 pt-4 md:pt-0 flex items-center justify-between md:justify-end gap-6">
+                      <div className="text-left md:text-right">
+                        <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Trạng thái đơn</p>
+                        <div className={`flex items-center gap-1.5 font-black text-sm ${req.status === 'Hoàn thành' ? 'text-emerald-400' : req.status === 'Đang cày' ? 'text-blue-400' : 'text-yellow-500'}`}>
+                          {req.status === 'Hoàn thành' ? <CheckCircle2 size={16} /> : req.status === 'Đang cày' ? <RefreshCw size={16} className="animate-spin" /> : <Clock size={16} />}
+                          {req.status || 'Chờ xử lý'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
     );
   };
 
