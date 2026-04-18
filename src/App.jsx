@@ -1739,7 +1739,8 @@ const App = () => {
     const removeAccents = (str) => {
       return str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D') : '';
     }
-    const transferContent = `NAP ${removeAccents(currentUser?.name).toUpperCase()}`;
+    // Thay thế đoạn transferContent cũ bằng đoạn này
+    const transferContent = `NAP ${currentUser?.phone}`;
     const qrUrl = pendingDeposit?.amount ? `https://img.vietqr.io/image/tpbank-10002973552-compact2.png?amount=${pendingDeposit.amount}&addInfo=${encodeURIComponent(transferContent)}` : `https://img.vietqr.io/image/tpbank-10002973552-compact2.png`;
 
     const handleCreateDepositDraft = (e) => {
@@ -1799,14 +1800,21 @@ const App = () => {
       };
 
       // ĐẨY YÊU CẦU LÊN SUPABASE
-      const { data, error } = await supabase.from('deposit_requests').insert([newReq]).select();
+      const { data: insertedData, error } = await supabase.from('deposit_requests').insert([newReq]).select().single();
 
       if (error) {
         showToast("Lỗi gửi yêu cầu nạp tiền: " + error.message, 'error');
         return;
       }
 
-      setDepositRequests([data[0], ...depositRequests]);
+      if (insertedData) {
+        setDepositRequests([insertedData, ...depositRequests]);
+
+        // Gọi Function báo Telegram
+        await supabase.functions.invoke('telegram-bot', {
+          body: { type: 'new_request', requestId: insertedData.id }
+        });
+      }
 
       // THÊM DÒNG NÀY VÀO ĐỂ BÁO EMAIL KHI KHÁCH BÁO NẠP TIỀN
       sendAdminAlert('YÊU CẦU NẠP TIỀN', `Khách ${currentUser.name} vừa báo đã chuyển khoản ${new Intl.NumberFormat('vi-VN').format(pendingDeposit.amount)}đ. Hãy vào kiểm tra và duyệt!`);
