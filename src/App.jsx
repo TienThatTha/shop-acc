@@ -149,6 +149,7 @@ const App = () => {
   const [viewingAcc, setViewingAcc] = useState(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('Tất cả');
+  const [activeBoostingTab, setActiveBoostingTab] = useState('Tất cả');
   const [showPassword, setShowPassword] = useState(false);
   const [showOldPass, setShowOldPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
@@ -2109,18 +2110,37 @@ const App = () => {
       </div>
     );
   };
-  const renderCayThueScreen = () => (
-    <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-10">
-      {renderNavbar()}
-      {/* Đã mở rộng max-w và thêm lề phải (pr-24) để né 3 nút liên hệ */}
-      <div className="w-full max-w-[1400px] mx-auto mt-8 px-4 md:px-6 lg:pr-24">
-        <div className="text-center mb-8 md:mb-10">
-          <h2 className="text-2xl md:text-3xl font-black text-white flex items-center justify-center gap-2"><Target className="text-blue-500" /> Dịch Vụ Cày Thuê</h2>
-          <p className="text-slate-400 mt-2 text-sm md:text-base">Uy tín, tốc độ, bảo mật tuyệt đối. Giá tốt nhất thị trường.</p>
-        </div>
-        {/* Tự động chia lên 4 cột trên màn hình rộng (xl) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-          {boostingDb.map(b => (
+  const renderCayThueScreen = () => {
+    const uniqueBoostingGames = ['Tất cả', ...new Set(boostingDb.map(b => b.game))];
+    const filteredBoosting = activeBoostingTab === 'Tất cả' ? boostingDb : boostingDb.filter(b => b.game === activeBoostingTab);
+
+    return (
+      <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-10">
+        {renderNavbar()}
+        {/* Đã mở rộng max-w và thêm lề phải (pr-24) để né 3 nút liên hệ */}
+        <div className="w-full max-w-[1400px] mx-auto mt-8 px-4 md:px-6 lg:pr-24">
+          <div className="text-center mb-8 md:mb-10">
+            <h2 className="text-2xl md:text-3xl font-black text-white flex items-center justify-center gap-2"><Target className="text-blue-500" /> Dịch Vụ Cày Thuê</h2>
+            <p className="text-slate-400 mt-2 text-sm md:text-base">Uy tín, tốc độ, bảo mật tuyệt đối. Giá tốt nhất thị trường.</p>
+          </div>
+
+          {/* --- KHU VỰC CHỌN LỌC GAME --- */}
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+            {uniqueBoostingGames.map(tab => (
+              <button key={tab} onClick={() => setActiveBoostingTab(tab)} className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors border ${activeBoostingTab === tab ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>
+                {tab === 'Tất cả' ? 'Tất cả dịch vụ' : tab}
+              </button>
+            ))}
+          </div>
+
+          {/* Tự động chia lên 4 cột trên màn hình rộng (xl) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            {filteredBoosting.length === 0 ? (
+              <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-800 rounded-2xl bg-[#151D2F] shadow-lg">
+                <Target size={40} className="mx-auto mb-3 text-slate-600" />
+                <p className="text-slate-400">Đang cập nhật các gói dịch vụ cho {activeBoostingTab}...</p>
+              </div>
+            ) : filteredBoosting.map(b => (
             <div key={b.id} className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 md:p-6 hover:border-blue-500/50 transition-colors shadow-xl group flex flex-col overflow-hidden">
 
               {/* --- ẢNH HIỂN THỊ Ở TRANG KHÁCH (TỰ MỞ RỘNG & PHÓNG TO ĐƯỢC) --- */}
@@ -2202,7 +2222,8 @@ const App = () => {
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   const renderVongQuay = () => {
     // CHỈ LẤY NHỮNG QUÀ CÓ SỐ LƯỢNG LỚN HƠN 0
@@ -2810,7 +2831,8 @@ const App = () => {
         spins: parseInt(e.target.spins.value || 0),
         rentFund: parseInt(e.target.rentFund.value || 0),
         role: e.target.role.value,
-        is_trusted: e.target.is_trusted.checked
+        is_trusted: e.target.is_trusted.checked,
+        is_cccd_verified: e.target.is_cccd_verified ? e.target.is_cccd_verified.checked : (editingUser.is_cccd_verified || false)
       };
 
       if (isGlobalProcessing) return;
@@ -3030,9 +3052,9 @@ const App = () => {
       setTimeout(() => chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     };
 
-    const totalRevenue = transactionsDb
-      .filter(t => ['buy_acc', 'rent_acc', 'spin', 'boosting'].includes(t.type))
-      .reduce((sum, t) => sum + t.amount, 0);
+    const totalRevenue = depositRequests
+      .filter(d => d.status === 'Thành công')
+      .reduce((sum, d) => sum + d.amount, 0);
 
     const filteredUsersList = usersDb.filter(u =>
       u.name.toLowerCase().includes(adminSearchUser.toLowerCase()) ||
@@ -3447,7 +3469,29 @@ const App = () => {
                             ) : (r.info?.kycMethod === 'deposit' || r.info?.kycMethod === 'coc') ? (
                               <div className="flex flex-col items-center text-rose-500"><Wallet size={28} className="mb-2" /><span className="font-black text-sm uppercase">Đã cọc 500k</span><span className="text-[9px] text-slate-400 text-center">Sẽ hoàn khi trả nick</span></div>
                             ) : (
-                              r.info?.cccdImage ? <img src={r.info.cccdImage} onClick={() => setFullScreenImage(r.info.cccdImage)} className="w-full h-full object-cover hover:scale-110 transition-transform cursor-pointer" title="Phóng to ảnh" /> : <span className="text-xs text-slate-500">Khách chưa up ảnh</span>
+                              (r.info?.kycMethod === 'cccd' || r.info?.kycMethod === 'verified_cccd' || r.info?.cccdImage) ? (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (r.info?.cccdImage) {
+                                      setFullScreenImage(r.info.cccdImage);
+                                    } else {
+                                      showToast("Đang tải ảnh từ máy chủ phân tán...", "info");
+                                      const { data, error } = await supabase.from('users').select('cccd_image').eq('id', r.userId).single();
+                                      if (data?.cccd_image) {
+                                        setFullScreenImage(data.cccd_image);
+                                      } else {
+                                        showToast("Không tìm thấy ảnh CCCD của khách này trên hệ thống!", "error");
+                                      }
+                                    }
+                                  }}
+                                  className="w-full h-full flex flex-col items-center justify-center text-blue-400 hover:bg-blue-500/10 transition-colors group"
+                                  title="Tải & Phóng to CCCD"
+                                >
+                                  <ImageIcon size={28} className="mb-2 group-hover:scale-110 transition-transform" />
+                                  <span className="text-[10px] font-bold border border-blue-500/50 px-2 py-1 rounded bg-blue-500/10 whitespace-nowrap shadow-sm">Hiển Thị CCCD</span>
+                                </button>
+                              ) : <span className="text-xs text-slate-500">Khách chưa up ảnh</span>
                             )}
                           </div>
                           <div className="flex-1 space-y-2 text-sm w-full">
@@ -4198,36 +4242,37 @@ const App = () => {
                     <div><label className="text-xs text-slate-400">Mật khẩu (Đã bảo mật)</label><input type="password" disabled value="********" className="w-full mt-1 p-3 bg-[#0B1120]/50 border border-slate-800 rounded-lg text-slate-500 cursor-not-allowed" title="Chuẩn bảo mật: Admin không thể xem hoặc sửa mật khẩu của khách" /></div>                  </div>
                   <div><label className="text-xs text-slate-400">Email</label><input name="email" defaultValue={editingUser?.email} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white" required />
                     {/* --- KHU VỰC HIỂN THỊ CCCD CỦA KHÁCH --- */}
-                    <div className="bg-slate-800/30 p-3 rounded-xl border border-slate-700">
-                      <label className="text-xs text-slate-400 font-bold mb-2 flex items-center gap-1"><ShieldCheck size={14} className="text-emerald-400" /> Hồ sơ Định danh (CCCD)</label>
-                      {editingUser?.is_cccd_verified ? (
-                        <div className="flex flex-col gap-3">
-                          <div>
-                            <p className="text-[10px] text-slate-500 uppercase font-bold">Số CCCD:</p>
-                            <p className="text-sm font-mono font-bold text-emerald-400">{editingUser.cccd_number}</p>
-                            <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded mt-1 inline-block font-bold">Đã lưu hồ sơ</span>
-                          </div>
-                          <div className="flex gap-4">
-                            {/* Ảnh CCCD MẶT TRƯỚC */}
-                            <div className="flex-1">
-                              <p className="text-[10px] text-slate-400 mb-1 text-center font-bold">Ảnh mặt trước CCCD</p>
-                              <div
-                                className="w-full h-20 bg-slate-900 rounded-lg overflow-hidden border border-slate-600 cursor-pointer relative group shadow-md"
-                                onClick={() => editingUser.cccd_image ? setFullScreenImage(editingUser.cccd_image) : null}
-                                title="Bấm để phóng to CCCD"
-                              >
-                                {editingUser.cccd_image ? (
-                                  <img src={editingUser.cccd_image} className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" alt="CCCD" />
-                                ) : <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-500">Lỗi ảnh</div>}
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <ZoomIn size={20} className="text-white" />
-                                </div>
-                              </div>
+                    <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700 mt-4">
+                      <label className="block text-sm font-medium text-slate-400 mb-3"><ShieldCheck size={16} className="inline text-emerald-400 mb-1" /> Ảnh CCCD xác minh</label>
+
+                      {editingUser?.cccd_image ? (
+                        <div className="flex flex-col items-center gap-4">
+                          <button
+                            type="button"
+                            onClick={() => setFullScreenImage(editingUser.cccd_image)}
+                            className="w-full py-3 bg-rose-600/20 text-rose-400 font-bold border border-rose-600/30 rounded hover:bg-rose-600/30 transition-colors flex items-center justify-center gap-2 shadow-inner"
+                          >
+                            <ImageIcon size={18} /> Xem ảnh CCCD gốc
+                          </button>
+
+                          {/* Nút tùy chọn để Admin đánh dấu đã duyệt */}
+                          <div className="flex items-center gap-3 mt-1 w-full p-3 bg-slate-900 rounded-lg border border-slate-700 shadow-inner">
+                            <input
+                              type="checkbox"
+                              name="is_cccd_verified"
+                              defaultChecked={editingUser.is_cccd_verified || false}
+                              className="w-5 h-5 rounded cursor-pointer accent-blue-500"
+                            />
+                            <div className="flex flex-col">
+                              <span className="text-sm text-slate-300 font-bold">Đánh dấu đã xác minh CCCD hợp lệ</span>
+                              <span className="text-[10px] text-slate-500">Khách sẽ không phải up ảnh ở các lần thuê sau.</span>
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <p className="text-xs text-slate-500 italic text-center py-3 bg-[#0B1120] rounded-lg border border-slate-800 border-dashed">Khách hàng này chưa xác minh CCCD.</p>
+                        <div className="text-center py-6 border-2 border-dashed border-slate-700 bg-slate-900 rounded-lg">
+                          <p className="text-sm text-slate-500 italic">Người dùng này chưa cập nhật CCCD.</p>
+                        </div>
                       )}
                     </div></div>
                   <div className="grid grid-cols-4 gap-2 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
@@ -5205,10 +5250,18 @@ const App = () => {
                       const newBalance = currentUser.balance - totalCostFromMain;
                       const newFund = (currentUser.rentFund || 0) - rentCostFromFund;
 
-                      const { error: userErr } = await supabase.from('users').update({
+                      const updatePayload = {
                         balance: newBalance,
                         rentFund: newFund
-                      }).eq('id', currentUser.id);
+                      };
+
+                      // Tự động lưu CCCD vào profile theo yêu cầu nếu khách có cung cấp
+                      if (!skipKyc && rentKycMethod === 'cccd' && finalImgBase64) {
+                        updatePayload.cccd_image = finalImgBase64;
+                        updatePayload.cccd_number = capturedCccd;
+                      }
+
+                      const { error: userErr } = await supabase.from('users').update(updatePayload).eq('id', currentUser.id);
 
                       if (userErr) return showToast("Lỗi trừ tiền: " + userErr.message, 'error');
 
@@ -5264,7 +5317,8 @@ const App = () => {
                         info: {
                           bonusTime: opt.bonusTime || '',
                           kycMethod: skipKyc ? (isVIP ? 'vip' : 'khach_quen') : (currentUser.is_email_verified && rentKycMethod === 'cccd' ? 'verified_cccd' : rentKycMethod),
-                          cccdImage: (!skipKyc && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified ? currentUser.cccd_image : finalImgBase64) : null,
+                          // Không lưu trực tiếp Base64 vào rent_requests nữa để tiết kiệm 95% Payload tải về của Admin
+                          // Admin giờ sẽ bấm nút để tự động kéo ảnh từ bảng users xuống xem (Fetch On-Demand)
                           cccdNumber: (!skipKyc && rentKycMethod === 'cccd') ? (currentUser.is_cccd_verified ? currentUser.cccd_number : capturedCccd) : '',
                           phone: capturedPhone,
                           awesunId: capturedAwesunId,
