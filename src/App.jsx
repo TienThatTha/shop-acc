@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import imageCompression from 'browser-image-compression';
 import {
   User, Lock, Phone, Mail, ShieldCheck, ArrowRight, CheckCircle2,
   LogOut, Key, Wallet, Search, Gamepad2, X, Menu, Clock, Flame,
@@ -2745,18 +2746,39 @@ const App = () => {
         </div>
       );
     }
-    const handleFileUpload = (e, isCover) => {
+    const handleFileUpload = async (e, isCover) => {
       const files = Array.from(e.target.files);
-      if (isCover && files[0]) {
-        const reader = new FileReader();
-        reader.onloadend = () => setAdminCoverImage(reader.result);
-        reader.readAsDataURL(files[0]);
-      } else if (!isCover) {
-        files.forEach(file => {
+      if (!files.length) return;
+
+      // Cấu hình máy nén: Ép dung lượng tối đa 200KB, kích thước tối đa 1280px
+      const options = {
+        maxSizeMB: 0.2,
+        maxWidthOrHeight: 1280,
+        useWebWorker: true
+      };
+
+      try {
+        if (isCover && files[0]) {
+          // Bắt đầu nén ảnh
+          const compressedFile = await imageCompression(files[0], options);
+
           const reader = new FileReader();
-          reader.onloadend = () => setAdminDetailImages(prev => [...prev, reader.result]);
-          reader.readAsDataURL(file);
-        });
+          reader.onloadend = () => setAdminCoverImage(reader.result);
+          // Đọc file đã nén thay vì file gốc
+          reader.readAsDataURL(compressedFile);
+
+        } else if (!isCover) {
+          // Xử lý nén cho danh sách ảnh phụ
+          for (const file of files) {
+            const compressedFile = await imageCompression(file, options);
+            const reader = new FileReader();
+            reader.onloadend = () => setAdminDetailImages(prev => [...prev, reader.result]);
+            reader.readAsDataURL(compressedFile);
+          }
+        }
+      } catch (error) {
+        console.error("Lỗi nén ảnh:", error);
+        showToast("Có lỗi xảy ra khi nén ảnh!", "error");
       }
     };
 
