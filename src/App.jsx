@@ -754,52 +754,45 @@ const App = () => {
 
   const handleBuyAccount = (acc) => {
     if (!currentUser) return requireAuth('login');
-    if (!currentUser.is_email_verified) return showToast("Vui lòng vào mục Cá nhân để xác thực Email trước khi giao dịch!", "error");
-    if (currentUser.balance < acc.price) {
-      showToast("Số dư không đủ! Vui lòng nạp thêm tiền.", 'error');
-      setCurrentView('naptien');
-      return;
-    }
+    if (!currentUser.is_email_verified) return showToast("Vui lòng xác thực Email!", "error");
 
     setConfirmDialog({
       title: 'Xác nhận Mua Đứt',
-      message: `Bạn có chắc chắn muốn mua nick #${acc.code} với giá ${new Intl.NumberFormat('vi-VN').format(acc.price)}đ không?`,
+      message: `Bạn muốn mua nick #${acc.code} với giá ${new Intl.NumberFormat('vi-VN').format(acc.price)}đ?`,
       onConfirm: async () => {
-        // 1. Trừ tiền thật trên Supabase
-        const newBalance = currentUser.balance - acc.price;
-        await supabase.from('users').update({ balance: newBalance }).eq('id', currentUser?.id);
+        // GỌI HÀM BẢO MẬT TRÊN SERVER (RPC)
+        // Chúng ta không tự tính toán ở đây nữa, mà để Database tự làm
+        const { data, error } = await supabase.rpc('m_buy_acc', {
+          nick_id: acc.id,
+          khach_id: currentUser.id
+        });
 
-        // 2. Lưu Lịch sử giao dịch lên Database
-        const newTx = {
-          id: `TX${Date.now()}`,
-          user: currentUser.name,
-          action: `Đặt cày thuê: ${boostingModalData.title}`,
-          amount: boostingModalData.price,
-          date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
-          status: 'Thành công',
-          type: 'boosting',
-          accDetails: {
-            balanceAfter: newBalance,
-            fundAfter: currentUser.rentFund || 0
-          }
-        };
-        const { data: txData } = await supabase.from('transactions').insert([newTx]).select();
+        // Nếu Database trả về lỗi (Ví dụ: hết tiền, hoặc nick đã bán)
+        if (error) {
+          return showToast(error.message || "Giao dịch thất bại!", 'error');
+        }
 
-        // 3. Cập nhật lại giao diện Web
-        const updatedUser = { ...currentUser, balance: newBalance };
-        setCurrentUser(updatedUser);
-        localStorage.setItem('shop_cached_user', JSON.stringify(userData));
-        setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u));
-        if (txData) setTransactionsDb([txData[0], ...transactionsDb]);
+        // Nếu Database báo Success: true
+        if (data && data.success) {
+          // Cập nhật lại số dư trên giao diện web cho khách thấy
+          const newBalance = currentUser.balance - acc.price;
+          const updatedUser = { ...currentUser, balance: newBalance };
+          setCurrentUser(updatedUser);
 
-        // 1. Cập nhật trạng thái "Đã bán" lên Supabase
-        await supabase.from('accounts').update({ is_sold: true, rentedUntil: null, rentStartedAt: null, currentRenterId: null }).eq('id', acc.id);
+          // Lưu lại vào bộ nhớ trình duyệt để khi load lại trang không bị mất số dư mới
+          localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
 
-        // 2. Gỡ tài khoản khỏi giao diện (Lọc bỏ nick vừa mua ra khỏi danh sách)
-        setAccountsDb(accountsDb.filter(a => a.id !== acc.id));
-        setViewingAcc(null);
-        setSuccessTxData({ type: 'buy', title: 'Mua Tài Khoản Thành Công!', acc: acc });
-        sendAdminAlert('MUA NICK', `Khách ${currentUser.name} vừa mua đứt nick #${acc.code} với giá ${new Intl.NumberFormat('vi-VN').format(acc.price)}đ.`);
+          // Xóa nick vừa mua khỏi danh sách đang hiển thị ở Shop
+          setAccountsDb(accountsDb.filter(a => a.id !== acc.id));
+          setViewingAcc(null);
+
+          // Hiện thông báo chúc mừng
+          setSuccessTxData({ type: 'buy', title: 'Mua Thành Công!', acc: acc });
+          showToast("Giao dịch thành công!");
+        } else {
+          // Trường hợp data.success = false (do hàm SQL trả về)
+          showToast(data.message || "Giao dịch không thành công!", "error");
+        }
       }
     });
   };
@@ -2271,79 +2264,49 @@ const App = () => {
     }
 
     const handleSpin = async () => {
-      // 1. Chặn khách vãng lai (Chưa đăng nhập mà đòi quay)
       if (!currentUser) {
         showToast("Vui lòng đăng nhập tài khoản để tham gia Vòng Quay!", 'error');
         setCurrentView('login');
         return;
       }
 
+      if (isSpinning) return;
+      setIsSpinning(true); // Khóa nút bấm ngay lập tức
+
       const isUsingMoney = playMode === 'money';
       const requiredCost = isUsingMoney ? wheelConfig.moneyCost : wheelConfig.spinCost;
 
-      if (isUsingMoney) {
-        if (currentUser.balance < requiredCost) return showToast(`Số dư của bạn không đủ (cần ${new Intl.NumberFormat('vi-VN').format(requiredCost)}đ)!`, 'error');
-      } else {
-        if ((currentUser.spins || 0) < requiredCost) return showToast(`Bạn không đủ lượt quay (cần ${requiredCost} lượt)!`, 'error');
-      }
-
-      if (isSpinning) return;
-
-      const updatedUser = { ...currentUser };
-      if (isUsingMoney) {
-        updatedUser.balance -= requiredCost;
-      } else {
-        updatedUser.spins -= requiredCost;
-      }
-
-      // =========================================================
-      // LẤY CÁI LOA Ở DƯỚI CÙNG TRANG WEB LÊN ĐỂ PHÁT NHẠC QUAY
-      // =========================================================
+      // Mở nhạc vòng quay
       const spinAudio = document.getElementById('spinSound');
       if (spinAudio) {
-        spinAudio.currentTime = 0;
-        spinAudio.volume = 0.5;
+        spinAudio.currentTime = 0; spinAudio.volume = 0.5;
         spinAudio.play().catch(e => console.log("Trình duyệt chặn:", e));
       }
 
-      // Gọi máy chủ xử lý
-      await supabase.from('users').update({ balance: updatedUser.balance, spins: updatedUser.spins }).eq('id', currentUser.id);
+      // 1. GIAO MỌI QUYỀN SINH SÁT CHO SERVER (Trừ tiền + Quay quà + Phát thưởng diễn ra trong 0.1s)
+      const { data, error } = await supabase.rpc('m_spin_wheel', {
+        khach_id: currentUser.id,
+        p_wheel_type: playMode,
+        p_cost: requiredCost
+      });
 
-      setCurrentUser(updatedUser);
-      localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
-      setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u));
+      // Nếu khách hack code sửa giá tiền thành 0, Server sẽ từ chối và báo lỗi
+      if (error || !data.success) {
+        setIsSpinning(false);
+        if (spinAudio) spinAudio.pause();
+        return showToast(error?.message || data?.message || "Lỗi vòng quay!", 'error');
+      }
 
-      const newSpinTx = {
-        id: `TX${Date.now()}`, user: currentUser.name,
-        action: `Quay Vòng Quay (${isUsingMoney ? 'Tiền' : 'Lượt'})`, amount: requiredCost,
-        date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), status: 'Thành công',
-        type: 'spin',
-        isSpinCost: !isUsingMoney,
-        // --- SỬA LẠI THÀNH updatedUser NHƯ SAU ---
-        accDetails: { balanceAfter: updatedUser.balance, fundAfter: updatedUser.rentFund || 0 }
-        // -----------------------------------------
-      };
-
-      await supabase.from('transactions').insert([newSpinTx]);
-      setTransactionsDb([newSpinTx, ...transactionsDb]);
-
-      setIsSpinning(true);
-
-      let rand = Math.random() * 100;
-      let cumulative = 0;
-      let winningIndex = 0;
-
-      for (let i = 0; i < activeDb.length; i++) {
-        let rateNum = parseFloat(activeDb[i].rate);
-        cumulative += rateNum;
-        if (rand <= cumulative) {
-          winningIndex = i;
-          break;
-        }
+      // 2. ĐỌC KẾT QUẢ TỪ SERVER TRẢ VỀ ĐỂ DỰNG HIỆU ỨNG (Animation)
+      const winningIndex = activeDb.findIndex(item => item.id === data.item_id);
+      if (winningIndex === -1) {
+        setIsSpinning(false);
+        return showToast("Lỗi đồng bộ vòng quay!", 'error');
       }
 
       const winningItem = activeDb[winningIndex];
 
+      // Tính góc quay sao cho kim chỉ đúng vào ô trúng
       const N = activeDb.length;
       const sliceAngle = 360 / N;
       const centerAngle = winningIndex * sliceAngle + (sliceAngle / 2);
@@ -2351,40 +2314,48 @@ const App = () => {
       const randomOffset = (Math.random() * sliceAngle * 0.6) - (sliceAngle * 0.3);
       const targetRotation = rotation + (360 - currentBase) + 1800 + (360 - centerAngle) + randomOffset;
 
-      setRotation(targetRotation);
+      setRotation(targetRotation); // Bắt đầu xoay hình ảnh
 
-      setTimeout(() => {
+      // Đợi 4 giây cho hình ảnh xoay xong thì tung Pop-up chúc mừng
+      setTimeout(async () => {
         setIsSpinning(false);
-        if (spinAudio) {
-          spinAudio.pause(); // Tắt nhạc quay
-          spinAudio.currentTime = 0;
-        }
+        if (spinAudio) { spinAudio.pause(); spinAudio.currentTime = 0; }
 
-        // =========================================================
-        // LẤY LOA Ở DƯỚI CÙNG LÊN ĐỂ PHÁT TIẾNG TRÚNG/TRƯỢT
-        // =========================================================
         const winAudio = document.getElementById('winSound');
         const loseAudio = document.getElementById('loseSound');
-
         if (winningItem.type !== 'none') {
           if (winAudio) { winAudio.currentTime = 0; winAudio.volume = 0.8; winAudio.play().catch(e => { }); }
         } else {
           if (loseAudio) { loseAudio.currentTime = 0; loseAudio.volume = 0.8; loseAudio.play().catch(e => { }); }
         }
 
-        const prizeValue = Number(winningItem.value) || 0;
+        // Đồng bộ lại tiền từ Server trả về lên giao diện Web
+        const updatedUser = {
+          ...currentUser,
+          balance: data.new_balance,
+          spins: data.new_spins,
+          rentFund: data.new_fund
+        };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+        setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
 
-        if (winningItem.type === 'money') {
-          setGiftModalData({ item: winningItem, prizeValue: prizeValue, prizeType: 'money', updatedUser: updatedUser });
-        } else if (winningItem.type === 'spin') {
-          setGiftModalData({ item: winningItem, prizeValue: prizeValue, prizeType: 'spin', updatedUser: updatedUser });
-        } else if (winningItem.type === 'fund') {
-          setGiftModalData({ item: winningItem, prizeValue: prizeValue, prizeType: 'fund', updatedUser: updatedUser });
-        } else if (winningItem.type === 'other') {
-          setGiftModalData({ item: winningItem, prizeValue: 0, prizeType: 'other', updatedUser: updatedUser });
-        } else {
-          setGiftModalData({ item: winningItem, prizeValue: 0, prizeType: 'none', updatedUser: updatedUser, isLost: true });
+        // Kéo 2 dòng lịch sử mới nhất (Vé quay & Trúng thưởng) để hiển thị bên phải
+        const { data: newTxs } = await supabase.from('transactions').select('*').eq('user', currentUser.name).order('id', { ascending: false }).limit(2);
+        if (newTxs) {
+          setTransactionsDb(prev => {
+            const filtered = prev.filter(p => !newTxs.find(n => n.id === p.id));
+            return [...newTxs, ...filtered];
+          });
         }
+
+        // Hiển thị bảng chúc mừng
+        setGiftModalData({
+          item: winningItem,
+          prizeValue: Number(winningItem.value) || 0,
+          prizeType: winningItem.type,
+          isLost: winningItem.type === 'none'
+        });
         setIsGiftOpened(true);
       }, 4000);
     };
@@ -2659,73 +2630,12 @@ const App = () => {
                 )}
               </div>
 
-              <button onClick={async () => {
-                let winUser = { ...giftModalData.updatedUser };
-                // Phân loại chữ ghi vào lịch sử: Trúng hay Trượt
-                let actionText = giftModalData.isLost ? `Quay vào ô: ${giftModalData.item.name || 'Trượt'}` : `Trúng phần thưởng: ${giftModalData.item.name}`;
-                let txAmount = 0;
-                let isSpin = false;
-
-                // Nếu Trúng quà thì mới thực hiện cộng tiền và trừ kho
-                if (!giftModalData.isLost && (giftModalData.prizeType === 'money' || giftModalData.prizeType === 'spin' || giftModalData.prizeType === 'fund' || giftModalData.prizeType === 'other')) {
-
-                  if (giftModalData.prizeType === 'money' && giftModalData.prizeValue > 0) {
-                    winUser.balance += giftModalData.prizeValue;
-                    txAmount = -giftModalData.prizeValue;
-                  } else if (giftModalData.prizeType === 'spin' && giftModalData.prizeValue > 0) {
-                    winUser.spins = (winUser.spins || 0) + giftModalData.prizeValue;
-                    txAmount = -giftModalData.prizeValue;
-                    isSpin = true;
-                  } else if (giftModalData.prizeType === 'fund' && giftModalData.prizeValue > 0) {
-                    winUser.rentFund = (winUser.rentFund || 0) + giftModalData.prizeValue;
-                    txAmount = -giftModalData.prizeValue;
-                  }
-
-                  // Cập nhật Số dư/Lượt quay/Quỹ lên Supabase
-                  await supabase.from('users').update({
-                    balance: winUser.balance,
-                    spins: winUser.spins,
-                    rentFund: winUser.rentFund
-                  }).eq('id', winUser.id);
-
-                  // Trừ số lượng quà trong kho
-                  const newQuantity = (giftModalData.item.quantity || 999) - 1;
-                  await supabase.from('wheel_items').update({ quantity: Math.max(0, newQuantity) }).eq('id', giftModalData.item.id);
-
-                  // Cập nhật lại số lượng rớt xuống trên màn hình khách
-                  const updateWheelState = (prevDb) => prevDb.map(w => w.id === giftModalData.item.id ? { ...w, quantity: Math.max(0, newQuantity) } : w);
-                  if (giftModalData.item.wheel_type === 'money') {
-                    setWheelItemsMoneyDb(updateWheelState(wheelItemsMoneyDb));
-                  } else {
-                    setWheelItemsSpinDb(updateWheelState(wheelItemsSpinDb));
-                  }
-                }
-
-                // GHI LỊCH SỬ CHO CẢ TRÚNG VÀ TRƯỢT LÊN DATABASE
-                const newTx = {
-                  id: `TX${Date.now()}`,
-                  user: winUser.name,
-                  action: actionText,
-                  amount: txAmount,
-                  date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
-                  status: 'Thành công',
-                  type: 'spin_win',
-                  isSpinCost: isSpin,
-                  // CHÈN SỐ DƯ CHO VÒNG QUAY Ở ĐÂY LÀ CHUẨN NHẤT:
-                  accDetails: { balanceAfter: winUser.balance, fundAfter: winUser.rentFund || 0 }
-                };
-                const { data: txData } = await supabase.from('transactions').insert([newTx]).select();
-
-                // Cập nhật lại giao diện Web
-                setCurrentUser(winUser);
-                setUsersDb(usersDb.map(u => u.id === winUser.id ? winUser : u));
-                if (txData) setTransactionsDb([txData[0], ...transactionsDb]);
-
-                // Đóng hộp quà
+              <button onClick={() => {
+                // Đã phát thưởng trong DB lúc bấm quay rồi, giờ chỉ việc đóng bảng lại
                 setGiftModalData(null);
                 setIsGiftOpened(false);
               }} className={`w-full font-black text-lg md:text-xl py-3 md:py-4 rounded-xl transition-all uppercase ${giftModalData.isLost ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-[#0B1120] shadow-[0_0_30px_rgba(234,179,8,0.4)] hover:scale-105'}`}>
-                {giftModalData.isLost ? 'ĐÓNG LẠI' : 'NHẬN QUÀ NGAY'}
+                {giftModalData.isLost ? 'ĐÓNG LẠI' : 'NHẬN QUÀ XONG'}
               </button>
             </div>
           </div>
