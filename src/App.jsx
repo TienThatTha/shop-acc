@@ -573,90 +573,99 @@ const App = () => {
   };
 
   // --- HÀM XỬ LÝ LÕI ---
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
   const handleLogin = async (e) => {
     e.preventDefault();
-    const contact = e.target.contact.value;
-    const password = e.target.password.value;
+    if (isLoggingIn) return;
+    setIsLoggingIn(true);
 
-    let loginEmail = contact;
+    try {
+      const contact = e.target.contact.value;
+      const password = e.target.password.value;
 
-    // Nếu khách nhập SĐT (toàn số), tìm email tương ứng
-    if (/^\d+$/.test(contact)) {
-      const { data: foundUser } = await supabase
+      let loginEmail = contact;
+
+      // Nếu khách nhập SĐT (toàn số), tìm email tương ứng
+      if (/^\d+$/.test(contact)) {
+        const { data: foundUser } = await supabase
+          .from('users')
+          .select('email')
+          .eq('phone', contact)
+          .single();
+
+        if (foundUser) {
+          loginEmail = foundUser.email;
+        } else {
+          return showToast("Số điện thoại này chưa được đăng ký!", 'error');
+        }
+      }
+
+      // Đăng nhập bằng Email tìm được
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password,
+      });
+
+      if (authError) return showToast("Sai tài khoản hoặc mật khẩu!", 'error');
+
+      // Lấy thông tin user để hiển thị lên web
+      const { data: userData } = await supabase
         .from('users')
-        .select('email')
-        .eq('phone', contact)
+        .select('*')
+        .eq('id', authData.user.id)
         .single();
 
-      if (foundUser) {
-        loginEmail = foundUser.email;
+      if (userData) {
+        if (userData.is_locked) {
+          await supabase.auth.signOut();
+          localStorage.removeItem('shop_cached_user');
+          return showToast("Tài khoản của bạn đã bị khóa!", 'error');
+        }
+        setCurrentUser(userData);
+        localStorage.setItem('shop_cached_user', JSON.stringify(userData));
+
+        // XÚC DỮ LIỆU ADMIN NGAY KHI ĐĂNG NHẬP ĐỂ KHÔNG BỊ TRỐNG PANEL
+        const role = (userData.role || 'user').toLowerCase();
+        if (role === 'admin') {
+          const [usersRes, txRes, depRes, rentRes, msgRes, boostReqRes] = await Promise.all([
+            supabase.from('users').select('*').order('id', { ascending: false }),
+            supabase.from('transactions').select('*').order('id', { ascending: false }),
+            supabase.from('deposit_requests').select('*').order('id', { ascending: false }),
+            supabase.from('rent_requests').select('*').order('id', { ascending: false }),
+            supabase.from('messages').select('*').order('timestamp', { ascending: true }),
+            supabase.from('boosting_requests').select('*').order('id', { ascending: false }) // Phải kéo cái này về
+          ]);
+          if (usersRes.data) setUsersDb(usersRes.data);
+          if (txRes.data) setTransactionsDb(txRes.data);
+          if (depRes.data) setDepositRequests(depRes.data);
+          if (rentRes.data) {
+            // Nhớ lọc chữ hoa/thường cho bảng Thuê Nick
+            const fixedRentReqs = rentRes.data.map(r => ({
+              ...r,
+              accCode: r.accCode || r.acccode || '',
+              userId: r.userId || r.userid || ''
+            }));
+            setRentRequests(fixedRentReqs);
+          }
+          if (msgRes.data) setMessagesDb(msgRes.data);
+          if (boostReqRes.data) {
+            const fixedBoostReqs = boostReqRes.data.map(r => ({
+              ...r,
+              boostingTitle: r.boostingTitle || r.boostingtitle || '',
+              boostingId: r.boostingId || r.boostingid || ''
+            }));
+            setBoostingRequests(fixedBoostReqs);
+          }
+        }
+
+        setCurrentView('dashboard');
+        showToast(`Chào mừng ${userData.name} quay trở lại!`, 'success');
       } else {
-        return showToast("Số điện thoại này chưa được đăng ký!", 'error');
+        showToast("Lỗi: Tài khoản Auth tồn tại nhưng không tìm thấy Data trong bảng Users!", 'error');
       }
-    }
-
-    // Đăng nhập bằng Email tìm được
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: loginEmail,
-      password,
-    });
-
-    if (authError) return showToast("Sai tài khoản hoặc mật khẩu!", 'error');
-
-    // Lấy thông tin user để hiển thị lên web
-    const { data: userData } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authData.user.id)
-      .single();
-
-    if (userData) {
-      if (userData.is_locked) {
-        await supabase.auth.signOut();
-        localStorage.removeItem('shop_cached_user');
-        return showToast("Tài khoản của bạn đã bị khóa!", 'error');
-      }
-      setCurrentUser(userData);
-      localStorage.setItem('shop_cached_user', JSON.stringify(userData));
-
-      // XÚC DỮ LIỆU ADMIN NGAY KHI ĐĂNG NHẬP ĐỂ KHÔNG BỊ TRỐNG PANEL
-      const role = (userData.role || 'user').toLowerCase();
-      if (role === 'admin') {
-        const [usersRes, txRes, depRes, rentRes, msgRes, boostReqRes] = await Promise.all([
-          supabase.from('users').select('*').order('id', { ascending: false }),
-          supabase.from('transactions').select('*').order('id', { ascending: false }),
-          supabase.from('deposit_requests').select('*').order('id', { ascending: false }),
-          supabase.from('rent_requests').select('*').order('id', { ascending: false }),
-          supabase.from('messages').select('*').order('timestamp', { ascending: true }),
-          supabase.from('boosting_requests').select('*').order('id', { ascending: false }) // Phải kéo cái này về
-        ]);
-        if (usersRes.data) setUsersDb(usersRes.data);
-        if (txRes.data) setTransactionsDb(txRes.data);
-        if (depRes.data) setDepositRequests(depRes.data);
-        if (rentRes.data) {
-          // Nhớ lọc chữ hoa/thường cho bảng Thuê Nick
-          const fixedRentReqs = rentRes.data.map(r => ({
-            ...r,
-            accCode: r.accCode || r.acccode || '',
-            userId: r.userId || r.userid || ''
-          }));
-          setRentRequests(fixedRentReqs);
-        }
-        if (msgRes.data) setMessagesDb(msgRes.data);
-        if (boostReqRes.data) {
-          const fixedBoostReqs = boostReqRes.data.map(r => ({
-            ...r,
-            boostingTitle: r.boostingTitle || r.boostingtitle || '',
-            boostingId: r.boostingId || r.boostingid || ''
-          }));
-          setBoostingRequests(fixedBoostReqs);
-        }
-      }
-
-      setCurrentView('dashboard');
-      showToast(`Chào mừng ${userData.name} quay trở lại!`, 'success');
-    } else {
-      showToast("Lỗi: Tài khoản Auth tồn tại nhưng không tìm thấy Data trong bảng Users!", 'error');
+    } finally {
+      setIsLoggingIn(false);
     }
   }; const handleRegister = async (e) => {
     e.preventDefault();
@@ -1266,7 +1275,16 @@ const App = () => {
                 Quên mật khẩu?
               </button>
             </div>
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg mt-6 shadow-lg">Đăng nhập</button>
+            <button type="submit" disabled={isLoggingIn} className={`w-full ${isLoggingIn ? 'bg-blue-800 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white font-medium py-3 rounded-lg mt-6 shadow-lg flex items-center justify-center gap-2 transition-colors`}>
+              {isLoggingIn ? (
+                <>
+                  <RefreshCw className="animate-spin" size={20} />
+                  Đang xử lý...
+                </>
+              ) : (
+                'Đăng nhập'
+              )}
+            </button>
           </form>
           <div className="mt-6 text-center text-slate-400 text-sm">Chưa có tài khoản? <button onClick={() => setCurrentView('register')} className="text-blue-400 font-bold hover:underline">Đăng ký ngay</button></div>
         </div>
