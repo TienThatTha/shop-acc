@@ -262,6 +262,7 @@ const App = () => {
   const [showBoostingModal, setShowBoostingModal] = useState(false);
   const [editingBoosting, setEditingBoosting] = useState(null);
   const [adminBoostType, setAdminBoostType] = useState('rank');
+  const [isEventMultiPackage, setIsEventMultiPackage] = useState(false);
   const [adminRankOptions, setAdminRankOptions] = useState([{ rank: '', price: '' }]);
   const [selectedBoostRank, setSelectedBoostRank] = useState(0);
   const [adminBoostingImage, setAdminBoostingImage] = useState(null);
@@ -2242,6 +2243,7 @@ const App = () => {
                   <button onClick={() => {
                     if (!currentUser) return requireAuth('login');
                     if (!currentUser.is_email_verified) return showToast("Vui lòng vào mục Cá nhân để xác thực Email trước khi giao dịch!", "error");
+                    setSelectedBoostRank(0);
                     setBoostingModalData(b);
                   }} className="bg-blue-600 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-sm font-bold text-white hover:bg-blue-500 shadow-lg shadow-blue-600/20 md:group-hover:-translate-y-1 transition-transform">Đặt Lịch</button>
                 </div>
@@ -2879,14 +2881,15 @@ const App = () => {
         }
 
         const type = e.target.boostType.value;
-        const validRankOptions = adminRankOptions.filter(opt => opt.rank.trim() !== '' && opt.price !== '').map(opt => ({ rank: opt.rank, price: parseInt(opt.price) }));
+        const validOptions = adminRankOptions.filter(opt => opt.rank.trim() !== '' && opt.price !== '').map(opt => ({ rank: opt.rank, price: parseInt(opt.price) }));
+        const isMulti = type === 'rank' || (type === 'event' && isEventMultiPackage);
 
         const boostData = {
           id: editingBoosting ? editingBoosting.id : Date.now(),
           type: type,
-          require_login: type === 'event' ? e.target.requireLogin.checked : true,
-          price: type === 'rank' && validRankOptions.length > 0 ? Math.min(...validRankOptions.map(o => o.price)) : (parseInt(e.target.price?.value) || 0),
-          rankOptions: validRankOptions,
+          require_login: type === 'event' ? e.target.requireLogin?.checked : true,
+          price: isMulti && validOptions.length > 0 ? Math.min(...validOptions.map(o => o.price)) : (parseInt(e.target.price?.value) || 0),
+          rankOptions: isMulti ? validOptions : [],
           image: finalImage,
           game: e.target.game?.value || '',
           title: type === 'rank' ? (e.target.title?.value || '') : (e.target.eventName?.value || ''),
@@ -3726,7 +3729,7 @@ const App = () => {
             {adminTab === 'boosting' && (
               <div className="p-6">
                 {/* CHÚ Ý LỆNH SET ẢNH VỀ NULL ĐỂ TRÁNH LỖI HIỂN THỊ ẢNH CŨ */}
-                <button onClick={() => { setEditingBoosting(null); setAdminBoostingImage(null); setAdminBoostType('rank'); setAdminRankOptions([{ rank: '', price: '' }]); setShowBoostingModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18} /> Thêm dịch vụ Cày Thuê</button>
+                <button onClick={() => { setEditingBoosting(null); setAdminBoostingImage(null); setAdminBoostType('rank'); setAdminRankOptions([{ rank: '', price: '' }]); setIsEventMultiPackage(false); setShowBoostingModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18} /> Thêm dịch vụ Cày Thuê</button>
                 {/* Modal Admin Thêm Cày Thuê */}
                 {showBoostingModal && (
                   <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -3776,19 +3779,47 @@ const App = () => {
                           </div>
                         )}
 
-                        <div><label className="text-xs text-slate-400 block mb-1">Giá tiền (VNĐ)</label><input name="price" type="number" defaultValue={editingBoosting?.price} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-bold outline-none focus:border-blue-500" required /></div>
+                        {adminBoostType === 'event' && (
+                          <div className="mt-2">
+                            <label className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer transition-colors hover:bg-blue-500/20">
+                              <input type="checkbox" checked={isEventMultiPackage} onChange={(e) => setIsEventMultiPackage(e.target.checked)} className="w-5 h-5 accent-blue-500 cursor-pointer" />
+                              <span className="text-sm font-bold text-blue-400">Bật chia nhiều Gói nhỏ (Cày nhiều mốc)</span>
+                            </label>
+                          </div>
+                        )}
+
+                        {(adminBoostType === 'rank' || (adminBoostType === 'event' && isEventMultiPackage)) ? (
+                          <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30 mb-4 mt-4">
+                            <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
+                              <label className="text-sm text-blue-400 font-bold flex items-center gap-2"><Target size={16} /> CÁC MỐC/GÓI HIỆN TẠI & GIÁ</label>
+                              <button type="button" onClick={() => setAdminRankOptions([...adminRankOptions, { rank: '', price: '' }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm mốc</button>
+                            </div>
+                            <div className="space-y-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                              {adminRankOptions.map((opt, index) => (
+                                <div key={index} className="flex gap-2 items-center bg-[#0B1120] p-2 rounded-lg border border-slate-700">
+                                  <input type="text" placeholder="Tên gói (VD: Bạc hoặc 50 Trận)" value={opt.rank} onChange={e => { const n = [...adminRankOptions]; n[index].rank = e.target.value; setAdminRankOptions(n) }} className="w-1/2 p-2 bg-transparent outline-none text-sm text-white" required />
+                                  <div className="w-[1px] h-6 bg-slate-700"></div>
+                                  <input type="number" placeholder="Giá tiền lên đích (đ)" value={opt.price} onChange={e => { const n = [...adminRankOptions]; n[index].price = e.target.value; setAdminRankOptions(n) }} className="w-1/2 p-2 bg-transparent outline-none text-sm text-white font-bold" required />
+                                  <button type="button" onClick={() => setAdminRankOptions(adminRankOptions.filter((_, i) => i !== index))} className="w-8 text-slate-500 hover:text-rose-500 flex justify-center transition-colors"><X size={18} /></button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-4"><label className="text-xs text-slate-400 block mb-1">Giá tiền trọn gói (VNĐ)</label><input name="price" type="number" defaultValue={editingBoosting?.price} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-bold outline-none focus:border-blue-500" required /></div>
+                        )}
 
                         {adminBoostType === 'rank' ? (
-                          <>
-                            <div><label className="text-xs text-slate-400 block mb-1">Tiêu đề Gói</label><input name="title" defaultValue={editingBoosting?.title} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required /></div>
+                          <div className="space-y-4 mt-4">
+                            <div><label className="text-xs text-slate-400 block mb-1">Tiêu đề Dịch vụ (Hiển thị to)</label><input name="title" defaultValue={editingBoosting?.title} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required /></div>
                             <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingBoosting?.desc} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
-                          </>
+                          </div>
                         ) : (
                           <>
-                            <div><label className="text-xs text-slate-400 block mb-1">Số lượng / Mô tả chi tiết</label><textarea name="amount" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.desc : ''} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
-                            <label className="flex items-center gap-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg cursor-pointer">
+                            <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết sự kiện</label><textarea name="amount" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.desc : ''} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
+                            <label className="flex items-center gap-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg cursor-pointer mt-2">
                               <input type="checkbox" name="requireLogin" defaultChecked={editingBoosting?.type === 'event' ? editingBoosting.require_login : false} className="w-5 h-5 accent-rose-500 cursor-pointer" />
-                              <span className="text-sm font-bold text-rose-400">Yêu cầu cung cấp TK/MK?</span>
+                              <span className="text-sm font-bold text-rose-400">Yêu cầu cung cấp TK/MK Game?</span>
                             </label>
                           </>
                         )}
@@ -3900,7 +3931,7 @@ const App = () => {
                       <span className="text-white font-bold mb-2 line-clamp-2">{b.title}</span>
                       <p className="text-xs text-slate-500 mb-4 flex-1 line-clamp-2">{b.desc}</p>
                       <div className="flex gap-2 border-t border-slate-800 pt-3">
-                        <button onClick={() => { setEditingBoosting(b); setAdminBoostingImage(b.image || null); setAdminBoostType(b.type || 'rank'); setAdminRankOptions(b.rankOptions?.length > 0 ? b.rankOptions : [{ rank: '', price: '' }]); setShowBoostingModal(true); }} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Edit size={14} /> Sửa</button>
+                        <button onClick={() => { setEditingBoosting(b); setAdminBoostingImage(b.image || null); setAdminBoostType(b.type || 'rank'); setAdminRankOptions(b.rankOptions?.length > 0 ? b.rankOptions : [{ rank: '', price: '' }]); setIsEventMultiPackage(b.type === 'event' && b.rankOptions?.length > 0); setShowBoostingModal(true); }} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Edit size={14} /> Sửa</button>
                         <button onClick={() => setConfirmDialog({
                           title: 'Xoá dịch vụ', message: 'Xoá dịch vụ cày thuê này?', onConfirm: async () => {
                             await supabase.from('boosting').delete().eq('id', b.id);
@@ -4624,25 +4655,47 @@ const App = () => {
                       <input name="eventName" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.title : ''} placeholder="VD: Cày Sổ Sứ Mệnh, Sự kiện Tết..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-rose-500" required />
                     </div>
                   )}
+                  {/* 1. HIỆN Ô TÍCH CHỌN KHI LÀ CÀY SỰ KIỆN */}
+                  {adminBoostType === 'event' && (
+                    <label className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer mb-4 transition-colors hover:bg-blue-500/20 shadow-inner">
+                      <input
+                        type="checkbox"
+                        checked={isEventMultiPackage}
+                        onChange={(e) => setIsEventMultiPackage(e.target.checked)}
+                        className="w-5 h-5 accent-blue-500 cursor-pointer"
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-blue-400">Bật chia nhiều Gói nhỏ</span>
+                        <span className="text-[10px] text-slate-500">Tích vào nếu muốn khách chọn mốc (VD: Mốc 1, Mốc 2...)</span>
+                      </div>
+                    </label>
+                  )}
 
-                  {adminBoostType === 'event' ? (
-                    <div><label className="text-xs text-slate-400 block mb-1">Giá tiền trọn gói (VNĐ)</label><input name="price" type="number" defaultValue={editingBoosting?.price} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-bold outline-none focus:border-blue-500" required /></div>
-                  ) : (
-                    <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30">
+                  {/* 2. LOGIC HIỆN BẢNG GIÁ: HIỆN NẾU LÀ RANK HOẶC LÀ EVENT MÀ CÓ TÍCH Ô TRÊN */}
+                  {(adminBoostType === 'rank' || (adminBoostType === 'event' && isEventMultiPackage)) ? (
+                    <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30 mb-4">
                       <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
-                        <label className="text-sm text-blue-400 font-bold flex items-center gap-2"><Target size={16} /> CÁC MỐC RANK HIỆN TẠI & GIÁ</label>
+                        <label className="text-sm text-blue-400 font-bold flex items-center gap-2">
+                          <Target size={16} /> {adminBoostType === 'rank' ? 'CÁC MỐC RANK & GIÁ' : 'DANH SÁCH GÓI & GIÁ'}
+                        </label>
                         <button type="button" onClick={() => setAdminRankOptions([...adminRankOptions, { rank: '', price: '' }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm mốc</button>
                       </div>
                       <div className="space-y-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
                         {adminRankOptions.map((opt, index) => (
                           <div key={index} className="flex gap-2 items-center bg-[#0B1120] p-2 rounded-lg border border-slate-700">
-                            <input type="text" placeholder="Rank đang ở (VD: Bạc)" value={opt.rank} onChange={e => { const n = [...adminRankOptions]; n[index].rank = e.target.value; setAdminRankOptions(n) }} className="w-1/2 p-2 bg-transparent outline-none text-sm text-white" />
+                            <input type="text" placeholder={adminBoostType === 'rank' ? "Rank đang ở" : "Tên gói (VD: Gói 1)"} value={opt.rank} onChange={e => { const n = [...adminRankOptions]; n[index].rank = e.target.value; setAdminRankOptions(n) }} className="w-1/2 p-2 bg-transparent outline-none text-sm text-white" required />
                             <div className="w-[1px] h-6 bg-slate-700"></div>
-                            <input type="number" placeholder="Giá lên đích (đ)" value={opt.price} onChange={e => { const n = [...adminRankOptions]; n[index].price = e.target.value; setAdminRankOptions(n) }} className="w-1/2 p-2 bg-transparent outline-none text-sm text-white font-bold" />
+                            <input type="number" placeholder="Giá (đ)" value={opt.price} onChange={e => { const n = [...adminRankOptions]; n[index].price = e.target.value; setAdminRankOptions(n) }} className="w-1/2 p-2 bg-transparent outline-none text-sm text-white font-bold" required />
                             <button type="button" onClick={() => setAdminRankOptions(adminRankOptions.filter((_, i) => i !== index))} className="w-8 text-slate-500 hover:text-rose-500 flex justify-center transition-colors"><X size={18} /></button>
                           </div>
                         ))}
                       </div>
+                    </div>
+                  ) : (
+                    /* HIỆN Ô NHẬP GIÁ TRỌN GÓI NẾU KHÔNG TÍCH Ô CHIA GÓI */
+                    <div className="mb-4">
+                      <label className="text-xs text-slate-400 block mb-1">Giá tiền trọn gói (VNĐ)</label>
+                      <input name="price" type="number" defaultValue={editingBoosting?.price} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-bold outline-none focus:border-blue-500" required />
                     </div>
                   )}
 
@@ -5555,30 +5608,31 @@ const App = () => {
                 <button onClick={() => setBoostingModalData(null)} className="text-slate-400 hover:text-white"><X size={20} /></button>
               </div>
               <div className="p-6">
-                {/* TÍNH TOÁN GIÁ DYNAMIC CHO KHÁCH CHỌN */}
                 {(() => {
-                  const isRankBoost = boostingModalData.type === 'rank' && boostingModalData.rankOptions?.length > 0;
-                  const activePrice = isRankBoost ? (boostingModalData.rankOptions[selectedBoostRank]?.price || boostingModalData.price) : boostingModalData.price;
-                  const currentRankName = isRankBoost ? boostingModalData.rankOptions[selectedBoostRank]?.rank : '';
+                  const hasOptions = boostingModalData.rankOptions && boostingModalData.rankOptions.length > 0;
+                  const activePrice = hasOptions ? (boostingModalData.rankOptions[selectedBoostRank]?.price || boostingModalData.price) : boostingModalData.price;
+                  const currentOptionName = hasOptions ? boostingModalData.rankOptions[selectedBoostRank]?.rank : '';
 
                   return (
                     <>
                       <div className="mb-4 bg-blue-900/10 p-4 rounded-xl border border-blue-500/20">
-                        <p className="text-sm text-slate-300">Đích đến: <strong className="text-white">{boostingModalData.title}</strong></p>
-                        {isRankBoost && (
+                        <p className="text-sm text-slate-300">Dịch vụ: <strong className="text-white">{boostingModalData.title}</strong></p>
+
+                        {hasOptions && (
                           <div className="mt-3">
-                            <label className="text-xs text-slate-400 block mb-1">Bạn đang ở Rank nào?</label>
+                            <label className="text-xs text-slate-400 block mb-1">Vui lòng chọn mốc cày / Gói bạn muốn:</label>
                             <select
                               value={selectedBoostRank}
                               onChange={(e) => setSelectedBoostRank(parseInt(e.target.value))}
-                              className="w-full p-2.5 bg-[#0B1120] border border-blue-500/50 rounded-lg text-white outline-none font-bold text-sm"
+                              className="w-full p-2.5 bg-[#0B1120] border border-blue-500/50 rounded-lg text-white outline-none font-bold text-sm cursor-pointer shadow-inner"
                             >
                               {boostingModalData.rankOptions.map((opt, idx) => (
-                                <option key={idx} value={idx}>{opt.rank} ➡️ Lên {boostingModalData.title.replace('Cày lên ', '').replace('Cày ', '')}</option>
+                                <option key={idx} value={idx}>{opt.rank} ➡️ {boostingModalData.type === 'rank' ? 'Lên ' + boostingModalData.title.replace('Cày lên ', '').replace('Cày ', '') : 'Giá: ' + new Intl.NumberFormat('vi-VN').format(opt.price) + 'đ'}</option>
                               ))}
                             </select>
                           </div>
                         )}
+
                         <p className="text-sm text-slate-300 mt-3 border-t border-blue-500/20 pt-2 flex items-center gap-2">Phí thanh toán: <strong className="text-rose-500 text-xl">{new Intl.NumberFormat('vi-VN').format(activePrice)}đ</strong></p>
                         <p className="text-xs text-slate-400 mt-1">Số dư của bạn: <span className="text-emerald-400 font-bold">{new Intl.NumberFormat('vi-VN').format(currentUser?.balance || 0)}đ</span></p>
                       </div>
@@ -5605,7 +5659,14 @@ const App = () => {
                           const reqId = `BST${Date.now()}`;
                           const newBalance = currentUser.balance - activePrice;
 
-                          const packageTitle = isRankBoost ? `Cày từ ${currentRankName} lên ${targetModal.title.replace('Cày lên ', '').replace('Cày ', '')}` : targetModal.title;
+                          let packageTitle = targetModal.title;
+                          if (hasOptions) {
+                            if (targetModal.type === 'rank') {
+                              packageTitle = `Cày từ ${currentOptionName} lên ${targetModal.title.replace('Cày lên ', '').replace('Cày ', '')}`;
+                            } else {
+                              packageTitle = `${targetModal.title} (Mốc chọn: ${currentOptionName})`;
+                            }
+                          }
 
                           await supabase.from('users').update({ balance: newBalance }).eq('id', currentUser.id);
 
