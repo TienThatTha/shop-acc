@@ -150,7 +150,10 @@ const App = () => {
   const [viewingAcc, setViewingAcc] = useState(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('Tất cả');
-  const [activeBoostingTab, setActiveBoostingTab] = useState('Tất cả');
+  const [activeBoostingTab, setActiveBoostingTab] = useState('rank');
+  const [activeBoostingGameClient, setActiveBoostingGameClient] = useState('Tất cả');
+  const [adminBoostingCategoryFilter, setAdminBoostingCategoryFilter] = useState('rank');
+  const [adminBoostingGameFilter, setAdminBoostingGameFilter] = useState('Tất cả');
   const [showPassword, setShowPassword] = useState(false);
   const [showOldPass, setShowOldPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
@@ -256,6 +259,8 @@ const App = () => {
   const [showBoostingModal, setShowBoostingModal] = useState(false);
   const [editingBoosting, setEditingBoosting] = useState(null);
   const [adminBoostType, setAdminBoostType] = useState('rank');
+  const [adminRankOptions, setAdminRankOptions] = useState([{ rank: '', price: '' }]);
+  const [selectedBoostRank, setSelectedBoostRank] = useState(0);
   const [adminBoostingImage, setAdminBoostingImage] = useState(null);
   const [showWheelModal, setShowWheelModal] = useState(false);
   const [editingWheel, setEditingWheel] = useState(null);
@@ -2144,8 +2149,20 @@ const App = () => {
     );
   };
   const renderCayThueScreen = () => {
-    const uniqueBoostingGames = ['Tất cả', ...new Set(boostingDb.map(b => b.game))];
-    const filteredBoosting = activeBoostingTab === 'Tất cả' ? boostingDb : boostingDb.filter(b => b.game === activeBoostingTab);
+    const boostingTabs = [
+      { id: 'rank', label: 'Cày Rank' },
+      { id: 'event', label: 'Cày Sự Kiện' }
+    ];
+    
+    // Tìm danh sách Game duy nhất cho Tab hiện tại
+    const currentTabGames = ['Tất cả', ...new Set(boostingDb.filter(b => (b.type || 'rank') === activeBoostingTab).map(b => b.game))];
+
+    const filteredBoosting = boostingDb.filter(b => {
+      const type = b.type || 'rank'; // Mặc định là rank nếu không có type
+      const matchType = type === activeBoostingTab;
+      const matchGame = activeBoostingGameClient === 'Tất cả' || b.game === activeBoostingGameClient;
+      return matchType && matchGame;
+    });
 
     return (
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-10">
@@ -2157,13 +2174,23 @@ const App = () => {
             <p className="text-slate-400 mt-2 text-sm md:text-base">Uy tín, tốc độ, bảo mật tuyệt đối. Giá tốt nhất thị trường.</p>
           </div>
 
-          {/* --- KHU VỰC CHỌN LỌC GAME --- */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
-            {uniqueBoostingGames.map(tab => (
-              <button key={tab} onClick={() => setActiveBoostingTab(tab)} className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors border ${activeBoostingTab === tab ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>
-                {tab === 'Tất cả' ? 'Tất cả dịch vụ' : tab}
-              </button>
-            ))}
+          {/* --- KHU VỰC CHỌN LỌC GAME VÀ THỂ LOẠI --- */}
+          <div className="flex flex-col items-center justify-center gap-3 mb-8">
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {boostingTabs.map(tab => (
+                <button key={tab.id} onClick={() => { setActiveBoostingTab(tab.id); setActiveBoostingGameClient('Tất cả'); }} className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors border ${activeBoostingTab === tab.id ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {currentTabGames.map(game => (
+                <button key={game} onClick={() => setActiveBoostingGameClient(game)} className={`px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap transition-colors border ${activeBoostingGameClient === game ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>
+                  {game === 'Tất cả' ? 'Tất cả Game' : game}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Tự động chia lên 4 cột trên màn hình rộng (xl) */}
@@ -2171,7 +2198,7 @@ const App = () => {
             {filteredBoosting.length === 0 ? (
               <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-800 rounded-2xl bg-[#151D2F] shadow-lg">
                 <Target size={40} className="mx-auto mb-3 text-slate-600" />
-                <p className="text-slate-400">Đang cập nhật các gói dịch vụ cho {activeBoostingTab}...</p>
+                <p className="text-slate-400">Đang cập nhật các gói dịch vụ cho mục này...</p>
               </div>
             ) : filteredBoosting.map(b => (
               <div key={b.id} className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 md:p-6 hover:border-blue-500/50 transition-colors shadow-xl group flex flex-col overflow-hidden">
@@ -2197,7 +2224,7 @@ const App = () => {
                 )}
                 <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-md inline-block mb-3 w-fit">{b.game}</span>
                 <h3 className="text-base md:text-lg font-bold text-white mb-2 leading-tight">{b.title}</h3>
-                {/* Giữ nguyên các phần mô tả và giá tiền bên dưới... */}              <p className="text-xs md:text-sm text-slate-400 mb-6 h-12 line-clamp-2">{b.desc}</p>
+                {/* Giữ nguyên các phần mô tả và giá tiền bên dưới... */}              <p className="text-xs md:text-sm text-slate-400 mb-6 flex-grow whitespace-pre-wrap">{b.desc}</p>
                 <div className="flex justify-between items-end border-t border-slate-800 pt-4">
                   <div>
                     <p className="text-[10px] text-slate-500 mb-1 font-bold">GIÁ TỪ</p>
@@ -2843,13 +2870,16 @@ const App = () => {
         }
 
         const type = e.target.boostType.value;
+        const validRankOptions = adminRankOptions.filter(opt => opt.rank.trim() !== '' && opt.price !== '').map(opt => ({ rank: opt.rank, price: parseInt(opt.price) }));
+
         const boostData = {
           id: editingBoosting ? editingBoosting.id : Date.now(),
           type: type,
           require_login: type === 'event' ? e.target.requireLogin.checked : true,
-          price: parseInt(e.target.price.value),
+          price: type === 'rank' && validRankOptions.length > 0 ? Math.min(...validRankOptions.map(o => o.price)) : (parseInt(e.target.price?.value) || 0),
+          rankOptions: validRankOptions,
           image: finalImage,
-          game: e.target.game?.value || '', // <--- Đã mở khóa: Bắt buộc lấy Tên Game cho cả Sự kiện
+          game: e.target.game?.value || '',
           title: type === 'rank' ? (e.target.title?.value || '') : (e.target.eventName?.value || ''),
           desc: type === 'rank' ? (e.target.desc?.value || '') : (e.target.amount?.value || '')
         };
@@ -3687,7 +3717,7 @@ const App = () => {
             {adminTab === 'boosting' && (
               <div className="p-6">
                 {/* CHÚ Ý LỆNH SET ẢNH VỀ NULL ĐỂ TRÁNH LỖI HIỂN THỊ ẢNH CŨ */}
-                <button onClick={() => { setEditingBoosting(null); setAdminBoostingImage(null); setAdminBoostType('rank'); setShowBoostingModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18} /> Thêm dịch vụ Cày Thuê</button>
+                <button onClick={() => { setEditingBoosting(null); setAdminBoostingImage(null); setAdminBoostType('rank'); setAdminRankOptions([{ rank: '', price: '' }]); setShowBoostingModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18} /> Thêm dịch vụ Cày Thuê</button>
                 {/* Modal Admin Thêm Cày Thuê */}
                 {showBoostingModal && (
                   <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -3838,9 +3868,21 @@ const App = () => {
                   </div>
                 )}
                 {/* -------------------------------------------------- */}
+                {/* ADMIN FILTER CHO DANH SÁCH CÀY THUÊ */}
+                <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6 border-b border-slate-800 pb-6">
+                  <div className="flex gap-2 w-full md:w-auto">
+                    <button onClick={() => { setAdminBoostingCategoryFilter('rank'); setAdminBoostingGameFilter('Tất cả'); }} className={`flex-1 md:flex-none px-4 py-2 text-sm font-bold rounded-xl transition-all ${adminBoostingCategoryFilter === 'rank' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-[#151D2F] text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'}`}>Cày Rank</button>
+                    <button onClick={() => { setAdminBoostingCategoryFilter('event'); setAdminBoostingGameFilter('Tất cả'); }} className={`flex-1 md:flex-none px-4 py-2 text-sm font-bold rounded-xl transition-all ${adminBoostingCategoryFilter === 'event' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-[#151D2F] text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'}`}>Cày Sự Kiện</button>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto max-w-full hide-scrollbar snap-x snap-mandatory">
+                    {['Tất cả', ...new Set(boostingDb.filter(b => (b.type || 'rank') === adminBoostingCategoryFilter).map(b => b.game))].map(game => (
+                      <button key={game} onClick={() => setAdminBoostingGameFilter(game)} className={`px-3 py-1.5 whitespace-nowrap text-xs font-bold rounded-lg flex-shrink-0 transition-all border snap-start ${adminBoostingGameFilter === game ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>{game === 'Tất cả' ? 'Tất cả Game' : game}</button>
+                    ))}
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {boostingDb.map(b => (
+                  {boostingDb.filter(b => (b.type || 'rank') === adminBoostingCategoryFilter && (adminBoostingGameFilter === 'Tất cả' || b.game === adminBoostingGameFilter)).map(b => (
                     <div key={b.id} className="bg-[#0B1120] p-4 rounded-xl border border-slate-700 flex flex-col group hover:border-blue-500/50 transition-colors">
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded">{b.game}</span>
@@ -3849,7 +3891,7 @@ const App = () => {
                       <span className="text-white font-bold mb-2 line-clamp-2">{b.title}</span>
                       <p className="text-xs text-slate-500 mb-4 flex-1 line-clamp-2">{b.desc}</p>
                       <div className="flex gap-2 border-t border-slate-800 pt-3">
-                        <button onClick={() => { setEditingBoosting(b); setAdminBoostingImage(b.image || null); setAdminBoostType(b.type || 'rank'); setShowBoostingModal(true); }} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Edit size={14} /> Sửa</button>
+                        <button onClick={() => { setEditingBoosting(b); setAdminBoostingImage(b.image || null); setAdminBoostType(b.type || 'rank'); setAdminRankOptions(b.rankOptions?.length > 0 ? b.rankOptions : [{ rank: '', price: '' }]); setShowBoostingModal(true); }} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Edit size={14} /> Sửa</button>
                         <button onClick={() => setConfirmDialog({
                           title: 'Xoá dịch vụ', message: 'Xoá dịch vụ cày thuê này?', onConfirm: async () => {
                             await supabase.from('boosting').delete().eq('id', b.id);
@@ -4574,7 +4616,26 @@ const App = () => {
                     </div>
                   )}
 
-                  <div><label className="text-xs text-slate-400 block mb-1">Giá tiền (VNĐ)</label><input name="price" type="number" defaultValue={editingBoosting?.price} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-bold outline-none focus:border-blue-500" required /></div>
+                  {adminBoostType === 'event' ? (
+                    <div><label className="text-xs text-slate-400 block mb-1">Giá tiền trọn gói (VNĐ)</label><input name="price" type="number" defaultValue={editingBoosting?.price} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-bold outline-none focus:border-blue-500" required /></div>
+                  ) : (
+                    <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30">
+                      <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
+                        <label className="text-sm text-blue-400 font-bold flex items-center gap-2"><Target size={16} /> CÁC MỐC RANK HIỆN TẠI & GIÁ</label>
+                        <button type="button" onClick={() => setAdminRankOptions([...adminRankOptions, { rank: '', price: '' }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm mốc</button>
+                      </div>
+                      <div className="space-y-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                        {adminRankOptions.map((opt, index) => (
+                          <div key={index} className="flex gap-2 items-center bg-[#0B1120] p-2 rounded-lg border border-slate-700">
+                            <input type="text" placeholder="Rank đang ở (VD: Bạc)" value={opt.rank} onChange={e => { const n = [...adminRankOptions]; n[index].rank = e.target.value; setAdminRankOptions(n) }} className="w-1/2 p-2 bg-transparent outline-none text-sm text-white" />
+                            <div className="w-[1px] h-6 bg-slate-700"></div>
+                            <input type="number" placeholder="Giá lên đích (đ)" value={opt.price} onChange={e => { const n = [...adminRankOptions]; n[index].price = e.target.value; setAdminRankOptions(n) }} className="w-1/2 p-2 bg-transparent outline-none text-sm text-white font-bold" />
+                            <button type="button" onClick={() => setAdminRankOptions(adminRankOptions.filter((_, i) => i !== index))} className="w-8 text-slate-500 hover:text-rose-500 flex justify-center transition-colors"><X size={18} /></button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {adminBoostType === 'rank' ? (
                     <>
@@ -5485,135 +5546,147 @@ const App = () => {
                 <button onClick={() => setBoostingModalData(null)} className="text-slate-400 hover:text-white"><X size={20} /></button>
               </div>
               <div className="p-6">
-                <div className="mb-4 bg-blue-900/10 p-4 rounded-xl border border-blue-500/20">
-                  <p className="text-sm text-slate-300">Gói dịch vụ: <strong className="text-white">{boostingModalData.title}</strong></p>
-                  <p className="text-sm text-slate-300 mt-1">Phí cày thuê: <strong className="text-rose-500 text-lg">{new Intl.NumberFormat('vi-VN').format(boostingModalData.price)}đ</strong></p>
-                  <p className="text-xs text-slate-400 mt-2">Số dư của bạn: <span className="text-emerald-400 font-bold">{new Intl.NumberFormat('vi-VN').format(currentUser?.balance || 0)}đ</span></p>
-                </div>
+                {/* TÍNH TOÁN GIÁ DYNAMIC CHO KHÁCH CHỌN */}
+                {(() => {
+                  const isRankBoost = boostingModalData.type === 'rank' && boostingModalData.rankOptions?.length > 0;
+                  const activePrice = isRankBoost ? (boostingModalData.rankOptions[selectedBoostRank]?.price || boostingModalData.price) : boostingModalData.price;
+                  const currentRankName = isRankBoost ? boostingModalData.rankOptions[selectedBoostRank]?.rank : '';
 
-                <form onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (isProcessingAction) return;
-                  isProcessingAction = true;
-                  try {
-                    // LẤY DỮ LIỆU AN TOÀN CHỐNG CRASH NGẦM
-                    const loginMethod = e.target.loginMethod ? e.target.loginMethod.value : 'Không Cần';
-                    const username = e.target.username ? e.target.username.value : (e.target.eventCode ? e.target.eventCode.value : '');
-                    const password = e.target.password ? e.target.password.value : 'Bảo Mật Bằng Mã';
-                    const note = e.target.note ? e.target.note.value : '';
-
-                    const targetModal = boostingModalData;
-                    setBoostingModalData(null); // Đóng ngay lập tức để làm khách hài lòng
-
-                    if (currentUser.balance < targetModal.price) {
-                      showToast("Số dư không đủ! Vui lòng nạp thêm tiền.", 'error');
-                      setCurrentView('naptien');
-                      return;
-                    }
-
-                    const reqId = `BST${Date.now()}`;
-                    const newBalance = currentUser.balance - boostingModalData.price;
-
-                    // 1. Trừ tiền trên Database
-                    await supabase.from('users').update({ balance: newBalance }).eq('id', currentUser.id);
-
-                    // 2. Lưu Lịch sử giao dịch lên Database
-                    // 2. Lưu Lịch sử giao dịch lên Database
-                    const newTx = {
-                      id: `TX${Date.now()}`,
-                      user: currentUser.name,
-                      action: `Đặt cày thuê: ${boostingModalData.title}`,
-                      amount: boostingModalData.price,
-                      date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
-                      status: 'Thành công',
-                      type: 'boost',
-                      accDetails: {
-                        balanceAfter: newBalance,
-                        fundAfter: currentUser.rentFund || 0
-                      }
-                    };
-                    await supabase.from('transactions').insert([newTx]);
-
-                    // 3. Lưu Đơn Cày Thuê lên Database (Đã gỡ bỏ userId gây lỗi)
-                    const dbPayload = {
-                      id: reqId,
-                      user: currentUser.name,
-                      boostingId: boostingModalData.id,
-                      boostingTitle: boostingModalData.title,
-                      date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
-                      status: 'Chờ xử lý',
-                      info: {
-                        loginMethod: loginMethod,
-                        username: username,
-                        password: password,
-                        note: note
-                      }
-                    };
-
-                    // Chặn và báo lỗi ngay lập tức nếu Supabase từ chối
-                    const { error: insertErr } = await supabase.from('boosting_requests').insert([dbPayload]);
-                    if (insertErr) {
-                      showToast("Lỗi Database: " + insertErr.message, "error");
-                      return;
-                    }
-
-                    // Tạo bản sao cho React hiển thị
-                    const newBoostReq = { ...dbPayload };
-                    // Cập nhật Giao diện
-                    const updatedUser = { ...currentUser, balance: newBalance };
-                    setCurrentUser(updatedUser);
-                    localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
-                    setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u));
-
-                    setTransactionsDb([newTx, ...transactionsDb]);
-                    setBoostingRequests([newBoostReq, ...boostingRequests]);
-
-                    showToast("Đặt lịch thành công! Admin sẽ sớm xử lý.");
-                    sendAdminAlert('ĐẶT CÀY THUÊ', `Khách ${currentUser.name} vừa đặt đơn cày ${targetModal.title}.`);
-                    setCurrentView('lichsu');
-                  } finally { isProcessingAction = false; }
-                }}>
-                  <div className="space-y-4">
-                    {/* Kiểm tra xem gói này có bắt buộc TK/MK không */}
-                    {boostingModalData.type === 'event' && boostingModalData.require_login === false ? (
-                      <div>
-                        <label className="text-xs font-bold text-emerald-400 block mb-1">Nhập Mã Sự Kiện / Link Liên Kết</label>
-                        <input name="eventCode" type="text" placeholder="VD: SGH-123456..." className="w-full p-3 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-mono outline-none focus:border-emerald-400 shadow-inner" required />
+                  return (
+                    <>
+                      <div className="mb-4 bg-blue-900/10 p-4 rounded-xl border border-blue-500/20">
+                        <p className="text-sm text-slate-300">Đích đến: <strong className="text-white">{boostingModalData.title}</strong></p>
+                        {isRankBoost && (
+                          <div className="mt-3">
+                            <label className="text-xs text-slate-400 block mb-1">Bạn đang ở Rank nào?</label>
+                            <select
+                              value={selectedBoostRank}
+                              onChange={(e) => setSelectedBoostRank(parseInt(e.target.value))}
+                              className="w-full p-2.5 bg-[#0B1120] border border-blue-500/50 rounded-lg text-white outline-none font-bold text-sm"
+                            >
+                              {boostingModalData.rankOptions.map((opt, idx) => (
+                                <option key={idx} value={idx}>{opt.rank} ➡️ Lên {boostingModalData.title.replace('Cày lên ', '').replace('Cày ', '')}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                        <p className="text-sm text-slate-300 mt-3 border-t border-blue-500/20 pt-2 flex items-center gap-2">Phí thanh toán: <strong className="text-rose-500 text-xl">{new Intl.NumberFormat('vi-VN').format(activePrice)}đ</strong></p>
+                        <p className="text-xs text-slate-400 mt-1">Số dư của bạn: <span className="text-emerald-400 font-bold">{new Intl.NumberFormat('vi-VN').format(currentUser?.balance || 0)}đ</span></p>
                       </div>
-                    ) : (
-                      <>
-                        <div>
-                          <label className="text-xs font-bold text-slate-400 block mb-1">Hình thức đăng nhập</label>
-                          <select name="loginMethod" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
-                            <option value="Garena">Garena</option>
-                            <option value="Facebook">Facebook</option>
-                            <option value="Riot Games">Riot Games</option>
-                            <option value="Google">Google (Cần hỗ trợ mã)</option>
-                            <option value="Khác">Khác</option>
-                          </select>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-xs font-bold text-slate-400 block mb-1">Tài khoản</label>
-                            <input name="username" type="text" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-mono outline-none focus:border-blue-500" required />
-                          </div>
-                          <div>
-                            <label className="text-xs font-bold text-slate-400 block mb-1">Mật khẩu</label>
-                            <input name="password" type="text" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-mono outline-none focus:border-blue-500" required />
-                          </div>
-                        </div>
-                      </>
-                    )}
 
-                    <div>
-                      <label className="text-xs font-bold text-slate-400 block mb-1">Ghi chú (Không bắt buộc)</label>
-                      <input name="note" type="text" placeholder="Ghi chú thêm cho Admin..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" />
-                    </div>
-                  </div>
-                  <button type="submit" className="w-full mt-6 bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-rose-600/20 transition-colors flex items-center justify-center gap-2">
-                    Thanh toán {new Intl.NumberFormat('vi-VN').format(boostingModalData.price)}đ
-                  </button>
-                </form>
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (isProcessingAction) return;
+                        isProcessingAction = true;
+                        try {
+                          const loginMethod = e.target.loginMethod ? e.target.loginMethod.value : 'Không Cần';
+                          const username = e.target.username ? e.target.username.value : (e.target.eventCode ? e.target.eventCode.value : '');
+                          const password = e.target.password ? e.target.password.value : 'Bảo Mật Bằng Mã';
+                          const note = e.target.note ? e.target.note.value : '';
+
+                          const targetModal = boostingModalData;
+                          setBoostingModalData(null);
+
+                          if (currentUser.balance < activePrice) {
+                            showToast("Số dư không đủ! Vui lòng nạp thêm tiền.", 'error');
+                            setCurrentView('naptien');
+                            return;
+                          }
+
+                          const reqId = `BST${Date.now()}`;
+                          const newBalance = currentUser.balance - activePrice;
+
+                          const packageTitle = isRankBoost ? `Cày từ ${currentRankName} lên ${targetModal.title.replace('Cày lên ', '').replace('Cày ', '')}` : targetModal.title;
+
+                          await supabase.from('users').update({ balance: newBalance }).eq('id', currentUser.id);
+
+                          const newTx = {
+                            id: `TX${Date.now()}`,
+                            user: currentUser.name,
+                            action: `Đặt cày thuê: ${packageTitle}`,
+                            amount: activePrice,
+                            date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
+                            status: 'Thành công',
+                            type: 'boost',
+                            accDetails: {
+                              balanceAfter: newBalance,
+                              fundAfter: currentUser.rentFund || 0
+                            }
+                          };
+                          await supabase.from('transactions').insert([newTx]);
+
+                          const dbPayload = {
+                            id: reqId,
+                            user: currentUser.name,
+                            boostingId: targetModal.id,
+                            boostingTitle: packageTitle,
+                            date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
+                            status: 'Chờ xử lý',
+                            info: { loginMethod, username, password, note }
+                          };
+
+                          const { error: insertErr } = await supabase.from('boosting_requests').insert([dbPayload]);
+                          if (insertErr) {
+                            showToast("Lỗi Database: " + insertErr.message, "error");
+                            return;
+                          }
+
+                          const newBoostReq = { ...dbPayload };
+                          const updatedUser = { ...currentUser, balance: newBalance };
+                          setCurrentUser(updatedUser);
+                          localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+                          setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u));
+
+                          setTransactionsDb([newTx, ...transactionsDb]);
+                          setBoostingRequests([newBoostReq, ...boostingRequests]);
+
+                          showToast("Đặt lịch thành công! Admin sẽ sớm xử lý.");
+                          sendAdminAlert('ĐẶT CÀY THUÊ', `Khách ${currentUser.name} vừa đặt đơn: ${packageTitle}.`);
+                          setCurrentView('lichsu');
+                        } finally { isProcessingAction = false; }
+                      }}>
+                        <div className="space-y-4">
+                          {boostingModalData.type === 'event' && boostingModalData.require_login === false ? (
+                            <div>
+                              <label className="text-xs font-bold text-emerald-400 block mb-1">Nhập Mã Sự Kiện / Link Liên Kết</label>
+                              <input name="eventCode" type="text" placeholder="VD: SGH-123456..." className="w-full p-3 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-mono outline-none focus:border-emerald-400 shadow-inner" required />
+                            </div>
+                          ) : (
+                            <>
+                              <div>
+                                <label className="text-xs font-bold text-slate-400 block mb-1">Hình thức đăng nhập</label>
+                                <select name="loginMethod" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
+                                  <option value="Garena">Garena</option>
+                                  <option value="Facebook">Facebook</option>
+                                  <option value="Riot Games">Riot Games</option>
+                                  <option value="Google">Google (Cần hỗ trợ mã)</option>
+                                  <option value="Khác">Khác</option>
+                                </select>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-xs font-bold text-slate-400 block mb-1">Tài khoản</label>
+                                  <input name="username" type="text" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-mono outline-none focus:border-blue-500" required />
+                                </div>
+                                <div>
+                                  <label className="text-xs font-bold text-slate-400 block mb-1">Mật khẩu</label>
+                                  <input name="password" type="text" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-mono outline-none focus:border-blue-500" required />
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          <div>
+                            <label className="text-xs font-bold text-slate-400 block mb-1">Ghi chú (Không bắt buộc)</label>
+                            <input name="note" type="text" placeholder="Ghi chú thêm cho Admin..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" />
+                          </div>
+                        </div>
+                        <button type="submit" className="w-full mt-6 bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-rose-600/20 transition-colors flex items-center justify-center gap-2 text-lg">
+                          Thanh toán {new Intl.NumberFormat('vi-VN').format(activePrice)}đ
+                        </button>
+                      </form>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
