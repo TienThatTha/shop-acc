@@ -1411,7 +1411,7 @@ const App = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-5">
-              {filteredAccounts.map(acc => {
+              {filteredAccounts.map((acc, index) => {
                 const isRented = acc.rentedUntil && acc.rentedUntil > now;
                 let timeStr = "";
                 if (isRented) {
@@ -1445,7 +1445,14 @@ const App = () => {
                 return (
                   <div key={acc.id} className="bg-[#151D2F] rounded-xl overflow-hidden border border-slate-800 hover:border-blue-500/50 transition-all flex flex-col group shadow-lg hover:-translate-y-1 relative">
                     <div className="relative h-44 w-full bg-slate-900 cursor-pointer overflow-hidden" onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}>
-                      <img src={acc.coverImage} loading="lazy" decoding="async" alt={acc.game} className={`w-full h-full object-cover transition-all duration-500 ${isRented ? 'opacity-50 grayscale hover:grayscale-0' : 'opacity-80 group-hover:opacity-100 group-hover:scale-110'}`} />
+                      <img
+                        src={acc.coverImage}
+                        loading={index < 8 ? "eager" : "lazy"}
+                        fetchpriority={index < 4 ? "high" : "auto"}
+                        decoding="async"
+                        alt={acc.game}
+                        className={`w-full h-full object-cover transition-all duration-500 ${isRented ? 'opacity-50 grayscale hover:grayscale-0' : 'opacity-80 group-hover:opacity-100 group-hover:scale-110'}`}
+                      />
                       <div className="absolute top-2 left-2 bg-rose-600 text-white text-xs font-bold px-2.5 py-1 rounded shadow-lg backdrop-blur-md bg-opacity-90 z-30">Mã: {acc.code}</div>
                       {/* TAG TIER GÓC PHẢI - DÁN VÀO DƯỚI DÒNG MÃ ACC */}
                       <span className={`absolute top-2 right-2 text-[10px] font-black px-2.5 py-1 rounded shadow-lg uppercase z-30 ${acc.tier === 'ULVIP' ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white' : acc.tier === 'SVIP' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-[#0B1120]' : 'bg-blue-600 text-white'}`}>
@@ -2208,7 +2215,7 @@ const App = () => {
                 <Target size={40} className="mx-auto mb-3 text-slate-600" />
                 <p className="text-slate-400">Đang cập nhật các gói dịch vụ cho mục này...</p>
               </div>
-            ) : filteredBoosting.map(b => (
+            ) : filteredBoosting.map((b, index) => (
               <div key={b.id} className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 md:p-6 hover:border-blue-500/50 transition-colors shadow-xl group flex flex-col overflow-hidden">
 
                 {/* --- ẢNH HIỂN THỊ Ở TRANG KHÁCH (TỰ MỞ RỘNG & PHÓNG TO ĐƯỢC) --- */}
@@ -2220,7 +2227,8 @@ const App = () => {
                   >
                     <img
                       src={b.image}
-                      loading="lazy"
+                      loading={index < 8 ? "eager" : "lazy"}
+                      fetchpriority={index < 4 ? "high" : "auto"}
                       decoding="async"
                       className="w-full h-auto object-contain transition-transform duration-500 group-hover/img:scale-105"
                       alt={b.title}
