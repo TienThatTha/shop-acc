@@ -594,20 +594,22 @@ const App = () => {
     setIsLoggingIn(true);
 
     try {
-      const contact = e.target.contact.value;
+      // 1. Thêm .trim() để cắt bỏ mọi khoảng trắng thừa (dấu cách) nếu khách lỡ nhập
+      const contact = e.target.contact.value.trim();
       const password = e.target.password.value;
 
       let loginEmail = contact;
 
-      // Nếu khách nhập SĐT (toàn số), tìm email tương ứng
+      // 2. Nếu khách nhập SĐT (toàn số), tìm email tương ứng
       if (/^\d+$/.test(contact)) {
-        const { data: foundUser } = await supabase
+        // Dùng maybeSingle() thay vì single() để tránh làm sập code nếu không tìm thấy
+        const { data: foundUser, error } = await supabase
           .from('users')
           .select('email')
           .eq('phone', contact)
-          .single();
+          .maybeSingle();
 
-        if (foundUser) {
+        if (foundUser && foundUser.email) {
           loginEmail = foundUser.email;
         } else {
           return showToast("Số điện thoại này chưa được đăng ký!", 'error');
@@ -621,6 +623,8 @@ const App = () => {
       });
 
       if (authError) return showToast("Sai tài khoản hoặc mật khẩu!", 'error');
+
+      // ... (Giữ nguyên toàn bộ phần code lấy thông tin userData ở bên dưới của bạn) ...
 
       // Lấy thông tin user để hiển thị lên web
       const { data: userData } = await supabase
