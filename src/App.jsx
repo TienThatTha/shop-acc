@@ -133,7 +133,10 @@ const App = () => {
 
   const [usersDb, setUsersDb] = useState([]);
   const [visitorCount, setVisitorCount] = useState(0);
-  const [accountsDb, setAccountsDb] = useState([]);
+  const [accountsDb, setAccountsDb] = useState(() => {
+    const saved = localStorage.getItem('shop_accounts_db');
+    return saved ? JSON.parse(saved) : [];
+  });
   // Tự động nhớ vị trí màn hình hiện tại
   const [currentView, setCurrentView] = useState(() => {
     return localStorage.getItem('shop_current_view') || 'dashboard';
@@ -225,10 +228,10 @@ const App = () => {
     { id: 1, senderId: 2, receiverId: 1, content: 'Chào bạn, chúc bạn mua sắm vui vẻ tại hệ thống!', timestamp: Date.now() - 3600000, isRead: false }
   ]);
 
-  const [boostingDb, setBoostingDb] = useState([
-    { id: 1, game: 'Liên Quân', title: 'Cày từ Kim Cương lên Cao Thủ', price: 150000, desc: 'Thời gian hoàn thành: 1-2 ngày. Đảm bảo uy tín.' },
-    { id: 2, game: 'Valorant', title: 'Cày rank từ Gold lên Diamond', price: 300000, desc: 'Người cày là Radianite, an toàn tuyệt đối.' }
-  ]);
+  const [boostingDb, setBoostingDb] = useState(() => {
+    const saved = localStorage.getItem('shop_boosting_db');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState([]);
   const [wheelItemsSpinDb, setWheelItemsSpinDb] = useState([]);
@@ -360,8 +363,12 @@ const App = () => {
           };
         });
         setAccountsDb(fixedAccounts);
+        localStorage.setItem('shop_accounts_db', JSON.stringify(fixedAccounts));
       }
-      if (boostRes.data) setBoostingDb(boostRes.data);
+      if (boostRes.data) {
+        setBoostingDb(boostRes.data);
+        localStorage.setItem('shop_boosting_db', JSON.stringify(boostRes.data));
+      }
       if (wheelRes.data) {
         setWheelItemsMoneyDb(wheelRes.data.filter(w => w.wheel_type === 'money'));
         setWheelItemsSpinDb(wheelRes.data.filter(w => w.wheel_type === 'spin'));
@@ -1437,7 +1444,7 @@ const App = () => {
                 return (
                   <div key={acc.id} className="bg-[#151D2F] rounded-xl overflow-hidden border border-slate-800 hover:border-blue-500/50 transition-all flex flex-col group shadow-lg hover:-translate-y-1 relative">
                     <div className="relative h-44 w-full bg-slate-900 cursor-pointer overflow-hidden" onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}>
-                      <img src={acc.coverImage} alt={acc.game} className={`w-full h-full object-cover transition-all duration-500 ${isRented ? 'opacity-50 grayscale hover:grayscale-0' : 'opacity-80 group-hover:opacity-100 group-hover:scale-110'}`} />
+                      <img src={acc.coverImage} loading="lazy" decoding="async" alt={acc.game} className={`w-full h-full object-cover transition-all duration-500 ${isRented ? 'opacity-50 grayscale hover:grayscale-0' : 'opacity-80 group-hover:opacity-100 group-hover:scale-110'}`} />
                       <div className="absolute top-2 left-2 bg-rose-600 text-white text-xs font-bold px-2.5 py-1 rounded shadow-lg backdrop-blur-md bg-opacity-90 z-30">Mã: {acc.code}</div>
                       {/* TAG TIER GÓC PHẢI - DÁN VÀO DƯỚI DÒNG MÃ ACC */}
                       <span className={`absolute top-2 right-2 text-[10px] font-black px-2.5 py-1 rounded shadow-lg uppercase z-30 ${acc.tier === 'ULVIP' ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white' : acc.tier === 'SVIP' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-[#0B1120]' : 'bg-blue-600 text-white'}`}>
@@ -2153,7 +2160,7 @@ const App = () => {
       { id: 'rank', label: 'Cày Rank' },
       { id: 'event', label: 'Cày Sự Kiện' }
     ];
-    
+
     // Tìm danh sách Game duy nhất cho Tab hiện tại
     const currentTabGames = ['Tất cả', ...new Set(boostingDb.filter(b => (b.type || 'rank') === activeBoostingTab).map(b => b.game))];
 
@@ -2183,7 +2190,7 @@ const App = () => {
                 </button>
               ))}
             </div>
-            
+
             <div className="flex flex-wrap items-center justify-center gap-2">
               {currentTabGames.map(game => (
                 <button key={game} onClick={() => setActiveBoostingGameClient(game)} className={`px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap transition-colors border ${activeBoostingGameClient === game ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>
@@ -2212,6 +2219,8 @@ const App = () => {
                   >
                     <img
                       src={b.image}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-auto object-contain transition-transform duration-500 group-hover/img:scale-105"
                       alt={b.title}
                     />
