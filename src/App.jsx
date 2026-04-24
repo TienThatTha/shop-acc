@@ -1367,7 +1367,7 @@ const App = () => {
                   <Download size={120} />
                 </div>
                 <h3 className="text-white font-bold text-lg mb-2 relative z-10 flex items-center gap-2">
-                  <Gamepad2 className="text-blue-500" size={20} /> Tải Awesun
+                  <Gamepad2 className="text-blue-500" size={20} /> Tải App Điều Khiển
                 </h3>
                 <p className="text-xs text-slate-400 mb-4 relative z-10">Tải phần mềm điều khiển xa để chuẩn bị sẵn sàng trước khi thuê tài khoản game.</p>
                 <button
@@ -5571,7 +5571,7 @@ const App = () => {
                         }}
                         className="bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 border border-blue-500/30 shadow-sm"
                       >
-                        <Download size={14} /> Tải Awesun
+                        <Download size={14} /> Tải App Điều Khiển
                       </button>
                     </div>
 
