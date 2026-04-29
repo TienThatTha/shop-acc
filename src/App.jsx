@@ -1561,10 +1561,10 @@ const App = () => {
 
         {/* --- FOOTER TRANG CHỦ --- */}
         <footer className="w-full max-w-[1500px] mx-auto mt-16 mb-4 px-4 lg:pr-28 flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-12 pb-8 border-t border-slate-800 pt-12">
-          
+
           {/* CỘT TRÁI: LOGO & SLOGAN */}
           <div className="flex-shrink-0 flex flex-col items-center justify-center lg:justify-start w-full lg:w-[45%] xl:w-[40%] gap-5">
-            
+
             {/* CÂU SLOGAN TRÊN CÙNG ĐƯỢC TÙY BIẾN THÀNH CÁC THẺ (PILLS) */}
             <div className="w-full max-w-[650px] flex flex-wrap justify-center gap-2 md:gap-3 px-2 mb-2">
               <span className="px-4 py-2 bg-[#151D2F] border border-blue-500/30 text-blue-400 text-[11px] sm:text-[13px] md:text-sm rounded-full font-black shadow-[0_0_15px_rgba(59,130,246,0.15)] flex items-center gap-2 hover:bg-blue-500/10 hover:scale-105 transition-all cursor-default">
@@ -1582,19 +1582,19 @@ const App = () => {
             </div>
 
             <img src="/Logo.png" alt="Shop Tiến Gaming" className="w-[95%] sm:w-[85%] lg:w-[90%] max-w-[480px] object-contain hover:scale-105 transition-transform drop-shadow-[0_0_40px_rgba(37,99,235,0.3)]" />
-            
+
             {/* 3 Ô SLOGAN */}
             <div className="flex justify-center gap-3 md:gap-4 w-full max-w-[480px]">
               <div className="flex-1 bg-gradient-to-br from-blue-600/10 to-[#151D2F] border border-blue-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2 text-center shadow-lg hover:border-blue-400 hover:bg-blue-600/20 transition-all group">
                 <ShieldCheck size={28} className="text-blue-400 group-hover:scale-110 group-hover:animate-pulse transition-transform" />
                 <span className="text-white font-black text-[11px] md:text-[13px] uppercase tracking-wider">Tận Tâm</span>
               </div>
-              
+
               <div className="flex-1 bg-gradient-to-br from-yellow-500/10 to-[#151D2F] border border-yellow-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2 text-center shadow-lg hover:border-yellow-400 hover:bg-yellow-500/20 transition-all group">
                 <Sparkles size={28} className="text-yellow-400 group-hover:scale-110 group-hover:animate-pulse transition-transform" />
                 <span className="text-white font-black text-[11px] md:text-[13px] uppercase tracking-wider">Chất Lượng</span>
               </div>
-              
+
               <div className="flex-1 bg-gradient-to-br from-rose-500/10 to-[#151D2F] border border-rose-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2 text-center shadow-lg hover:border-rose-400 hover:bg-rose-500/20 transition-all group">
                 <Gift size={28} className="text-rose-400 group-hover:scale-110 group-hover:animate-pulse transition-transform" />
                 <span className="text-white font-black text-[11px] md:text-[13px] uppercase tracking-wider">Hậu Mãi</span>
@@ -1615,7 +1615,7 @@ const App = () => {
                   <p className="text-white font-black tracking-wider text-base">0938.240.332</p>
                 </div>
               </a>
-              
+
               <a href="https://www.facebook.com/giatien2408/" target="_blank" rel="noreferrer" className="flex-1 lg:max-w-[280px] flex items-center justify-center lg:justify-start gap-4 bg-[#151D2F] hover:bg-[#1a233a] px-5 py-3.5 rounded-xl border border-blue-500/20 hover:border-blue-500/50 transition-all shadow-lg group relative overflow-hidden">
                 <div className="absolute inset-0 bg-[#1877F2]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <div className="w-10 h-10 bg-gradient-to-b from-[#1877F2] to-[#145CE6] rounded-full flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform z-10 shrink-0">
@@ -1627,7 +1627,7 @@ const App = () => {
                 </div>
               </a>
             </div>
-            
+
             <div className="bg-[#0f172a] border border-slate-700 p-1 rounded-2xl shadow-2xl w-full max-w-3xl relative overflow-hidden group hover:border-slate-600 transition-colors">
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-yellow-500/10 to-emerald-500/10 opacity-50"></div>
               <div className="bg-[#151D2F] rounded-xl px-4 md:px-6 lg:px-8 py-6 relative z-10 flex flex-col items-center">
@@ -1636,16 +1636,16 @@ const App = () => {
                 <div className="flex justify-center mb-4 w-full">
                   <img src="/tpbank.png" alt="TPBank" className="h-10 md:h-14 lg:h-16 object-contain rounded-lg bg-white px-3 py-1.5 shadow-[0_0_15px_rgba(139,92,246,0.3)] border border-purple-500/30 hover:scale-105 transition-transform" />
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row justify-center items-center gap-2 md:gap-3 text-[14px] sm:text-[15px] md:text-base lg:text-lg font-black w-full">
                   <span className="text-[#8B5CF6] drop-shadow-[0_0_10px_rgba(139,92,246,0.3)] bg-purple-500/10 px-3 py-1.5 rounded-lg border border-purple-500/20 text-center w-full sm:w-auto">TPBANK</span>
                   <span className="hidden sm:block text-slate-700">|</span>
                   <span className="text-yellow-400 tracking-wider font-mono bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/20 text-center whitespace-nowrap w-full sm:w-auto">1000 2973 552</span>
                   <span className="hidden sm:block text-slate-700">|</span>
                   <span className="text-emerald-400 uppercase drop-shadow-[0_0_10px_rgba(16,185,129,0.3)] bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 text-center whitespace-nowrap w-full sm:w-auto">NHAM GIA TIEN</span>
-                  
+
                   {/* NÚT COPY TẤT CẢ */}
-                  <button 
+                  <button
                     onClick={() => {
                       navigator.clipboard.writeText('Ngân hàng: TPBANK\nSTK: 10002973552\nChủ TK: NHAM GIA TIEN');
                       alert('Đã copy toàn bộ thông tin giao dịch!');
@@ -1657,7 +1657,7 @@ const App = () => {
                     <span className="ml-2 text-xs font-bold uppercase sm:hidden">Copy Thông Tin</span>
                   </button>
                 </div>
-                
+
                 <div className="mt-5 flex items-center justify-center gap-2 bg-rose-500/10 border border-rose-500/20 w-full py-3 rounded-lg px-2 text-center">
                   <AlertCircle size={16} className="text-rose-500 animate-pulse shrink-0" />
                   <p className="text-[11px] md:text-xs text-rose-400 italic font-bold">Lưu ý: Chỉ sử dụng duy nhất tài khoản này khi giao dịch trên website. Vui lòng kiểm tra kỹ trước khi chuyển khoản!</p>
@@ -1745,7 +1745,7 @@ const App = () => {
         const adminUser = usersDb.find(u => u.role?.toLowerCase() === 'admin');
         if (adminUser) adminId = adminUser.id;
       }
-      
+
       // Nếu không có trong RAM (Khách không load usersDb), tự động gọi DB để tìm Admin
       if (!adminId) {
         const { data } = await supabase.from('users').select('id, role');
@@ -2122,7 +2122,7 @@ const App = () => {
                       <div>
                         <span className="font-bold text-white block">{new Intl.NumberFormat('vi-VN').format(d.amount)}đ</span>
                         {d.bonusAmount > 0 && <span className="text-[10px] text-rose-400 font-bold">+{new Intl.NumberFormat('vi-VN').format(d.bonusAmount)}đ (Mã: {d.voucherCode})</span>}
-                        <span className="text-[10px] text-slate-500 block mt-0.5">{d.date}</span>
+                        <span className="text-[10px] text-slate-500 block mt-0.5">{new Date(d.id).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
                       </div>
                       <div className="flex flex-col gap-1 items-end">
                         <span className={`px-2 py-1 rounded text-[10px] md:text-xs font-bold ${d.status === 'Thành công' ? 'bg-emerald-500/10 text-emerald-400' : d.status === 'Từ chối' || d.status === 'Đã hủy' ? 'bg-red-500/10 text-red-400' : 'bg-yellow-500/10 text-yellow-400'}`}>{d.status}</span>
@@ -2330,7 +2330,7 @@ const App = () => {
                   <div key={d.id} className="p-4 border-b border-slate-800 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors">
                     <div>
                       <p className="font-bold text-white text-sm md:text-base"><Wallet size={14} className="inline mr-1 text-emerald-500" /> Nạp tiền chuyển khoản</p>
-                      <p className="text-[10px] md:text-xs text-slate-500 mt-1">{d.date}</p>
+                      <p className="text-[10px] md:text-xs text-slate-500 mt-1">{new Date(d.id).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
                     </div>
                     <div className="text-left md:text-right">
                       <p className="font-black text-base md:text-lg text-emerald-400">
@@ -3264,6 +3264,18 @@ const App = () => {
       setTimeout(() => chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     };
 
+    const handleDeleteChatAdmin = (userId) => {
+      setConfirmDialog({
+        title: 'Ẩn lịch sử chat',
+        message: 'Bạn có chắc muốn dọn dẹp khung chat với khách hàng này không? (Khách hàng vẫn sẽ thấy tin nhắn bình thường)',
+        onConfirm: () => {
+          localStorage.setItem(`admin_cleared_chat_${userId}`, Date.now().toString());
+          setActiveChatUser(null);
+          showToast("Đã dọn dẹp lịch sử chat thành công!", "success");
+        }
+      });
+    };
+
     const totalRevenue = depositRequests
       .filter(d => d.status === 'Thành công')
       .reduce((sum, d) => sum + d.amount, 0);
@@ -3278,7 +3290,11 @@ const App = () => {
 
 
     // Lọc danh sách những người đã gửi tin nhắn ĐẾN Admin, HOẶC Admin đã gửi cho họ
-    const usersWithMessagesIds = [...new Set(messagesDb.map(m => m.senderId === currentUser?.id ? m.receiverId : m.senderId))];
+    const usersWithMessagesIds = [...new Set(messagesDb.filter(m => {
+      const otherId = m.senderId === currentUser?.id ? m.receiverId : m.senderId;
+      const clearedTime = parseInt(localStorage.getItem(`admin_cleared_chat_${otherId}`) || '0');
+      return m.timestamp > clearedTime;
+    }).map(m => m.senderId === currentUser?.id ? m.receiverId : m.senderId))];
     const chatUsersList = usersDb.filter(u => usersWithMessagesIds.includes(u.id));
 
     // Tự động tìm kiếm toàn bộ khách hàng nếu Admin gõ vào ô tìm kiếm
@@ -3287,12 +3303,17 @@ const App = () => {
       : chatUsersList;
 
     // Lọc nội dung chat giữa Admin và Khách đang chọn
-    const activeMessages = activeChatUser ? messagesDb.filter(m =>
-      (m.senderId === activeChatUser.id && m.receiverId === currentUser?.id) ||
-      (m.senderId === currentUser?.id && m.receiverId === activeChatUser.id)
-    ).sort((a, b) => a.timestamp - b.timestamp) : [];
+    const activeMessages = activeChatUser ? messagesDb.filter(m => {
+      if (!((m.senderId === activeChatUser.id && m.receiverId === currentUser?.id) || (m.senderId === currentUser?.id && m.receiverId === activeChatUser.id))) return false;
+      const clearedTime = parseInt(localStorage.getItem(`admin_cleared_chat_${activeChatUser.id}`) || '0');
+      return m.timestamp > clearedTime;
+    }).sort((a, b) => a.timestamp - b.timestamp) : [];
 
-    const totalUnreadAdmin = messagesDb.filter(m => m.receiverId === currentUser?.id && !m.isRead).length;
+    const totalUnreadAdmin = messagesDb.filter(m => {
+      if (m.receiverId !== currentUser?.id || m.isRead) return false;
+      const clearedTime = parseInt(localStorage.getItem(`admin_cleared_chat_${m.senderId}`) || '0');
+      return m.timestamp > clearedTime;
+    }).length;
 
     return (
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-20">
@@ -3449,7 +3470,11 @@ const App = () => {
                   <div className="flex-1 overflow-y-auto custom-scrollbar">
                     {displayChatUsers.length === 0 ? <p className="text-center text-slate-500 p-4 text-sm">Không tìm thấy khách hàng</p> : (
                       displayChatUsers.map(u => {
-                        const unread = messagesDb.filter(m => m.senderId === u.id && !m.isRead).length;
+                        const unread = messagesDb.filter(m => {
+                          if (m.senderId !== u.id || m.isRead) return false;
+                          const clearedTime = parseInt(localStorage.getItem(`admin_cleared_chat_${u.id}`) || '0');
+                          return m.timestamp > clearedTime;
+                        }).length;
                         return (
                           <div key={u.id} onClick={async () => {
                             setActiveChatUser(u);
@@ -3475,12 +3500,17 @@ const App = () => {
                 <div className="flex-1 flex flex-col bg-[#151D2F]">
                   {activeChatUser ? (
                     <>
-                      <div className="p-4 border-b border-slate-800 bg-[#0B1120] flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-500/20 text-blue-500 rounded-full flex items-center justify-center"><User size={20} /></div>
-                        <div>
-                          <h3 className="font-bold text-white">{activeChatUser.name}</h3>
-                          <p className="text-xs text-slate-500">Đang hỗ trợ khách hàng</p>
+                      <div className="p-4 border-b border-slate-800 bg-[#0B1120] flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-500/20 text-blue-500 rounded-full flex items-center justify-center"><User size={20} /></div>
+                          <div>
+                            <h3 className="font-bold text-white">{activeChatUser.name}</h3>
+                            <p className="text-xs text-slate-500">Đang hỗ trợ khách hàng</p>
+                          </div>
                         </div>
+                        <button onClick={() => handleDeleteChatAdmin(activeChatUser.id)} className="text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm">
+                          <Trash2 size={14} /> Xóa chat
+                        </button>
                       </div>
                       <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4">
                         {activeMessages.map(m => {
@@ -3617,7 +3647,7 @@ const App = () => {
                       <tbody className="divide-y divide-slate-800">
                         {depositRequests.slice(0, visibleDepsAdmin).map(d => (
                           <tr key={d.id} className="hover:bg-slate-800/30">
-                            <td className="p-4"><div className="text-slate-300 font-mono text-xs">{d.id}</div><div className="text-[10px] text-slate-500 mt-1">{d.date}</div></td>
+                            <td className="p-4"><div className="text-slate-300 font-mono text-xs">{d.id}</div><div className="text-[10px] text-slate-500 mt-1">{new Date(d.id).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</div></td>
                             <td className="p-4 text-blue-400 font-bold">{d.user} <span className="text-[10px] text-slate-500 font-normal ml-1">(ID: {d.userId})</span></td>
                             <td className="p-4">
                               <span className="text-emerald-400 font-black text-base block">{new Intl.NumberFormat('vi-VN').format(d.amount)}đ</span>
@@ -5768,7 +5798,7 @@ const App = () => {
                         <Download size={100} />
                       </div>
                       <h3 className="text-white font-bold text-base mb-1 relative z-10 flex items-center gap-2">
-                        <Gamepad2 className="text-blue-500" size={18} /> Bạn chưa có Awesun?
+                        <Gamepad2 className="text-blue-500" size={18} /> Bạn chưa có app điều khiển?
                       </h3>
                       <p className="text-xs text-slate-400 mb-3 relative z-10">Tải phần mềm điều khiển xa để chuẩn bị sẵn sàng trước khi thuê tài khoản game.</p>
                       <button
