@@ -2449,7 +2449,7 @@ const App = () => {
               </div>
             ))}
           </div>
-          {/* LỊCH SỬ CÀY THUÊ RIÊNG CHO BẠN */}
+          {/* LỊCH SỬ CÀY THUÊ CHO BẠN */}
           <div className="mt-16 border-t border-slate-800 pt-8">
             <div className="flex items-center gap-2 mb-6">
               <History size={24} className="text-blue-500" />
@@ -3687,7 +3687,7 @@ const App = () => {
             {adminTab === 'rentreqs' && (
               <div className="p-6">
                 <div className="flex items-center gap-2 mb-6 text-yellow-500 bg-yellow-500/10 p-3 rounded-lg border border-yellow-500/20 text-sm">
-                  <AlertCircle size={18} /> Hướng dẫn: Mở phần mềm Awesun trên máy tính, nhập ID & Passcode của khách để điều khiển máy khách và đăng nhập nick game.
+                  <AlertCircle size={18} /> Hướng dẫn: Mở app điều khiển trên máy tính, nhập ID App & Passcode của khách để điều khiển máy khách và đăng nhập nick game.
                 </div>
                 {rentRequests.length === 0 ? <div className="text-center text-slate-500 p-10">Chưa có yêu cầu thuê nick nào.</div> :
                   <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2" onScroll={(e) => {
@@ -3766,10 +3766,10 @@ const App = () => {
                             </p>
                             <div className="bg-blue-900/20 p-3 rounded-lg border border-blue-500/30 mt-3 flex items-center justify-between">
                               <div>
-                                <p className="text-blue-400 font-bold text-xs mb-1 flex items-center gap-1"><Gamepad2 size={12} /> AWESUN CỦA KHÁCH:</p>
-                                <p className="text-base">ID: <span className="text-white font-mono bg-black/30 px-2 py-0.5 rounded">{r.info?.awesunId}</span> <span className="mx-2 text-slate-600">|</span> Pass: <span className="text-white font-mono bg-black/30 px-2 py-0.5 rounded">{r.info?.awesunPass}</span></p>
+                                <p className="text-blue-400 font-bold text-xs mb-1 flex items-center gap-1"><Gamepad2 size={12} /> APP ĐIỀU KHIỂN  CỦA KHÁCH:</p>
+                                <p className="text-base">ID App: <span className="text-white font-mono bg-black/30 px-2 py-0.5 rounded">{r.info?.awesunId}</span> <span className="mx-2 text-slate-600">|</span> Passcode: <span className="text-white font-mono bg-black/30 px-2 py-0.5 rounded">{r.info?.awesunPass}</span></p>
                               </div>
-                              <button onClick={() => copyToClipboard(`${r.info?.awesunId} ${r.info?.awesunPass}`)} className="p-2 bg-blue-500/20 rounded text-blue-400 hover:bg-blue-500 hover:text-white transition-colors" title="Copy cả ID & Pass"><Copy size={16} /></button>
+                              <button onClick={() => copyToClipboard(`${r.info?.awesunId} ${r.info?.awesunPass}`)} className="p-2 bg-blue-500/20 rounded text-blue-400 hover:bg-blue-500 hover:text-white transition-colors" title="Copy cả ID App & Passcode"><Copy size={16} /></button>
                             </div>
                           </div>
                           <div className="flex lg:flex-col gap-2 w-full lg:w-auto mt-4 lg:mt-0">
@@ -5079,12 +5079,12 @@ const App = () => {
             </div>
           </div>
         )}
-        {/* Modal Hướng dẫn cài Awesun */}
+        {/* Modal Hướng dẫn cài App điều khiển  */}
         {awesunGuideType && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
             <div className="bg-[#151D2F] border border-blue-500/50 w-full max-w-md rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(59,130,246,0.2)]">
               <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-[#0B1120]">
-                <h3 className="text-xl font-bold text-white flex items-center gap-2"><Download className="text-blue-500" /> Hướng dẫn lấy mã Awesun</h3>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2"><Download className="text-blue-500" /> Hướng dẫn lấy mã App điều khiển</h3>
                 <button onClick={() => setAwesunGuideType(null)} className="text-slate-400 hover:text-white bg-slate-800 p-1.5 rounded-full"><X size={18} /></button>
               </div>
 
@@ -5097,7 +5097,7 @@ const App = () => {
                 </div>
                 <div className="flex gap-3 items-start">
                   <span className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">2</span>
-                  <p>Mở file Awesun vừa mới tải lên.</p>
+                  <p>Mở file App điều khiển vừa mới tải lên.</p>
                 </div>
                 <div className="flex gap-3 items-start">
                   <span className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">3</span>
@@ -5105,7 +5105,7 @@ const App = () => {
                 </div>
                 <div className="flex gap-3 items-start">
                   <span className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">4</span>
-                  <p>Sau khi cài xong, mở ứng dụng ra bạn sẽ thấy 2 dòng là <strong className="text-white">Mã ID</strong> và <strong className="text-white">Passcode</strong>.</p>
+                  <p>Sau khi cài xong, mở ứng dụng ra bạn sẽ thấy 2 dòng là <strong className="text-white">ID App</strong> và <strong className="text-white">Passcode</strong>.</p>
                 </div>
 
                 {awesunGuideType === 'inside' && (
@@ -5375,7 +5375,7 @@ const App = () => {
                         )}
                         <p className="text-xs text-slate-500 font-bold mb-2 uppercase flex items-center gap-1"><Clock size={12} /> Các gói thuê trải nghiệm</p>
                         {isCurrentlyRented && <div className="text-xs text-yellow-500 mb-3 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">Nick đang được thuê bởi khách khác, tạm thời không thể thuê. Bạn vẫn có thể mua đứt ngay lập tức.</div>}
-                        {/* NÚT NGƯNG THUÊ DÀNH RIÊNG CHO NGƯỜI ĐANG THUÊ */}
+                        {/* NÚT NGƯNG THUÊ DÀNH  CHO NGƯỜI ĐANG THUÊ */}
                         {isCurrentlyRented && currentUser?.id === viewingAcc.currentRenterId && (
                           <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl mb-4 shadow-[0_0_15px_rgba(225,29,72,0.1)]">
                             <div className="flex items-center gap-2 text-rose-500 mb-3">
@@ -5462,7 +5462,7 @@ const App = () => {
                   </div>
                   <div className="flex gap-3 items-start">
                     <span className="w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center font-black shrink-0 text-xs shadow-lg shadow-rose-500/30">2</span>
-                    <p><strong className="text-rose-400">TUYỆT ĐỐI KHÔNG ĐƯỢC TẮT APP AWESUN</strong><br /><span className="text-slate-400 text-xs mt-0.5 block">(Phát hiện tắt: Xóa sạch tiền thuê và kick ra khỏi acc)</span></p>
+                    <p><strong className="text-rose-400">TUYỆT ĐỐI KHÔNG ĐƯỢC TẮT APP ĐIỀU KHIỂN</strong><br /><span className="text-slate-400 text-xs mt-0.5 block">(Phát hiện tắt: Xóa sạch tiền thuê và kick ra khỏi acc)</span></p>
                   </div>
                   <div className="flex gap-3 items-start">
                     <span className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center font-black shrink-0 text-xs shadow-lg shadow-blue-500/30">3</span>
@@ -5779,7 +5779,7 @@ const App = () => {
 
                   <div className="bg-[#0B1120] p-4 rounded-xl border border-slate-800">
                     <div className="flex justify-between items-center mb-3 border-b border-slate-800 pb-2">
-                      <h4 className="text-sm font-bold text-blue-400 flex items-center gap-2"><Gamepad2 size={16} /> Cung cấp Awesun & SĐT</h4>
+                      <h4 className="text-sm font-bold text-blue-400 flex items-center gap-2"><Gamepad2 size={16} /> Cung cấp App điều khiển & SĐT</h4>
                       <button
                         type="button"
                         onClick={() => {
@@ -5792,7 +5792,7 @@ const App = () => {
                       </button>
                     </div>
 
-                    {/* Mới thêm: Ô tải Awesun lớn trong khối cung cấp thông tin */}
+                    {/* Mới thêm: Ô tải App điều khiển lớn trong khối cung cấp thông tin */}
                     <div className="flex flex-col justify-center bg-[#151D2F] border border-blue-500/30 p-5 rounded-xl shadow-inner mb-4 relative overflow-hidden group">
                       <div className="absolute -top-4 -right-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
                         <Download size={100} />
@@ -5814,7 +5814,7 @@ const App = () => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 mb-3">
-                      <div><input name="awesunId" placeholder="Mã Awesun ID" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white font-mono outline-none" required /></div>
+                      <div><input name="awesunId" placeholder="ID App" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white font-mono outline-none" required /></div>
                       <div><input name="awesunPass" placeholder="Passcode" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white font-mono outline-none" required /></div>
                       <div className="col-span-2"><input name="phone" type="tel" pattern="[0-9]{10,11}" maxLength="11" onInput={enforceNumberInput} placeholder="SĐT liên hệ (10-11 số)" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white outline-none" required /></div>
                     </div>
