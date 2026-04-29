@@ -552,12 +552,26 @@ const App = () => {
       })
       .subscribe();
 
+    // 5. Lắng nghe USER MỚI & CẬP NHẬT
+    const usersChannel = supabase.channel('realtime-users')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'users' }, (payload) => {
+        setUsersDb(prev => {
+          if (prev.find(u => u.id === payload.new.id)) return prev;
+          return [payload.new, ...prev];
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users' }, (payload) => {
+        setUsersDb(prev => prev.map(u => u.id === payload.new.id ? payload.new : u));
+      })
+      .subscribe();
+
     // Dọn dẹp các đường truyền khi khách đóng trình duyệt để chống lag máy
     return () => {
       supabase.removeChannel(messageChannel);
       supabase.removeChannel(depositChannel);
       supabase.removeChannel(rentChannel);
       supabase.removeChannel(statsChannel);
+      supabase.removeChannel(usersChannel);
     };
   }, []);
   // Tự động chuyển vòng quay nếu bị trống (Chống lỗi F5)
@@ -685,12 +699,30 @@ const App = () => {
     } finally {
       setIsLoggingIn(false);
     }
-  }; const handleRegister = async (e) => {
+  };
+
+  const handleRegister = async (e) => {
     e.preventDefault();
-    const email = e.target.email.value;
+    const email = e.target.email.value.trim();
     const password = e.target.password.value;
-    const name = e.target.name.value;
-    const phone = e.target.phone.value;
+    const name = e.target.name.value.trim();
+    const phone = e.target.phone.value.trim();
+
+    // KIỂM TRA TRÙNG LẶP TRONG DATABASE TRƯỚC
+    const { data: existingUsers, error: checkError } = await supabase
+      .from('users')
+      .select('name, email, phone')
+      .or(`email.eq.${email},phone.eq.${phone},name.eq.${name}`);
+
+    if (existingUsers && existingUsers.length > 0) {
+      const isNameExist = existingUsers.some(u => u.name.toLowerCase() === name.toLowerCase());
+      const isEmailExist = existingUsers.some(u => u.email.toLowerCase() === email.toLowerCase());
+      const isPhoneExist = existingUsers.some(u => u.phone === phone);
+
+      if (isNameExist) return showToast("Tên tài khoản này đã có người sử dụng!", "error");
+      if (isEmailExist) return showToast("Email này đã được đăng ký!", "error");
+      if (isPhoneExist) return showToast("Số điện thoại này đã được đăng ký!", "error");
+    }
 
     // 1. Tạo tài khoản bảo mật trong Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -711,16 +743,6 @@ const App = () => {
         spins: 0,
         role: 'user'
       };
-      const handleForgotPassword = async (e) => {
-        e.preventDefault();
-        const email = e.target.email.value;
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin,
-        });
-        if (error) return showToast("Lỗi: " + error.message, 'error');
-        showToast("Đã gửi link khôi phục mật khẩu vào Email của bạn!", 'success');
-        setCurrentView('login');
-      };
 
       const { error: dbError } = await supabase.from('users').insert([newUser]);
 
@@ -731,6 +753,17 @@ const App = () => {
         setCurrentView('login');
       }
     }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    const email = e.target.email.value;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin,
+    });
+    if (error) return showToast("Lỗi: " + error.message, 'error');
+    showToast("Đã gửi link khôi phục mật khẩu vào Email của bạn!", 'success');
+    setCurrentView('login');
   };
   // HÀM TÍNH TỔNG TIỀN KHÁCH ĐÃ TIÊU & KIỂM TRA VIP (Tiêu trên 3tr)
   // Sửa hàm nạp tiền
@@ -1597,14 +1630,28 @@ const App = () => {
       const input = e.target.message.value.trim();
       if (!input || !currentUser) return;
 
-      // Tự động tìm ID của Admin thật trong hệ thống
-      const adminUser = usersDb.find(u => u.role === 'admin');
-      if (!adminUser) return showToast("Hiện tại không có Admin trực tuyến!", "error");
+      // Tìm ID của Admin thật trong hệ thống
+      let adminId = null;
+      if (usersDb && usersDb.length > 0) {
+        const adminUser = usersDb.find(u => u.role?.toLowerCase() === 'admin');
+        if (adminUser) adminId = adminUser.id;
+      }
+      
+      // Nếu không có trong RAM (Khách không load usersDb), tự động gọi DB để tìm Admin
+      if (!adminId) {
+        const { data } = await supabase.from('users').select('id, role');
+        if (data) {
+          const foundAdmin = data.find(u => u.role?.toLowerCase() === 'admin');
+          if (foundAdmin) adminId = foundAdmin.id;
+        }
+      }
+
+      if (!adminId) return showToast("Hiện tại không có Admin trực tuyến!", "error");
 
       const newMsg = {
         id: `MSG${Date.now()}`,
         senderId: currentUser?.id,
-        receiverId: adminUser.id, // Gửi đến đúng ID Admin
+        receiverId: adminId, // Gửi đến đúng ID Admin
         content: input,
         timestamp: Date.now(),
         isRead: false
