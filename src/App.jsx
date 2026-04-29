@@ -242,6 +242,7 @@ const App = () => {
   const messagesEndRef = useRef(null);
 
   const [depositStep, setDepositStep] = useState(1);
+  const [isDepositing, setIsDepositing] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
   const [voucherInput, setVoucherInput] = useState('');
   const [pendingDeposit, setPendingDeposit] = useState(null);
@@ -1745,7 +1746,7 @@ const App = () => {
                       <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-2 ${isMine ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'}`}>
                           <p className="text-sm">{m.content}</p>
-                          <p className={`text-[9px] mt-1 text-right ${isMine ? 'text-blue-200' : 'text-slate-400'}`}>{new Date(m.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</p>
+                          <p className={`text-[9px] mt-1 text-right ${isMine ? 'text-blue-200' : 'text-slate-400'}`}>{new Date(m.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - {new Date(m.timestamp).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}</p>
                         </div>
                       </div>
                     )
@@ -1815,11 +1816,15 @@ const App = () => {
 
     const handleConfirmTransfer = async () => {
       if (!pendingDeposit) return;
+      if (isDepositing) return;
+
+      setIsDepositing(true);
 
       // CHẶN BẤM ĐÚP XÁC NHẬN KHI ĐÃ CÓ LỆNH CHỜ
       if (hasPendingRequest) {
         setDepositStep(1);
         setPendingDeposit(null);
+        setIsDepositing(false);
         return showToast("Bạn đã gửi 1 lệnh nạp trước đó rồi. Vui lòng chờ Admin duyệt!", "error");
       }
 
@@ -1839,6 +1844,7 @@ const App = () => {
       const { data: insertedData, error } = await supabase.from('deposit_requests').insert([newReq]).select().single();
 
       if (error) {
+        setIsDepositing(false);
         showToast("Lỗi gửi yêu cầu nạp tiền: " + error.message, 'error');
         return;
       }
@@ -1867,6 +1873,23 @@ const App = () => {
       setVoucherInput('');
       setPendingDeposit(null);
       setDepositStep(1);
+      setIsDepositing(false);
+    };
+
+    const handleCancelDepositClient = async (id) => {
+      setConfirmDialog({
+        title: 'Hủy đơn nạp',
+        message: 'Bạn có chắc chắn muốn hủy đơn nạp tiền này không?',
+        onConfirm: async () => {
+          const { error } = await supabase.from('deposit_requests').update({ status: 'Đã hủy' }).eq('id', id);
+          if (error) {
+            showToast("Lỗi khi hủy đơn: " + error.message, 'error');
+          } else {
+            setDepositRequests(depositRequests.map(req => req.id === id ? { ...req, status: 'Đã hủy' } : req));
+            showToast("Đã hủy đơn nạp thành công!", 'success');
+          }
+        }
+      });
     };
 
     return (
@@ -1945,7 +1968,12 @@ const App = () => {
                         {d.bonusAmount > 0 && <span className="text-[10px] text-rose-400 font-bold">+{new Intl.NumberFormat('vi-VN').format(d.bonusAmount)}đ (Mã: {d.voucherCode})</span>}
                         <span className="text-[10px] text-slate-500 block mt-0.5">{d.date}</span>
                       </div>
-                      <span className={`px-2 py-1 rounded text-[10px] md:text-xs font-bold ${d.status === 'Thành công' ? 'bg-emerald-500/10 text-emerald-400' : d.status === 'Từ chối' ? 'bg-red-500/10 text-red-400' : 'bg-yellow-500/10 text-yellow-400'}`}>{d.status}</span>
+                      <div className="flex flex-col gap-1 items-end">
+                        <span className={`px-2 py-1 rounded text-[10px] md:text-xs font-bold ${d.status === 'Thành công' ? 'bg-emerald-500/10 text-emerald-400' : d.status === 'Từ chối' || d.status === 'Đã hủy' ? 'bg-red-500/10 text-red-400' : 'bg-yellow-500/10 text-yellow-400'}`}>{d.status}</span>
+                        {d.status === 'Chờ duyệt' && (
+                          <button onClick={() => handleCancelDepositClient(d.id)} className="text-[10px] text-red-400 hover:text-red-300 underline font-bold mt-1">Hủy đơn</button>
+                        )}
+                      </div>
                     </div>
                   ))
                 }
@@ -2154,9 +2182,12 @@ const App = () => {
                       </p>
                       {d.bonusAmount > 0 && <p className="text-[10px] text-rose-400 font-bold mb-1">+ {new Intl.NumberFormat('vi-VN').format(d.bonusAmount)}đ (Voucher)</p>}
                       <p className={`text-[10px] md:text-xs font-bold inline-block px-2 py-0.5 rounded mt-1 
-                        ${d.status === 'Thành công' ? 'text-emerald-500 bg-emerald-500/10' : d.status === 'Từ chối' ? 'text-rose-400 bg-rose-500/10' : 'text-yellow-500 bg-yellow-500/10'}`}>
+                        ${d.status === 'Thành công' ? 'text-emerald-500 bg-emerald-500/10' : d.status === 'Từ chối' || d.status === 'Đã hủy' ? 'text-rose-400 bg-rose-500/10' : 'text-yellow-500 bg-yellow-500/10'}`}>
                         {d.status}
                       </p>
+                      {d.status === 'Chờ duyệt' && (
+                        <button onClick={() => handleCancelDepositClient(d.id)} className="text-[10px] text-rose-400 hover:text-rose-300 underline font-bold ml-2 block md:inline-block">Hủy đơn</button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -3300,9 +3331,9 @@ const App = () => {
                           const isMine = m.senderId === currentUser?.id;
                           return (
                             <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                              <div className={`max-w-[75%] rounded-2xl px-4 py-2 ${isMine ? 'bg-rose-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'}`}>
+                              <div className={`max-w-[75%] rounded-2xl px-4 py-2 ${isMine ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'}`}>
                                 <p className="text-sm">{m.content}</p>
-                                <p className={`text-[9px] mt-1 text-right ${isMine ? 'text-rose-200' : 'text-slate-400'}`}>{new Date(m.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</p>
+                                <p className={`text-[9px] mt-1 text-right ${isMine ? 'text-blue-200' : 'text-slate-400'}`}>{new Date(m.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - {new Date(m.timestamp).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}</p>
                               </div>
                             </div>
                           )
