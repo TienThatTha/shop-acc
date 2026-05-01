@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
         };
 
         // Gửi sang Telegram
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        const tgResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -66,7 +66,63 @@ Deno.serve(async (req) => {
             reply_markup: inlineKeyboard
           })
         });
+
+        // Lưu message_id để sau này có thể xóa
+        const tgData = await tgResponse.json();
+        if (tgData.ok && tgData.result?.message_id) {
+          await supabaseAdmin
+            .from('deposit_requests')
+            .update({ telegram_message_id: tgData.result.message_id })
+            .eq('id', requestId);
+        }
       }
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
+    }
+
+    // =====================================================================
+    // TRƯỜNG HỢP: KHÁCH HỦY ĐƠN NẠP -> XÓA TIN NHẮN TRÊN TELEGRAM
+    // =====================================================================
+    if (payload.type === 'delete_request') {
+      const { requestId } = payload;
+      
+      // Lấy telegram_message_id từ database
+      const { data: reqData } = await supabaseAdmin
+        .from('deposit_requests')
+        .select('telegram_message_id')
+        .eq('id', requestId)
+        .single();
+
+      if (reqData && reqData.telegram_message_id) {
+        // Xóa tin nhắn
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: CHAT_ID,
+            message_id: reqData.telegram_message_id
+          })
+        });
+      }
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
+    }
+
+    // =====================================================================
+    // TRƯỜNG HỢP: THÔNG BÁO CHUNG TỪ HỆ THỐNG (THAY CHO EMAIL)
+    // =====================================================================
+    if (payload.type === 'admin_alert') {
+      const { actionName, detailMessage } = payload;
+      const alertText = `🚨 <b>THÔNG BÁO TỪ HỆ THỐNG</b>\n\n📌 <b>${actionName}</b>\n📝 ${detailMessage}`;
+      
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: alertText,
+          parse_mode: 'HTML'
+        })
+      });
+      
       return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
     }
 

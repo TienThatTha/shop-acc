@@ -90,13 +90,14 @@ const uploadToImgBB = async (base64String) => {
 
 const App = () => {
 
-  // --- BỘ ĐÀM GỬI EMAIL BÁO CHO ADMIN ---
+  // --- BỘ ĐÀM GỬI EMAIL & TELEGRAM BÁO CHO ADMIN ---
   const sendAdminAlert = (actionName, detailMessage) => {
     const templateParams = {
       action: actionName,
       details: detailMessage,
     };
 
+    // 1. Gửi qua EmailJS (Mặc định)
     emailjs.send(
       'service_f2gzbuj',
       'template_465wjp8',
@@ -107,6 +108,11 @@ const App = () => {
     }).catch((err) => {
       console.error('Lỗi gửi Email:', err);
     });
+
+    // 2. Gửi qua Telegram Bot
+    supabase.functions.invoke('telegram-bot', {
+      body: { type: 'admin_alert', actionName, detailMessage }
+    }).catch(err => console.error('Lỗi gửi Telegram:', err));
   };
 
   // --- HÀM GỬI MAIL THÔNG BÁO CHO KHÁCH KHI NẠP TIỀN THÀNH CÔNG ---
@@ -2047,6 +2053,11 @@ const App = () => {
           } else {
             setDepositRequests(depositRequests.map(req => req.id === id ? { ...req, status: 'Đã hủy' } : req));
             showToast("Đã hủy đơn nạp thành công!", 'success');
+            
+            // Xóa tin nhắn Telegram
+            supabase.functions.invoke('telegram-bot', { 
+              body: { type: 'delete_request', requestId: id } 
+            }).catch(err => console.error("Lỗi xóa tin nhắn Telegram:", err));
           }
         }
       });
