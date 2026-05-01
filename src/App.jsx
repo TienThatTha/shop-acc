@@ -6,7 +6,8 @@ import {
   Settings, Edit, Trash2, PlusCircle, Image as ImageIcon,
   History, Target, Gift, Save, Upload, Plus, Unlock, QrCode,
   Download, Copy, Check, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ZoomIn,
-  Sparkles, TrendingUp, Users, Ticket, Settings2, MessageCircle, Send, Eye, EyeOff
+  Sparkles, TrendingUp, Users, Ticket, Settings2, MessageCircle, Send, Eye, EyeOff,
+  ArrowLeftRight
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import emailjs from '@emailjs/browser';
@@ -183,6 +184,7 @@ const App = () => {
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [fullScreenImage, setFullScreenImage] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State quản lý menu trên điện thoại
+  const [showUserDropdown, setShowUserDropdown] = useState(false); // State dropdown menu user
 
   // --- STATE MODALS ---
   const [rentModalData, setRentModalData] = useState(null);
@@ -1270,16 +1272,41 @@ const App = () => {
 
               </div>
               {/* Nút cá nhân ẩn bớt trên màn hình cực nhỏ vì đã có bottom nav */}
-              <button onClick={() => setCurrentView('security')} className="hidden sm:flex items-center gap-2 text-slate-300 hover:text-white transition-colors bg-[#0B1120] p-2 rounded-full sm:rounded-lg sm:px-3 sm:py-2 border border-slate-700 relative">
-                <User size={18} />
-                <div className="hidden sm:flex items-center gap-1.5 transition-opacity">
-                  <span className="text-sm font-semibold">{currentUser.name}</span>
-                  {calculateTotalRecharged(currentUser?.id) >= 3000000 && (
-                    <span className="bg-gradient-to-r from-yellow-400 to-amber-600 text-[#0B1120] text-[9px] px-1.5 py-0.5 rounded font-black shadow-[0_0_10px_rgba(250,204,21,0.5)]">VIP</span>
-                  )}
-                </div>
-                {currentUser.role !== 'admin' && unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full animate-pulse">{unreadCount}</span>}
-              </button>
+              <div className="relative hidden sm:block">
+                <button onClick={() => setShowUserDropdown(!showUserDropdown)} className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors bg-[#0B1120] p-2 rounded-lg px-3 py-2 border border-slate-700 relative">
+                  <User size={18} />
+                  <div className="flex items-center gap-1.5 transition-opacity">
+                    <span className="text-sm font-semibold">{currentUser.name}</span>
+                    {calculateTotalRecharged(currentUser?.id) >= 3000000 && (
+                      <span className="bg-gradient-to-r from-yellow-400 to-amber-600 text-[#0B1120] text-[9px] px-1.5 py-0.5 rounded font-black shadow-[0_0_10px_rgba(250,204,21,0.5)]">VIP</span>
+                    )}
+                  </div>
+                  <ChevronDown size={14} className={`transition-transform duration-200 ${showUserDropdown ? 'rotate-180' : ''}`} />
+                  {currentUser.role !== 'admin' && unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full animate-pulse">{unreadCount}</span>}
+                </button>
+
+                {/* DROPDOWN MENU */}
+                {showUserDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-[29]" onClick={() => setShowUserDropdown(false)}></div>
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-[#151D2F] border border-slate-700 rounded-xl shadow-2xl z-[30] py-2 animate-fade-in overflow-hidden">
+                      <button onClick={() => { setShowUserDropdown(false); setCurrentView('security'); setProfileTab('info'); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-300 hover:bg-blue-600/20 hover:text-blue-400 transition-colors flex items-center gap-3">
+                        <User size={18} className="text-blue-400" /> Quản lý chung
+                      </button>
+                      <button onClick={() => { setShowUserDropdown(false); setCurrentView('security'); setProfileTab('transfer'); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-300 hover:bg-emerald-600/20 hover:text-emerald-400 transition-colors flex items-center gap-3">
+                        <ArrowLeftRight size={18} className="text-emerald-400" /> Chuyển tiền
+                      </button>
+                      <button onClick={() => { setShowUserDropdown(false); setCurrentView('security'); setProfileTab('vip'); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-300 hover:bg-yellow-600/20 hover:text-yellow-400 transition-colors flex items-center gap-3">
+                        <Sparkles size={18} className="text-yellow-400" /> VIP
+                      </button>
+                      <div className="border-t border-slate-700 my-1"></div>
+                      <button onClick={() => { setShowUserDropdown(false); setConfirmDialog({ title: 'Đăng xuất', message: 'Bạn có chắc muốn đăng xuất?', onConfirm: async () => { await supabase.auth.signOut(); localStorage.removeItem('shop_cached_user'); localStorage.removeItem('shop_user_id'); setCurrentUser(null); setCurrentView('dashboard'); showToast('Đã đăng xuất an toàn!'); } }); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-rose-400 hover:bg-rose-600/20 hover:text-rose-300 transition-colors flex items-center gap-3">
+                        <LogOut size={18} /> Đăng xuất
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </>
           ) : (
             <>
@@ -1701,9 +1728,16 @@ const App = () => {
       const newName = e.target.name.value;
 
       // 1. Cập nhật bảng 'users' trước để giao diện hiện đúng
+      const updatePayload = { name: newName, phone: newPhone, email: newEmail };
+
+      // Nếu đổi email → reset trạng thái xác thực
+      if (newEmail !== currentUser.email) {
+        updatePayload.is_email_verified = false;
+      }
+
       const { error: dbError } = await supabase
         .from('users')
-        .update({ name: newName, phone: newPhone, email: newEmail })
+        .update(updatePayload)
         .eq('id', currentUser?.id);
 
       if (dbError) return showToast("Lỗi cập nhật bảng: " + dbError.message, 'error');
@@ -1714,17 +1748,22 @@ const App = () => {
         if (authErr) {
           return showToast("Lỗi Auth: " + authErr.message, 'error');
         }
-        // NẾU ĐỔI EMAIL THÌ ĐẶT LẠI TRẠNG THÁI XÁC THỰC VỀ FALSE
-        updatedData.is_email_verified = false;
         showToast("Đã đổi Email! Bạn cần xác thực lại Email mới.", 'success');
+      } else {
+        showToast("Đã cập nhật thông tin thành công!");
       }
 
       // Cập nhật lại state cục bộ để web không bị treo
-      // Cập nhật lại state cục bộ để web không bị treo
-      const updatedUser = { ...currentUser, name: newName, phone: newPhone, email: newEmail };
+      const updatedUser = {
+        ...currentUser,
+        name: newName,
+        phone: newPhone,
+        email: newEmail,
+        ...(newEmail !== currentUser.email ? { is_email_verified: false } : {})
+      };
       setCurrentUser(updatedUser);
-      localStorage.setItem('shop_cached_user', JSON.stringify(userData));
-      setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u)); // Bổ sung dòng này;
+      localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+      setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u));
     };
 
     const handleChangePassword = async (e) => {
@@ -1791,6 +1830,8 @@ const App = () => {
         <main className="w-full max-w-[1400px] mx-auto px-4 lg:pr-28 pt-4 md:pt-6 mt-4">
           <div className="flex gap-2 overflow-x-auto pb-4 mb-4 border-b border-slate-800 scrollbar-hide">
             <button onClick={() => setProfileTab('info')} className={`px-4 py-2 font-bold rounded-lg whitespace-nowrap flex items-center gap-2 ${profileTab === 'info' ? 'bg-blue-600 text-white' : 'bg-[#151D2F] text-slate-400 hover:text-white'}`}><User size={18} /> Quản lý chung</button>
+            <button onClick={() => setProfileTab('transfer')} className={`px-4 py-2 font-bold rounded-lg whitespace-nowrap flex items-center gap-2 ${profileTab === 'transfer' ? 'bg-emerald-600 text-white' : 'bg-[#151D2F] text-slate-400 hover:text-white'}`}><ArrowLeftRight size={18} /> Chuyển tiền</button>
+            <button onClick={() => setProfileTab('vip')} className={`px-4 py-2 font-bold rounded-lg whitespace-nowrap flex items-center gap-2 ${profileTab === 'vip' ? 'bg-yellow-600 text-white' : 'bg-[#151D2F] text-slate-400 hover:text-white'}`}><Sparkles size={18} /> VIP</button>
             {currentUser?.role !== 'admin' && (
               <button onClick={() => setProfileTab('inbox')} className={`px-4 py-2 font-bold rounded-lg whitespace-nowrap flex items-center gap-2 relative ${profileTab === 'inbox' ? 'bg-rose-600 text-white' : 'bg-[#151D2F] text-slate-400 hover:text-white'}`}>
                 <MessageCircle size={18} /> Hộp thư hỗ trợ
@@ -1855,27 +1896,6 @@ const App = () => {
                   <button type="submit" className="bg-rose-600 hover:bg-rose-700 text-white font-medium py-2.5 px-6 rounded-lg shadow-lg w-full md:w-auto">Cập nhật mật khẩu</button>
                 </form>
               </div>
-              {/* THANH TIẾN TRÌNH LÊN VIP */}
-              <div className="bg-[#151D2F] p-6 rounded-2xl border border-slate-800 shadow-xl mb-6">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">Tiến trình VIP</span>
-                  <span className="text-sm font-black text-yellow-500">
-                    {new Intl.NumberFormat('vi-VN').format(calculateTotalRecharged(currentUser?.id))} / 3.000.000đ
-                  </span>
-                </div>
-                <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-                  <div
-                    className="h-full bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 shadow-[0_0_10px_rgba(250,204,21,0.4)] transition-all duration-1000"
-                    style={{ width: `${Math.min((calculateTotalRecharged(currentUser?.id) / 3000000) * 100, 100)}%` }}
-                  ></div>
-                </div>
-                <p className="text-xs text-slate-500 mt-3 text-center">
-                  {calculateTotalRecharged(currentUser?.id) >= 3000000
-                    ? "🎉 Chúc mừng! Bạn đã đạt VIP. Nhấn nút bên dưới để xem đặc quyền!"
-                    : `Cần nạp thêm ${new Intl.NumberFormat('vi-VN').format(3000000 - calculateTotalRecharged(currentUser?.id))}đ để lên VIP`}
-                </p>
-                <button onClick={() => setCurrentView('vip_info')} className="w-full mt-4 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 py-2 rounded-lg font-bold text-sm transition-colors border border-yellow-500/20">Xem Đặc Quyền VIP</button>
-              </div>
               <button onClick={() => {
                 setConfirmDialog({
                   title: 'Đăng xuất', message: 'Bạn có chắc muốn đăng xuất khỏi hệ thống?',
@@ -1891,6 +1911,182 @@ const App = () => {
               }} className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 py-4 rounded-xl flex items-center justify-center gap-2 border border-red-500/20 font-bold transition-colors">
                 <LogOut size={18} /> Đăng xuất tài khoản
               </button>
+            </div>
+          )}
+
+          {profileTab === 'transfer' && (
+            <div className="space-y-6 max-w-2xl mx-auto animate-fade-in">
+              <div className="bg-[#151D2F] p-6 rounded-2xl border border-slate-800 shadow-xl">
+                <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2"><ArrowLeftRight size={20} className="text-emerald-500" /> Chuyển tiền cho người khác</h3>
+                <p className="text-xs text-slate-400 mb-6">Chuyển số dư chính (không bao gồm Quỹ Bảo Lưu) sang tài khoản khác trong hệ thống. Nhập SĐT người nhận để tìm kiếm.</p>
+
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  const phone = e.target.receiverPhone.value.trim();
+                  const amount = parseInt(e.target.transferAmount.value);
+
+                  if (!phone || !amount || amount <= 0) return showToast('Vui lòng nhập đầy đủ thông tin!', 'error');
+                  if (amount < 1000) return showToast('Số tiền chuyển tối thiểu là 1.000đ!', 'error');
+
+                  // Tìm người nhận theo SĐT
+                  const receiver = usersDb.find(u => u.phone === phone);
+                  if (!receiver) {
+                    // Nếu không có trong RAM, thử gọi DB
+                    const { data: dbUser } = await supabase.from('users').select('*').eq('phone', phone).single();
+                    if (!dbUser) return showToast('Không tìm thấy tài khoản với SĐT này!', 'error');
+                    // Tìm thấy trên DB
+                    handleTransferMoney(dbUser, amount, e.target);
+                  } else {
+                    if (receiver.id === currentUser.id) return showToast('Không thể chuyển tiền cho chính mình!', 'error');
+                    handleTransferMoney(receiver, amount, e.target);
+                  }
+
+                  async function handleTransferMoney(receiver, amount, formEl) {
+                    if (receiver.id === currentUser.id) return showToast('Không thể chuyển tiền cho chính mình!', 'error');
+                    if (currentUser.balance < amount) return showToast(`Số dư không đủ! Bạn chỉ có ${new Intl.NumberFormat('vi-VN').format(currentUser.balance)}đ.`, 'error');
+
+                    setConfirmDialog({
+                      title: 'Xác nhận chuyển tiền',
+                      message: `Chuyển ${new Intl.NumberFormat('vi-VN').format(amount)}đ cho "${receiver.name}" (SĐT: ${receiver.phone})?\n\nSố dư sau giao dịch: ${new Intl.NumberFormat('vi-VN').format(currentUser.balance - amount)}đ`,
+                      onConfirm: async () => {
+                        // 1. Lấy dữ liệu sống từ DB
+                        const { data: liveSender } = await supabase.from('users').select('*').eq('id', currentUser.id).single();
+                        const { data: liveReceiver } = await supabase.from('users').select('*').eq('id', receiver.id).single();
+                        if (!liveSender || !liveReceiver) return showToast('Lỗi hệ thống!', 'error');
+                        if (liveSender.balance < amount) return showToast('Số dư không đủ!', 'error');
+
+                        // 2. Trừ tiền người gửi
+                        const { error: e1 } = await supabase.from('users').update({ balance: liveSender.balance - amount }).eq('id', liveSender.id);
+                        if (e1) return showToast('Lỗi trừ tiền: ' + e1.message, 'error');
+
+                        // 3. Cộng tiền người nhận
+                        const { error: e2 } = await supabase.from('users').update({ balance: liveReceiver.balance + amount }).eq('id', liveReceiver.id);
+                        if (e2) return showToast('Lỗi cộng tiền: ' + e2.message, 'error');
+
+                        // 4. Ghi lịch sử giao dịch cho CẢ HAI
+                        const now = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN');
+                        await supabase.from('transactions').insert([
+                          {
+                            id: `TF${Date.now()}S`, user: liveSender.name,
+                            action: `Chuyển tiền cho ${liveReceiver.name} (${liveReceiver.phone})`,
+                            amount: amount, date: now, status: 'Thành công', type: 'transfer_out',
+                            accDetails: { balanceAfter: liveSender.balance - amount, fundAfter: liveSender.rentFund || 0 }
+                          },
+                          {
+                            id: `TF${Date.now()}R`, user: liveReceiver.name,
+                            action: `Nhận tiền từ ${liveSender.name} (${liveSender.phone})`,
+                            amount: amount, date: now, status: 'Thành công', type: 'transfer_in',
+                            accDetails: { balanceAfter: liveReceiver.balance + amount, fundAfter: liveReceiver.rentFund || 0 }
+                          }
+                        ]);
+
+                        // 5. Cập nhật giao diện
+                        const updatedSender = { ...currentUser, balance: liveSender.balance - amount };
+                        setCurrentUser(updatedSender);
+                        localStorage.setItem('shop_cached_user', JSON.stringify(updatedSender));
+                        setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedSender : u.id === receiver.id ? { ...u, balance: liveReceiver.balance + amount } : u));
+
+                        formEl.reset();
+                        showToast(`Đã chuyển ${new Intl.NumberFormat('vi-VN').format(amount)}đ cho ${liveReceiver.name} thành công!`);
+                        sendAdminAlert('CHUYỂN TIỀN', `${liveSender.name} vừa chuyển ${new Intl.NumberFormat('vi-VN').format(amount)}đ cho ${liveReceiver.name}.`);
+                      }
+                    });
+                  }
+                }} className="space-y-4">
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">SĐT người nhận</label>
+                    <div className="relative">
+                      <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                      <input name="receiverPhone" type="tel" pattern="[0-9]{10,11}" maxLength="11" onInput={enforceNumberInput} required placeholder="Nhập số điện thoại..." className="w-full pl-12 pr-4 py-3 rounded-xl bg-[#0B1120] border border-slate-700 focus:border-emerald-500 outline-none text-white" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">Số tiền chuyển (VNĐ)</label>
+                    <div className="relative">
+                      <Wallet size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                      <input name="transferAmount" type="number" min="1000" required placeholder="Nhập số tiền..." className="w-full pl-12 pr-4 py-3 rounded-xl bg-[#0B1120] border border-slate-700 focus:border-emerald-500 outline-none text-white" />
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">Số dư hiện có: <strong className="text-emerald-400">{new Intl.NumberFormat('vi-VN').format(currentUser.balance)}đ</strong> (Quỹ thuê không được tính)</p>
+                  </div>
+                  <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-600/20 transition-colors flex items-center justify-center gap-2">
+                    <ArrowLeftRight size={18} /> Chuyển tiền
+                  </button>
+                </form>
+              </div>
+
+              <div className="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <AlertCircle size={18} className="text-yellow-500 mt-0.5 shrink-0" />
+                  <div className="text-xs text-slate-400 space-y-1">
+                    <p className="text-yellow-400 font-bold">Lưu ý quan trọng:</p>
+                    <p>• Chỉ chuyển được <strong className="text-white">Số dư chính</strong>, không chuyển được Quỹ Bảo Lưu Thuê.</p>
+                    <p>• Giao dịch chuyển tiền <strong className="text-white">không thể hoàn tác</strong>. Hãy kiểm tra kỹ SĐT trước khi xác nhận.</p>
+                    <p>• Mọi giao dịch đều được ghi lại trong Lịch sử và thông báo cho Admin.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {profileTab === 'vip' && (
+            <div className="space-y-6 max-w-2xl mx-auto animate-fade-in">
+              {/* BANNER VIP */}
+              <div className="w-full bg-gradient-to-br from-yellow-600/20 to-amber-900/20 border border-yellow-500/30 rounded-2xl p-6 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-[0_0_30px_rgba(234,179,8,0.1)]">
+                <Sparkles size={50} className="text-yellow-500 mb-3 animate-pulse" />
+                <h2 className="text-2xl md:text-3xl font-black text-white mb-1 uppercase tracking-tighter">Khách Hàng VIP</h2>
+                <p className="text-yellow-500/80 font-medium text-sm">Nâng tầm trải nghiệm - Khẳng định đẳng cấp</p>
+              </div>
+
+              {/* THANH TIẾN TRÌNH */}
+              <div className="bg-[#151D2F] p-6 rounded-2xl border border-slate-800 shadow-xl">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">Tiến trình VIP</span>
+                  <span className="text-sm font-black text-yellow-500">
+                    {new Intl.NumberFormat('vi-VN').format(calculateTotalRecharged(currentUser?.id))} / 3.000.000đ
+                  </span>
+                </div>
+                <div className="w-full h-4 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                  <div
+                    className="h-full bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 shadow-[0_0_10px_rgba(250,204,21,0.4)] transition-all duration-1000 rounded-full"
+                    style={{ width: `${Math.min((calculateTotalRecharged(currentUser?.id) / 3000000) * 100, 100)}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-slate-500 mt-3 text-center">
+                  {calculateTotalRecharged(currentUser?.id) >= 3000000
+                    ? '🎉 Chúc mừng! Bạn đã đạt hạng VIP và được hưởng đầy đủ đặc quyền!'
+                    : `Cần nạp thêm ${new Intl.NumberFormat('vi-VN').format(3000000 - calculateTotalRecharged(currentUser?.id))}đ để lên VIP`}
+                </p>
+              </div>
+
+              {/* ĐẶC QUYỀN VIP */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-[#151D2F] border border-slate-800 p-5 rounded-2xl shadow-xl">
+                  <h3 className="text-base font-bold text-yellow-500 mb-4 flex items-center gap-2"><Target size={18} /> Cách thức lên VIP</h3>
+                  <ul className="space-y-3 text-sm text-slate-400">
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 mt-1.5 shrink-0"></div>
+                      <span>Tổng tiền nạp tích lũy đạt từ <strong className="text-white">3.000.000 VNĐ</strong> trở lên.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 mt-1.5 shrink-0"></div>
+                      <span>Hệ thống tự động nâng cấp ngay khi bạn đủ điều kiện.</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="bg-[#151D2F] border border-slate-800 p-5 rounded-2xl shadow-xl">
+                  <h3 className="text-base font-bold text-rose-500 mb-4 flex items-center gap-2"><ShieldCheck size={18} /> Đặc quyền VIP</h3>
+                  <ul className="space-y-3 text-sm text-slate-400">
+                    <li className="flex items-center gap-3">
+                      <div className="bg-emerald-500/10 p-2 rounded-lg text-emerald-500"><ShieldCheck size={16} /></div>
+                      <span><strong className="text-white">MIỄN CCCD:</strong> Thuê acc không cần chụp giấy tờ.</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="bg-blue-500/10 p-2 rounded-lg text-blue-500"><Wallet size={16} /></div>
+                      <span><strong className="text-white">MIỄN CỌC:</strong> Không bị thu 500k tiền cọc an toàn.</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           )}
 
@@ -2053,10 +2249,10 @@ const App = () => {
           } else {
             setDepositRequests(depositRequests.map(req => req.id === id ? { ...req, status: 'Đã hủy' } : req));
             showToast("Đã hủy đơn nạp thành công!", 'success');
-            
+
             // Xóa tin nhắn Telegram
-            supabase.functions.invoke('telegram-bot', { 
-              body: { type: 'delete_request', requestId: id } 
+            supabase.functions.invoke('telegram-bot', {
+              body: { type: 'delete_request', requestId: id }
             }).catch(err => console.error("Lỗi xóa tin nhắn Telegram:", err));
           }
         }
@@ -3685,6 +3881,12 @@ const App = () => {
                                         await supabase.from('deposit_requests').update({ status: 'Từ chối' }).eq('id', d.id);
                                         // 2. Tắt trên màn hình
                                         setDepositRequests(depositRequests.map(req => req.id === d.id ? { ...req, status: 'Từ chối' } : req));
+
+                                        // 3. Cập nhật tin nhắn Telegram (xóa nút, đổi thành "Đã từ chối")
+                                        supabase.functions.invoke('telegram-bot', {
+                                          body: { type: 'web_rejected', requestId: d.id }
+                                        }).catch(err => console.error("Lỗi cập nhật Telegram:", err));
+
                                         showToast("Đã từ chối lệnh!");
                                       }
                                     });
@@ -3960,8 +4162,29 @@ const App = () => {
                                   }
                                 });
                               }} className="flex-1 bg-rose-600/20 px-4 py-3 rounded-xl text-rose-500 border border-rose-500/30 text-sm font-bold hover:bg-rose-500 hover:text-white transition-colors">Từ Chối Đơn</button>
-                            )}                    {r.status === 'Đã giao acc' && isStillRented && (
-                              <button onClick={() => setEditRentModal({ req: r, acc: accObj })} className="flex-1 bg-blue-600 px-4 py-3 rounded-xl text-white text-sm font-bold hover:bg-blue-500 transition-colors flex justify-center items-center gap-1"><Edit size={16} /> Sửa Thời Gian</button>
+                            )}
+                            {/* NÚT XÁC MINH CCCD NHANH */}
+                            {(r.info?.kycMethod === 'cccd' || r.info?.kycMethod === 'verified_cccd') && (() => {
+                              const targetUser = usersDb.find(u => u.id === r.userId);
+                              return !targetUser?.is_cccd_verified ? (
+                                <button onClick={async () => {
+                                  const { error } = await supabase.from('users').update({ is_cccd_verified: true }).eq('id', r.userId);
+                                  if (error) return showToast("Lỗi: " + error.message, 'error');
+                                  setUsersDb(usersDb.map(u => u.id === r.userId ? { ...u, is_cccd_verified: true } : u));
+                                  showToast(`Đã đánh dấu CCCD hợp lệ cho ${r.user}!`);
+                                }} className="flex-1 bg-purple-600/20 px-4 py-3 rounded-xl text-purple-400 border border-purple-500/30 text-sm font-bold hover:bg-purple-500 hover:text-white transition-colors flex items-center justify-center gap-1.5">
+                                  <ShieldCheck size={16} /> Xác minh CCCD
+                                </button>
+                              ) : (
+                                <div className="flex-1 bg-emerald-500/10 px-4 py-3 rounded-xl text-emerald-400 border border-emerald-500/30 text-sm font-bold flex items-center justify-center gap-1.5 cursor-default">
+                                  <CheckCircle2 size={16} /> CCCD đã xác minh ✓
+                                </div>
+                              );
+                            })()}
+                            {r.status === 'Đã giao acc' && isStillRented && (
+                              <button onClick={() => setEditRentModal({ req: r, acc: accObj })} className="flex-1 bg-blue-600 px-4 py-3 rounded-xl text-white text-sm font-bold hover:bg-blue-500 transition-colors flex justify-center items-center gap-1">
+                                <Edit size={16} /> Sửa Thời Gian
+                              </button>
                             )}
                             <button onClick={() => setConfirmDialog({ title: 'Xoá yêu cầu', message: 'Xoá yêu cầu thuê này?', onConfirm: () => setRentRequests(rentRequests.filter(x => x.id !== r.id)) })} className="px-4 py-3 bg-rose-500/10 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-colors flex items-center justify-center"><Trash2 size={18} /></button>
                           </div>
@@ -4372,6 +4595,13 @@ const App = () => {
                       sendDepositSuccessEmail(userToUpdate.email, userToUpdate.name, finalAmount);
                     }
                     // -----------------------------------------
+
+                    // --- CẬP NHẬT TIN NHẮN TELEGRAM (Xóa nút Duyệt/Từ chối, đổi thành "Đã duyệt") ---
+                    supabase.functions.invoke('telegram-bot', {
+                      body: { type: 'web_approved', requestId: targetModal.id }
+                    }).catch(err => console.error("Lỗi cập nhật Telegram:", err));
+                    // ---------------------------------------------------------------------------------
+
                     showToast(`Đã cộng ${new Intl.NumberFormat('vi-VN').format(finalAmount)}đ và ${bonusSpins} lượt quay!`);
                   } finally { isProcessingAction = false; }
                 }} className="space-y-4">
@@ -5562,6 +5792,13 @@ const App = () => {
                       let finalImgBase64 = imgBase64;
                       // ĐÃ XÓA logic đẩy CCCD lên ImgBB ở đây để bảo mật tuyệt đối dữ liệu cá nhân của khách hàng.
                       // Toàn bộ ảnh CCCD (Base64) được lưu thẳng vào Supabase Database như cũ thay vì sang Server bên thứ 3.
+
+                      // KIỂM TRA: Mỗi tài khoản chỉ được thuê 1 nick trong 1 lúc
+                      const alreadyRenting = accountsDb.find(a => a.currentRenterId === currentUser.id && a.rentedUntil && a.rentedUntil > Date.now());
+                      if (alreadyRenting) {
+                        isProcessingAction = false;
+                        return showToast(`Bạn đang thuê nick mã #${alreadyRenting.code} rồi! Vui lòng ngưng thuê nick cũ trước khi thuê nick mới.`, 'error');
+                      }
 
                       const { acc, opt } = rentModalData; // Lấy dữ liệu acc và gói thuê
 

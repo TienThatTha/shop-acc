@@ -127,6 +127,64 @@ Deno.serve(async (req) => {
     }
 
     // =====================================================================
+    // TRƯỜNG HỢP: ADMIN DUYỆT TAY TRÊN WEB -> CẬP NHẬT TIN NHẮN TELEGRAM
+    // =====================================================================
+    if (payload.type === 'web_approved') {
+      const { requestId } = payload;
+
+      // Lấy telegram_message_id và thông tin đơn nạp
+      const { data: reqData } = await supabaseAdmin
+        .from('deposit_requests')
+        .select('telegram_message_id, amount, user')
+        .eq('id', requestId)
+        .single();
+
+      if (reqData && reqData.telegram_message_id) {
+        // Cập nhật tin nhắn trên Telegram: xóa nút và đổi nội dung thành "Đã duyệt"
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageText`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: CHAT_ID,
+            message_id: reqData.telegram_message_id,
+            text: `✅ <b>ĐÃ DUYỆT TRÊN WEB</b>\n\nTiền nạp ${reqData.amount.toLocaleString('vi-VN')}đ đã được Admin duyệt thủ công và cộng vào tài khoản khách ${reqData.user}.`,
+            parse_mode: 'HTML'
+          })
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
+    }
+
+    // =====================================================================
+    // TRƯỜNG HỢP: ADMIN TỪ CHỐI TRÊN WEB -> CẬP NHẬT TIN NHẮN TELEGRAM
+    // =====================================================================
+    if (payload.type === 'web_rejected') {
+      const { requestId } = payload;
+
+      const { data: reqData } = await supabaseAdmin
+        .from('deposit_requests')
+        .select('telegram_message_id, amount, user')
+        .eq('id', requestId)
+        .single();
+
+      if (reqData && reqData.telegram_message_id) {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageText`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: CHAT_ID,
+            message_id: reqData.telegram_message_id,
+            text: `❌ <b>ĐÃ TỪ CHỐI TRÊN WEB</b>\n\nLệnh nạp ${reqData.amount.toLocaleString('vi-VN')}đ của khách ${reqData.user} đã bị Admin từ chối thủ công.`,
+            parse_mode: 'HTML'
+          })
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
+    }
+
+    // =====================================================================
     // TRƯỜNG HỢP 2: TỪ TELEGRAM BÁO VỀ (Bạn vừa bấm nút Duyệt/Từ chối)
     // =====================================================================
     if (payload.callback_query) {
@@ -134,7 +192,10 @@ Deno.serve(async (req) => {
       const data = callbackQuery.data; 
       const messageId = callbackQuery.message.message_id;
       
-      const [action, requestId] = data.split('_');
+      // Tách action và requestId an toàn (tránh lỗi nếu ID chứa dấu _)
+      const separatorIndex = data.indexOf('_');
+      const action = data.substring(0, separatorIndex);
+      const requestId = data.substring(separatorIndex + 1);
 
       const { data: reqData } = await supabaseAdmin.from('deposit_requests').select('*').eq('id', requestId).single();
 
@@ -169,6 +230,13 @@ Deno.serve(async (req) => {
             body: JSON.stringify({ chat_id: CHAT_ID, message_id: messageId, text: `✅ <b>ĐÃ DUYỆT (TỰ ĐỘNG CỘNG TIỀN)</b>\n\nTiền nạp ${reqData.amount.toLocaleString('vi-VN')}đ đã được cộng vào tài khoản khách ${reqData.user}.`, parse_mode: 'HTML' })
           });
 
+          // 5. Phản hồi callback để Telegram tắt loading trên nút
+          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ callback_query_id: callbackQuery.id, text: "✅ Đã duyệt và cộng tiền thành công!" })
+          });
+
         } else if (action === 'reject') {
           // Xử lý nút Từ chối
           await supabaseAdmin.from('deposit_requests').update({ status: 'Từ chối' }).eq('id', requestId);
@@ -178,9 +246,16 @@ Deno.serve(async (req) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chat_id: CHAT_ID, message_id: messageId, text: `❌ <b>ĐÃ TỪ CHỐI</b>\n\nLệnh nạp ${reqData.amount.toLocaleString('vi-VN')}đ của khách ${reqData.user} đã bị hủy bỏ.`, parse_mode: 'HTML' })
           });
+
+          // Phản hồi callback để Telegram tắt loading trên nút
+          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ callback_query_id: callbackQuery.id, text: "❌ Đã từ chối lệnh nạp." })
+          });
         }
       } else {
-         // Thông báo nếu lỡ bấm 2 lần
+         // Thông báo nếu lỡ bấm 2 lần hoặc đơn không tồn tại
          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
