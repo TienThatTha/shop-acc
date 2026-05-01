@@ -266,6 +266,7 @@ const App = () => {
   const [adminRentOptions, setAdminRentOptions] = useState([{ time: '', price: '' }]);
   const [showUserModal, setShowUserModal] = useState(false);
   const [isGlobalProcessing, setIsGlobalProcessing] = useState(false);
+  const [isConfirmProcessing, setIsConfirmProcessing] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [viewUserHistory, setViewUserHistory] = useState(null);
   const [showBoostingModal, setShowBoostingModal] = useState(false);
@@ -2404,6 +2405,7 @@ const App = () => {
     const historySpin = myTransactions.filter(t => t.type === 'spin_win' && t.amount !== 0 && !t.isSpinCost);
     const historyBoost = boostingRequests.filter(r => r.user === currentUser?.name);
     const historyDeposit = depositRequests.filter(d => d.userId === currentUser?.id);
+    const historyTransfer = myTransactions.filter(t => t.type === 'transfer_out' || t.type === 'transfer_in');
 
     // Cấu hình các Tab
     const tabs = [
@@ -2411,7 +2413,8 @@ const App = () => {
       { id: 'rent', name: 'Thuê Acc', icon: <Clock size={16} />, data: historyRent },
       { id: 'spin', name: 'Vòng Quay', icon: <Gift size={16} />, data: historySpin },
       { id: 'boost', name: 'Cày Thuê', icon: <Target size={16} />, data: historyBoost },
-      { id: 'deposit', name: 'Nạp Tiền', icon: <Wallet size={16} />, data: historyDeposit }
+      { id: 'deposit', name: 'Nạp Tiền', icon: <Wallet size={16} />, data: historyDeposit },
+      { id: 'transfer', name: 'Chuyển Tiền', icon: <ArrowLeftRight size={16} />, data: historyTransfer }
     ];
 
     const currentData = tabs.find(t => t.id === historyTab)?.data || [];
@@ -2597,6 +2600,35 @@ const App = () => {
                       </p>
                       {d.status === 'Chờ duyệt' && (
                         <button onClick={() => handleCancelDepositClient(d.id)} className="text-[10px] text-rose-400 hover:text-rose-300 underline font-bold ml-2 block md:inline-block">Hủy đơn</button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* 6. RENDER LỊCH SỬ CHUYỂN TIỀN */}
+                {historyTab === 'transfer' && visibleData.map(tx => (
+                  <div key={tx.id} className="p-4 border-b border-slate-800 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className={`p-1.5 rounded-lg ${tx.type === 'transfer_out' ? 'bg-rose-500/10' : 'bg-emerald-500/10'}`}>
+                          <ArrowLeftRight size={14} className={tx.type === 'transfer_out' ? 'text-rose-400' : 'text-emerald-400'} />
+                        </span>
+                        <p className="font-bold text-white text-sm md:text-base">{tx.action}</p>
+                      </div>
+                      <p className="text-[10px] md:text-xs text-slate-500 mt-1 ml-9">{tx.date}</p>
+                    </div>
+                    <div className="text-left md:text-right">
+                      <p className={`font-black text-base md:text-lg ${tx.type === 'transfer_out' ? 'text-rose-500' : 'text-emerald-400'}`}>
+                        {tx.type === 'transfer_out' ? '-' : '+'}{new Intl.NumberFormat('vi-VN').format(tx.amount)}đ
+                      </p>
+                      <p className="text-[10px] md:text-xs font-bold inline-block px-2 py-0.5 rounded mt-1 text-emerald-500 bg-emerald-500/10">{tx.status}</p>
+                      {tx.accDetails && tx.accDetails.balanceAfter !== undefined && (
+                        <div className="mt-1.5 flex flex-col md:items-end text-[10px]">
+                          <p className="text-slate-400">Dư ví: <span className="font-bold text-emerald-400">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.balanceAfter)}đ</span></p>
+                          {tx.accDetails.fee > 0 && (
+                            <p className="text-slate-400">Phí: <span className="font-bold text-rose-400">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.fee)}đ</span></p>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -5547,22 +5579,38 @@ const App = () => {
           <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
             <div className="bg-[#151D2F] border border-slate-700 w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl">
               <div className="p-6 text-center">
-                <div className="w-16 h-16 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/30">
-                  <AlertCircle size={30} className="text-blue-400" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">{confirmDialog.title}</h3>
-                <p className="text-sm text-slate-400">{confirmDialog.message}</p>
+                {isConfirmProcessing ? (
+                  <>
+                    <div className="w-16 h-16 bg-emerald-600/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
+                      <RefreshCw size={30} className="text-emerald-400 animate-spin" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">Đang xử lý...</h3>
+                    <p className="text-sm text-slate-400">Vui lòng chờ trong giây lát, không tắt trang!</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/30">
+                      <AlertCircle size={30} className="text-blue-400" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">{confirmDialog.title}</h3>
+                    <p className="text-sm text-slate-400">{confirmDialog.message}</p>
+                  </>
+                )}
               </div>
               <div className="flex border-t border-slate-800 bg-[#0B1120]">
-                <button onClick={() => setConfirmDialog(null)} className="flex-1 p-4 font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">Hủy</button>
+                <button onClick={() => { if (!isConfirmProcessing) setConfirmDialog(null); }} disabled={isConfirmProcessing} className={`flex-1 p-4 font-bold transition-colors ${isConfirmProcessing ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>Hủy</button>
                 <div className="w-[1px] bg-slate-800"></div>
-                <button onClick={async () => {
-                  if (isProcessingAction) return;
+                <button disabled={isConfirmProcessing} onClick={async () => {
+                  if (isProcessingAction || isConfirmProcessing) return;
                   isProcessingAction = true;
+                  setIsConfirmProcessing(true);
                   const action = confirmDialog.onConfirm;
-                  setConfirmDialog(null);
-                  try { await action(); } catch (e) { console.error(e); } finally { isProcessingAction = false; }
-                }} className="flex-1 p-4 font-bold text-blue-500 hover:bg-blue-600 hover:text-white transition-colors">Đồng Ý</button>
+                  try { await action(); } catch (e) { console.error(e); } finally {
+                    isProcessingAction = false;
+                    setIsConfirmProcessing(false);
+                    setConfirmDialog(null);
+                  }
+                }} className={`flex-1 p-4 font-bold transition-colors ${isConfirmProcessing ? 'text-slate-600 cursor-not-allowed' : 'text-blue-500 hover:bg-blue-600 hover:text-white'}`}>{isConfirmProcessing ? 'Đang xử lý...' : 'Đồng Ý'}</button>
               </div>
             </div>
           </div>
