@@ -1364,6 +1364,115 @@ const App = () => {
     </div>
   );
 
+  const renderFooter = () => (
+    <footer className="w-full max-w-[1500px] mx-auto mt-16 mb-4 px-4 lg:pr-28 flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-12 pb-8 border-t border-slate-800 pt-12">
+
+      {/* CỘT TRÁI: LOGO & SLOGAN */}
+      <div className="flex-shrink-0 flex flex-col items-center justify-center lg:justify-start w-full lg:w-[45%] xl:w-[40%] gap-5">
+
+        {/* CÂU SLOGAN TRÊN CÙNG ĐƯỢC TÙY BIẾN THÀNH CÁC THẺ (PILLS) */}
+        <div className="w-full max-w-[650px] flex flex-wrap justify-center gap-2 md:gap-3 px-2 mb-2">
+          <span className="px-4 py-2 bg-[#151D2F] border border-blue-500/30 text-blue-400 text-[11px] sm:text-[13px] md:text-sm rounded-full font-black shadow-[0_0_15px_rgba(59,130,246,0.15)] flex items-center gap-2 hover:bg-blue-500/10 hover:scale-105 transition-all cursor-default">
+            <Gamepad2 size={18} /> Mua Bán Acc Game
+          </span>
+          <span className="px-4 py-2 bg-[#151D2F] border border-rose-500/30 text-rose-400 text-[11px] sm:text-[13px] md:text-sm rounded-full font-black shadow-[0_0_15px_rgba(244,63,94,0.15)] flex items-center gap-2 hover:bg-rose-500/10 hover:scale-105 transition-all cursor-default">
+            <TrendingUp size={18} /> Cày Thuê Rank & Sự Kiện
+          </span>
+          <span className="px-4 py-2 bg-[#151D2F] border border-emerald-500/30 text-emerald-400 text-[11px] sm:text-[13px] md:text-sm rounded-full font-black shadow-[0_0_15px_rgba(16,185,129,0.15)] flex items-center gap-2 hover:bg-emerald-500/10 hover:scale-105 transition-all cursor-default">
+            <Target size={18} /> Tìm Acc Theo Yêu Cầu
+          </span>
+          <span className="px-4 py-2 bg-[#151D2F] border border-yellow-500/30 text-yellow-400 text-[11px] sm:text-[13px] md:text-sm rounded-full font-black shadow-[0_0_15px_rgba(234,179,8,0.15)] flex items-center gap-2 hover:bg-yellow-500/10 hover:scale-105 transition-all cursor-default">
+            <ShieldCheck size={18} /> Trung Gian Cực Rẻ - Phí 4%
+          </span>
+        </div>
+
+        <img src="/Logo.png" alt="Shop Tiến Gaming" className="w-[95%] sm:w-[85%] lg:w-[90%] max-w-[480px] object-contain hover:scale-105 transition-transform drop-shadow-[0_0_40px_rgba(37,99,235,0.3)]" />
+
+        {/* 3 Ô SLOGAN */}
+        <div className="flex justify-center gap-3 md:gap-4 w-full max-w-[480px]">
+          <div className="flex-1 bg-gradient-to-br from-blue-600/10 to-[#151D2F] border border-blue-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2 text-center shadow-lg hover:border-blue-400 hover:bg-blue-600/20 transition-all group">
+            <ShieldCheck size={28} className="text-blue-400 group-hover:scale-110 group-hover:animate-pulse transition-transform" />
+            <span className="text-white font-black text-[11px] md:text-[13px] uppercase tracking-wider">Tận Tâm</span>
+          </div>
+
+          <div className="flex-1 bg-gradient-to-br from-yellow-500/10 to-[#151D2F] border border-yellow-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2 text-center shadow-lg hover:border-yellow-400 hover:bg-yellow-500/20 transition-all group">
+            <Sparkles size={28} className="text-yellow-400 group-hover:scale-110 group-hover:animate-pulse transition-transform" />
+            <span className="text-white font-black text-[11px] md:text-[13px] uppercase tracking-wider">Chất Lượng</span>
+          </div>
+
+          <div className="flex-1 bg-gradient-to-br from-rose-500/10 to-[#151D2F] border border-rose-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2 text-center shadow-lg hover:border-rose-400 hover:bg-rose-500/20 transition-all group">
+            <Gift size={28} className="text-rose-400 group-hover:scale-110 group-hover:animate-pulse transition-transform" />
+            <span className="text-white font-black text-[11px] md:text-[13px] uppercase tracking-wider">Hậu Mãi</span>
+          </div>
+        </div>
+      </div>
+
+      {/* CỘT PHẢI: THÔNG TIN */}
+      <div className="flex flex-col items-center lg:items-end justify-center w-full lg:flex-1 xl:w-[60%] gap-6">
+        <div className="flex flex-col sm:flex-row gap-4 w-full lg:justify-end">
+          <a href="https://zalo.me/0938240332" target="_blank" rel="noreferrer" className="flex-1 lg:max-w-[280px] flex items-center justify-center lg:justify-start gap-4 bg-[#151D2F] hover:bg-[#1a233a] px-5 py-3.5 rounded-xl border border-blue-500/20 hover:border-blue-500/50 transition-all shadow-lg group relative overflow-hidden">
+            <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform z-10 shrink-0">
+              <span className="text-[#0068FF] font-black text-[11px]">Zalo</span>
+            </div>
+            <div className="text-left z-10">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Hỗ trợ Zalo</p>
+              <p className="text-white font-black tracking-wider text-base">0938.240.332</p>
+            </div>
+          </a>
+
+          <a href="https://www.facebook.com/giatien2408/" target="_blank" rel="noreferrer" className="flex-1 lg:max-w-[280px] flex items-center justify-center lg:justify-start gap-4 bg-[#151D2F] hover:bg-[#1a233a] px-5 py-3.5 rounded-xl border border-blue-500/20 hover:border-blue-500/50 transition-all shadow-lg group relative overflow-hidden">
+            <div className="absolute inset-0 bg-[#1877F2]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="w-10 h-10 bg-gradient-to-b from-[#1877F2] to-[#145CE6] rounded-full flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform z-10 shrink-0">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="white" className="mt-0.5"><path d="M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z" /></svg>
+            </div>
+            <div className="text-left z-10">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Admin Facebook</p>
+              <p className="text-white font-black tracking-wide text-base">Nhâm Gia Tiến</p>
+            </div>
+          </a>
+        </div>
+
+        <div className="bg-[#0f172a] border border-slate-700 p-1 rounded-2xl shadow-2xl w-full max-w-3xl relative overflow-hidden group hover:border-slate-600 transition-colors">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-yellow-500/10 to-emerald-500/10 opacity-50"></div>
+          <div className="bg-[#151D2F] rounded-xl px-4 md:px-6 lg:px-8 py-6 relative z-10 flex flex-col items-center">
+            <p className="text-[11px] md:text-xs text-slate-400 font-bold mb-4 uppercase tracking-widest text-center">Tài Khoản Giao Dịch Chính Thức</p>
+            {/* LOGO TPBANK NẰM TRÊN */}
+            <div className="flex justify-center mb-4 w-full">
+              <img src="/tpbank.png" alt="TPBank" className="h-10 md:h-14 lg:h-16 object-contain rounded-lg bg-white px-3 py-1.5 shadow-[0_0_15px_rgba(139,92,246,0.3)] border border-purple-500/30 hover:scale-105 transition-transform" />
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-2 md:gap-3 text-[14px] sm:text-[15px] md:text-base lg:text-lg font-black w-full">
+              <span className="text-[#8B5CF6] drop-shadow-[0_0_10px_rgba(139,92,246,0.3)] bg-purple-500/10 px-3 py-1.5 rounded-lg border border-purple-500/20 text-center w-full sm:w-auto">TPBANK</span>
+              <span className="hidden sm:block text-slate-700">|</span>
+              <span className="text-yellow-400 tracking-wider font-mono bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/20 text-center whitespace-nowrap w-full sm:w-auto">1000 2973 552</span>
+              <span className="hidden sm:block text-slate-700">|</span>
+              <span className="text-emerald-400 uppercase drop-shadow-[0_0_10px_rgba(16,185,129,0.3)] bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 text-center whitespace-nowrap w-full sm:w-auto">NHAM GIA TIEN</span>
+
+              {/* NÚT COPY TẤT CẢ */}
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText('Ngân hàng: TPBANK\nSTK: 10002973552\nChủ TK: NHAM GIA TIEN');
+                  alert('Đã copy toàn bộ thông tin giao dịch!');
+                }}
+                className="mt-2 sm:mt-0 p-2 sm:ml-1 w-full sm:w-auto bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-white border border-blue-500/30 hover:border-blue-500 rounded-lg transition-all shadow-lg flex items-center justify-center flex-shrink-0 group"
+                title="Copy toàn bộ thông tin"
+              >
+                <Copy size={20} className="group-hover:scale-110 transition-transform" />
+                <span className="ml-2 text-xs font-bold uppercase sm:hidden">Copy Thông Tin</span>
+              </button>
+            </div>
+
+            <div className="mt-5 flex items-center justify-center gap-2 bg-rose-500/10 border border-rose-500/20 w-full py-3 rounded-lg px-2 text-center">
+              <AlertCircle size={16} className="text-rose-500 animate-pulse shrink-0" />
+              <p className="text-[11px] md:text-xs text-rose-400 italic font-bold">Lưu ý: Chỉ sử dụng duy nhất tài khoản này khi giao dịch trên website. Vui lòng kiểm tra kỹ trước khi chuyển khoản!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+
   const renderDashboardScreen = () => {
     // Chỉ lấy những tài khoản chưa bị đánh dấu Đã Bán
     const availableAccounts = accountsDb.filter(acc => !acc.is_sold);
@@ -1560,112 +1669,7 @@ const App = () => {
         </main>
 
         {/* --- FOOTER TRANG CHỦ --- */}
-        <footer className="w-full max-w-[1500px] mx-auto mt-16 mb-4 px-4 lg:pr-28 flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-12 pb-8 border-t border-slate-800 pt-12">
-
-          {/* CỘT TRÁI: LOGO & SLOGAN */}
-          <div className="flex-shrink-0 flex flex-col items-center justify-center lg:justify-start w-full lg:w-[45%] xl:w-[40%] gap-5">
-
-            {/* CÂU SLOGAN TRÊN CÙNG ĐƯỢC TÙY BIẾN THÀNH CÁC THẺ (PILLS) */}
-            <div className="w-full max-w-[650px] flex flex-wrap justify-center gap-2 md:gap-3 px-2 mb-2">
-              <span className="px-4 py-2 bg-[#151D2F] border border-blue-500/30 text-blue-400 text-[11px] sm:text-[13px] md:text-sm rounded-full font-black shadow-[0_0_15px_rgba(59,130,246,0.15)] flex items-center gap-2 hover:bg-blue-500/10 hover:scale-105 transition-all cursor-default">
-                <Gamepad2 size={18} /> Mua Bán Acc Game
-              </span>
-              <span className="px-4 py-2 bg-[#151D2F] border border-rose-500/30 text-rose-400 text-[11px] sm:text-[13px] md:text-sm rounded-full font-black shadow-[0_0_15px_rgba(244,63,94,0.15)] flex items-center gap-2 hover:bg-rose-500/10 hover:scale-105 transition-all cursor-default">
-                <TrendingUp size={18} /> Cày Thuê Rank & Sự Kiện
-              </span>
-              <span className="px-4 py-2 bg-[#151D2F] border border-emerald-500/30 text-emerald-400 text-[11px] sm:text-[13px] md:text-sm rounded-full font-black shadow-[0_0_15px_rgba(16,185,129,0.15)] flex items-center gap-2 hover:bg-emerald-500/10 hover:scale-105 transition-all cursor-default">
-                <Target size={18} /> Tìm Acc Theo Yêu Cầu
-              </span>
-              <span className="px-4 py-2 bg-[#151D2F] border border-yellow-500/30 text-yellow-400 text-[11px] sm:text-[13px] md:text-sm rounded-full font-black shadow-[0_0_15px_rgba(234,179,8,0.15)] flex items-center gap-2 hover:bg-yellow-500/10 hover:scale-105 transition-all cursor-default">
-                <ShieldCheck size={18} /> Trung Gian Cực Rẻ - Phí 4%
-              </span>
-            </div>
-
-            <img src="/Logo.png" alt="Shop Tiến Gaming" className="w-[95%] sm:w-[85%] lg:w-[90%] max-w-[480px] object-contain hover:scale-105 transition-transform drop-shadow-[0_0_40px_rgba(37,99,235,0.3)]" />
-
-            {/* 3 Ô SLOGAN */}
-            <div className="flex justify-center gap-3 md:gap-4 w-full max-w-[480px]">
-              <div className="flex-1 bg-gradient-to-br from-blue-600/10 to-[#151D2F] border border-blue-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2 text-center shadow-lg hover:border-blue-400 hover:bg-blue-600/20 transition-all group">
-                <ShieldCheck size={28} className="text-blue-400 group-hover:scale-110 group-hover:animate-pulse transition-transform" />
-                <span className="text-white font-black text-[11px] md:text-[13px] uppercase tracking-wider">Tận Tâm</span>
-              </div>
-
-              <div className="flex-1 bg-gradient-to-br from-yellow-500/10 to-[#151D2F] border border-yellow-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2 text-center shadow-lg hover:border-yellow-400 hover:bg-yellow-500/20 transition-all group">
-                <Sparkles size={28} className="text-yellow-400 group-hover:scale-110 group-hover:animate-pulse transition-transform" />
-                <span className="text-white font-black text-[11px] md:text-[13px] uppercase tracking-wider">Chất Lượng</span>
-              </div>
-
-              <div className="flex-1 bg-gradient-to-br from-rose-500/10 to-[#151D2F] border border-rose-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2 text-center shadow-lg hover:border-rose-400 hover:bg-rose-500/20 transition-all group">
-                <Gift size={28} className="text-rose-400 group-hover:scale-110 group-hover:animate-pulse transition-transform" />
-                <span className="text-white font-black text-[11px] md:text-[13px] uppercase tracking-wider">Hậu Mãi</span>
-              </div>
-            </div>
-          </div>
-
-          {/* CỘT PHẢI: THÔNG TIN */}
-          <div className="flex flex-col items-center lg:items-end justify-center w-full lg:flex-1 xl:w-[60%] gap-6">
-            <div className="flex flex-col sm:flex-row gap-4 w-full lg:justify-end">
-              <a href="https://zalo.me/0938240332" target="_blank" rel="noreferrer" className="flex-1 lg:max-w-[280px] flex items-center justify-center lg:justify-start gap-4 bg-[#151D2F] hover:bg-[#1a233a] px-5 py-3.5 rounded-xl border border-blue-500/20 hover:border-blue-500/50 transition-all shadow-lg group relative overflow-hidden">
-                <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform z-10 shrink-0">
-                  <span className="text-[#0068FF] font-black text-[11px]">Zalo</span>
-                </div>
-                <div className="text-left z-10">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Hỗ trợ Zalo</p>
-                  <p className="text-white font-black tracking-wider text-base">0938.240.332</p>
-                </div>
-              </a>
-
-              <a href="https://www.facebook.com/giatien2408/" target="_blank" rel="noreferrer" className="flex-1 lg:max-w-[280px] flex items-center justify-center lg:justify-start gap-4 bg-[#151D2F] hover:bg-[#1a233a] px-5 py-3.5 rounded-xl border border-blue-500/20 hover:border-blue-500/50 transition-all shadow-lg group relative overflow-hidden">
-                <div className="absolute inset-0 bg-[#1877F2]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="w-10 h-10 bg-gradient-to-b from-[#1877F2] to-[#145CE6] rounded-full flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform z-10 shrink-0">
-                  <svg viewBox="0 0 24 24" width="24" height="24" fill="white" className="mt-0.5"><path d="M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z" /></svg>
-                </div>
-                <div className="text-left z-10">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Admin Facebook</p>
-                  <p className="text-white font-black tracking-wide text-base">Nhâm Gia Tiến</p>
-                </div>
-              </a>
-            </div>
-
-            <div className="bg-[#0f172a] border border-slate-700 p-1 rounded-2xl shadow-2xl w-full max-w-3xl relative overflow-hidden group hover:border-slate-600 transition-colors">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-yellow-500/10 to-emerald-500/10 opacity-50"></div>
-              <div className="bg-[#151D2F] rounded-xl px-4 md:px-6 lg:px-8 py-6 relative z-10 flex flex-col items-center">
-                <p className="text-[11px] md:text-xs text-slate-400 font-bold mb-4 uppercase tracking-widest text-center">Tài Khoản Giao Dịch Chính Thức</p>
-                {/* LOGO TPBANK NẰM TRÊN */}
-                <div className="flex justify-center mb-4 w-full">
-                  <img src="/tpbank.png" alt="TPBank" className="h-10 md:h-14 lg:h-16 object-contain rounded-lg bg-white px-3 py-1.5 shadow-[0_0_15px_rgba(139,92,246,0.3)] border border-purple-500/30 hover:scale-105 transition-transform" />
-                </div>
-
-                <div className="flex flex-col sm:flex-row justify-center items-center gap-2 md:gap-3 text-[14px] sm:text-[15px] md:text-base lg:text-lg font-black w-full">
-                  <span className="text-[#8B5CF6] drop-shadow-[0_0_10px_rgba(139,92,246,0.3)] bg-purple-500/10 px-3 py-1.5 rounded-lg border border-purple-500/20 text-center w-full sm:w-auto">TPBANK</span>
-                  <span className="hidden sm:block text-slate-700">|</span>
-                  <span className="text-yellow-400 tracking-wider font-mono bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/20 text-center whitespace-nowrap w-full sm:w-auto">1000 2973 552</span>
-                  <span className="hidden sm:block text-slate-700">|</span>
-                  <span className="text-emerald-400 uppercase drop-shadow-[0_0_10px_rgba(16,185,129,0.3)] bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 text-center whitespace-nowrap w-full sm:w-auto">NHAM GIA TIEN</span>
-
-                  {/* NÚT COPY TẤT CẢ */}
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText('Ngân hàng: TPBANK\nSTK: 10002973552\nChủ TK: NHAM GIA TIEN');
-                      alert('Đã copy toàn bộ thông tin giao dịch!');
-                    }}
-                    className="mt-2 sm:mt-0 p-2 sm:ml-1 w-full sm:w-auto bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-white border border-blue-500/30 hover:border-blue-500 rounded-lg transition-all shadow-lg flex items-center justify-center flex-shrink-0 group"
-                    title="Copy toàn bộ thông tin"
-                  >
-                    <Copy size={20} className="group-hover:scale-110 transition-transform" />
-                    <span className="ml-2 text-xs font-bold uppercase sm:hidden">Copy Thông Tin</span>
-                  </button>
-                </div>
-
-                <div className="mt-5 flex items-center justify-center gap-2 bg-rose-500/10 border border-rose-500/20 w-full py-3 rounded-lg px-2 text-center">
-                  <AlertCircle size={16} className="text-rose-500 animate-pulse shrink-0" />
-                  <p className="text-[11px] md:text-xs text-rose-400 italic font-bold">Lưu ý: Chỉ sử dụng duy nhất tài khoản này khi giao dịch trên website. Vui lòng kiểm tra kỹ trước khi chuyển khoản!</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {renderFooter()}
 
       </div>
     );
@@ -2137,6 +2141,7 @@ const App = () => {
             </div>
           </div>
         </div>
+        {renderFooter()}
       </div>
     );
   };
@@ -2351,6 +2356,7 @@ const App = () => {
             )}
           </div>
         </div>
+        {renderFooter()}
       </div>
     );
   };
@@ -2491,6 +2497,7 @@ const App = () => {
             </div>
           </div>
         </div>
+        {renderFooter()}
       </div>
     );
   };
@@ -2895,6 +2902,7 @@ const App = () => {
             </div>
           </div>
         )}
+        {renderFooter()}
       </div>
     );
   };
