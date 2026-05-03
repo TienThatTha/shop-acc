@@ -157,6 +157,9 @@ const App = () => {
     const savedUser = localStorage.getItem('shop_cached_user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
+  // REF: Theo dõi currentUser cho realtime handlers (tránh closure cũ)
+  const currentUserRef = useRef(currentUser);
+  useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
   const [viewingAcc, setViewingAcc] = useState(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('Tất cả');
@@ -525,29 +528,44 @@ const App = () => {
       .subscribe();
 
     // 2. Lắng nghe LỆNH NẠP TIỀN MỚI & CẬP NHẬT TRẠNG THÁI
+    // FIX: Phân quyền — Admin nhận TẤT CẢ, Khách chỉ nhận đơn của chính mình
     const depositChannel = supabase.channel('realtime-deposits')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'deposit_requests' }, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        // Khách chỉ nhận đơn nạp của chính mình, Admin nhận hết
+        if (!isAdmin && payload.new.userId !== me?.id) return;
         setDepositRequests(prev => {
-          // BỘ LỌC CHỐNG TRÙNG LẶP CHO ĐƠN NẠP
           if (prev.find(d => d.id === payload.new.id)) return prev;
           return [payload.new, ...prev];
         });
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'deposit_requests' }, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        if (!isAdmin && payload.new.userId !== me?.id) return;
         setDepositRequests(prev => prev.map(req => req.id === payload.new.id ? payload.new : req));
       })
       .subscribe();
 
     // 3. Lắng nghe ĐƠN THUÊ NICK MỚI & CẬP NHẬT TRẠNG THÁI
+    // FIX: Phân quyền — Admin nhận TẤT CẢ, Khách chỉ nhận đơn thuê của chính mình
     const rentChannel = supabase.channel('realtime-rents')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rent_requests' }, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        const payloadUserId = payload.new.userId || payload.new.userid;
+        if (!isAdmin && payloadUserId !== me?.id) return;
         setRentRequests(prev => {
-          // BỘ LỌC CHỐNG TRÙNG LẶP CHO ĐƠN THUÊ
           if (prev.find(r => r.id === payload.new.id)) return prev;
           return [payload.new, ...prev];
         });
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rent_requests' }, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        const payloadUserId = payload.new.userId || payload.new.userid;
+        if (!isAdmin && payloadUserId !== me?.id) return;
         setRentRequests(prev => prev.map(req => req.id === payload.new.id ? payload.new : req));
       })
       .subscribe();
@@ -562,15 +580,30 @@ const App = () => {
       .subscribe();
 
     // 5. Lắng nghe USER MỚI & CẬP NHẬT
+    // FIX: Admin cập nhật bảng usersDb. Khách tự cập nhật currentUser (số dư, lượt quay) khi Telegram Bot duyệt.
     const usersChannel = supabase.channel('realtime-users')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'users' }, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        if (!isAdmin) return; // Khách không cần biết user mới đăng ký
         setUsersDb(prev => {
           if (prev.find(u => u.id === payload.new.id)) return prev;
           return [payload.new, ...prev];
         });
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users' }, (payload) => {
-        setUsersDb(prev => prev.map(u => u.id === payload.new.id ? payload.new : u));
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        // Admin: cập nhật toàn bộ bảng users cho Panel
+        if (isAdmin) {
+          setUsersDb(prev => prev.map(u => u.id === payload.new.id ? payload.new : u));
+        }
+        // TẤT CẢ: Nếu data thay đổi là của chính mình → tự cập nhật số dư, lượt quay, v.v.
+        // (Giải quyết bug: Duyệt qua Telegram nhưng khách phải F5 mới thấy số dư mới)
+        if (payload.new.id === me?.id) {
+          setCurrentUser(payload.new);
+          localStorage.setItem('shop_cached_user', JSON.stringify(payload.new));
+        }
       })
       .subscribe();
 
