@@ -901,6 +901,12 @@ const App = () => {
 
   const initiateRent = (acc, opt) => {
     if (!currentUser) return requireAuth('login');
+
+    // KIỂM TRA THIẾT BỊ: Chỉ hỗ trợ PC
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+      return showToast("Hệ thống chỉ hỗ trợ thuê nick trên máy tính. Vui lòng thực hiện trên máy tính!", "error");
+    }
+
     if (!currentUser.is_email_verified) return showToast("Vui lòng vào mục Cá nhân để xác thực Email trước khi giao dịch!", "error");
 
     // THAY VÌ MỞ BẢNG THANH TOÁN, CHÚNG TA MỞ BẢNG QUY ĐỊNH TRƯỚC
@@ -1572,7 +1578,7 @@ const App = () => {
                 </div>
               </div>
 
-              <div className="hidden xl:flex flex-col justify-center bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-5 rounded-2xl shadow-xl hover:border-blue-500/50 transition-all group w-64 relative overflow-hidden">
+              <div className="hidden lg:flex flex-col justify-center bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-5 rounded-2xl shadow-xl hover:border-blue-500/50 transition-all group w-64 relative overflow-hidden">
                 <div className="absolute -top-6 -right-6 p-4 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
                   <Download size={120} />
                 </div>
@@ -1583,7 +1589,7 @@ const App = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    window.open('https://down.aweray.com/awesun/windows/Aweray_Remote_2.0.0.45399_x64.exe', '_self');
+                    window.open('https://download.hoptodesk.com/HopToDesk.exe', '_self');
                     setAwesunGuideType('outside');
                   }}
                   className="w-full bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border border-blue-500/30 shadow-sm relative z-10"
@@ -4015,7 +4021,7 @@ const App = () => {
             {adminTab === 'rentreqs' && (
               <div className="p-6">
                 <div className="flex items-center gap-2 mb-6 text-yellow-500 bg-yellow-500/10 p-3 rounded-lg border border-yellow-500/20 text-sm">
-                  <AlertCircle size={18} /> Hướng dẫn: Mở app điều khiển trên máy tính, nhập ID App & Passcode của khách để điều khiển máy khách và đăng nhập nick game.
+                  <AlertCircle size={18} /> Hướng dẫn: Mở app điều khiển trên máy tính, nhập ID App & Mật khẩu của khách để điều khiển máy khách và đăng nhập nick game.
                 </div>
                 {rentRequests.length === 0 ? <div className="text-center text-slate-500 p-10">Chưa có yêu cầu thuê nick nào.</div> :
                   <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2" onScroll={(e) => {
@@ -4094,10 +4100,10 @@ const App = () => {
                             </p>
                             <div className="bg-blue-900/20 p-3 rounded-lg border border-blue-500/30 mt-3 flex items-center justify-between">
                               <div>
-                                <p className="text-blue-400 font-bold text-xs mb-1 flex items-center gap-1"><Gamepad2 size={12} /> APP ĐIỀU KHIỂN  CỦA KHÁCH:</p>
-                                <p className="text-base">ID App: <span className="text-white font-mono bg-black/30 px-2 py-0.5 rounded">{r.info?.awesunId}</span> <span className="mx-2 text-slate-600">|</span> Passcode: <span className="text-white font-mono bg-black/30 px-2 py-0.5 rounded">{r.info?.awesunPass}</span></p>
+                                <p className="text-blue-400 font-bold text-xs mb-1 flex items-center gap-1"><Gamepad2 size={12} /> APP ĐIỀU KHIỂN CỦA KHÁCH:</p>
+                                <p className="text-base">ID App: <span className="text-white font-mono bg-black/30 px-2 py-0.5 rounded">{r.info?.awesunId}</span> <span className="mx-2 text-slate-600">|</span> Mật khẩu: <span className="text-white font-mono bg-black/30 px-2 py-0.5 rounded">{r.info?.awesunPass}</span></p>
                               </div>
-                              <button onClick={() => copyToClipboard(`${r.info?.awesunId} ${r.info?.awesunPass}`)} className="p-2 bg-blue-500/20 rounded text-blue-400 hover:bg-blue-500 hover:text-white transition-colors" title="Copy cả ID App & Passcode"><Copy size={16} /></button>
+                              <button onClick={() => copyToClipboard(`${r.info?.awesunId} ${r.info?.awesunPass}`)} className="p-2 bg-blue-500/20 rounded text-blue-400 hover:bg-blue-500 hover:text-white transition-colors" title="Copy cả ID App & Mật khẩu"><Copy size={16} /></button>
                             </div>
                           </div>
                           <div className="flex lg:flex-col gap-2 w-full lg:w-auto mt-4 lg:mt-0">
@@ -5440,38 +5446,40 @@ const App = () => {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
             <div className="bg-[#151D2F] border border-blue-500/50 w-full max-w-md rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(59,130,246,0.2)]">
               <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-[#0B1120]">
-                <h3 className="text-xl font-bold text-white flex items-center gap-2"><Download className="text-blue-500" /> Hướng dẫn lấy mã App điều khiển</h3>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2 uppercase"><Download className="text-blue-500" /> HƯỚNG DẪN CÀI ĐẶT VÀ LẤY MÃ ĐIỀU KHIỂN</h3>
                 <button onClick={() => setAwesunGuideType(null)} className="text-slate-400 hover:text-white bg-slate-800 p-1.5 rounded-full"><X size={18} /></button>
               </div>
 
-              <div className="p-6 space-y-4 text-base md:text-lg text-slate-300">
-                <p className="text-blue-400 font-bold mb-2">Trình duyệt của bạn đang tải phần mềm xuống. Hãy làm theo các bước sau:</p>
+              <div className="p-6 space-y-5 text-base md:text-lg text-slate-300">
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center shadow-[0_0_15px_rgba(16,185,129,0.15)] mb-4">
+                  <p className="text-emerald-400 font-bold animate-pulse uppercase">TRÌNH DUYỆT CỦA BẠN ĐANG TẢI PHẦN MỀM XUỐNG. HÃY LÀM THEO CÁC BƯỚC SAU:</p>
+                </div>
 
-                <div className="flex gap-3 items-start">
-                  <span className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">1</span>
-                  <p>Bấm tổ hợp phím <strong className="text-white bg-slate-800 px-1.5 py-0.5 rounded">CTRL + J</strong> trên trình duyệt web của bạn.</p>
+                <div className="flex gap-4 items-center">
+                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20">1</span>
+                  <p className="leading-relaxed uppercase font-bold">BẤM TỔ HỢP PHÍM <strong className="text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(250,204,21,0.2)] whitespace-nowrap">CTRL + J</strong> TRÊN TRÌNH DUYỆT WEB CỦA BẠN.</p>
                 </div>
-                <div className="flex gap-3 items-start">
-                  <span className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">2</span>
-                  <p>Mở file App điều khiển vừa mới tải lên.</p>
+                <div className="flex gap-4 items-center">
+                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20">2</span>
+                  <p className="leading-relaxed uppercase font-bold">MỞ FILE APP ĐIỀU KHIỂN VỪA MỚI TẢI LÊN.</p>
                 </div>
-                <div className="flex gap-3 items-start">
-                  <span className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">3</span>
-                  <p>Bấm chữ <strong className="text-white bg-slate-800 px-1.5 py-0.5 rounded">Install Now</strong> cho phần mềm chạy cài đặt.</p>
-                </div>
-                <div className="flex gap-3 items-start">
-                  <span className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">4</span>
-                  <p>Sau khi cài xong, mở ứng dụng ra bạn sẽ thấy 2 dòng là <strong className="text-white">ID App</strong> và <strong className="text-white">Passcode</strong>.</p>
+                <div className="flex gap-4 items-start relative mt-4">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-rose-500/20 to-orange-500/20 rounded-2xl blur-md -z-10 animate-pulse"></div>
+                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_15px_rgba(244,63,94,0.5)] border border-white/20 mt-1">3</span>
+                  <div className="w-full bg-[#1A233A] border-2 border-rose-500/40 p-4 rounded-xl shadow-[0_0_20px_rgba(244,63,94,0.15)]">
+                    <p className="text-white mb-3 uppercase font-bold">CHỤP HOẶC GHI RA <strong className="text-rose-400 font-black text-xl bg-rose-500/10 px-2 py-0.5 rounded whitespace-nowrap">2 CÁI ID VÀ MẬT KHẨU</strong> CỦA APP NHƯ HÌNH BÊN DƯỚI:</p>
+                    <img src="/guide-hoptodesk.png" alt="Hướng dẫn HopToDesk" className="w-full rounded-lg border border-rose-500/30 shadow-lg" />
+                  </div>
                 </div>
 
                 {awesunGuideType === 'inside' && (
                   <div className="flex gap-3 items-start mt-2 pt-4 border-t border-slate-800">
                     <span className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold shrink-0"><CheckCircle2 size={18} /></span>
-                    <p className="text-emerald-400 font-bold">Quay lại đây, ghi Mã ID và Passcode vào ô trống yêu cầu để hoàn tất.</p>
+                    <p className="text-emerald-400 font-bold uppercase">QUAY LẠI ĐÂY, GHI MÃ ID VÀ MẬT KHẨU VÀO Ô TRỐNG YÊU CẦU ĐỂ HOÀN TẤT.</p>
                   </div>
                 )}
 
-                <button onClick={() => setAwesunGuideType(null)} className="w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg text-lg">Đã Hiểu & Đóng Lại</button>
+                <button onClick={() => setAwesunGuideType(null)} className="w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg text-lg uppercase">ĐÃ HIỂU & ĐÓNG LẠI</button>
               </div>
             </div>
           </div>
@@ -6162,7 +6170,7 @@ const App = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          window.open('https://down.aweray.com/awesun/windows/Aweray_Remote_2.0.0.45399_x64.exe', '_self');
+                          window.open('https://download.hoptodesk.com/HopToDesk.exe', '_self');
                           setAwesunGuideType('inside');
                         }}
                         className="bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 border border-blue-500/30 shadow-sm"
@@ -6183,7 +6191,7 @@ const App = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          window.open('https://down.aweray.com/awesun/windows/Aweray_Remote_2.0.0.45399_x64.exe', '_self');
+                          window.open('https://download.hoptodesk.com/HopToDesk.exe', '_self');
                           setAwesunGuideType('inside');
                         }}
                         className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-sm relative z-10"
@@ -6194,7 +6202,7 @@ const App = () => {
 
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <div><input name="awesunId" placeholder="ID App" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white font-mono outline-none" required /></div>
-                      <div><input name="awesunPass" placeholder="Passcode" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white font-mono outline-none" required /></div>
+                      <div><input name="awesunPass" placeholder="Mật khẩu" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white font-mono outline-none" required /></div>
                       <div className="col-span-2"><input name="phone" type="tel" pattern="[0-9]{10,11}" maxLength="11" onInput={enforceNumberInput} placeholder="SĐT liên hệ (10-11 số)" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white outline-none" required /></div>
                     </div>
                   </div>
