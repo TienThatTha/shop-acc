@@ -1578,7 +1578,7 @@ const App = () => {
                 </div>
               </div>
 
-              <div className="hidden lg:flex flex-col justify-center bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-5 rounded-2xl shadow-xl hover:border-blue-500/50 transition-all group w-64 relative overflow-hidden">
+              <div className="flex flex-col justify-center bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-5 rounded-2xl shadow-xl hover:border-blue-500/50 transition-all group w-full lg:w-64 relative overflow-hidden hide-on-touch">
                 <div className="absolute -top-6 -right-6 p-4 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
                   <Download size={120} />
                 </div>
@@ -1958,151 +1958,151 @@ const App = () => {
             const senderIsVip = calculateTotalRecharged(currentUser?.id) >= 3000000;
             const TRANSFER_FEE_RATE = 0.025; // 2.5%
             return (
-            <div className="space-y-6 max-w-2xl mx-auto animate-fade-in">
-              <div className="bg-[#151D2F] p-6 rounded-2xl border border-slate-800 shadow-xl">
-                <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2"><ArrowLeftRight size={20} className="text-emerald-500" /> Chuyển tiền cho người khác</h3>
-                <p className="text-xs text-slate-400 mb-4">Chuyển số dư chính (không bao gồm Quỹ Bảo Lưu) sang tài khoản khác trong hệ thống. Nhập SĐT người nhận để tìm kiếm.</p>
+              <div className="space-y-6 max-w-2xl mx-auto animate-fade-in">
+                <div className="bg-[#151D2F] p-6 rounded-2xl border border-slate-800 shadow-xl">
+                  <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2"><ArrowLeftRight size={20} className="text-emerald-500" /> Chuyển tiền cho người khác</h3>
+                  <p className="text-xs text-slate-400 mb-4">Chuyển số dư chính (không bao gồm Quỹ Bảo Lưu) sang tài khoản khác trong hệ thống. Nhập SĐT người nhận để tìm kiếm.</p>
 
-                {/* THÔNG BÁO PHÍ CHUYỂN TIỀN */}
-                {senderIsVip ? (
-                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-4 py-3 mb-6 flex items-center gap-3">
-                    <Sparkles size={20} className="text-yellow-500 shrink-0 animate-pulse" />
+                  {/* THÔNG BÁO PHÍ CHUYỂN TIỀN */}
+                  {senderIsVip ? (
+                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-4 py-3 mb-6 flex items-center gap-3">
+                      <Sparkles size={20} className="text-yellow-500 shrink-0 animate-pulse" />
+                      <div>
+                        <p className="text-sm font-bold text-yellow-400">Đặc quyền VIP: Miễn phí chuyển tiền!</p>
+                        <p className="text-[11px] text-yellow-500/70">Bạn được miễn toàn bộ phí giao dịch chuyển tiền.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-3 mb-6 flex items-center gap-3">
+                      <AlertCircle size={20} className="text-rose-400 shrink-0" />
+                      <div>
+                        <p className="text-sm font-bold text-rose-400">Phí chuyển tiền: 2.5%</p>
+                        <p className="text-[11px] text-rose-400/70">Nâng cấp VIP (nạp tích lũy 3 triệu) để được miễn phí chuyển tiền.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    const phone = e.target.receiverPhone.value.trim();
+                    const amount = parseInt(e.target.transferAmount.value);
+
+                    if (!phone || !amount || amount <= 0) return showToast('Vui lòng nhập đầy đủ thông tin!', 'error');
+                    if (amount < 1000) return showToast('Số tiền chuyển tối thiểu là 1.000đ!', 'error');
+
+                    // Tính phí chuyển tiền (VIP miễn phí)
+                    const fee = senderIsVip ? 0 : Math.ceil(amount * TRANSFER_FEE_RATE);
+                    const totalDeduct = amount + fee;
+
+                    if (currentUser.balance < totalDeduct) return showToast(`Số dư không đủ! Cần ${new Intl.NumberFormat('vi-VN').format(totalDeduct)}đ (gồm phí ${new Intl.NumberFormat('vi-VN').format(fee)}đ). Bạn chỉ có ${new Intl.NumberFormat('vi-VN').format(currentUser.balance)}đ.`, 'error');
+
+                    // Tìm người nhận theo SĐT
+                    const receiver = usersDb.find(u => u.phone === phone);
+                    if (!receiver) {
+                      // Nếu không có trong RAM, thử gọi DB
+                      const { data: dbUser } = await supabase.from('users').select('*').eq('phone', phone).single();
+                      if (!dbUser) return showToast('Không tìm thấy tài khoản với SĐT này!', 'error');
+                      // Tìm thấy trên DB
+                      handleTransferMoney(dbUser, amount, fee, totalDeduct, e.target);
+                    } else {
+                      if (receiver.id === currentUser.id) return showToast('Không thể chuyển tiền cho chính mình!', 'error');
+                      handleTransferMoney(receiver, amount, fee, totalDeduct, e.target);
+                    }
+
+                    async function handleTransferMoney(receiver, amount, fee, totalDeduct, formEl) {
+                      if (receiver.id === currentUser.id) return showToast('Không thể chuyển tiền cho chính mình!', 'error');
+                      if (currentUser.balance < totalDeduct) return showToast(`Số dư không đủ! Cần ${new Intl.NumberFormat('vi-VN').format(totalDeduct)}đ.`, 'error');
+
+                      const feeText = fee > 0
+                        ? `\n\nPhí chuyển tiền (2.5%): ${new Intl.NumberFormat('vi-VN').format(fee)}đ\nTổng trừ: ${new Intl.NumberFormat('vi-VN').format(totalDeduct)}đ`
+                        : '\n\n✨ VIP: Miễn phí chuyển tiền!';
+
+                      setConfirmDialog({
+                        title: 'Xác nhận chuyển tiền',
+                        message: `Chuyển ${new Intl.NumberFormat('vi-VN').format(amount)}đ cho "${receiver.name}" (SĐT: ${receiver.phone})?${feeText}\n\nSố dư sau giao dịch: ${new Intl.NumberFormat('vi-VN').format(currentUser.balance - totalDeduct)}đ`,
+                        onConfirm: async () => {
+                          // 1. Lấy dữ liệu sống từ DB
+                          const { data: liveSender } = await supabase.from('users').select('*').eq('id', currentUser.id).single();
+                          const { data: liveReceiver } = await supabase.from('users').select('*').eq('id', receiver.id).single();
+                          if (!liveSender || !liveReceiver) return showToast('Lỗi hệ thống!', 'error');
+                          if (liveSender.balance < totalDeduct) return showToast('Số dư không đủ (đã tính phí)!', 'error');
+
+                          // 2. Trừ tiền người gửi (tiền gốc + phí)
+                          const { error: e1 } = await supabase.from('users').update({ balance: liveSender.balance - totalDeduct }).eq('id', liveSender.id);
+                          if (e1) return showToast('Lỗi trừ tiền: ' + e1.message, 'error');
+
+                          // 3. Cộng tiền người nhận (chỉ nhận số tiền gốc, không bao gồm phí)
+                          const { error: e2 } = await supabase.from('users').update({ balance: liveReceiver.balance + amount }).eq('id', liveReceiver.id);
+                          if (e2) return showToast('Lỗi cộng tiền: ' + e2.message, 'error');
+
+                          // 4. Ghi lịch sử giao dịch cho CẢ HAI
+                          const now = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN');
+                          const feeNote = fee > 0 ? ` (Phí: ${new Intl.NumberFormat('vi-VN').format(fee)}đ)` : ' (VIP miễn phí)';
+                          await supabase.from('transactions').insert([
+                            {
+                              id: `TF${Date.now()}S`, user: liveSender.name,
+                              action: `Chuyển tiền cho ${liveReceiver.name} (${liveReceiver.phone})${feeNote}`,
+                              amount: totalDeduct, date: now, status: 'Thành công', type: 'transfer_out',
+                              accDetails: { balanceAfter: liveSender.balance - totalDeduct, fundAfter: liveSender.rentFund || 0, fee: fee, originalAmount: amount }
+                            },
+                            {
+                              id: `TF${Date.now()}R`, user: liveReceiver.name,
+                              action: `Nhận tiền từ ${liveSender.name} (${liveSender.phone})`,
+                              amount: amount, date: now, status: 'Thành công', type: 'transfer_in',
+                              accDetails: { balanceAfter: liveReceiver.balance + amount, fundAfter: liveReceiver.rentFund || 0 }
+                            }
+                          ]);
+
+                          // 5. Cập nhật giao diện
+                          const updatedSender = { ...currentUser, balance: liveSender.balance - totalDeduct };
+                          setCurrentUser(updatedSender);
+                          localStorage.setItem('shop_cached_user', JSON.stringify(updatedSender));
+                          setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedSender : u.id === receiver.id ? { ...u, balance: liveReceiver.balance + amount } : u));
+
+                          formEl.reset();
+                          const successMsg = fee > 0
+                            ? `Đã chuyển ${new Intl.NumberFormat('vi-VN').format(amount)}đ cho ${liveReceiver.name}! (Phí: ${new Intl.NumberFormat('vi-VN').format(fee)}đ)`
+                            : `Đã chuyển ${new Intl.NumberFormat('vi-VN').format(amount)}đ cho ${liveReceiver.name} thành công!`;
+                          showToast(successMsg);
+                          sendAdminAlert('CHUYỂN TIỀN', `${liveSender.name} vừa chuyển ${new Intl.NumberFormat('vi-VN').format(amount)}đ cho ${liveReceiver.name}.${fee > 0 ? ` Phí: ${new Intl.NumberFormat('vi-VN').format(fee)}đ.` : ' (VIP miễn phí)'}`);
+                        }
+                      });
+                    }
+                  }} className="space-y-4">
                     <div>
-                      <p className="text-sm font-bold text-yellow-400">Đặc quyền VIP: Miễn phí chuyển tiền!</p>
-                      <p className="text-[11px] text-yellow-500/70">Bạn được miễn toàn bộ phí giao dịch chuyển tiền.</p>
+                      <label className="text-xs text-slate-400 mb-1 block">SĐT người nhận</label>
+                      <div className="relative">
+                        <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                        <input name="receiverPhone" type="tel" pattern="[0-9]{10,11}" maxLength="11" onInput={enforceNumberInput} required placeholder="Nhập số điện thoại..." className="w-full pl-12 pr-4 py-3 rounded-xl bg-[#0B1120] border border-slate-700 focus:border-emerald-500 outline-none text-white" />
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-3 mb-6 flex items-center gap-3">
-                    <AlertCircle size={20} className="text-rose-400 shrink-0" />
                     <div>
-                      <p className="text-sm font-bold text-rose-400">Phí chuyển tiền: 2.5%</p>
-                      <p className="text-[11px] text-rose-400/70">Nâng cấp VIP (nạp tích lũy 3 triệu) để được miễn phí chuyển tiền.</p>
+                      <label className="text-xs text-slate-400 mb-1 block">Số tiền chuyển (VNĐ)</label>
+                      <div className="relative">
+                        <Wallet size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                        <input name="transferAmount" type="number" min="1000" required placeholder="Nhập số tiền..." className="w-full pl-12 pr-4 py-3 rounded-xl bg-[#0B1120] border border-slate-700 focus:border-emerald-500 outline-none text-white" />
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1">Số dư hiện có: <strong className="text-emerald-400">{new Intl.NumberFormat('vi-VN').format(currentUser.balance)}đ</strong> (Quỹ thuê không được tính)</p>
                     </div>
-                  </div>
-                )}
+                    <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-600/20 transition-colors flex items-center justify-center gap-2">
+                      <ArrowLeftRight size={18} /> Chuyển tiền
+                    </button>
+                  </form>
+                </div>
 
-                <form onSubmit={async (e) => {
-                  e.preventDefault();
-                  const phone = e.target.receiverPhone.value.trim();
-                  const amount = parseInt(e.target.transferAmount.value);
-
-                  if (!phone || !amount || amount <= 0) return showToast('Vui lòng nhập đầy đủ thông tin!', 'error');
-                  if (amount < 1000) return showToast('Số tiền chuyển tối thiểu là 1.000đ!', 'error');
-
-                  // Tính phí chuyển tiền (VIP miễn phí)
-                  const fee = senderIsVip ? 0 : Math.ceil(amount * TRANSFER_FEE_RATE);
-                  const totalDeduct = amount + fee;
-
-                  if (currentUser.balance < totalDeduct) return showToast(`Số dư không đủ! Cần ${new Intl.NumberFormat('vi-VN').format(totalDeduct)}đ (gồm phí ${new Intl.NumberFormat('vi-VN').format(fee)}đ). Bạn chỉ có ${new Intl.NumberFormat('vi-VN').format(currentUser.balance)}đ.`, 'error');
-
-                  // Tìm người nhận theo SĐT
-                  const receiver = usersDb.find(u => u.phone === phone);
-                  if (!receiver) {
-                    // Nếu không có trong RAM, thử gọi DB
-                    const { data: dbUser } = await supabase.from('users').select('*').eq('phone', phone).single();
-                    if (!dbUser) return showToast('Không tìm thấy tài khoản với SĐT này!', 'error');
-                    // Tìm thấy trên DB
-                    handleTransferMoney(dbUser, amount, fee, totalDeduct, e.target);
-                  } else {
-                    if (receiver.id === currentUser.id) return showToast('Không thể chuyển tiền cho chính mình!', 'error');
-                    handleTransferMoney(receiver, amount, fee, totalDeduct, e.target);
-                  }
-
-                  async function handleTransferMoney(receiver, amount, fee, totalDeduct, formEl) {
-                    if (receiver.id === currentUser.id) return showToast('Không thể chuyển tiền cho chính mình!', 'error');
-                    if (currentUser.balance < totalDeduct) return showToast(`Số dư không đủ! Cần ${new Intl.NumberFormat('vi-VN').format(totalDeduct)}đ.`, 'error');
-
-                    const feeText = fee > 0
-                      ? `\n\nPhí chuyển tiền (2.5%): ${new Intl.NumberFormat('vi-VN').format(fee)}đ\nTổng trừ: ${new Intl.NumberFormat('vi-VN').format(totalDeduct)}đ`
-                      : '\n\n✨ VIP: Miễn phí chuyển tiền!';
-
-                    setConfirmDialog({
-                      title: 'Xác nhận chuyển tiền',
-                      message: `Chuyển ${new Intl.NumberFormat('vi-VN').format(amount)}đ cho "${receiver.name}" (SĐT: ${receiver.phone})?${feeText}\n\nSố dư sau giao dịch: ${new Intl.NumberFormat('vi-VN').format(currentUser.balance - totalDeduct)}đ`,
-                      onConfirm: async () => {
-                        // 1. Lấy dữ liệu sống từ DB
-                        const { data: liveSender } = await supabase.from('users').select('*').eq('id', currentUser.id).single();
-                        const { data: liveReceiver } = await supabase.from('users').select('*').eq('id', receiver.id).single();
-                        if (!liveSender || !liveReceiver) return showToast('Lỗi hệ thống!', 'error');
-                        if (liveSender.balance < totalDeduct) return showToast('Số dư không đủ (đã tính phí)!', 'error');
-
-                        // 2. Trừ tiền người gửi (tiền gốc + phí)
-                        const { error: e1 } = await supabase.from('users').update({ balance: liveSender.balance - totalDeduct }).eq('id', liveSender.id);
-                        if (e1) return showToast('Lỗi trừ tiền: ' + e1.message, 'error');
-
-                        // 3. Cộng tiền người nhận (chỉ nhận số tiền gốc, không bao gồm phí)
-                        const { error: e2 } = await supabase.from('users').update({ balance: liveReceiver.balance + amount }).eq('id', liveReceiver.id);
-                        if (e2) return showToast('Lỗi cộng tiền: ' + e2.message, 'error');
-
-                        // 4. Ghi lịch sử giao dịch cho CẢ HAI
-                        const now = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN');
-                        const feeNote = fee > 0 ? ` (Phí: ${new Intl.NumberFormat('vi-VN').format(fee)}đ)` : ' (VIP miễn phí)';
-                        await supabase.from('transactions').insert([
-                          {
-                            id: `TF${Date.now()}S`, user: liveSender.name,
-                            action: `Chuyển tiền cho ${liveReceiver.name} (${liveReceiver.phone})${feeNote}`,
-                            amount: totalDeduct, date: now, status: 'Thành công', type: 'transfer_out',
-                            accDetails: { balanceAfter: liveSender.balance - totalDeduct, fundAfter: liveSender.rentFund || 0, fee: fee, originalAmount: amount }
-                          },
-                          {
-                            id: `TF${Date.now()}R`, user: liveReceiver.name,
-                            action: `Nhận tiền từ ${liveSender.name} (${liveSender.phone})`,
-                            amount: amount, date: now, status: 'Thành công', type: 'transfer_in',
-                            accDetails: { balanceAfter: liveReceiver.balance + amount, fundAfter: liveReceiver.rentFund || 0 }
-                          }
-                        ]);
-
-                        // 5. Cập nhật giao diện
-                        const updatedSender = { ...currentUser, balance: liveSender.balance - totalDeduct };
-                        setCurrentUser(updatedSender);
-                        localStorage.setItem('shop_cached_user', JSON.stringify(updatedSender));
-                        setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedSender : u.id === receiver.id ? { ...u, balance: liveReceiver.balance + amount } : u));
-
-                        formEl.reset();
-                        const successMsg = fee > 0
-                          ? `Đã chuyển ${new Intl.NumberFormat('vi-VN').format(amount)}đ cho ${liveReceiver.name}! (Phí: ${new Intl.NumberFormat('vi-VN').format(fee)}đ)`
-                          : `Đã chuyển ${new Intl.NumberFormat('vi-VN').format(amount)}đ cho ${liveReceiver.name} thành công!`;
-                        showToast(successMsg);
-                        sendAdminAlert('CHUYỂN TIỀN', `${liveSender.name} vừa chuyển ${new Intl.NumberFormat('vi-VN').format(amount)}đ cho ${liveReceiver.name}.${fee > 0 ? ` Phí: ${new Intl.NumberFormat('vi-VN').format(fee)}đ.` : ' (VIP miễn phí)'}`);
-                      }
-                    });
-                  }
-                }} className="space-y-4">
-                  <div>
-                    <label className="text-xs text-slate-400 mb-1 block">SĐT người nhận</label>
-                    <div className="relative">
-                      <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                      <input name="receiverPhone" type="tel" pattern="[0-9]{10,11}" maxLength="11" onInput={enforceNumberInput} required placeholder="Nhập số điện thoại..." className="w-full pl-12 pr-4 py-3 rounded-xl bg-[#0B1120] border border-slate-700 focus:border-emerald-500 outline-none text-white" />
+                <div className="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle size={18} className="text-yellow-500 mt-0.5 shrink-0" />
+                    <div className="text-xs text-slate-400 space-y-1">
+                      <p className="text-yellow-400 font-bold">Lưu ý quan trọng:</p>
+                      <p>• Phí chuyển tiền: <strong className="text-rose-400">2.5%</strong> trên số tiền chuyển. Khách hàng <strong className="text-yellow-400">VIP được miễn phí</strong>.</p>
+                      <p>• Chỉ chuyển được <strong className="text-white">Số dư chính</strong>, không chuyển được Quỹ Bảo Lưu Thuê.</p>
+                      <p>• Giao dịch chuyển tiền <strong className="text-white">không thể hoàn tác</strong>. Hãy kiểm tra kỹ SĐT trước khi xác nhận.</p>
+                      <p>• Mọi giao dịch đều được ghi lại trong Lịch sử và thông báo cho Admin.</p>
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Số tiền chuyển (VNĐ)</label>
-                    <div className="relative">
-                      <Wallet size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                      <input name="transferAmount" type="number" min="1000" required placeholder="Nhập số tiền..." className="w-full pl-12 pr-4 py-3 rounded-xl bg-[#0B1120] border border-slate-700 focus:border-emerald-500 outline-none text-white" />
-                    </div>
-                    <p className="text-[10px] text-slate-500 mt-1">Số dư hiện có: <strong className="text-emerald-400">{new Intl.NumberFormat('vi-VN').format(currentUser.balance)}đ</strong> (Quỹ thuê không được tính)</p>
-                  </div>
-                  <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-600/20 transition-colors flex items-center justify-center gap-2">
-                    <ArrowLeftRight size={18} /> Chuyển tiền
-                  </button>
-                </form>
-              </div>
-
-              <div className="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-xl">
-                <div className="flex items-start gap-3">
-                  <AlertCircle size={18} className="text-yellow-500 mt-0.5 shrink-0" />
-                  <div className="text-xs text-slate-400 space-y-1">
-                    <p className="text-yellow-400 font-bold">Lưu ý quan trọng:</p>
-                    <p>• Phí chuyển tiền: <strong className="text-rose-400">2.5%</strong> trên số tiền chuyển. Khách hàng <strong className="text-yellow-400">VIP được miễn phí</strong>.</p>
-                    <p>• Chỉ chuyển được <strong className="text-white">Số dư chính</strong>, không chuyển được Quỹ Bảo Lưu Thuê.</p>
-                    <p>• Giao dịch chuyển tiền <strong className="text-white">không thể hoàn tác</strong>. Hãy kiểm tra kỹ SĐT trước khi xác nhận.</p>
-                    <p>• Mọi giao dịch đều được ghi lại trong Lịch sử và thông báo cho Admin.</p>
                   </div>
                 </div>
               </div>
-            </div>
             );
           })()}
 
