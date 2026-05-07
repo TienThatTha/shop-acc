@@ -38,12 +38,18 @@ serve(async (req) => {
       if (user && !userError) {
         // 4. Tính toán tiền và Lượt quay thưởng (Dựa vào logic hiện tại của bạn)
         // Lưu ý: Bạn cần cấu hình cứng hoặc query bảng config để lấy minAmount nạp tặng lượt
+        const { data: configData } = await supabaseAdmin.from('site_config').select('*').eq('id', 'deposit_bonus').single()
+        const minAmount = configData?.value?.minAmount || 20000;
+        const spinsPerMinAmount = configData?.value?.bonusSpins || 1;
+
+        const bonusSpins = Math.floor(amount / minAmount) * spinsPerMinAmount
         const newBalance = user.balance + amount
+        const newSpins = (user.spins || 0) + bonusSpins
         
         // 5. Cập nhật Số dư
         await supabaseAdmin
           .from('users')
-          .update({ balance: newBalance })
+          .update({ balance: newBalance, spins: newSpins })
           .eq('id', user.id)
 
         // 6. Ghi Lịch sử giao dịch (transactions)

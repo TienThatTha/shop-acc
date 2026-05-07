@@ -254,9 +254,14 @@ const App = () => {
 
   const [depositStep, setDepositStep] = useState(1);
   const [isDepositing, setIsDepositing] = useState(false);
+  const [depositMethod, setDepositMethod] = useState('banking');
   const [depositAmount, setDepositAmount] = useState('');
   const [voucherInput, setVoucherInput] = useState('');
   const [pendingDeposit, setPendingDeposit] = useState(null);
+  const [cardTelco, setCardTelco] = useState('VIETTEL');
+  const [cardAmount, setCardAmount] = useState('10000');
+  const [cardCode, setCardCode] = useState('');
+  const [cardSerial, setCardSerial] = useState('');
 
   const [expandedTx, setExpandedTx] = useState(null);
 
@@ -397,8 +402,13 @@ const App = () => {
         setBoostingRequests(fixedBoostReqs);
       }
 
-      const savedDepositConfig = localStorage.getItem('shop_deposit_config');
-      if (savedDepositConfig) setDepositBonusConfig(JSON.parse(savedDepositConfig));
+      const { data: configData } = await supabase.from('site_config').select('*').eq('id', 'deposit_bonus').single();
+      if (configData && configData.value) {
+        setDepositBonusConfig(configData.value);
+      } else {
+        const savedDepositConfig = localStorage.getItem('shop_deposit_config');
+        if (savedDepositConfig) setDepositBonusConfig(JSON.parse(savedDepositConfig));
+      }
 
       // 2. KIỂM TRA ĐĂNG NHẬP NGẦM & TẢI DỮ LIỆU THEO CHỨC VỤ
       const { data: { session } } = await supabase.auth.getSession();
@@ -2341,7 +2351,55 @@ const App = () => {
       });
     };
 
-    return (
+    const handleCardSubmit = async (e) => {
+    e.preventDefault();
+    if (isDepositing) return;
+    
+    if (!cardCode.trim() || !cardSerial.trim()) {
+      return showToast("Vui lòng nhập đầy đủ Mã thẻ và Số Serial!", "error");
+    }
+
+    setIsDepositing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('submit-card', {
+        body: {
+          telco: cardTelco,
+          amount: parseInt(cardAmount),
+          code: cardCode,
+          serial: cardSerial,
+          userId: currentUser.id
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data.success) {
+        showToast("Gửi thẻ thành công! Vui lòng chờ hệ thống xử lý trong ít phút.", "success");
+        setCardCode('');
+        setCardSerial('');
+        // Add to local state to reflect UI immediately
+        setDepositRequests(prev => [{
+          id: data.requestId,
+          userId: currentUser.id,
+          amount: parseInt(cardAmount),
+          status: 'Chờ duyệt',
+          type: 'card',
+          details: `Nạp thẻ ${cardTelco} - Mã: ${cardCode} - Seri: ${cardSerial}`
+        }, ...prev]);
+        
+        sendAdminAlert('NẠP THẺ CÀO', `Khách ${currentUser.name} vừa nạp thẻ ${cardTelco} mệnh giá ${new Intl.NumberFormat('vi-VN').format(cardAmount)}đ. Thẻ đang được xử lý.`);
+      } else {
+        showToast(data.message || "Lỗi khi gửi thẻ. Vui lòng kiểm tra lại!", "error");
+      }
+    } catch (err) {
+      console.error("Lỗi gửi thẻ:", err);
+      showToast("Lỗi kết nối máy chủ nạp thẻ!", "error");
+    } finally {
+      setIsDepositing(false);
+    }
+  };
+
+  return (
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-10">
         {renderNavbar()}
         <div className="w-full max-w-[1400px] mx-auto mt-8 px-4 lg:pr-28 grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -2371,10 +2429,26 @@ const App = () => {
           </div>
 
           <div className="bg-[#151D2F] p-6 rounded-2xl border border-slate-800 h-fit shadow-xl">
-            <h3 className="font-bold text-white mb-4 text-lg">Tạo Lệnh Nạp</h3>
+            <div className="flex gap-2 mb-4 p-1 bg-[#0B1120] rounded-xl border border-slate-800">
+              <button 
+                onClick={() => setDepositMethod('banking')}
+                className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${depositMethod === 'banking' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+              >
+                Chuyển Khoản
+              </button>
+              <button 
+                onClick={() => setDepositMethod('card')}
+                className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${depositMethod === 'card' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+              >
+                Thẻ Cào (Phí 20%)
+              </button>
+            </div>
 
-            {depositStep === 1 ? (
-              <form onSubmit={handleCreateDepositDraft}>
+            {depositMethod === 'banking' ? (
+              <>
+                <h3 className="font-bold text-white mb-4 text-lg">Tạo Lệnh Nạp</h3>
+                {depositStep === 1 ? (
+                  <form onSubmit={handleCreateDepositDraft}>
                 <p className="text-sm text-slate-400 mb-4">Nhập số tiền để hệ thống tạo mã quét QR thanh toán nhanh cho bạn.</p>
                 <div className="mb-4">
                   <label className="text-xs text-slate-400 font-bold mb-1 block">Số tiền cần nạp (Bội số 10.000đ)</label>
@@ -2401,6 +2475,56 @@ const App = () => {
                   <button onClick={handleConfirmTransfer} className="w-2/3 bg-emerald-600 hover:bg-emerald-500 py-3 md:py-4 rounded-xl font-bold text-white transition-colors shadow-lg shadow-emerald-600/20 text-xs md:text-sm flex items-center justify-center gap-2"><CheckCircle2 size={18} /> Đã Chuyển Khoản</button>
                 </div>
               </div>
+            )}
+            </>
+            ) : (
+              <form onSubmit={handleCardSubmit} className="space-y-4">
+                <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-lg text-rose-400 text-xs md:text-sm leading-relaxed">
+                  <strong>Lưu ý quan trọng:</strong> 
+                  <ul className="list-disc pl-4 mt-1">
+                    <li>Nạp thẻ cào chịu phí cố định <strong>20%</strong> (Thẻ 100k nhận 80k).</li>
+                    <li><strong className="text-red-500">CHỌN SAI MỆNH GIÁ SẼ BỊ TRỪ 50% GIÁ TRỊ THẺ HOẶC MẤT THẺ.</strong></li>
+                  </ul>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-slate-400 font-bold mb-1 block">Nhà mạng</label>
+                    <select value={cardTelco} onChange={e => setCardTelco(e.target.value)} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-xl text-white outline-none">
+                      <option value="VIETTEL">Viettel</option>
+                      <option value="VINAPHONE">Vinaphone</option>
+                      <option value="ZING">Zing</option>
+                      <option value="VCOIN">Vcoin</option>
+                      <option value="GARENA">Garena</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 font-bold mb-1 block">Mệnh giá</label>
+                    <select value={cardAmount} onChange={e => setCardAmount(e.target.value)} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-xl text-white outline-none">
+                      <option value="10000">10.000 đ</option>
+                      <option value="20000">20.000 đ</option>
+                      <option value="50000">50.000 đ</option>
+                      <option value="100000">100.000 đ</option>
+                      <option value="200000">200.000 đ</option>
+                      <option value="500000">500.000 đ</option>
+                      <option value="1000000">1.000.000 đ</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-400 font-bold mb-1 block">Mã Thẻ (PIN)</label>
+                  <input type="text" value={cardCode} onChange={e => setCardCode(e.target.value)} placeholder="Nhập mã thẻ..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-xl text-white focus:border-emerald-500 outline-none" required />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 font-bold mb-1 block">Số Serial</label>
+                  <input type="text" value={cardSerial} onChange={e => setCardSerial(e.target.value)} placeholder="Nhập số seri..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-xl text-white focus:border-emerald-500 outline-none" required />
+                </div>
+
+                <button type="submit" disabled={isDepositing} className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 py-4 rounded-xl font-bold text-white transition-colors shadow-lg shadow-emerald-600/20 text-base md:text-lg flex items-center justify-center gap-2">
+                  {isDepositing ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> : 'Nạp Thẻ Ngay'}
+                </button>
+              </form>
             )}
 
             <div className="mt-8 border-t border-slate-800 pt-4">
@@ -3918,7 +4042,12 @@ const App = () => {
                     };
                     setDepositBonusConfig(newConfig);
                     localStorage.setItem('shop_deposit_config', JSON.stringify(newConfig));
-                    showToast("Lưu cài đặt khuyến mãi nạp thành công!");
+                    supabase.from('site_config').upsert({ id: 'deposit_bonus', value: newConfig }).then(() => {
+                      showToast("Lưu cài đặt khuyến mãi nạp thành công!");
+                    }).catch(e => {
+                      console.error(e);
+                      showToast("Lưu cấu hình lỗi, nhưng đã lưu cục bộ!");
+                    });
                   }} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                     <div>
                       <label className="text-xs text-slate-400 font-bold block mb-1">Mốc Nạp Tối Thiểu (VNĐ)</label>
@@ -3982,7 +4111,7 @@ const App = () => {
                               {d.bonusAmount > 0 && <span className="text-[10px] text-rose-400 font-bold block mt-0.5">Khuyến mãi +{new Intl.NumberFormat('vi-VN').format(d.bonusAmount)}đ (Mã: {d.voucherCode})</span>}
                             </td>
                             <td className="p-4 flex justify-center gap-2">
-                              {d.status === 'Chờ duyệt' ?
+                              {d.status === 'Chờ duyệt' ? (d.type === 'card' ? <span className="text-yellow-500 font-bold text-xs bg-yellow-500/10 px-3 py-1.5 rounded text-center">Hệ thống gạch thẻ tự động xử lý...</span> :
                                 <>
                                   <button onClick={() => {
                                     setApproveDepositModal(d);
@@ -4004,7 +4133,7 @@ const App = () => {
                                       }
                                     });
                                   }} className="bg-rose-500/20 px-3 py-2 rounded-lg text-rose-400 hover:bg-rose-500 hover:text-white text-xs font-bold transition-colors">Từ chối</button>
-                                </>
+                                </>)
                                 : <span className={`px-3 py-1.5 rounded text-xs font-bold ${d.status === 'Thành công' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>{d.status}</span>}
                               <button onClick={() => setConfirmDialog({ title: 'Xoá lịch sử', message: 'Xoá lịch sử nạp này?', onConfirm: () => setDepositRequests(depositRequests.filter(x => x.id !== d.id)) })} className="p-2 bg-slate-800 text-slate-400 rounded-lg hover:text-white transition-colors"><Trash2 size={16} /></button>
                             </td>
@@ -5523,7 +5652,7 @@ const App = () => {
                 <div className="flex items-start gap-3">
                   <div className="mt-1 bg-rose-500/20 p-1.5 rounded-lg text-rose-400 border border-rose-500/30"><Ticket size={20} /></div>
                   <p className="text-base text-slate-300 leading-relaxed">
-                    Nạp <strong className="text-rose-400 text-lg">20k VNĐ</strong> tặng ngay <strong className="text-rose-400 text-lg">1 Lượt Quay</strong>
+                    Nạp <strong className="text-rose-400 text-lg">{new Intl.NumberFormat('vi-VN').format(depositBonusConfig.minAmount / 1000)}k VNĐ</strong> tặng ngay <strong className="text-rose-400 text-lg">{depositBonusConfig.bonusSpins} Lượt Quay</strong>
                     <span className="block text-sm text-slate-500 mt-1.5 italic">(Không giới hạn số lần)</span>
                   </p>
                 </div>
@@ -5577,7 +5706,7 @@ const App = () => {
               <div className="space-y-5 text-slate-300 text-base mb-8 text-left bg-slate-900/60 p-5 rounded-2xl border border-slate-800/80 shadow-inner">
                 <div className="flex items-start gap-3">
                   <span className="w-7 h-7 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center text-sm font-bold shrink-0 border border-blue-500/30 mt-0.5">1</span>
-                  <p className="pt-0.5 leading-relaxed">Cứ mỗi <strong className="text-rose-400 text-lg drop-shadow-sm">20k VNĐ</strong> nạp vào website sẽ được tặng <strong className="text-rose-400 text-lg drop-shadow-sm">1 lượt quay</strong> miễn phí ở vòng quay này.</p>
+                  <p className="pt-0.5 leading-relaxed">Cứ mỗi <strong className="text-rose-400 text-lg drop-shadow-sm">{new Intl.NumberFormat('vi-VN').format(depositBonusConfig.minAmount / 1000)}k VNĐ</strong> nạp vào website sẽ được tặng <strong className="text-rose-400 text-lg drop-shadow-sm">{depositBonusConfig.bonusSpins} lượt quay</strong> miễn phí ở vòng quay này.</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <span className="w-7 h-7 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center text-sm font-bold shrink-0 border border-blue-500/30 mt-0.5">2</span>
