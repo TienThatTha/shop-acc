@@ -1263,6 +1263,7 @@ const App = () => {
   };
 
   const renderNavbar = () => (
+    <>
     <header className="bg-[#151D2F] border-b border-slate-800 sticky top-0 z-30 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -1366,6 +1367,15 @@ const App = () => {
         </div>
       </div>
     </header>
+    <div className="bg-gradient-to-r from-emerald-900/40 via-blue-900/40 to-rose-900/40 border-b border-slate-800 text-center py-1.5 px-4 shadow-sm hidden sm:block">
+      <p className="text-xs md:text-sm font-semibold text-slate-300">
+        🎉 <strong className="text-emerald-400">TIN VUI:</strong> Hệ thống đã hỗ trợ <span className="text-white font-bold">Nạp Tiền Bằng Thẻ Cào</span> siêu tốc 24/7! 
+        <button onClick={() => { requireAuth('naptien'); setDepositMethod('card'); }} className="ml-2 text-rose-400 hover:text-rose-300 underline font-bold transition-colors">
+          Thử ngay
+        </button>
+      </p>
+    </div>
+    </>
   );
   const renderForgotPasswordScreen = () => (
     <div className="min-h-screen bg-[#0B1120] flex items-center justify-center p-4">
@@ -1574,7 +1584,15 @@ const App = () => {
 
             <div className="relative z-10 w-full p-6 md:p-10 flex flex-col lg:flex-row items-center justify-between gap-8">
               <div className="flex-1 text-left">
-                <div className="inline-block px-4 py-1 bg-rose-500/20 text-rose-400 font-bold text-xs rounded-full border border-rose-500/30 mb-4 backdrop-blur-sm shadow-[0_0_10px_rgba(225,29,72,0.3)]">🔥 UY TÍN - TỐC ĐỘ - BẢO MẬT</div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <div className="inline-block px-4 py-1 bg-rose-500/20 text-rose-400 font-bold text-xs rounded-full border border-rose-500/30 backdrop-blur-sm shadow-[0_0_10px_rgba(225,29,72,0.3)]">🔥 UY TÍN - TỐC ĐỘ - BẢO MẬT</div>
+                  <div 
+                    onClick={() => { requireAuth('naptien'); setDepositMethod('card'); }}
+                    className="inline-block px-4 py-1 bg-emerald-500/20 text-emerald-400 font-bold text-xs rounded-full border border-emerald-500/30 backdrop-blur-sm shadow-[0_0_10px_rgba(16,185,129,0.3)] cursor-pointer hover:bg-emerald-500/30 transition-colors"
+                  >
+                    💳 HỖ TRỢ NẠP THẺ CÀO TỰ ĐỘNG
+                  </div>
+                </div>
                 <h2 className="text-4xl md:text-5xl font-black text-white mb-4 uppercase leading-tight drop-shadow-lg">
                   TRẢI NGHIỆM GAMING <br className="hidden md:block" />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-rose-400">ĐỈNH CAO NHẤT</span>
