@@ -89,6 +89,27 @@ const uploadToImgBB = async (base64String) => {
   }
 };
 
+const getCustomerFriendlyError = (details) => {
+  if (!details) return null;
+  const match = details.match(/^\[(.*?)\]/);
+  if (!match) return null;
+  const errorMsg = match[1].toLowerCase();
+  
+  const allowedErrors = [
+    'được sử dụng',
+    'sai mệnh giá',
+    'sai mã số seri',
+    'không tồn tại',
+    'sai định dạng',
+    'không hợp lệ'
+  ];
+
+  if (allowedErrors.some(allowed => errorMsg.includes(allowed))) {
+    return match[1]; // Trả về chính xác câu lỗi từ API (ko thêm chữ Lỗi)
+  }
+  return null;
+};
+
 const App = () => {
 
   // --- BỘ ĐÀM GỬI EMAIL & TELEGRAM BÁO CHO ADMIN ---
@@ -2408,7 +2429,8 @@ const App = () => {
             amount: parseInt(cardAmount),
             status: 'Chờ duyệt',
             type: 'card',
-            details: `Nạp thẻ ${cardTelco} - Mã: ${cardCode} - Seri: ${cardSerial}`
+            details: `Nạp thẻ ${cardTelco} - Mã: ${cardCode} - Seri: ${cardSerial}`,
+            created_at: new Date().toISOString()
           }, ...prev]);
 
           sendAdminAlert('NẠP THẺ CÀO', `Khách ${currentUser.name} vừa nạp thẻ ${cardTelco} mệnh giá ${new Intl.NumberFormat('vi-VN').format(cardAmount)}đ. Thẻ đang được xử lý.`);
@@ -2561,12 +2583,20 @@ const App = () => {
                   depositRequests.filter(d => d.userId === currentUser?.id).slice(0, visibleDepsClient).map(d => (
                     <div key={d.id} className="flex justify-between items-center text-sm bg-[#0B1120] p-3 rounded-lg border border-slate-800">
                       <div>
-                        <span className="font-bold text-white block">{new Intl.NumberFormat('vi-VN').format(d.amount)}đ</span>
+                        <span className="font-bold text-white block">
+                          {d.type === 'card' ? '💳 Thẻ cào: ' : '🏦 Chuyển khoản: '}
+                          {new Intl.NumberFormat('vi-VN').format(d.amount)}đ
+                        </span>
                         {d.bonusAmount > 0 && <span className="text-[10px] text-rose-400 font-bold">+{new Intl.NumberFormat('vi-VN').format(d.bonusAmount)}đ (Mã: {d.voucherCode})</span>}
-                        <span className="text-[10px] text-slate-500 block mt-0.5">{new Date(d.id).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                        {d.status === 'Thất bại' && d.details && getCustomerFriendlyError(d.details) && (
+                          <span className="text-[10px] text-red-400 block mt-0.5 leading-tight">{getCustomerFriendlyError(d.details)}</span>
+                        )}
+                        <span className="text-[10px] text-slate-500 block mt-0.5">
+                          {new Date(d.created_at || parseInt(d.id)).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        </span>
                       </div>
-                      <div className="flex flex-col gap-1 items-end">
-                        <span className={`px-2 py-1 rounded text-[10px] md:text-xs font-bold ${d.status === 'Thành công' ? 'bg-emerald-500/10 text-emerald-400' : d.status === 'Từ chối' || d.status === 'Đã hủy' ? 'bg-red-500/10 text-red-400' : 'bg-yellow-500/10 text-yellow-400'}`}>{d.status}</span>
+                      <div className="flex flex-col gap-1 items-end whitespace-nowrap">
+                        <span className={`px-2 py-1 rounded text-[10px] md:text-xs font-bold ${d.status === 'Thành công' ? 'bg-emerald-500/10 text-emerald-400' : d.status === 'Từ chối' || d.status === 'Thất bại' || d.status === 'Đã hủy' ? 'bg-red-500/10 text-red-400' : 'bg-yellow-500/10 text-yellow-400'}`}>{d.status}</span>
                         {d.status === 'Chờ duyệt' && (
                           <button onClick={() => handleCancelDepositClient(d.id)} className="text-[10px] text-red-400 hover:text-red-300 underline font-bold mt-1">Hủy đơn</button>
                         )}
@@ -4127,11 +4157,14 @@ const App = () => {
                       <tbody className="divide-y divide-slate-800">
                         {depositRequests.slice(0, visibleDepsAdmin).map(d => (
                           <tr key={d.id} className="hover:bg-slate-800/30">
-                            <td className="p-4"><div className="text-slate-300 font-mono text-xs">{d.id}</div><div className="text-[10px] text-slate-500 mt-1">{new Date(d.id).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</div></td>
+                            <td className="p-4"><div className="text-slate-300 font-mono text-xs">{d.id}</div><div className="text-[10px] text-slate-500 mt-1">{new Date(d.created_at || parseInt(d.id)).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</div></td>
                             <td className="p-4 text-blue-400 font-bold">{d.user} <span className="text-[10px] text-slate-500 font-normal ml-1">(ID: {d.userId})</span></td>
                             <td className="p-4">
-                              <span className="text-emerald-400 font-black text-base block">{new Intl.NumberFormat('vi-VN').format(d.amount)}đ</span>
+                              <span className="text-emerald-400 font-black text-base block">{d.type === 'card' ? '💳 Thẻ cào: ' : '🏦 Chuyển khoản: '}{new Intl.NumberFormat('vi-VN').format(d.amount)}đ</span>
                               {d.bonusAmount > 0 && <span className="text-[10px] text-rose-400 font-bold block mt-0.5">Khuyến mãi +{new Intl.NumberFormat('vi-VN').format(d.bonusAmount)}đ (Mã: {d.voucherCode})</span>}
+                              {d.status === 'Thất bại' && d.details && (
+                                <span className="text-[10px] text-red-400 block mt-0.5 leading-tight">{d.details}</span>
+                              )}
                             </td>
                             <td className="p-4 flex justify-center gap-2">
                               {d.status === 'Chờ duyệt' ? (d.type === 'card' ? <span className="text-yellow-500 font-bold text-xs bg-yellow-500/10 px-3 py-1.5 rounded text-center">Hệ thống gạch thẻ tự động xử lý...</span> :
