@@ -2102,31 +2102,35 @@ const App = () => {
                           if (!liveSender || !liveReceiver) return showToast('Lỗi hệ thống!', 'error');
                           if (liveSender.balance < totalDeduct) return showToast('Số dư không đủ (đã tính phí)!', 'error');
 
-                          // 2. Trừ tiền người gửi (tiền gốc + phí)
-                          const { error: e1 } = await supabase.from('users').update({ balance: liveSender.balance - totalDeduct }).eq('id', liveSender.id);
-                          if (e1) return showToast('Lỗi trừ tiền: ' + e1.message, 'error');
-
-                          // 3. Cộng tiền người nhận (chỉ nhận số tiền gốc, không bao gồm phí)
-                          const { error: e2 } = await supabase.from('users').update({ balance: liveReceiver.balance + amount }).eq('id', liveReceiver.id);
-                          if (e2) return showToast('Lỗi cộng tiền: ' + e2.message, 'error');
-
-                          // 4. Ghi lịch sử giao dịch cho CẢ HAI
+                          // 2. Ghi lịch sử giao dịch cho CẢ HAI
                           const now = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN');
                           const feeNote = fee > 0 ? ` (Phí: ${new Intl.NumberFormat('vi-VN').format(fee)}đ)` : ' (VIP miễn phí)';
-                          await supabase.from('transactions').insert([
-                            {
+                          
+                          const txSender = {
                               id: `TF${Date.now()}S`, user: liveSender.name,
                               action: `Chuyển tiền cho ${liveReceiver.name} (${liveReceiver.phone})${feeNote}`,
-                              amount: totalDeduct, date: now, status: 'Thành công', type: 'transfer_out',
+                              amount: -totalDeduct, date: now, status: 'Thành công', type: 'transfer_out',
                               accDetails: { balanceAfter: liveSender.balance - totalDeduct, fundAfter: liveSender.rentFund || 0, fee: fee, originalAmount: amount }
-                            },
-                            {
+                          };
+                          const txReceiver = {
                               id: `TF${Date.now()}R`, user: liveReceiver.name,
                               action: `Nhận tiền từ ${liveSender.name} (${liveSender.phone})`,
                               amount: amount, date: now, status: 'Thành công', type: 'transfer_in',
                               accDetails: { balanceAfter: liveReceiver.balance + amount, fundAfter: liveReceiver.rentFund || 0 }
-                            }
-                          ]);
+                          };
+
+                          // 3. Gọi RPC an toàn trên Backend
+                          const { data: rpcData, error: rpcError } = await supabase.rpc('rpc_transfer_money', {
+                            p_receiver_phone: receiver.phone,
+                            p_amount: amount,
+                            p_fee: fee,
+                            p_tx_sender: txSender,
+                            p_tx_receiver: txReceiver
+                          });
+
+                          if (rpcError || !rpcData?.success) {
+                            return showToast(rpcError?.message || rpcData?.message || 'Lỗi chuyển tiền!', 'error');
+                          }
 
                           // 5. Cập nhật giao diện
                           const updatedSender = { ...currentUser, balance: liveSender.balance - totalDeduct };
@@ -6163,20 +6167,14 @@ const App = () => {
                       const newBalance = currentUser.balance - totalCostFromMain;
                       const newFund = (currentUser.rentFund || 0) - rentCostFromFund;
 
-                      const updatePayload = {
-                        balance: newBalance,
-                        rentFund: newFund
-                      };
-
                       // Tự động lưu CCCD vào profile theo yêu cầu nếu khách có cung cấp
                       if (!skipKyc && rentKycMethod === 'cccd' && finalImgBase64) {
-                        updatePayload.cccd_image = finalImgBase64;
-                        updatePayload.cccd_number = capturedCccd;
+                        const { error: cccdErr } = await supabase.from('users').update({
+                           cccd_image: finalImgBase64,
+                           cccd_number: capturedCccd
+                        }).eq('id', currentUser.id);
+                        if (cccdErr) console.error("Lỗi cập nhật CCCD:", cccdErr);
                       }
-
-                      const { error: userErr } = await supabase.from('users').update(updatePayload).eq('id', currentUser.id);
-
-                      if (userErr) return showToast("Lỗi trừ tiền: " + userErr.message, 'error');
 
                       // 3. TẠO LỊCH SỬ GIAO DỊCH (Đã thêm Quỹ và Số dư cuối)
                       const txs = [];
@@ -6216,7 +6214,17 @@ const App = () => {
                           accDetails: { balanceAfter: newBalance, fundAfter: newFund } // <--- LƯU SỐ DƯ VÀO ĐÂY
                         });
                       }
-                      await supabase.from('transactions').insert(txs);
+
+                      // GỌI RPC TRỪ TIỀN VÀ GHI LỊCH SỬ AN TOÀN
+                      const { data: rpcData, error: rpcError } = await supabase.rpc('rpc_client_spend', {
+                        p_amount: totalCostFromMain,
+                        p_fund_amount: rentCostFromFund,
+                        p_tx_data: txs
+                      });
+
+                      if (rpcError || !rpcData?.success) {
+                        return showToast(rpcError?.message || rpcData?.message || 'Lỗi thanh toán thuê nick!', 'error');
+                      }
 
                       // 4. GỬI ĐƠN THUÊ LÊN HỆ THỐNG
                       const newRentReq = {
@@ -6487,8 +6495,6 @@ const App = () => {
                             }
                           }
 
-                          await supabase.from('users').update({ balance: newBalance }).eq('id', currentUser.id);
-
                           const newTx = {
                             id: `TX${Date.now()}`,
                             user: currentUser.name,
@@ -6502,7 +6508,17 @@ const App = () => {
                               fundAfter: currentUser.rentFund || 0
                             }
                           };
-                          await supabase.from('transactions').insert([newTx]);
+
+                          // GỌI RPC TRỪ TIỀN VÀ GHI LỊCH SỬ AN TOÀN
+                          const { data: rpcData, error: rpcError } = await supabase.rpc('rpc_client_spend', {
+                            p_amount: activePrice,
+                            p_fund_amount: 0,
+                            p_tx_data: newTx
+                          });
+
+                          if (rpcError || !rpcData?.success) {
+                            return showToast(rpcError?.message || rpcData?.message || 'Lỗi thanh toán cày thuê!', 'error');
+                          }
 
                           const dbPayload = {
                             id: reqId,
