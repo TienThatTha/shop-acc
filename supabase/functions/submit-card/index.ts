@@ -82,6 +82,7 @@ serve(async (req) => {
       userId: userId,
       amount: amount,
       status: 'Chờ duyệt',
+      type: 'card',
       details: `Nạp thẻ ${telco} - Mã: ${code} - Seri: ${serial}`
     }])
 

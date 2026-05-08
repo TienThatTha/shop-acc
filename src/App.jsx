@@ -94,7 +94,7 @@ const getCustomerFriendlyError = (details) => {
   const match = details.match(/^\[(.*?)\]/);
   if (!match) return null;
   const errorMsg = match[1].toLowerCase();
-  
+
   const allowedErrors = [
     'được sử dụng',
     'sai mệnh giá',
@@ -617,6 +617,20 @@ const App = () => {
       })
       .subscribe();
 
+    // Lắng nghe TRANSACTIONS MỚI (Để Admin nhận realtime lịch sử vòng quay/lịch sử mua nick)
+    const transactionsChannel = supabase.channel('realtime-transactions')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' }, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        // Khách chỉ thấy của mình, Admin thấy hết (User name is used in transactions)
+        if (!isAdmin && payload.new.user !== me?.name) return;
+        setTransactionsDb(prev => {
+          if (prev.find(t => t.id === payload.new.id)) return prev;
+          return [payload.new, ...prev];
+        });
+      })
+      .subscribe();
+
     // 5. Lắng nghe USER MỚI & CẬP NHẬT
     // FIX: Admin cập nhật bảng usersDb. Khách tự cập nhật currentUser (số dư, lượt quay) khi Telegram Bot duyệt.
     const usersChannel = supabase.channel('realtime-users')
@@ -652,6 +666,7 @@ const App = () => {
       supabase.removeChannel(rentChannel);
       supabase.removeChannel(statsChannel);
       supabase.removeChannel(usersChannel);
+      supabase.removeChannel(transactionsChannel);
     };
   }, []);
   // Tự động chuyển vòng quay nếu bị trống (Chống lỗi F5)
@@ -1293,6 +1308,11 @@ const App = () => {
   const renderNavbar = () => (
     <>
       <header className="bg-[#151D2F] border-b border-slate-800 sticky top-0 z-30 shadow-lg">
+        <div className="w-full bg-gradient-to-r from-rose-600/20 via-orange-500/20 to-rose-600/20 text-orange-400 py-2 px-4 text-center text-xs md:text-sm font-bold flex items-center justify-center gap-2 border-b border-rose-500/20 backdrop-blur-sm relative overflow-hidden">
+          <div className="absolute inset-0 bg-white/5 animate-pulse opacity-50"></div>
+          <Clock size={16} className="animate-bounce shrink-0" />
+          <span className="relative z-10 tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-rose-400">Giờ hoạt động: 8h00 - 23h00. Ngoài khung giờ này quý khách vui lòng kiên nhẫn chờ đợi, xin cảm ơn!</span>
+        </div>
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden text-slate-300 hover:text-white p-2 -ml-2 bg-slate-800/50 rounded-lg transition-colors"><Menu size={24} /></button>
@@ -2584,7 +2604,7 @@ const App = () => {
                     <div key={d.id} className="flex justify-between items-center text-sm bg-[#0B1120] p-3 rounded-lg border border-slate-800">
                       <div>
                         <span className="font-bold text-white block">
-                          {d.type === 'card' ? '💳 Thẻ cào: ' : '🏦 Chuyển khoản: '}
+                          {(d.type === 'card' || (d.details && d.details.toLowerCase().includes('thẻ')) || String(d.id).startsWith('CARD')) ? '💳 Thẻ cào: ' : '🏦 Chuyển khoản: '}
                           {new Intl.NumberFormat('vi-VN').format(d.amount)}đ
                         </span>
                         {d.bonusAmount > 0 && <span className="text-[10px] text-rose-400 font-bold">+{new Intl.NumberFormat('vi-VN').format(d.bonusAmount)}đ (Mã: {d.voucherCode})</span>}
@@ -4160,14 +4180,14 @@ const App = () => {
                             <td className="p-4"><div className="text-slate-300 font-mono text-xs">{d.id}</div><div className="text-[10px] text-slate-500 mt-1">{new Date(d.created_at || parseInt(d.id)).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</div></td>
                             <td className="p-4 text-blue-400 font-bold">{d.user} <span className="text-[10px] text-slate-500 font-normal ml-1">(ID: {d.userId})</span></td>
                             <td className="p-4">
-                              <span className="text-emerald-400 font-black text-base block">{d.type === 'card' ? '💳 Thẻ cào: ' : '🏦 Chuyển khoản: '}{new Intl.NumberFormat('vi-VN').format(d.amount)}đ</span>
+                              <span className="text-emerald-400 font-black text-base block">{(d.type === 'card' || (d.details && d.details.toLowerCase().includes('thẻ')) || String(d.id).startsWith('CARD')) ? '💳 Thẻ cào: ' : '🏦 Chuyển khoản: '}{new Intl.NumberFormat('vi-VN').format(d.amount)}đ</span>
                               {d.bonusAmount > 0 && <span className="text-[10px] text-rose-400 font-bold block mt-0.5">Khuyến mãi +{new Intl.NumberFormat('vi-VN').format(d.bonusAmount)}đ (Mã: {d.voucherCode})</span>}
                               {d.status === 'Thất bại' && d.details && (
                                 <span className="text-[10px] text-red-400 block mt-0.5 leading-tight">{d.details}</span>
                               )}
                             </td>
                             <td className="p-4 flex justify-center gap-2">
-                              {d.status === 'Chờ duyệt' ? (d.type === 'card' ? <span className="text-yellow-500 font-bold text-xs bg-yellow-500/10 px-3 py-1.5 rounded text-center">Hệ thống gạch thẻ tự động xử lý...</span> :
+                              {d.status === 'Chờ duyệt' ? ((d.type === 'card' || (d.details && d.details.toLowerCase().includes('thẻ')) || String(d.id).startsWith('CARD')) ? <span className="text-yellow-500 font-bold text-xs bg-yellow-500/10 px-3 py-1.5 rounded text-center">Hệ thống gạch thẻ tự động xử lý...</span> :
                                 <>
                                   <button onClick={() => {
                                     setApproveDepositModal(d);
