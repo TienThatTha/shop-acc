@@ -402,7 +402,7 @@ const App = () => {
         setBoostingRequests(fixedBoostReqs);
       }
 
-      const { data: configData } = await supabase.from('site_config').select('*').eq('id', 'deposit_bonus').single();
+      const { data: configData } = await supabase.from('site_config').select('*').eq('id', 'deposit_bonus').maybeSingle();
       if (configData && configData.value) {
         setDepositBonusConfig(configData.value);
       } else {
@@ -486,6 +486,13 @@ const App = () => {
               setBoostingRequests(fixedBoostReqs);
             }
           }
+        }
+      } else {
+        if (localStorage.getItem('shop_cached_user')) {
+          localStorage.removeItem('shop_cached_user');
+          setCurrentUser(null);
+          setCurrentView('login');
+          showToast("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!", "error");
         }
       }
     };
@@ -1264,117 +1271,117 @@ const App = () => {
 
   const renderNavbar = () => (
     <>
-    <header className="bg-[#151D2F] border-b border-slate-800 sticky top-0 z-30 shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden text-slate-300 hover:text-white p-2 -ml-2 bg-slate-800/50 rounded-lg transition-colors"><Menu size={24} /></button>
-          <div onClick={() => setCurrentView('dashboard')}>
-            <CustomLogo className="hidden sm:flex" />
-            <div className="sm:hidden flex items-center gap-2 cursor-pointer">
-              <div className="bg-gradient-to-br from-blue-600 to-rose-600 text-white p-1.5 rounded-lg shadow-lg"><Gamepad2 size={20} /></div>
+      <header className="bg-[#151D2F] border-b border-slate-800 sticky top-0 z-30 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden text-slate-300 hover:text-white p-2 -ml-2 bg-slate-800/50 rounded-lg transition-colors"><Menu size={24} /></button>
+            <div onClick={() => setCurrentView('dashboard')}>
+              <CustomLogo className="hidden sm:flex" />
+              <div className="sm:hidden flex items-center gap-2 cursor-pointer">
+                <div className="bg-gradient-to-br from-blue-600 to-rose-600 text-white p-1.5 rounded-lg shadow-lg"><Gamepad2 size={20} /></div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <nav className="hidden md:flex items-center gap-1">
-          {[
-            { name: 'Mua Nick', view: 'dashboard', auth: false },
-            { name: 'Nạp Tiền', view: 'naptien', auth: true },
-            { name: 'Cày Thuê', view: 'caythue', auth: false },
-            ...(wheelItemsMoneyDb.length > 0 || wheelItemsSpinDb.length > 0 ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false }] : []),
-            { name: 'Lịch Sử', view: 'lichsu', auth: true }
-          ].map((item, idx) => (
-            <button key={idx} onClick={() => item.auth ? requireAuth(item.view) : setCurrentView(item.view)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${currentView === item.view ? 'bg-blue-600/10 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-              {item.name}
-            </button>
-          ))}
-          {currentUser?.role === 'admin' && (
-            <button onClick={() => setCurrentView('admin')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1 relative ${currentView === 'admin' ? 'bg-rose-600 text-white' : 'text-rose-400 bg-rose-500/10 hover:bg-rose-500/20'}`}>
-              <Settings size={16} /> Admin
-              {unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full animate-pulse">{unreadCount}</span>}
-            </button>
-          )}
-        </nav>
+          <nav className="hidden md:flex items-center gap-1">
+            {[
+              { name: 'Mua Nick', view: 'dashboard', auth: false },
+              { name: 'Nạp Tiền', view: 'naptien', auth: true },
+              { name: 'Cày Thuê', view: 'caythue', auth: false },
+              ...(wheelItemsMoneyDb.length > 0 || wheelItemsSpinDb.length > 0 ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false }] : []),
+              { name: 'Lịch Sử', view: 'lichsu', auth: true }
+            ].map((item, idx) => (
+              <button key={idx} onClick={() => item.auth ? requireAuth(item.view) : setCurrentView(item.view)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${currentView === item.view ? 'bg-blue-600/10 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+                {item.name}
+              </button>
+            ))}
+            {currentUser?.role === 'admin' && (
+              <button onClick={() => setCurrentView('admin')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1 relative ${currentView === 'admin' ? 'bg-rose-600 text-white' : 'text-rose-400 bg-rose-500/10 hover:bg-rose-500/20'}`}>
+                <Settings size={16} /> Admin
+                {unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full animate-pulse">{unreadCount}</span>}
+              </button>
+            )}
+          </nav>
 
-        <div className="flex items-center gap-3">
-          {currentUser ? (
-            <>
-              {/* --- KHU VỰC HIỂN THỊ SỐ DƯ ĐÃ CHỈNH RESPONSIVE (GIỮ NGUYÊN CHỮ) --- */}
-              <div className="flex items-center gap-1.5 sm:gap-3 bg-[#0B1120] border border-slate-700 rounded-full px-2.5 sm:px-4 py-1 sm:py-1.5 cursor-pointer hover:border-slate-500 transition-colors overflow-hidden max-w-full">
+          <div className="flex items-center gap-3">
+            {currentUser ? (
+              <>
+                {/* --- KHU VỰC HIỂN THỊ SỐ DƯ ĐÃ CHỈNH RESPONSIVE (GIỮ NGUYÊN CHỮ) --- */}
+                <div className="flex items-center gap-1.5 sm:gap-3 bg-[#0B1120] border border-slate-700 rounded-full px-2.5 sm:px-4 py-1 sm:py-1.5 cursor-pointer hover:border-slate-500 transition-colors overflow-hidden max-w-full">
 
-                <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap" title="Số dư">
-                  <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
-                  <span className="text-emerald-400 font-bold text-[10px] sm:text-sm">{new Intl.NumberFormat('vi-VN').format(currentUser.balance)} đ</span>
-                </div>
-
-                <div className="w-[1px] h-3 sm:h-4 bg-slate-700 shrink-0"></div>
-
-                <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap" title="Quỹ tiền thuê bảo lưu">
-                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400 shrink-0" />
-                  <span className="text-yellow-400 font-bold text-[10px] sm:text-sm">{new Intl.NumberFormat('vi-VN').format(currentUser.rentFund || 0)} đ</span>
-                </div>
-
-                <div className="w-[1px] h-3 sm:h-4 bg-slate-700 shrink-0"></div>
-
-                <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap" title="Lượt quay">
-                  <Ticket className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400 shrink-0" />
-                  <span className="text-rose-400 font-bold text-[10px] sm:text-sm">{currentUser.spins || 0} Lượt</span>
-                </div>
-
-              </div>
-              {/* Nút cá nhân ẩn bớt trên màn hình cực nhỏ vì đã có bottom nav */}
-              <div className="relative hidden sm:block">
-                <button onClick={() => setShowUserDropdown(!showUserDropdown)} className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors bg-[#0B1120] p-2 rounded-lg px-3 py-2 border border-slate-700 relative">
-                  <User size={18} />
-                  <div className="flex items-center gap-1.5 transition-opacity">
-                    <span className="text-sm font-semibold">{currentUser.name}</span>
-                    {calculateTotalRecharged(currentUser?.id) >= 3000000 && (
-                      <span className="bg-gradient-to-r from-yellow-400 to-amber-600 text-[#0B1120] text-[9px] px-1.5 py-0.5 rounded font-black shadow-[0_0_10px_rgba(250,204,21,0.5)]">VIP</span>
-                    )}
+                  <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap" title="Số dư">
+                    <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
+                    <span className="text-emerald-400 font-bold text-[10px] sm:text-sm">{new Intl.NumberFormat('vi-VN').format(currentUser.balance)} đ</span>
                   </div>
-                  <ChevronDown size={14} className={`transition-transform duration-200 ${showUserDropdown ? 'rotate-180' : ''}`} />
-                  {currentUser.role !== 'admin' && unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full animate-pulse">{unreadCount}</span>}
-                </button>
 
-                {/* DROPDOWN MENU */}
-                {showUserDropdown && (
-                  <>
-                    <div className="fixed inset-0 z-[29]" onClick={() => setShowUserDropdown(false)}></div>
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-[#151D2F] border border-slate-700 rounded-xl shadow-2xl z-[30] py-2 animate-fade-in overflow-hidden">
-                      <button onClick={() => { setShowUserDropdown(false); setCurrentView('security'); setProfileTab('info'); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-300 hover:bg-blue-600/20 hover:text-blue-400 transition-colors flex items-center gap-3">
-                        <User size={18} className="text-blue-400" /> Quản lý chung
-                      </button>
-                      <button onClick={() => { setShowUserDropdown(false); setCurrentView('security'); setProfileTab('transfer'); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-300 hover:bg-emerald-600/20 hover:text-emerald-400 transition-colors flex items-center gap-3">
-                        <ArrowLeftRight size={18} className="text-emerald-400" /> Chuyển tiền
-                      </button>
-                      <button onClick={() => { setShowUserDropdown(false); setCurrentView('security'); setProfileTab('vip'); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-300 hover:bg-yellow-600/20 hover:text-yellow-400 transition-colors flex items-center gap-3">
-                        <Sparkles size={18} className="text-yellow-400" /> VIP
-                      </button>
-                      <div className="border-t border-slate-700 my-1"></div>
-                      <button onClick={() => { setShowUserDropdown(false); setConfirmDialog({ title: 'Đăng xuất', message: 'Bạn có chắc muốn đăng xuất?', onConfirm: async () => { await supabase.auth.signOut(); localStorage.removeItem('shop_cached_user'); localStorage.removeItem('shop_user_id'); setCurrentUser(null); setCurrentView('dashboard'); showToast('Đã đăng xuất an toàn!'); } }); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-rose-400 hover:bg-rose-600/20 hover:text-rose-300 transition-colors flex items-center gap-3">
-                        <LogOut size={18} /> Đăng xuất
-                      </button>
+                  <div className="w-[1px] h-3 sm:h-4 bg-slate-700 shrink-0"></div>
+
+                  <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap" title="Quỹ tiền thuê bảo lưu">
+                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400 shrink-0" />
+                    <span className="text-yellow-400 font-bold text-[10px] sm:text-sm">{new Intl.NumberFormat('vi-VN').format(currentUser.rentFund || 0)} đ</span>
+                  </div>
+
+                  <div className="w-[1px] h-3 sm:h-4 bg-slate-700 shrink-0"></div>
+
+                  <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap" title="Lượt quay">
+                    <Ticket className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400 shrink-0" />
+                    <span className="text-rose-400 font-bold text-[10px] sm:text-sm">{currentUser.spins || 0} Lượt</span>
+                  </div>
+
+                </div>
+                {/* Nút cá nhân ẩn bớt trên màn hình cực nhỏ vì đã có bottom nav */}
+                <div className="relative hidden sm:block">
+                  <button onClick={() => setShowUserDropdown(!showUserDropdown)} className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors bg-[#0B1120] p-2 rounded-lg px-3 py-2 border border-slate-700 relative">
+                    <User size={18} />
+                    <div className="flex items-center gap-1.5 transition-opacity">
+                      <span className="text-sm font-semibold">{currentUser.name}</span>
+                      {calculateTotalRecharged(currentUser?.id) >= 3000000 && (
+                        <span className="bg-gradient-to-r from-yellow-400 to-amber-600 text-[#0B1120] text-[9px] px-1.5 py-0.5 rounded font-black shadow-[0_0_10px_rgba(250,204,21,0.5)]">VIP</span>
+                      )}
                     </div>
-                  </>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              <button onClick={() => setCurrentView('login')} className="text-slate-300 hover:text-white text-xs sm:text-sm font-semibold px-2 sm:px-4 py-2 transition-colors">Đăng Nhập</button>
-              <button onClick={() => setCurrentView('register')} className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg shadow-lg shadow-blue-600/20 transition-colors">Đăng Ký</button>            </>
-          )}
+                    <ChevronDown size={14} className={`transition-transform duration-200 ${showUserDropdown ? 'rotate-180' : ''}`} />
+                    {currentUser.role !== 'admin' && unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full animate-pulse">{unreadCount}</span>}
+                  </button>
+
+                  {/* DROPDOWN MENU */}
+                  {showUserDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-[29]" onClick={() => setShowUserDropdown(false)}></div>
+                      <div className="absolute right-0 top-full mt-2 w-56 bg-[#151D2F] border border-slate-700 rounded-xl shadow-2xl z-[30] py-2 animate-fade-in overflow-hidden">
+                        <button onClick={() => { setShowUserDropdown(false); setCurrentView('security'); setProfileTab('info'); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-300 hover:bg-blue-600/20 hover:text-blue-400 transition-colors flex items-center gap-3">
+                          <User size={18} className="text-blue-400" /> Quản lý chung
+                        </button>
+                        <button onClick={() => { setShowUserDropdown(false); setCurrentView('security'); setProfileTab('transfer'); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-300 hover:bg-emerald-600/20 hover:text-emerald-400 transition-colors flex items-center gap-3">
+                          <ArrowLeftRight size={18} className="text-emerald-400" /> Chuyển tiền
+                        </button>
+                        <button onClick={() => { setShowUserDropdown(false); setCurrentView('security'); setProfileTab('vip'); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-300 hover:bg-yellow-600/20 hover:text-yellow-400 transition-colors flex items-center gap-3">
+                          <Sparkles size={18} className="text-yellow-400" /> VIP
+                        </button>
+                        <div className="border-t border-slate-700 my-1"></div>
+                        <button onClick={() => { setShowUserDropdown(false); setConfirmDialog({ title: 'Đăng xuất', message: 'Bạn có chắc muốn đăng xuất?', onConfirm: async () => { await supabase.auth.signOut(); localStorage.removeItem('shop_cached_user'); localStorage.removeItem('shop_user_id'); setCurrentUser(null); setCurrentView('dashboard'); showToast('Đã đăng xuất an toàn!'); } }); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-rose-400 hover:bg-rose-600/20 hover:text-rose-300 transition-colors flex items-center gap-3">
+                          <LogOut size={18} /> Đăng xuất
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <button onClick={() => setCurrentView('login')} className="text-slate-300 hover:text-white text-xs sm:text-sm font-semibold px-2 sm:px-4 py-2 transition-colors">Đăng Nhập</button>
+                <button onClick={() => setCurrentView('register')} className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg shadow-lg shadow-blue-600/20 transition-colors">Đăng Ký</button>            </>
+            )}
+          </div>
         </div>
+      </header>
+      <div className="bg-gradient-to-r from-emerald-900/40 via-blue-900/40 to-rose-900/40 border-b border-slate-800 text-center py-1.5 px-4 shadow-sm hidden sm:block">
+        <p className="text-xs md:text-sm font-semibold text-slate-300">
+          🎉 <strong className="text-emerald-400">TIN VUI:</strong> Hệ thống đã hỗ trợ <span className="text-white font-bold">Nạp Tiền Bằng Thẻ Cào</span> siêu tốc 24/7!
+          <button onClick={() => { requireAuth('naptien'); setDepositMethod('card'); }} className="ml-2 text-rose-400 hover:text-rose-300 underline font-bold transition-colors">
+            Thử ngay
+          </button>
+        </p>
       </div>
-    </header>
-    <div className="bg-gradient-to-r from-emerald-900/40 via-blue-900/40 to-rose-900/40 border-b border-slate-800 text-center py-1.5 px-4 shadow-sm hidden sm:block">
-      <p className="text-xs md:text-sm font-semibold text-slate-300">
-        🎉 <strong className="text-emerald-400">TIN VUI:</strong> Hệ thống đã hỗ trợ <span className="text-white font-bold">Nạp Tiền Bằng Thẻ Cào</span> siêu tốc 24/7! 
-        <button onClick={() => { requireAuth('naptien'); setDepositMethod('card'); }} className="ml-2 text-rose-400 hover:text-rose-300 underline font-bold transition-colors">
-          Thử ngay
-        </button>
-      </p>
-    </div>
     </>
   );
   const renderForgotPasswordScreen = () => (
@@ -1586,7 +1593,7 @@ const App = () => {
               <div className="flex-1 text-left">
                 <div className="flex flex-wrap gap-2 mb-4">
                   <div className="inline-block px-4 py-1 bg-rose-500/20 text-rose-400 font-bold text-xs rounded-full border border-rose-500/30 backdrop-blur-sm shadow-[0_0_10px_rgba(225,29,72,0.3)]">🔥 UY TÍN - TỐC ĐỘ - BẢO MẬT</div>
-                  <div 
+                  <div
                     onClick={() => { requireAuth('naptien'); setDepositMethod('card'); }}
                     className="inline-block px-4 py-1 bg-emerald-500/20 text-emerald-400 font-bold text-xs rounded-full border border-emerald-500/30 backdrop-blur-sm shadow-[0_0_10px_rgba(16,185,129,0.3)] cursor-pointer hover:bg-emerald-500/30 transition-colors"
                   >
@@ -1696,7 +1703,7 @@ const App = () => {
                       <img
                         src={acc.coverImage}
                         loading={index < 8 ? "eager" : "lazy"}
-                        fetchpriority={index < 4 ? "high" : "auto"}
+                        fetchPriority={index < 4 ? "high" : "auto"}
                         decoding="async"
                         alt={acc.game}
                         className={`w-full h-full object-cover transition-all duration-500 ${isRented ? 'opacity-50 grayscale hover:grayscale-0' : 'opacity-80 group-hover:opacity-100 group-hover:scale-110'}`}
@@ -1884,7 +1891,6 @@ const App = () => {
       };
 
       await supabase.from('messages').insert([newMsg]);
-      setMessagesDb([...messagesDb, newMsg]);
       e.target.reset();
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
       sendAdminAlert('TIN NHẮN HỖ TRỢ', `Khách ${currentUser?.name} vừa nhắn: "${input}"`);
@@ -2370,54 +2376,54 @@ const App = () => {
     };
 
     const handleCardSubmit = async (e) => {
-    e.preventDefault();
-    if (isDepositing) return;
-    
-    if (!cardCode.trim() || !cardSerial.trim()) {
-      return showToast("Vui lòng nhập đầy đủ Mã thẻ và Số Serial!", "error");
-    }
+      e.preventDefault();
+      if (isDepositing) return;
 
-    setIsDepositing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('submit-card', {
-        body: {
-          telco: cardTelco,
-          amount: parseInt(cardAmount),
-          code: cardCode,
-          serial: cardSerial,
-          userId: currentUser.id
-        }
-      });
-
-      if (error) throw error;
-      
-      if (data.success) {
-        showToast("Gửi thẻ thành công! Vui lòng chờ hệ thống xử lý trong ít phút.", "success");
-        setCardCode('');
-        setCardSerial('');
-        // Add to local state to reflect UI immediately
-        setDepositRequests(prev => [{
-          id: data.requestId,
-          userId: currentUser.id,
-          amount: parseInt(cardAmount),
-          status: 'Chờ duyệt',
-          type: 'card',
-          details: `Nạp thẻ ${cardTelco} - Mã: ${cardCode} - Seri: ${cardSerial}`
-        }, ...prev]);
-        
-        sendAdminAlert('NẠP THẺ CÀO', `Khách ${currentUser.name} vừa nạp thẻ ${cardTelco} mệnh giá ${new Intl.NumberFormat('vi-VN').format(cardAmount)}đ. Thẻ đang được xử lý.`);
-      } else {
-        showToast(data.message || "Lỗi khi gửi thẻ. Vui lòng kiểm tra lại!", "error");
+      if (!cardCode.trim() || !cardSerial.trim()) {
+        return showToast("Vui lòng nhập đầy đủ Mã thẻ và Số Serial!", "error");
       }
-    } catch (err) {
-      console.error("Lỗi gửi thẻ:", err);
-      showToast("Lỗi kết nối máy chủ nạp thẻ!", "error");
-    } finally {
-      setIsDepositing(false);
-    }
-  };
 
-  return (
+      setIsDepositing(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('submit-card', {
+          body: {
+            telco: cardTelco,
+            amount: parseInt(cardAmount),
+            code: cardCode,
+            serial: cardSerial,
+            userId: currentUser.id
+          }
+        });
+
+        if (error) throw error;
+
+        if (data.success) {
+          showToast("Gửi thẻ thành công! Vui lòng chờ hệ thống xử lý trong ít phút.", "success");
+          setCardCode('');
+          setCardSerial('');
+          // Add to local state to reflect UI immediately
+          setDepositRequests(prev => [{
+            id: data.requestId,
+            userId: currentUser.id,
+            amount: parseInt(cardAmount),
+            status: 'Chờ duyệt',
+            type: 'card',
+            details: `Nạp thẻ ${cardTelco} - Mã: ${cardCode} - Seri: ${cardSerial}`
+          }, ...prev]);
+
+          sendAdminAlert('NẠP THẺ CÀO', `Khách ${currentUser.name} vừa nạp thẻ ${cardTelco} mệnh giá ${new Intl.NumberFormat('vi-VN').format(cardAmount)}đ. Thẻ đang được xử lý.`);
+        } else {
+          showToast(data.message || "Lỗi khi gửi thẻ. Vui lòng kiểm tra lại!", "error");
+        }
+      } catch (err) {
+        console.error("Lỗi gửi thẻ:", err);
+        showToast("Lỗi kết nối máy chủ nạp thẻ!", "error");
+      } finally {
+        setIsDepositing(false);
+      }
+    };
+
+    return (
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-10">
         {renderNavbar()}
         <div className="w-full max-w-[1400px] mx-auto mt-8 px-4 lg:pr-28 grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -2448,13 +2454,13 @@ const App = () => {
 
           <div className="bg-[#151D2F] p-6 rounded-2xl border border-slate-800 h-fit shadow-xl">
             <div className="flex gap-2 mb-4 p-1 bg-[#0B1120] rounded-xl border border-slate-800">
-              <button 
+              <button
                 onClick={() => setDepositMethod('banking')}
                 className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${depositMethod === 'banking' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
               >
                 Chuyển Khoản
               </button>
-              <button 
+              <button
                 onClick={() => setDepositMethod('card')}
                 className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${depositMethod === 'card' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
               >
@@ -2467,44 +2473,44 @@ const App = () => {
                 <h3 className="font-bold text-white mb-4 text-lg">Tạo Lệnh Nạp</h3>
                 {depositStep === 1 ? (
                   <form onSubmit={handleCreateDepositDraft}>
-                <p className="text-sm text-slate-400 mb-4">Nhập số tiền để hệ thống tạo mã quét QR thanh toán nhanh cho bạn.</p>
-                <div className="mb-4">
-                  <label className="text-xs text-slate-400 font-bold mb-1 block">Số tiền cần nạp (Bội số 10.000đ)</label>
-                  <input type="number" step="10000" min="10000" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="Nhập số tiền..." className="w-full p-4 bg-[#0B1120] border border-slate-700 rounded-xl text-white focus:border-emerald-500 outline-none text-lg font-bold" required />
-                </div>
+                    <p className="text-sm text-slate-400 mb-4">Nhập số tiền để hệ thống tạo mã quét QR thanh toán nhanh cho bạn.</p>
+                    <div className="mb-4">
+                      <label className="text-xs text-slate-400 font-bold mb-1 block">Số tiền cần nạp (Bội số 10.000đ)</label>
+                      <input type="number" step="10000" min="10000" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="Nhập số tiền..." className="w-full p-4 bg-[#0B1120] border border-slate-700 rounded-xl text-white focus:border-emerald-500 outline-none text-lg font-bold" required />
+                    </div>
 
-                <div className="mb-4">
-                  <label className="text-xs text-slate-400 font-bold mb-1 flex items-center gap-1"><Ticket size={14} className="text-rose-400" /> Mã Khuyến Mãi (Nếu có)</label>
-                  <input type="text" value={voucherInput} onChange={e => setVoucherInput(e.target.value.toUpperCase())} placeholder="Nhập mã voucher..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-xl text-rose-400 focus:border-rose-500 outline-none text-base font-bold uppercase" />
-                </div>
+                    <div className="mb-4">
+                      <label className="text-xs text-slate-400 font-bold mb-1 flex items-center gap-1"><Ticket size={14} className="text-rose-400" /> Mã Khuyến Mãi (Nếu có)</label>
+                      <input type="text" value={voucherInput} onChange={e => setVoucherInput(e.target.value.toUpperCase())} placeholder="Nhập mã voucher..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-xl text-rose-400 focus:border-rose-500 outline-none text-base font-bold uppercase" />
+                    </div>
 
-                <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-xl font-bold text-white transition-colors shadow-lg shadow-blue-600/20 text-base md:text-lg flex items-center justify-center gap-2">Tạo Mã QR Nạp</button>
-              </form>
-            ) : (
-              <div className="text-center bg-[#0B1120] p-4 md:p-6 rounded-xl border border-emerald-500/30">
-                <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
-                  <QrCode size={30} className="text-emerald-400" />
-                </div>
-                <h4 className="text-white font-bold text-lg mb-2">Đang chờ thanh toán</h4>
-                <p className="text-sm text-slate-400 mb-6">Hãy sử dụng App Ngân hàng quét mã QR bên cạnh để chuyển số tiền <strong className="text-emerald-400">{new Intl.NumberFormat('vi-VN').format(pendingDeposit.amount)}đ</strong>. Sau khi chuyển xong, hãy nhấn nút bên dưới.</p>
+                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-xl font-bold text-white transition-colors shadow-lg shadow-blue-600/20 text-base md:text-lg flex items-center justify-center gap-2">Tạo Mã QR Nạp</button>
+                  </form>
+                ) : (
+                  <div className="text-center bg-[#0B1120] p-4 md:p-6 rounded-xl border border-emerald-500/30">
+                    <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
+                      <QrCode size={30} className="text-emerald-400" />
+                    </div>
+                    <h4 className="text-white font-bold text-lg mb-2">Đang chờ thanh toán</h4>
+                    <p className="text-sm text-slate-400 mb-6">Hãy sử dụng App Ngân hàng quét mã QR bên cạnh để chuyển số tiền <strong className="text-emerald-400">{new Intl.NumberFormat('vi-VN').format(pendingDeposit.amount)}đ</strong>. Sau khi chuyển xong, hãy nhấn nút bên dưới.</p>
 
-                <div className="flex gap-2">
-                  <button onClick={() => { setDepositStep(1); setPendingDeposit(null); }} className="w-1/3 bg-slate-800 hover:bg-slate-700 py-3 md:py-4 rounded-xl font-bold text-white transition-colors text-xs md:text-sm">Hủy Bỏ</button>
-                  <button onClick={handleConfirmTransfer} className="w-2/3 bg-emerald-600 hover:bg-emerald-500 py-3 md:py-4 rounded-xl font-bold text-white transition-colors shadow-lg shadow-emerald-600/20 text-xs md:text-sm flex items-center justify-center gap-2"><CheckCircle2 size={18} /> Đã Chuyển Khoản</button>
-                </div>
-              </div>
-            )}
-            </>
+                    <div className="flex gap-2">
+                      <button onClick={() => { setDepositStep(1); setPendingDeposit(null); }} className="w-1/3 bg-slate-800 hover:bg-slate-700 py-3 md:py-4 rounded-xl font-bold text-white transition-colors text-xs md:text-sm">Hủy Bỏ</button>
+                      <button onClick={handleConfirmTransfer} className="w-2/3 bg-emerald-600 hover:bg-emerald-500 py-3 md:py-4 rounded-xl font-bold text-white transition-colors shadow-lg shadow-emerald-600/20 text-xs md:text-sm flex items-center justify-center gap-2"><CheckCircle2 size={18} /> Đã Chuyển Khoản</button>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <form onSubmit={handleCardSubmit} className="space-y-4">
                 <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-lg text-rose-400 text-xs md:text-sm leading-relaxed">
-                  <strong>Lưu ý quan trọng:</strong> 
+                  <strong>Lưu ý quan trọng:</strong>
                   <ul className="list-disc pl-4 mt-1">
                     <li>Nạp thẻ cào chịu phí cố định <strong>20%</strong> (Thẻ 100k nhận 80k).</li>
                     <li><strong className="text-red-500">CHỌN SAI MỆNH GIÁ SẼ BỊ TRỪ 50% GIÁ TRỊ THẺ HOẶC MẤT THẺ.</strong></li>
                   </ul>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs text-slate-400 font-bold mb-1 block">Nhà mạng</label>
@@ -2887,7 +2893,7 @@ const App = () => {
                     <img
                       src={b.image}
                       loading={index < 8 ? "eager" : "lazy"}
-                      fetchpriority={index < 4 ? "high" : "auto"}
+                      fetchPriority={index < 4 ? "high" : "auto"}
                       decoding="async"
                       className="w-full h-auto object-contain transition-transform duration-500 group-hover/img:scale-105"
                       alt={b.title}
@@ -3729,7 +3735,6 @@ const App = () => {
       };
 
       await supabase.from('messages').insert([newMsg]);
-      setMessagesDb([...messagesDb, newMsg]);
       e.target.reset();
       setTimeout(() => chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     };
@@ -4415,7 +4420,6 @@ const App = () => {
                                         timestamp: Date.now(), isRead: false
                                       };
                                       await supabase.from('messages').insert([msg]);
-                                      setMessagesDb(prev => [...prev, msg]);
                                     }
 
                                     showToast("Đã từ chối & Hoàn tiền về đúng ví!");
@@ -4612,7 +4616,6 @@ const App = () => {
 
                                 // Đẩy tin nhắn lên DB và cập nhật màn hình
                                 await supabase.from('messages').insert([newMsg]);
-                                setMessagesDb(prev => [...prev, newMsg]);
                               }
 
                               // 3. Hiển thị trạng thái mới ra màn hình Admin

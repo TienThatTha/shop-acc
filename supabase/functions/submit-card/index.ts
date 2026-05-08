@@ -19,8 +19,29 @@ serve(async (req) => {
   }
 
   try {
+    // ---- BẢO MẬT: XÁC THỰC NGƯỜI DÙNG THỦ CÔNG ----
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ success: false, message: 'Vui lòng đăng nhập!' }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
+    
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    if (authError || !user) {
+      return new Response(JSON.stringify({ success: false, message: 'Phiên đăng nhập không hợp lệ!' }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    }
+    // ------------------------------------------------
+
     const { telco, amount, code, serial, userId } = await req.json()
     
+    if (userId !== user.id) {
+      return new Response(JSON.stringify({ success: false, message: 'Yêu cầu bị từ chối!' }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    }
     const partnerId = Deno.env.get('PARTNER_ID')
     const partnerKey = Deno.env.get('PARTNER_KEY')
     
