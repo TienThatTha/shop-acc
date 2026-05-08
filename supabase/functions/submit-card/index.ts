@@ -3,111 +3,153 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 import { encodeHex } from "https://deno.land/std@0.168.0/encoding/hex.ts";
 
+// Định nghĩa các Headers CORS để cho phép kết nối từ trình duyệt
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
-
+const supabaseAdmin = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+)
 
 serve(async (req) => {
+  // BẮT BUỘC: Xử lý request OPTIONS (Preflight) để trình duyệt không chặn CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  const supabaseAdmin = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  )
-
   try {
-    // ---- BẢO MẬT: XÁC THỰC NGƯỜI DÙNG THỦ CÔNG ----
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ success: false, message: 'Vui lòng đăng nhập!' }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    let payload;
+    if (req.method === 'GET') {
+      const url = new URL(req.url);
+      payload = Object.fromEntries(url.searchParams.entries());
+    } else {
+      payload = await req.json()
     }
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    )
     
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
-    if (authError || !user) {
-      return new Response(JSON.stringify({ success: false, message: 'Phiên đăng nhập không hợp lệ!' }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } })
-    }
-    // ------------------------------------------------
-
-    const { telco, amount, code, serial, userId } = await req.json()
+    // Ép kiểu nếu request là GET (dữ liệu bị biến thành chuỗi)
+    payload.amount = parseInt(payload.amount || "0");
+    payload.status = parseInt(payload.status || "0");
     
-    if (userId !== user.id) {
-      return new Response(JSON.stringify({ success: false, message: 'Yêu cầu bị từ chối!' }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } })
-    }
-    const partnerId = Deno.env.get('PARTNER_ID')
     const partnerKey = Deno.env.get('PARTNER_KEY')
     
-    if (!partnerId || !partnerKey) {
-      throw new Error("Chưa cấu hình Partner ID/Key trên hệ thống!")
-    }
-
-    const requestId = `CARD_${Date.now()}_${userId}`
-    const command = 'charging'
-
-    // Tạo chữ ký: md5(partner_key + partner_id + command + request_id)
-    const signString = `${partnerKey}${partnerId}${command}${requestId}`
+    // 1. Kiểm tra chữ ký (Bảo vệ Giả mạo Callback)
+    const signString = `${partnerKey}${payload.code}${payload.serial}`
     const messageBuffer = new TextEncoder().encode(signString);
     const hashBuffer = await crypto.subtle.digest("MD5", messageBuffer);
-    const sign = encodeHex(hashBuffer);
+    const expectedSign = encodeHex(hashBuffer);
 
-    // Lưu vào database trước khi gọi sang gachthe1s
-    const { error: dbError } = await supabaseAdmin.from('deposit_requests').insert([{
-      id: requestId,
-      userId: userId,
-      amount: amount,
-      status: 'Chờ duyệt',
-      type: 'card',
-      details: `Nạp thẻ ${telco} - Mã: ${code} - Seri: ${serial}`
-    }])
-
-    if (dbError) throw dbError;
-
-    // Call API Doithecao.com
-    const response = await fetch('https://doithecao.com/api/card-auto', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        telco: telco,
-        code: code,
-        serial: serial,
-        amount: amount,
-        request_id: requestId,
-        partner_id: partnerId,
-        sign: sign,
-        command: command
+    if (expectedSign !== payload.callback_sign) {
+      console.error("Sai chữ ký bảo mật từ Webhook");
+      // Bổ sung CORS vào các response lỗi
+      return new Response("Invalid Signature", { 
+        status: 403,
+        headers: corsHeaders 
       })
-    })
-
-    const result = await response.json()
-
-    // Cập nhật lại status theo API trả về nếu bị lỗi ngay lập tức
-    if (result.status === 100 || result.status === 3 || result.status === 4) {
-       await supabaseAdmin.from('deposit_requests')
-        .update({ status: 'Thất bại', details: `[${result.message}] Nạp thẻ ${telco} - Mã: ${code} - Seri: ${serial}` })
-        .eq('id', requestId)
-        
-        return new Response(JSON.stringify({ success: false, message: result.message }), { headers: corsHeaders })
     }
 
-    return new Response(JSON.stringify({ success: true, requestId: requestId, message: "Thẻ đã được gửi đi" }), { 
+    // 2. Chống Replay Attack
+    const requestId = payload.request_id
+    const { data: requestRecord, error: reqError } = await supabaseAdmin
+      .from('deposit_requests')
+      .select('*')
+      .eq('id', requestId)
+      .single()
+
+    if (reqError || !requestRecord) {
+      // Bổ sung CORS vào các response lỗi
+      return new Response("Request not found", { 
+        status: 404,
+        headers: corsHeaders 
+      })
+    }
+
+    if (requestRecord.status === 'Thành công' || requestRecord.status === 'Thất bại') {
+      // Bổ sung CORS vào response thành công/đã xử lý
+      return new Response("Already processed", { 
+        status: 200,
+        headers: corsHeaders 
+      })
+    }
+
+    // 3. Xử lý trạng thái và nạp sai mệnh giá
+    let finalStatus = 'Thất bại'
+    let addedAmount = 0
+    let note = payload.message || ''
+
+    if (payload.status === 1 || payload.status === 2) {
+      finalStatus = 'Thành công'
+      // payload.amount là Mệnh giá thực. Người dùng nhận 80% (Phí 20%)
+      addedAmount = Math.floor(payload.amount * 0.8)
+      if (payload.status === 2) {
+         note = `(Sai mệnh giá) Nhận thực tế: ${payload.amount}đ. ` + note
+      }
+    } else {
+      finalStatus = 'Thất bại'
+    }
+
+    // Cập nhật record lệnh nạp
+    await supabaseAdmin
+      .from('deposit_requests')
+      .update({ 
+        status: finalStatus, 
+        amount: payload.amount, 
+        details: requestRecord.details + ` | Kết quả: ${note}`
+      })
+      .eq('id', requestId)
+
+    // Nếu thành công -> Cộng tiền
+    if (finalStatus === 'Thành công' && addedAmount > 0) {
+      const { data: user } = await supabaseAdmin
+        .from('users')
+        .select('*')
+        .eq('id', requestRecord.userId)
+        .single()
+
+      if (user) {
+        // Đọc config
+        const { data: configData } = await supabaseAdmin.from('site_config').select('*').eq('id', 'deposit_bonus').single()
+        const minAmount = configData?.value?.minAmount || 20000;
+        const spinsPerMinAmount = configData?.value?.bonusSpins || 1;
+
+        const bonusSpins = Math.floor(addedAmount / minAmount) * spinsPerMinAmount
+        const newBalance = user.balance + addedAmount
+        const newSpins = (user.spins || 0) + bonusSpins
+
+        await supabaseAdmin
+          .from('users')
+          .update({ balance: newBalance, spins: newSpins })
+          .eq('id', user.id)
+
+        // Ghi lịch sử giao dịch
+        await supabaseAdmin.from('transactions').insert([{
+          id: `TX_CARD_${Date.now()}`,
+          user: user.name,
+          action: `Nạp thẻ cào (${payload.telco})`,
+          amount: addedAmount,
+          date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
+          status: 'Thành công',
+          type: 'deposit',
+          accDetails: { balanceAfter: newBalance, fundAfter: user.rentFund || 0 }
+        }])
+      }
+    }
+
+    // Response cuối cùng khi chạy mượt mà cũng phải ghép nối với cấu trúc JSON và CORS headers
+    return new Response(JSON.stringify({ success: true }), { 
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200 
     })
 
   } catch (error) {
-    console.error("Lỗi submit thẻ:", error)
-    return new Response(JSON.stringify({ success: false, message: error.message }), { headers: corsHeaders, status: 400 })
+    console.error("Lỗi Webhook thẻ:", error)
+    // Response lỗi ở catch block cũng bắt buộc cần CORS headers
+    return new Response(JSON.stringify({ error: error.message }), { 
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    })
   }
 })
