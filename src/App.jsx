@@ -1665,7 +1665,7 @@ const App = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    window.open('https://download.hoptodesk.com/HopToDesk.exe', '_self');
+                    window.open('https://www.dropbox.com/scl/fo/9eai63w3bbs5rpi3csjdi/AD-0_7AgHSULdoN2bmuKXIc?rlkey=x14ooep1r2vma2a6mz57n3r0l&st=lheu321c&dl=1', '_blank');
                     setAwesunGuideType('outside');
                   }}
                   className="w-full bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border border-blue-500/30 shadow-sm relative z-10"
@@ -5666,13 +5666,20 @@ const App = () => {
                   <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20">1</span>
                   <p className="leading-relaxed uppercase font-bold">BẤM TỔ HỢP PHÍM <strong className="text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(250,204,21,0.2)] whitespace-nowrap">CTRL + J</strong> TRÊN TRÌNH DUYỆT WEB CỦA BẠN.</p>
                 </div>
-                <div className="flex gap-4 items-center">
+                <div className="flex gap-4 items-center mt-4">
                   <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20">2</span>
-                  <p className="leading-relaxed uppercase font-bold">MỞ FILE APP ĐIỀU KHIỂN VỪA MỚI TẢI LÊN.</p>
+                  <p className="leading-relaxed uppercase font-bold text-white">GIẢI NÉN FILE SHOPTIENGAMING.COM VỪA TẢI</p>
+                </div>
+                <div className="flex gap-4 items-start mt-4">
+                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20 mt-1">3</span>
+                  <div className="w-full">
+                    <p className="leading-relaxed uppercase font-bold mb-3 text-white">MỞ FILE APP ĐIỀU KHIỂN VỪA MỚI ĐƯỢC GIẢI NÉN RA.</p>
+                    <img src="/appdieukhien.png" alt="App điều khiển" className="w-24 rounded-2xl border border-slate-600 shadow-lg" />
+                  </div>
                 </div>
                 <div className="flex gap-4 items-start relative mt-4">
                   <div className="absolute -inset-1 bg-gradient-to-r from-rose-500/20 to-orange-500/20 rounded-2xl blur-md -z-10 animate-pulse"></div>
-                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_15px_rgba(244,63,94,0.5)] border border-white/20 mt-1">3</span>
+                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_15px_rgba(244,63,94,0.5)] border border-white/20 mt-1">4</span>
                   <div className="w-full bg-[#1A233A] border-2 border-rose-500/40 p-4 rounded-xl shadow-[0_0_20px_rgba(244,63,94,0.15)]">
                     <p className="text-white mb-3 uppercase font-bold">CHỤP HOẶC GHI RA <strong className="text-rose-400 font-black text-xl bg-rose-500/10 px-2 py-0.5 rounded whitespace-nowrap">2 CÁI ID VÀ MẬT KHẨU</strong> CỦA APP NHƯ HÌNH BÊN DƯỚI:</p>
                     <img src="/guide-hoptodesk.png" alt="Hướng dẫn HopToDesk" className="w-full rounded-lg border border-rose-500/30 shadow-lg" />
@@ -6381,7 +6388,7 @@ const App = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          window.open('https://download.hoptodesk.com/HopToDesk.exe', '_self');
+                          window.open('https://www.dropbox.com/scl/fo/9eai63w3bbs5rpi3csjdi/AD-0_7AgHSULdoN2bmuKXIc?rlkey=x14ooep1r2vma2a6mz57n3r0l&st=lheu321c&dl=1', '_blank');
                           setAwesunGuideType('inside');
                         }}
                         className="bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 border border-blue-500/30 shadow-sm"
@@ -6402,7 +6409,7 @@ const App = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          window.open('https://download.hoptodesk.com/HopToDesk.exe', '_self');
+                          window.open('https://www.dropbox.com/scl/fo/9eai63w3bbs5rpi3csjdi/AD-0_7AgHSULdoN2bmuKXIc?rlkey=x14ooep1r2vma2a6mz57n3r0l&st=lheu321c&dl=1', '_blank');
                           setAwesunGuideType('inside');
                         }}
                         className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-sm relative z-10"
