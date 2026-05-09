@@ -449,11 +449,11 @@ const App = () => {
             // QUYỀN ADMIN: TẢI TOÀN BỘ DATABASE VỀ PANEL
             const [usersRes, txRes, depRes, rentRes, msgRes, boostReqRes] = await Promise.all([
               supabase.from('users').select('*').order('id', { ascending: false }),
-              supabase.from('transactions').select('*').order('id', { ascending: false }),
-              supabase.from('deposit_requests').select('*').order('id', { ascending: false }),
-              supabase.from('rent_requests').select('*').order('id', { ascending: false }),
+              supabase.from('transactions').select('*').order('created_at', { ascending: false }),
+              supabase.from('deposit_requests').select('*').order('created_at', { ascending: false }),
+              supabase.from('rent_requests').select('*').order('created_at', { ascending: false }),
               supabase.from('messages').select('*').order('timestamp', { ascending: true }),
-              supabase.from('boosting_requests').select('*').order('id', { ascending: false })
+              supabase.from('boosting_requests').select('*').order('created_at', { ascending: false })
             ]);
 
             if (usersRes.data) setUsersDb(usersRes.data);
@@ -479,11 +479,11 @@ const App = () => {
           } else {
             // QUYỀN KHÁCH: CHỈ TẢI CỦA KHÁCH
             const [myTx, myDep, myRent, myMsg, myBoostReq] = await Promise.all([
-              supabase.from('transactions').select('*').eq('user', user.name).order('id', { ascending: false }),
-              supabase.from('deposit_requests').select('*').eq('userId', session.user.id).order('id', { ascending: false }),
-              supabase.from('rent_requests').select('*').eq('userId', session.user.id).order('id', { ascending: false }),
+              supabase.from('transactions').select('*').eq('user', user.name).order('created_at', { ascending: false }),
+              supabase.from('deposit_requests').select('*').eq('userId', session.user.id).order('created_at', { ascending: false }),
+              supabase.from('rent_requests').select('*').eq('userId', session.user.id).order('created_at', { ascending: false }),
               supabase.from('messages').select('*').or(`senderId.eq.${session.user.id},receiverId.eq.${session.user.id}`).order('timestamp', { ascending: true }),
-              supabase.from('boosting_requests').select('*').eq('user', user.name).order('id', { ascending: false }) // <--- Đã thêm lệnh lấy Cày Thuê
+              supabase.from('boosting_requests').select('*').eq('user', user.name).order('created_at', { ascending: false }) // <--- Đã thêm lệnh lấy Cày Thuê
             ]);
 
             if (myTx.data) setTransactionsDb(myTx.data);
@@ -757,11 +757,11 @@ const App = () => {
         if (role === 'admin') {
           const [usersRes, txRes, depRes, rentRes, msgRes, boostReqRes] = await Promise.all([
             supabase.from('users').select('*').order('id', { ascending: false }),
-            supabase.from('transactions').select('*').order('id', { ascending: false }),
-            supabase.from('deposit_requests').select('*').order('id', { ascending: false }),
-            supabase.from('rent_requests').select('*').order('id', { ascending: false }),
+            supabase.from('transactions').select('*').order('created_at', { ascending: false }),
+            supabase.from('deposit_requests').select('*').order('created_at', { ascending: false }),
+            supabase.from('rent_requests').select('*').order('created_at', { ascending: false }),
             supabase.from('messages').select('*').order('timestamp', { ascending: true }),
-            supabase.from('boosting_requests').select('*').order('id', { ascending: false }) // Phải kéo cái này về
+            supabase.from('boosting_requests').select('*').order('created_at', { ascending: false }) // Phải kéo cái này về
           ]);
           if (usersRes.data) setUsersDb(usersRes.data);
           if (txRes.data) setTransactionsDb(txRes.data);
@@ -3125,7 +3125,7 @@ const App = () => {
         setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
 
         // Kéo 2 dòng lịch sử mới nhất (Vé quay & Trúng thưởng) để hiển thị bên phải
-        const { data: newTxs } = await supabase.from('transactions').select('*').eq('user', currentUser.name).order('id', { ascending: false }).limit(2);
+        const { data: newTxs } = await supabase.from('transactions').select('*').eq('user', currentUser.name).order('created_at', { ascending: false }).limit(2);
         if (newTxs) {
           setTransactionsDb(prev => {
             const filtered = prev.filter(p => !newTxs.find(n => n.id === p.id));

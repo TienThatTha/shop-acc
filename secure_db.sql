@@ -3,7 +3,7 @@ CREATE OR REPLACE FUNCTION check_user_update()
 RETURNS trigger AS $$
 DECLARE
   v_role text;
-  v_uid uuid;
+  v_uid text;
 BEGIN
   -- Cho phép các tác vụ từ hệ thống (Postgres/Supabase Admin)
   IF current_user = 'postgres' OR current_user = 'supabase_admin' THEN
@@ -22,7 +22,7 @@ BEGIN
      OR NEW.role IS DISTINCT FROM OLD.role THEN
      
     -- Lấy ID người đang gọi API
-    v_uid := (current_setting('request.jwt.claims', true)::jsonb->>'sub')::uuid;
+    v_uid := current_setting('request.jwt.claims', true)::jsonb->>'sub';
     
     -- Lấy role thực tế trong Database
     SELECT role INTO v_role FROM users WHERE id = v_uid;
@@ -51,11 +51,11 @@ CREATE OR REPLACE FUNCTION rpc_client_spend(
     p_tx_data jsonb
 ) RETURNS jsonb AS $$
 DECLARE
-  v_uid uuid;
+  v_uid text;
   v_user record;
 BEGIN
   -- Lấy ID khách hàng
-  v_uid := (current_setting('request.jwt.claims', true)::jsonb->>'sub')::uuid;
+  v_uid := current_setting('request.jwt.claims', true)::jsonb->>'sub';
   IF v_uid IS NULL THEN
     RETURN jsonb_build_object('success', false, 'message', 'Vui lòng đăng nhập!');
   END IF;
@@ -108,12 +108,12 @@ CREATE OR REPLACE FUNCTION rpc_transfer_money(
     p_tx_receiver jsonb
 ) RETURNS jsonb AS $$
 DECLARE
-  v_uid uuid;
+  v_uid text;
   v_sender record;
   v_receiver record;
   v_total float;
 BEGIN
-  v_uid := (current_setting('request.jwt.claims', true)::jsonb->>'sub')::uuid;
+  v_uid := current_setting('request.jwt.claims', true)::jsonb->>'sub';
   IF v_uid IS NULL THEN
     RETURN jsonb_build_object('success', false, 'message', 'Vui lòng đăng nhập!');
   END IF;
