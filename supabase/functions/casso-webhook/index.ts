@@ -52,13 +52,17 @@ serve(async (req) => {
           .update({ balance: newBalance, spins: newSpins })
           .eq('id', user.id)
 
+        // Xử lý múi giờ Việt Nam
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) + ' ' + now.toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+
         // 6. Ghi Lịch sử giao dịch (transactions)
         await supabaseAdmin.from('transactions').insert([{
           id: `TX_AUTO_${Date.now()}`,
-          user: user.name,
+          user: user.name || user.phone || 'Khách Vô Danh',
           action: `Nạp tự động qua TPBank`,
           amount: amount,
-          date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
+          date: dateStr,
           status: 'Thành công',
           type: 'deposit_auto',
           accDetails: { balanceAfter: newBalance, fundAfter: user.rentFund || 0 }

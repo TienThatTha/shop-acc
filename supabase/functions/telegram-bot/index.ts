@@ -85,21 +85,23 @@ Deno.serve(async (req) => {
     if (payload.type === 'delete_request') {
       const { requestId } = payload;
       
-      // Lấy telegram_message_id từ database
+      // Lấy telegram_message_id + thông tin đơn từ database
       const { data: reqData } = await supabaseAdmin
         .from('deposit_requests')
-        .select('telegram_message_id')
+        .select('telegram_message_id, amount, user')
         .eq('id', requestId)
         .single();
 
       if (reqData && reqData.telegram_message_id) {
-        // Xóa tin nhắn
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
+        // KHÔNG XÓA - Cập nhật tin nhắn thành "Khách đã hủy" để Admin vẫn thấy lịch sử
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageText`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: CHAT_ID,
-            message_id: reqData.telegram_message_id
+            message_id: reqData.telegram_message_id,
+            text: `🚫 <b>KHÁCH ĐÃ TỰ HỦY ĐƠN</b>\n\n👤 Khách hàng: ${reqData.user}\n💰 Số tiền: <b>${(reqData.amount || 0).toLocaleString('vi-VN')}đ</b>\n\n⚠️ Khách đã bấm hủy đơn nạp này. Không cần thao tác thêm.`,
+            parse_mode: 'HTML'
           })
         });
       }
@@ -210,13 +212,17 @@ Deno.serve(async (req) => {
               const newBalance = userTarget.balance + reqData.amount;
               await supabaseAdmin.from('users').update({ balance: newBalance }).eq('id', userTarget.id);
 
+              // Xử lý múi giờ Việt Nam
+              const now = new Date();
+              const dateStr = now.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) + ' ' + now.toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+
               // 3. Ghi Lịch sử Giao dịch
               await supabaseAdmin.from('transactions').insert([{
                 id: `TX_BOT_${Date.now()}`,
-                user: userTarget.name,
+                user: userTarget.name || userTarget.phone || 'Khách Vô Danh',
                 action: `Nạp tiền (Duyệt nhanh qua Telegram)`,
                 amount: reqData.amount,
-                date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
+                date: dateStr,
                 status: 'Thành công',
                 type: 'deposit_manual',
                 accDetails: { balanceAfter: newBalance, fundAfter: userTarget.rentFund || 0 }

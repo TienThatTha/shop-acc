@@ -2541,8 +2541,14 @@ const App = () => {
                     <p className="text-sm text-slate-400 mb-6">Hãy sử dụng App Ngân hàng quét mã QR bên cạnh để chuyển số tiền <strong className="text-emerald-400">{new Intl.NumberFormat('vi-VN').format(pendingDeposit.amount)}đ</strong>. Sau khi chuyển xong, hãy nhấn nút bên dưới.</p>
 
                     <div className="flex gap-2">
-                      <button onClick={() => { setDepositStep(1); setPendingDeposit(null); }} className="w-1/3 bg-slate-800 hover:bg-slate-700 py-3 md:py-4 rounded-xl font-bold text-white transition-colors text-xs md:text-sm">Hủy Bỏ</button>
-                      <button onClick={handleConfirmTransfer} className="w-2/3 bg-emerald-600 hover:bg-emerald-500 py-3 md:py-4 rounded-xl font-bold text-white transition-colors shadow-lg shadow-emerald-600/20 text-xs md:text-sm flex items-center justify-center gap-2"><CheckCircle2 size={18} /> Đã Chuyển Khoản</button>
+                      <button onClick={() => { if (!isDepositing) { setDepositStep(1); setPendingDeposit(null); } }} disabled={isDepositing} className="w-1/3 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed py-3 md:py-4 rounded-xl font-bold text-white transition-colors text-xs md:text-sm">Hủy Bỏ</button>
+                      <button onClick={handleConfirmTransfer} disabled={isDepositing} className="w-2/3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed py-3 md:py-4 rounded-xl font-bold text-white transition-colors shadow-lg shadow-emerald-600/20 text-xs md:text-sm flex items-center justify-center gap-2">
+                        {isDepositing ? (
+                          <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Đang gửi...</>
+                        ) : (
+                          <><CheckCircle2 size={18} /> Đã Chuyển Khoản</>
+                        )}
+                      </button>
                     </div>
                   </div>
                 )}

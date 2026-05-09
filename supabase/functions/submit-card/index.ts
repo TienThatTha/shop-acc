@@ -76,10 +76,20 @@ serve(async (req) => {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const sign = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    // Lưu lệnh nạp vào Database (cột id trong DB của bạn đang là text nên lưu chuỗi số này thoải mái)
+    // Lấy tên khách hàng để lưu vào deposit_request
+    const { data: userProfile } = await supabaseAdmin
+      .from('users')
+      .select('name, phone')
+      .eq('id', userId)
+      .single();
+
+    const userName = userProfile?.name || userProfile?.phone || `ID: ${userId}`;
+
+    // Lưu lệnh nạp vào Database
     const { error: dbError } = await supabaseAdmin.from('deposit_requests').insert([{
       id: requestId,
       userId: userId,
+      user: userName,
       amount: amount,
       status: 'Chờ duyệt',
       type: 'card',

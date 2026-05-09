@@ -104,13 +104,17 @@ serve(async (req) => {
           .update({ balance: newBalance, spins: newSpins })
           .eq('id', user.id)
 
+        // Xử lý múi giờ Việt Nam
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) + ' ' + now.toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+
         // Ghi lịch sử giao dịch
         await supabaseAdmin.from('transactions').insert([{
           id: `TX_CARD_${Date.now()}`,
-          user: user.name,
+          user: user.name || user.phone || 'Khách Vô Danh',
           action: `Nạp thẻ cào (${payload.telco})`,
           amount: addedAmount,
-          date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
+          date: dateStr,
           status: 'Thành công',
           type: 'deposit',
           accDetails: { balanceAfter: newBalance, fundAfter: user.rentFund || 0 }
