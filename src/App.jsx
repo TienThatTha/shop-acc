@@ -3322,23 +3322,46 @@ const App = () => {
                 ) : (
                   <div className="flex flex-col gap-2">
                     {transactionsDb.filter(t => t.type === 'spin_win' && t.user === currentUser?.name).slice(0, visibleSpinsClient).map((tx, idx) => {
-                      const isWin = tx.action.includes('Trúng');
+                      // Chuẩn hóa text cho các bản ghi cũ không có dấu tiếng Việt
+                      let displayAction = tx.action;
+                      displayAction = displayAction.replace(/Quay vong quay - Khong trung/gi, 'Chúc may mắn lần sau');
+                      displayAction = displayAction.replace(/Quay vòng quay - Không trúng/gi, 'Chúc may mắn lần sau');
+                      displayAction = displayAction.replace(/Trung phan thuong:/gi, 'Trúng phần thưởng:');
+                      displayAction = displayAction.replace(/Trung thuong:/gi, 'Trúng thưởng:');
+                      displayAction = displayAction.replace(/Cong /gi, 'Cộng ');
+                      displayAction = displayAction.replace(/Luot/gi, 'Lượt');
+
+                      const isWin = displayAction.includes('Trúng');
+
+                      // Xác định nhãn kết quả hiển thị bên phải
+                      let resultLabel = null;
+                      let resultColor = '';
+                      if (tx.amount === 0) {
+                        resultLabel = 'Trượt';
+                        resultColor = 'text-slate-500';
+                      } else if (tx.isSpinCost) {
+                        resultLabel = `+${Math.abs(tx.amount)} Lượt`;
+                        resultColor = 'text-cyan-400';
+                      } else {
+                        resultLabel = `+${new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ`;
+                        resultColor = 'text-emerald-400';
+                      }
+
                       return (
                         <div key={idx} className="p-3 bg-[#0B1120] rounded-xl border border-slate-800 flex justify-between items-center hover:border-slate-700 transition-colors text-left">
                           <div className="flex-1 pr-2">
                             <p className={`font-bold text-sm line-clamp-1 ${isWin ? 'text-white' : 'text-slate-400'}`}>
-                              <Gift size={14} className={`inline mr-1.5 -mt-0.5 ${isWin ? "text-rose-500" : "text-slate-600"}`} />
-                              {tx.action}
+                              {isWin
+                                ? <span className="inline mr-1.5 -mt-0.5 text-base">🎁</span>
+                                : <Gift size={14} className="inline mr-1.5 -mt-0.5 text-slate-600" />
+                              }
+                              {displayAction}
                             </p>
                             <p className="text-[10px] text-slate-500 mt-1">{tx.date}</p>
-
                           </div>
                           <div className="text-right shrink-0">
-                            <p className="font-black text-sm text-emerald-400">
-                              {tx.amount === 0
-                                ? <span className="text-slate-500 text-xs">Trượt</span>
-                                : (tx.isSpinCost ? `+${Math.abs(tx.amount)} Lượt` : `+${new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ`)
-                              }
+                            <p className={`font-black text-sm ${resultColor}`}>
+                              {resultLabel}
                             </p>
                           </div>
                         </div>
@@ -5683,9 +5706,16 @@ const App = () => {
                     <img src="/appdieukhien.png" alt="App điều khiển" className="w-24 rounded-2xl border border-slate-600 shadow-lg" />
                   </div>
                 </div>
+                <div className="flex gap-4 items-start mt-4">
+                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20 mt-1">4</span>
+                  <div className="w-full">
+                    <p className="leading-relaxed uppercase font-bold mb-3 text-white">BẤM <strong className="text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(250,204,21,0.2)]">INSTALL NOW</strong> HOẶC CÀI ĐẶT NGAY NHƯ HÌNH</p>
+                    <img src="/installnow.png" alt="Install Now" className="w-full rounded-lg border border-slate-600 shadow-lg" />
+                  </div>
+                </div>
                 <div className="flex gap-4 items-start relative mt-4">
                   <div className="absolute -inset-1 bg-gradient-to-r from-rose-500/20 to-orange-500/20 rounded-2xl blur-md -z-10 animate-pulse"></div>
-                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_15px_rgba(244,63,94,0.5)] border border-white/20 mt-1">4</span>
+                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_15px_rgba(244,63,94,0.5)] border border-white/20 mt-1">5</span>
                   <div className="w-full bg-[#1A233A] border-2 border-rose-500/40 p-4 rounded-xl shadow-[0_0_20px_rgba(244,63,94,0.15)]">
                     <p className="text-white mb-3 uppercase font-bold">CHỤP HOẶC GHI RA <strong className="text-rose-400 font-black text-xl bg-rose-500/10 px-2 py-0.5 rounded whitespace-nowrap">2 CÁI ID VÀ MẬT KHẨU</strong> CỦA APP NHƯ HÌNH BÊN DƯỚI:</p>
                     <img src="/guide-hoptodesk.png" alt="Hướng dẫn HopToDesk" className="w-full rounded-lg border border-rose-500/30 shadow-lg" />
