@@ -310,6 +310,7 @@ const App = () => {
   const toRoman = (n) => ['I','II','III','IV','V','VI','VII','VIII','IX','X'][n - 1] || n.toString();
   const [boostCurrentPoints, setBoostCurrentPoints] = useState('');
   const [adminBoostingImage, setAdminBoostingImage] = useState(null);
+  const [adminBoostingPriceUnit, setAdminBoostingPriceUnit] = useState('');
   const [showWheelModal, setShowWheelModal] = useState(false);
   const [editingWheel, setEditingWheel] = useState(null);
   const [adminWheelImage, setAdminWheelImage] = useState(null);
@@ -2999,7 +3000,7 @@ const App = () => {
                 <div className="flex justify-between items-end border-t border-slate-800 pt-4">
                   <div>
                     <p className="text-[10px] text-slate-500 mb-1 font-bold">GIÁ TỪ</p>
-                    <p className="text-rose-500 font-black text-lg md:text-xl">{new Intl.NumberFormat('vi-VN').format(b.price)}đ</p>
+                    <p className="text-rose-500 font-black text-lg md:text-xl">{new Intl.NumberFormat('vi-VN').format(b.price)}đ{b.priceUnit && <span className="text-slate-400 font-bold text-xs md:text-sm">/{b.priceUnit}</span>}</p>
                   </div>
                   <button onClick={() => {
                     if (!currentUser) return requireAuth('login');
@@ -3678,6 +3679,7 @@ const App = () => {
           type: type,
           require_login: type === 'event' ? e.target.requireLogin?.checked : true,
           price: isMulti && validOptions.length > 0 ? Math.min(...validOptions.map(o => o.price)) : (parseInt(e.target.price?.value) || 0),
+          priceUnit: adminBoostingPriceUnit.trim() || '',
           rankOptions: isMulti ? validOptions : [],
           image: finalImage,
           game: e.target.game?.value || '',
@@ -4581,16 +4583,19 @@ const App = () => {
             {adminTab === 'boosting' && (
               <div className="p-6">
                 {/* CHÚ Ý LỆNH SET ẢNH VỀ NULL ĐỂ TRÁNH LỖI HIỂN THỊ ẢNH CŨ */}
-                <button onClick={() => { setEditingBoosting(null); setAdminBoostingImage(null); setAdminBoostType('rank'); setAdminRankOptions([{ rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }]); setIsEventMultiPackage(false); setShowBoostingModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18} /> Thêm dịch vụ Cày Thuê</button>
+                <button onClick={() => { setEditingBoosting(null); setAdminBoostingImage(null); setAdminBoostType('rank'); setAdminRankOptions([{ rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }]); setIsEventMultiPackage(false); setAdminBoostingPriceUnit(''); setShowBoostingModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18} /> Thêm dịch vụ Cày Thuê</button>
                 {/* Modal Admin Thêm Cày Thuê */}
                 {showBoostingModal && (
                   <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className="bg-[#151D2F] border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+                    <div className="bg-[#151D2F] border border-slate-700 w-full max-w-md md:max-w-3xl rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
                       <div className="flex justify-between items-center mb-6">
                         <h3 className="text-xl font-bold text-white flex items-center gap-2"><Target className="text-blue-500" /> {editingBoosting ? 'Sửa Dịch Vụ' : 'Thêm Dịch Vụ Cày Thuê'}</h3>
                         <button onClick={() => setShowBoostingModal(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
                       </div>
-                      <form onSubmit={handleSaveBoosting} className="space-y-4">
+                      <form onSubmit={handleSaveBoosting}>
+                      <div className="md:grid md:grid-cols-2 md:gap-6">
+                      {/* === CỘT TRÁI: Ảnh + Cài đặt cơ bản === */}
+                      <div className="space-y-4">
                         {/* --- KHU VỰC UP ẢNH CÀY THUÊ CÓ NÚT X --- */}
                         <div>
                           <label className="text-xs text-slate-400 font-bold">Ảnh mô tả dịch vụ (Tùy chọn)</label>
@@ -4640,8 +4645,27 @@ const App = () => {
                           </div>
                         )}
 
+                        {adminBoostType === 'rank' ? (
+                          <div className="space-y-4 mt-4">
+                            <div><label className="text-xs text-slate-400 block mb-1">Tiêu đề Dịch vụ (Hiển thị to)</label><input name="title" defaultValue={editingBoosting?.title} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required /></div>
+                            <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingBoosting?.desc} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
+                            <div><label className="text-xs text-slate-400 block mb-1">Đơn vị hiển thị sau giá <span className="text-slate-600">(VD: điểm, bậc, gói...)</span></label><input name="priceUnit" value={adminBoostingPriceUnit} onChange={e => setAdminBoostingPriceUnit(e.target.value)} placeholder="Để trống nếu không cần" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-emerald-500" /></div>
+                          </div>
+                        ) : (
+                          <>
+                            <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết sự kiện</label><textarea name="amount" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.desc : ''} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
+                            <div><label className="text-xs text-slate-400 block mb-1">Đơn vị hiển thị sau giá <span className="text-slate-600">(VD: điểm, bậc, gói...)</span></label><input name="priceUnit" value={adminBoostingPriceUnit} onChange={e => setAdminBoostingPriceUnit(e.target.value)} placeholder="Để trống nếu không cần" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-emerald-500" /></div>
+                            <label className="flex items-center gap-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg cursor-pointer mt-2">
+                              <input type="checkbox" name="requireLogin" defaultChecked={editingBoosting?.type === 'event' ? editingBoosting.require_login : false} className="w-5 h-5 accent-rose-500 cursor-pointer" />
+                              <span className="text-sm font-bold text-rose-400">Yêu cầu cung cấp TK/MK Game?</span>
+                            </label>
+                          </>
+                        )}
+                      </div>
+                      {/* === CỘT PHẢI: Chỉ chứa Bảng giá mốc === */}
+                      <div className="space-y-4 mt-4 md:mt-0">
                         {(adminBoostType === 'rank' || (adminBoostType === 'event' && isEventMultiPackage)) ? (
-                          <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30 mb-4 mt-4">
+                          <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30">
                             <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
                               <label className="text-sm text-blue-400 font-bold flex items-center gap-2"><Target size={16} /> CÁC MỐC/GÓI HIỆN TẠI & GIÁ</label>
                               <button type="button" onClick={() => setAdminRankOptions([...adminRankOptions, { rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm mốc</button>
@@ -4690,21 +4714,8 @@ const App = () => {
                         ) : (
                           <div className="mt-4"><label className="text-xs text-slate-400 block mb-1">Giá tiền trọn gói (VNĐ)</label><input name="price" type="number" defaultValue={editingBoosting?.price} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-bold outline-none focus:border-blue-500" required /></div>
                         )}
-
-                        {adminBoostType === 'rank' ? (
-                          <div className="space-y-4 mt-4">
-                            <div><label className="text-xs text-slate-400 block mb-1">Tiêu đề Dịch vụ (Hiển thị to)</label><input name="title" defaultValue={editingBoosting?.title} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required /></div>
-                            <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingBoosting?.desc} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
-                          </div>
-                        ) : (
-                          <>
-                            <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết sự kiện</label><textarea name="amount" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.desc : ''} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
-                            <label className="flex items-center gap-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg cursor-pointer mt-2">
-                              <input type="checkbox" name="requireLogin" defaultChecked={editingBoosting?.type === 'event' ? editingBoosting.require_login : false} className="w-5 h-5 accent-rose-500 cursor-pointer" />
-                              <span className="text-sm font-bold text-rose-400">Yêu cầu cung cấp TK/MK Game?</span>
-                            </label>
-                          </>
-                        )}
+                      </div>
+                      </div>
                         <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl mt-6 shadow-lg shadow-blue-600/20">Lưu Dịch Vụ</button>
                       </form>
                     </div>
@@ -4852,12 +4863,12 @@ const App = () => {
                     <div key={b.id} className="bg-[#0B1120] p-4 rounded-xl border border-slate-700 flex flex-col group hover:border-blue-500/50 transition-colors">
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded">{b.game}</span>
-                        <span className="text-rose-400 font-black text-lg">{new Intl.NumberFormat('vi-VN').format(b.price)}đ</span>
+                        <span className="text-rose-400 font-black text-lg">{new Intl.NumberFormat('vi-VN').format(b.price)}đ{b.priceUnit && <span className="text-slate-400 font-bold text-xs">/{b.priceUnit}</span>}</span>
                       </div>
                       <span className="text-white font-bold mb-2 line-clamp-2">{b.title}</span>
                       <p className="text-xs text-slate-500 mb-4 flex-1 line-clamp-2">{b.desc}</p>
                       <div className="flex gap-2 border-t border-slate-800 pt-3">
-                        <button onClick={() => { setEditingBoosting(b); setAdminBoostingImage(b.image || null); setAdminBoostType(b.type || 'rank'); setAdminRankOptions(b.rankOptions?.length > 0 ? b.rankOptions.map(o => ({ rank: o.rank || '', price: o.price || '', comboPrice: o.comboPrice || '', inputType: o.inputType || 'bac', maxPoints: o.maxPoints || '', tierCount: o.tierCount || 1 })) : [{ rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }]); setIsEventMultiPackage(b.type === 'event' && b.rankOptions?.length > 0); setShowBoostingModal(true); }} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Edit size={14} /> Sửa</button>
+                        <button onClick={() => { setEditingBoosting(b); setAdminBoostingImage(b.image || null); setAdminBoostType(b.type || 'rank'); setAdminRankOptions(b.rankOptions?.length > 0 ? b.rankOptions.map(o => ({ rank: o.rank || '', price: o.price || '', comboPrice: o.comboPrice || '', inputType: o.inputType || 'bac', maxPoints: o.maxPoints || '', tierCount: o.tierCount || 1 })) : [{ rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }]); setIsEventMultiPackage(b.type === 'event' && b.rankOptions?.length > 0); setAdminBoostingPriceUnit(b.priceUnit || ''); setShowBoostingModal(true); }} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Edit size={14} /> Sửa</button>
                         <button onClick={() => setConfirmDialog({
                           title: 'Xoá dịch vụ', message: 'Xoá dịch vụ cày thuê này?', onConfirm: async () => {
                             await supabase.from('boosting').delete().eq('id', b.id);
@@ -5543,12 +5554,15 @@ const App = () => {
 
           {showBoostingModal && (
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-              <div className="bg-[#151D2F] border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+              <div className="bg-[#151D2F] border border-slate-700 w-full max-w-md md:max-w-3xl rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-bold text-white flex items-center gap-2"><Target className="text-blue-500" /> {editingBoosting ? 'Sửa Dịch Vụ' : 'Thêm Dịch Vụ Cày Thuê'}</h3>
                   <button onClick={() => setShowBoostingModal(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
                 </div>
-                <form onSubmit={handleSaveBoosting} className="space-y-4">
+                <form onSubmit={handleSaveBoosting}>
+                <div className="md:grid md:grid-cols-2 md:gap-6">
+                {/* === CỘT TRÁI === */}
+                <div className="space-y-4">
                   {/* --- KHU VỰC UP ẢNH CÀY THUÊ CÓ NÚT X --- */}
                   <div>
                     <label className="text-xs text-slate-400 font-bold">Ảnh mô tả dịch vụ (Tùy chọn)</label>
@@ -5604,9 +5618,27 @@ const App = () => {
                     </label>
                   )}
 
-                  {/* 2. LOGIC HIỆN BẢNG GIÁ: HIỆN NẾU LÀ RANK HOẶC LÀ EVENT MÀ CÓ TÍCH Ô TRÊN */}
+                  {adminBoostType === 'rank' ? (
+                    <>
+                      <div><label className="text-xs text-slate-400 block mb-1">Tiêu đề Gói</label><input name="title" defaultValue={editingBoosting?.title} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required /></div>
+                      <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingBoosting?.desc} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
+                      <div><label className="text-xs text-slate-400 block mb-1">Đơn vị hiển thị sau giá <span className="text-slate-600">(VD: điểm, bậc, gói...)</span></label><input name="priceUnit" value={adminBoostingPriceUnit} onChange={e => setAdminBoostingPriceUnit(e.target.value)} placeholder="Để trống nếu không cần" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-emerald-500" /></div>
+                    </>
+                  ) : (
+                    <>
+                      <div><label className="text-xs text-slate-400 block mb-1">Số lượng / Mô tả chi tiết</label><textarea name="amount" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.desc : ''} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
+                      <div><label className="text-xs text-slate-400 block mb-1">Đơn vị hiển thị sau giá <span className="text-slate-600">(VD: điểm, bậc, gói...)</span></label><input name="priceUnit" value={adminBoostingPriceUnit} onChange={e => setAdminBoostingPriceUnit(e.target.value)} placeholder="Để trống nếu không cần" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-emerald-500" /></div>
+                      <label className="flex items-center gap-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg cursor-pointer">
+                        <input type="checkbox" name="requireLogin" defaultChecked={editingBoosting?.type === 'event' ? editingBoosting.require_login : false} className="w-5 h-5 accent-rose-500 cursor-pointer" />
+                        <span className="text-sm font-bold text-rose-400">Yêu cầu cung cấp TK/MK?</span>
+                      </label>
+                    </>
+                  )}
+                </div>
+                {/* === CỘT PHẢI: Chỉ chứa Bảng giá mốc === */}
+                <div className="space-y-4 mt-4 md:mt-0">
                   {(adminBoostType === 'rank' || (adminBoostType === 'event' && isEventMultiPackage)) ? (
-                    <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30 mb-4">
+                    <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30">
                       <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
                         <label className="text-sm text-blue-400 font-bold flex items-center gap-2">
                           <Target size={16} /> {adminBoostType === 'rank' ? 'CÁC MỐC RANK & GIÁ' : 'DANH SÁCH GÓI & GIÁ'}
@@ -5661,21 +5693,8 @@ const App = () => {
                       <input name="price" type="number" defaultValue={editingBoosting?.price} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-bold outline-none focus:border-blue-500" required />
                     </div>
                   )}
-
-                  {adminBoostType === 'rank' ? (
-                    <>
-                      <div><label className="text-xs text-slate-400 block mb-1">Tiêu đề Gói</label><input name="title" defaultValue={editingBoosting?.title} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required /></div>
-                      <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingBoosting?.desc} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
-                    </>
-                  ) : (
-                    <>
-                      <div><label className="text-xs text-slate-400 block mb-1">Số lượng / Mô tả chi tiết</label><textarea name="amount" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.desc : ''} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
-                      <label className="flex items-center gap-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg cursor-pointer">
-                        <input type="checkbox" name="requireLogin" defaultChecked={editingBoosting?.type === 'event' ? editingBoosting.require_login : false} className="w-5 h-5 accent-rose-500 cursor-pointer" />
-                        <span className="text-sm font-bold text-rose-400">Yêu cầu cung cấp TK/MK?</span>
-                      </label>
-                    </>
-                  )}
+                </div>
+                </div>
                   <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl mt-6 shadow-lg shadow-blue-600/20">Lưu Dịch Vụ</button>
                 </form>
               </div>
@@ -6106,6 +6125,84 @@ const App = () => {
                       ))}
                     </div>
                   )}
+                  {/* === GÓI THUÊ TRẢI NGHIỆM CHUYỂN SANG CỘT TRÁI === */}
+                  {viewingAcc.rentOptions && viewingAcc.rentOptions.length > 0 && (
+                    <div className="pt-3 mt-1 border-t border-slate-800">
+                      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-600/20 via-teal-500/25 to-emerald-600/20 border border-emerald-500/40 rounded-xl p-5 mb-4 shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-fade-in text-center">
+                        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgxNiwxODUsMTI5LDAuMSkiLz48L3N2Zz4=')] opacity-50"></div>
+                        <p className="relative text-emerald-400 font-black text-base md:text-lg leading-relaxed uppercase tracking-wider">🎁 Tất cả gói thuê mua từ 2H đều được bảo lưu giờ dư khi chơi không hết</p>
+                        <p className="relative text-emerald-300/60 text-xs mt-2 font-medium tracking-wide">Ngừng thuê bất cứ lúc nào — Giờ dư sẽ được lưu lại cho lần sau!</p>
+                      </div>
+                      {currentUser && (currentUser.rentFund || 0) > 0 && (
+                        <div className="bg-gradient-to-r from-yellow-500/10 to-amber-600/10 border border-yellow-500/30 p-4 rounded-xl mb-4 shadow-inner">
+                          <div className="flex justify-between items-center mb-1">
+                            <p className="text-xs text-yellow-500 font-bold flex items-center gap-1.5"><Clock size={16} /> QUỸ THUÊ BẢO LƯU</p>
+                            <p className="text-xl font-black text-yellow-400">{new Intl.NumberFormat('vi-VN').format(currentUser.rentFund || 0)}đ</p>
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-1">Khi thuê nick, hệ thống sẽ ưu tiên dùng tiền từ Quỹ này để thanh toán trước.</p>
+                        </div>
+                      )}
+                      <p className="text-xs text-slate-500 font-bold mb-2 uppercase flex items-center gap-1"><Clock size={12} /> Các gói thuê trải nghiệm</p>
+                      {isCurrentlyRented && <div className="text-xs text-yellow-500 mb-3 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">Nick đang được thuê bởi khách khác, tạm thời không thể thuê. Bạn vẫn có thể mua đứt ngay lập tức.</div>}
+                      {isCurrentlyRented && currentUser?.id === viewingAcc.currentRenterId && (
+                        <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-xl mb-3 shadow-[0_0_15px_rgba(225,29,72,0.1)]">
+                          <div className="flex items-center gap-2 text-rose-500 mb-2">
+                            <Clock size={16} className="animate-pulse" />
+                            <span className="font-bold text-xs uppercase">Bạn đang trong phiên thuê</span>
+                          </div>
+
+                          {(() => {
+                            const activeReqLeft = rentRequests.find(r => r.accCode === viewingAcc.code && r.status === 'Đã giao acc');
+                            const isComboLeft = activeReqLeft && (activeReqLeft.time.toLowerCase().includes('combo đêm') || activeReqLeft.time.toLowerCase().includes('combo ngày'));
+
+                            return isComboLeft ? (
+                              <p className="text-[10px] text-slate-400 italic">Gói Combo không hỗ trợ ngừng thuê. Acc sẽ hết hạn tự động.</p>
+                            ) : (
+                              <button onClick={async () => {
+                                const activeReq = rentRequests.find(r => r.accCode === viewingAcc.code && r.status === 'Đã giao acc');
+                                if (!activeReq) return showToast('Không tìm thấy phiên thuê đang hoạt động!', 'error');
+                                setConfirmDialog({
+                                  title: 'Ngừng thuê nick', message: `Bạn muốn ngừng thuê nick ${viewingAcc.code}? Thời gian thuê dư sẽ được lưu lại.`, onConfirm: async () => {
+                                    const { data, error } = await supabase.rpc('stop_rent', { p_request_id: activeReq.id, p_user_id: currentUser.id });
+                                    if (error) return showToast(error.message, 'error');
+                                    showToast(data.message || 'Đã ngừng thuê!');
+                                    if (data.new_balance !== undefined) { const u = { ...currentUser, balance: data.new_balance, rentFund: data.new_fund }; setCurrentUser(u); localStorage.setItem('shop_cached_user', JSON.stringify(u)); }
+                                    setViewingAcc(null);
+                                  }
+                                });
+                              }} className="w-full bg-rose-600 hover:bg-rose-500 text-white py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-colors"><RotateCcw size={14} /> Ngừng Thuê Ngay</button>
+                            );
+                          })()}
+                        </div>
+                      )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {viewingAcc.rentOptions.map((opt, idx) => (
+                          <button
+                            key={idx}
+                            disabled={isCurrentlyRented}
+                            onClick={() => initiateRent(viewingAcc, opt)}
+                            className={`p-4 rounded-xl border transition-all flex flex-col items-center justify-center text-center gap-1 animate-fade-in shadow-inner w-full ${isCurrentlyRented ? 'border-slate-800 bg-slate-900/50 opacity-50 cursor-not-allowed' : 'border-slate-800 bg-[#0B1120] hover:border-blue-500 hover:bg-blue-900/20 cursor-pointer'}`}
+                          >
+                            <div className="flex flex-col items-center gap-1.5 w-full mb-1">
+                              <p className="font-black text-xl text-white">Thuê {opt.time}</p>
+                              {opt.bonusTime && (
+                                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 whitespace-nowrap font-bold shadow-sm">
+                                  + Tặng {opt.bonusTime}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-center gap-1.5 text-blue-400 mt-2 border-t border-slate-800 w-full pt-3">
+                              <Wallet size={16} className="text-blue-500" />
+                              <p className="font-black text-lg">
+                                {new Intl.NumberFormat('vi-VN').format(opt.price)}
+                                <span className="text-xs ml-0.5">đ</span>
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="w-full md:w-1/2 p-6 flex flex-col overflow-y-auto custom-scrollbar">
@@ -6125,6 +6222,17 @@ const App = () => {
                     <button onClick={() => setViewingAcc(null)} className="p-2 bg-[#0B1120] rounded-full text-slate-400 hover:text-white transition-colors border border-slate-800"><X size={20} /></button>
                   </div>
 
+                  {/* SỐ DƯ VÍ - HIỂN THỊ NGAY TRÊN ĐẦU */}
+                  {currentUser && (
+                    <div className="flex items-center justify-between bg-[#0B1120] border border-emerald-500/30 rounded-xl px-4 py-3 mb-4 shadow-inner">
+                      <div className="flex items-center gap-2">
+                        <Wallet size={18} className="text-emerald-500" />
+                        <span className="text-sm text-slate-400 font-bold">Số dư ví của bạn:</span>
+                      </div>
+                      <span className="text-emerald-400 font-black text-lg">{new Intl.NumberFormat('vi-VN').format(currentUser.balance)}đ</span>
+                    </div>
+                  )}
+
                   <p className="text-sm text-slate-400 mb-6 bg-[#0B1120] p-4 rounded-xl border border-slate-800 leading-relaxed">{viewingAcc.description}</p>
 
                   <div className="grid grid-cols-2 gap-3 mb-8">
@@ -6135,13 +6243,9 @@ const App = () => {
                     ))}
                   </div>
 
+
+
                   <div className="mt-auto space-y-3">
-                    {currentUser && (
-                      <div className="flex justify-between text-sm mb-2 px-1">
-                        <span className="text-slate-400">Số dư ví của bạn:</span>
-                        <span className="text-emerald-400 font-bold">{new Intl.NumberFormat('vi-VN').format(currentUser.balance)}đ</span>
-                      </div>
-                    )}
 
                     <button onClick={() => handleBuyAccount(viewingAcc)} className="w-full bg-rose-600 hover:bg-rose-700 text-white p-4 rounded-xl flex items-center justify-between transition-colors shadow-lg hover:-translate-y-1">
                       <div className="text-left">
@@ -6150,85 +6254,6 @@ const App = () => {
                       </div>
                       <span className="text-2xl font-black">{new Intl.NumberFormat('vi-VN').format(viewingAcc.price)}đ</span>
                     </button>
-
-                    {viewingAcc.rentOptions && viewingAcc.rentOptions.length > 0 && (
-                      <div className="pt-2">
-
-                        {/* HIỂN THỊ QUỸ THUÊ BẢO LƯU */}
-                        {currentUser && (currentUser.rentFund || 0) > 0 && (
-                          <div className="bg-gradient-to-r from-yellow-500/10 to-amber-600/10 border border-yellow-500/30 p-4 rounded-xl mb-4 shadow-inner">
-                            <div className="flex justify-between items-center mb-1">
-                              <p className="text-xs text-yellow-500 font-bold flex items-center gap-1.5"><Clock size={16} /> QUỸ THUÊ BẢO LƯU</p>
-                              <p className="text-xl font-black text-yellow-400">{new Intl.NumberFormat('vi-VN').format(currentUser.rentFund || 0)}đ</p>
-                            </div>
-                            <p className="text-[10px] text-slate-400 mt-1">Khi thuê nick, hệ thống sẽ ưu tiên dùng tiền từ Quỹ này để thanh toán trước.</p>
-                          </div>
-                        )}
-                        <p className="text-xs text-slate-500 font-bold mb-2 uppercase flex items-center gap-1"><Clock size={12} /> Các gói thuê trải nghiệm</p>
-                        {isCurrentlyRented && <div className="text-xs text-yellow-500 mb-3 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">Nick đang được thuê bởi khách khác, tạm thời không thể thuê. Bạn vẫn có thể mua đứt ngay lập tức.</div>}
-                        {/* NÚT NGƯNG THUÊ DÀNH  CHO NGƯỜI ĐANG THUÊ */}
-                        {isCurrentlyRented && currentUser?.id === viewingAcc.currentRenterId && (
-                          <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl mb-4 shadow-[0_0_15px_rgba(225,29,72,0.1)]">
-                            <div className="flex items-center gap-2 text-rose-500 mb-3">
-                              <Clock size={18} className="animate-pulse" />
-                              <span className="font-bold text-sm uppercase">Bạn đang trong phiên thuê</span>
-                            </div>
-
-                            {(() => {
-                              const activeReqModal = rentRequests.find(r => r.accCode === viewingAcc.code && r.status === 'Đã giao acc');
-                              const isComboModal = activeReqModal && (activeReqModal.time.toLowerCase().includes('combo đêm') || activeReqModal.time.toLowerCase().includes('combo ngày'));
-
-                              return isComboModal ? (
-                                <button disabled className="w-full bg-slate-700 text-slate-400 font-black py-3 rounded-xl transition-all cursor-not-allowed border border-slate-600">
-                                  ĐANG THUÊ GÓI COMBO (KHÔNG HỖ TRỢ NGƯNG)
-                                </button>
-                              ) : (
-                                <>
-                                  <button
-                                    onClick={() => handleStopRent(viewingAcc)}
-                                    className="w-full bg-rose-600 hover:bg-rose-500 text-white font-black py-3 rounded-xl transition-all shadow-lg active:scale-95"
-                                  >
-                                    NGƯNG THUÊ & BẢO LƯU GIỜ
-                                  </button>
-                                  <p className="text-[10px] text-slate-500 mt-2 italic text-center">
-                                    * Lưu ý: Hệ thống khấu trừ tối thiểu 2 giờ chơi cho mỗi lần ngưng thuê.
-                                  </p>
-                                </>
-                              );
-                            })()}
-                          </div>
-                        )}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {viewingAcc.rentOptions.map((opt, idx) => (
-                            <button
-                              key={idx}
-                              disabled={isCurrentlyRented}
-                              onClick={() => initiateRent(viewingAcc, opt)}
-                              className={`p-4 rounded-xl border transition-all flex flex-col items-center justify-center text-center gap-1 animate-fade-in shadow-inner w-full ${isCurrentlyRented ? 'border-slate-800 bg-slate-900/50 opacity-50 cursor-not-allowed' : 'border-slate-800 bg-[#0B1120] hover:border-blue-500 hover:bg-blue-900/20 cursor-pointer'}`}
-                            >
-                              {/* PHẦN TRÊN: Số giờ thuê chính & Nhãn tặng */}
-                              <div className="flex flex-col items-center gap-1.5 w-full mb-1">
-                                <p className="font-black text-xl text-white">Thuê {opt.time}</p>
-                                {opt.bonusTime && (
-                                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 whitespace-nowrap font-bold shadow-sm">
-                                    + Tặng {opt.bonusTime}
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* PHẦN DƯỚI: Giá tiền */}
-                              <div className="flex items-center justify-center gap-1.5 text-blue-400 mt-2 border-t border-slate-800 w-full pt-3">
-                                <Wallet size={16} className="text-blue-500" />
-                                <p className="font-black text-lg">
-                                  {new Intl.NumberFormat('vi-VN').format(opt.price)}
-                                  <span className="text-xs ml-0.5">đ</span>
-                                </p>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
