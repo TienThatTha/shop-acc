@@ -5816,54 +5816,79 @@ const App = () => {
         {/* Modal Hướng dẫn cài App điều khiển  */}
         {awesunGuideType && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-            <div className="bg-[#151D2F] border border-blue-500/50 w-full max-w-md rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(59,130,246,0.2)]">
-              <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-[#0B1120]">
+            <div className="bg-[#151D2F] border border-blue-500/50 w-full max-w-md md:max-w-3xl rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(59,130,246,0.2)] max-h-[90vh] flex flex-col">
+              <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-[#0B1120] shrink-0">
                 <h3 className="text-xl font-bold text-white flex items-center gap-2 uppercase"><Download className="text-blue-500" /> HƯỚNG DẪN CÀI ĐẶT VÀ LẤY MÃ ĐIỀU KHIỂN</h3>
                 <button onClick={() => setAwesunGuideType(null)} className="text-slate-400 hover:text-white bg-slate-800 p-1.5 rounded-full"><X size={18} /></button>
               </div>
 
-              <div className="p-6 space-y-5 text-base md:text-lg text-slate-300">
-                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center shadow-[0_0_15px_rgba(16,185,129,0.15)] mb-4">
+              <div className="p-6 text-base md:text-lg text-slate-300 overflow-y-auto custom-scrollbar flex-1">
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center shadow-[0_0_15px_rgba(16,185,129,0.15)] mb-5">
                   <p className="text-emerald-400 font-bold animate-pulse uppercase">TRÌNH DUYỆT CỦA BẠN ĐANG TẢI PHẦN MỀM XUỐNG. HÃY LÀM THEO CÁC BƯỚC SAU:</p>
                 </div>
 
-                <div className="flex gap-4 items-center">
-                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20">1</span>
-                  <p className="leading-relaxed uppercase font-bold">BẤM TỔ HỢP PHÍM <strong className="text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(250,204,21,0.2)] whitespace-nowrap">CTRL + J</strong> TRÊN TRÌNH DUYỆT WEB CỦA BẠN.</p>
-                </div>
-                <div className="flex gap-4 items-center mt-4">
-                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20">2</span>
-                  <p className="leading-relaxed uppercase font-bold text-white">GIẢI NÉN FILE SHOPTIENGAMING.COM VỪA TẢI</p>
-                </div>
-                <div className="flex gap-4 items-start mt-4">
-                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20 mt-1">3</span>
-                  <div className="w-full">
-                    <p className="leading-relaxed uppercase font-bold mb-3 text-white">MỞ FILE APP ĐIỀU KHIỂN VỪA MỚI ĐƯỢC GIẢI NÉN RA.</p>
-                    <img src="/appdieukhien.png" alt="App điều khiển" className="w-24 rounded-2xl border border-slate-600 shadow-lg" />
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* CỘT TRÁI: Bước 1-3 */}
+                  <div className="flex-1 space-y-5">
+                    <div className="flex gap-4 items-center">
+                      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20">1</span>
+                      <p className="leading-relaxed uppercase font-bold">BẤM TỔ HỢP PHÍM <strong className="text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(250,204,21,0.2)] whitespace-nowrap">CTRL + J</strong> TRÊN TRÌNH DUYỆT WEB CỦA BẠN.</p>
+                    </div>
+                    <div className="flex gap-4 items-start">
+                      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20 mt-1">2</span>
+                      <div className="w-full">
+                        <p className="leading-relaxed uppercase font-bold mb-3 text-white">ẤN CHUỘT PHẢI GIẢI NÉN FILE SHOPTIENGAMING.COM VỪA TẢI</p>
+                        <div className="relative cursor-pointer group" onClick={() => setFullScreenImage('/giainen.png')}>
+                          <img src="/giainen.png" alt="Giải nén file" className="w-full rounded-lg border-2 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
+                            <span className="bg-black/70 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5"><ZoomIn size={14} /> Bấm để phóng to</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-4 items-start">
+                      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20 mt-1">3</span>
+                      <div className="w-full">
+                        <p className="leading-relaxed uppercase font-bold mb-3 text-white">MỞ FILE APP ĐIỀU KHIỂN VỪA MỚI ĐƯỢC GIẢI NÉN RA.</p>
+                        <img src="/appdieukhien.png" alt="App điều khiển" className="w-24 rounded-2xl border border-slate-600 shadow-lg" />
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex gap-4 items-start mt-4">
-                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20 mt-1">4</span>
-                  <div className="w-full">
-                    <p className="leading-relaxed uppercase font-bold mb-3 text-white">BẤM <strong className="text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(250,204,21,0.2)]">INSTALL NOW</strong> HOẶC CÀI ĐẶT NGAY NHƯ HÌNH</p>
-                    <img src="/installnow.png" alt="Install Now" className="w-full rounded-lg border border-slate-600 shadow-lg" />
-                  </div>
-                </div>
-                <div className="flex gap-4 items-start relative mt-4">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-rose-500/20 to-orange-500/20 rounded-2xl blur-md -z-10 animate-pulse"></div>
-                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_15px_rgba(244,63,94,0.5)] border border-white/20 mt-1">5</span>
-                  <div className="w-full bg-[#1A233A] border-2 border-rose-500/40 p-4 rounded-xl shadow-[0_0_20px_rgba(244,63,94,0.15)]">
-                    <p className="text-white mb-3 uppercase font-bold">CHỤP HOẶC GHI RA <strong className="text-rose-400 font-black text-xl bg-rose-500/10 px-2 py-0.5 rounded whitespace-nowrap">2 CÁI ID VÀ MẬT KHẨU</strong> CỦA APP NHƯ HÌNH BÊN DƯỚI:</p>
-                    <img src="/guide-hoptodesk.png" alt="Hướng dẫn HopToDesk" className="w-full rounded-lg border border-rose-500/30 shadow-lg" />
-                  </div>
-                </div>
 
-                {awesunGuideType === 'inside' && (
-                  <div className="flex gap-3 items-start mt-2 pt-4 border-t border-slate-800">
-                    <span className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold shrink-0"><CheckCircle2 size={18} /></span>
-                    <p className="text-emerald-400 font-bold uppercase">QUAY LẠI ĐÂY, GHI MÃ ID VÀ MẬT KHẨU VÀO Ô TRỐNG YÊU CẦU ĐỂ HOÀN TẤT.</p>
+                  {/* ĐƯỜNG CHIA CỘT (chỉ desktop) */}
+                  <div className="hidden md:block w-[1px] bg-slate-700/50 self-stretch shrink-0"></div>
+
+                  {/* CỘT PHẢI: Bước 4-5 */}
+                  <div className="flex-1 space-y-5">
+                    <div className="flex gap-4 items-start">
+                      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20 mt-1">4</span>
+                      <div className="w-full">
+                        <p className="leading-relaxed uppercase font-bold mb-3 text-white">BẤM <strong className="text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(250,204,21,0.2)]">INSTALL NOW</strong> HOẶC CÀI ĐẶT NGAY NHƯ HÌNH</p>
+                        <div className="relative cursor-pointer group" onClick={() => setFullScreenImage('/installnow.png')}>
+                          <img src="/installnow.png" alt="Install Now" className="w-full rounded-lg border border-slate-600 shadow-lg" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
+                            <span className="bg-black/70 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5"><ZoomIn size={14} /> Bấm để phóng to</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-4 items-start relative">
+                      <div className="absolute -inset-1 bg-gradient-to-r from-rose-500/20 to-orange-500/20 rounded-2xl blur-md -z-10 animate-pulse"></div>
+                      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_15px_rgba(244,63,94,0.5)] border border-white/20 mt-1">5</span>
+                      <div className="w-full bg-[#1A233A] border-2 border-rose-500/40 p-4 rounded-xl shadow-[0_0_20px_rgba(244,63,94,0.15)]">
+                        <p className="text-white mb-3 uppercase font-bold">CHỤP HOẶC GHI RA <strong className="text-rose-400 font-black text-xl bg-rose-500/10 px-2 py-0.5 rounded whitespace-nowrap">2 CÁI ID VÀ MẬT KHẨU</strong> CỦA APP NHƯ HÌNH BÊN DƯỚI:</p>
+                        <img src="/guide-hoptodesk.png" alt="Hướng dẫn HopToDesk" className="w-full rounded-lg border border-rose-500/30 shadow-lg" />
+                      </div>
+                    </div>
+
+                    {awesunGuideType === 'inside' && (
+                      <div className="flex gap-3 items-start pt-4 border-t border-slate-800">
+                        <span className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold shrink-0"><CheckCircle2 size={18} /></span>
+                        <p className="text-emerald-400 font-bold uppercase">QUAY LẠI ĐÂY, GHI MÃ ID VÀ MẬT KHẨU VÀO Ô TRỐNG YÊU CẦU ĐỂ HOÀN TẤT.</p>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
 
                 <button onClick={() => setAwesunGuideType(null)} className="w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg text-lg uppercase">ĐÃ HIỂU & ĐÓNG LẠI</button>
               </div>
