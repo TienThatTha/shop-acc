@@ -7,7 +7,7 @@ import {
   History, Target, Gift, Save, Upload, Plus, Unlock, QrCode,
   Download, Copy, Check, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ZoomIn,
   Sparkles, TrendingUp, Users, Ticket, Settings2, MessageCircle, Send, Eye, EyeOff,
-  ArrowLeftRight
+  ArrowLeftRight, RotateCcw
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import emailjs from '@emailjs/browser';
@@ -302,8 +302,13 @@ const App = () => {
   const [editingBoosting, setEditingBoosting] = useState(null);
   const [adminBoostType, setAdminBoostType] = useState('rank');
   const [isEventMultiPackage, setIsEventMultiPackage] = useState(false);
-  const [adminRankOptions, setAdminRankOptions] = useState([{ rank: '', price: '' }]);
+  const [adminRankOptions, setAdminRankOptions] = useState([{ rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }]);
   const [selectedBoostRank, setSelectedBoostRank] = useState(0);
+  const [boostSubTier, setBoostSubTier] = useState('');
+
+  // Helper: số → La Mã (1-10)
+  const toRoman = (n) => ['I','II','III','IV','V','VI','VII','VIII','IX','X'][n - 1] || n.toString();
+  const [boostCurrentPoints, setBoostCurrentPoints] = useState('');
   const [adminBoostingImage, setAdminBoostingImage] = useState(null);
   const [showWheelModal, setShowWheelModal] = useState(false);
   const [editingWheel, setEditingWheel] = useState(null);
@@ -608,7 +613,26 @@ const App = () => {
       })
       .subscribe();
 
-    // 4. Lắng nghe LƯỢT TRUY CẬP (SITE STATS)
+    // 4. Lắng nghe ĐƠN CÀY THUÊ MỚI & CẬP NHẬT TRẠNG THÁI
+    const boostReqChannel = supabase.channel('realtime-boosting-requests')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'boosting_requests' }, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        if (!isAdmin && payload.new.user !== me?.name) return;
+        setBoostingRequests(prev => {
+          if (prev.find(r => r.id === payload.new.id)) return prev;
+          return [payload.new, ...prev];
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'boosting_requests' }, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        if (!isAdmin && payload.new.user !== me?.name) return;
+        setBoostingRequests(prev => prev.map(r => r.id === payload.new.id ? payload.new : r));
+      })
+      .subscribe();
+
+    // 5. Lắng nghe LƯỢT TRUY CẬP (SITE STATS)
     const statsChannel = supabase.channel('realtime-stats')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'site_stats' }, (payload) => {
         if (payload.new && payload.new.views !== undefined) {
@@ -664,6 +688,7 @@ const App = () => {
       supabase.removeChannel(messageChannel);
       supabase.removeChannel(depositChannel);
       supabase.removeChannel(rentChannel);
+      supabase.removeChannel(boostReqChannel);
       supabase.removeChannel(statsChannel);
       supabase.removeChannel(usersChannel);
       supabase.removeChannel(transactionsChannel);
@@ -2816,13 +2841,16 @@ const App = () => {
                         <span className="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-black rounded shadow-sm">GÓI ĐẶT</span>
                         <p className="font-bold text-white text-sm md:text-base">{req.boostingTitle}</p>
                       </div>
-                      <p className="text-[10px] md:text-xs text-slate-400 mt-1">TK: <span className="font-mono text-white">{req.info.username}</span> | Nền tảng: <span className="text-white">{req.info.loginMethod}</span></p>
+                      {req.info?.username && <p className="text-[10px] md:text-xs text-slate-400 mt-1">TK: <span className="font-mono text-white">{req.info.username}</span> | Nền tảng: <span className="text-white">{req.info.loginMethod}</span></p>}
                       <p className="text-[10px] text-slate-500 mt-1.5">{req.date}</p>
                     </div>
                     <div className="text-left md:text-right">
+                      {req.status === 'Đã hủy' && req.info?.amount > 0 && (
+                        <p className="text-xs text-emerald-400 font-bold mb-1">Đã hoàn +{new Intl.NumberFormat('vi-VN').format(req.info.amount)}đ</p>
+                      )}
                       <p className={`text-xs font-bold inline-block px-3 py-1 rounded mt-1 
-                        ${req.status === 'Hoàn thành' ? 'text-emerald-500 bg-emerald-500/10' : req.status === 'Đang cày' ? 'text-blue-400 bg-blue-500/10' : 'text-yellow-500 bg-yellow-500/10'}`}>
-                        {req.status === 'Hoàn thành' ? <CheckCircle2 size={12} className="inline mr-1" /> : req.status === 'Đang cày' ? <RefreshCw size={12} className="inline mr-1 animate-spin" /> : <Clock size={12} className="inline mr-1" />}
+                        ${req.status === 'Hoàn thành' ? 'text-emerald-500 bg-emerald-500/10' : req.status === 'Đang cày' ? 'text-blue-400 bg-blue-500/10' : req.status === 'Đã hủy' ? 'text-rose-400 bg-rose-500/10' : 'text-yellow-500 bg-yellow-500/10'}`}>
+                        {req.status === 'Hoàn thành' ? <CheckCircle2 size={12} className="inline mr-1" /> : req.status === 'Đang cày' ? <RefreshCw size={12} className="inline mr-1 animate-spin" /> : req.status === 'Đã hủy' ? <RotateCcw size={12} className="inline mr-1" /> : <Clock size={12} className="inline mr-1" />}
                         {req.status || 'Chờ xử lý'}
                       </p>
                     </div>
@@ -2977,8 +3005,11 @@ const App = () => {
                     if (!currentUser) return requireAuth('login');
                     if (!currentUser.is_email_verified) return showToast("Vui lòng vào mục Cá nhân để xác thực Email trước khi giao dịch!", "error");
                     setSelectedBoostRank(0);
+                    const firstOpt = b.rankOptions?.[0];
+                    setBoostSubTier(firstOpt?.inputType === 'bac' && (firstOpt?.tierCount || 1) > 1 ? toRoman(firstOpt?.tierCount || 1) : '');
+                    setBoostCurrentPoints('');
                     setBoostingModalData(b);
-                  }} className="bg-blue-600 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-sm font-bold text-white hover:bg-blue-500 shadow-lg shadow-blue-600/20 md:group-hover:-translate-y-1 transition-transform">Đặt Lịch</button>
+                  }} className="bg-blue-600 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-sm font-bold text-white hover:bg-blue-500 shadow-lg shadow-blue-600/20 md:group-hover:-translate-y-1 transition-transform">Đặt Đơn</button>
                 </div>
               </div>
             ))}
@@ -3639,7 +3670,7 @@ const App = () => {
         }
 
         const type = e.target.boostType.value;
-        const validOptions = adminRankOptions.filter(opt => opt.rank.trim() !== '' && opt.price !== '').map(opt => ({ rank: opt.rank, price: parseInt(opt.price) }));
+        const validOptions = adminRankOptions.filter(opt => opt.rank.trim() !== '' && opt.price !== '').map(opt => ({ rank: opt.rank, price: parseInt(opt.price), comboPrice: parseInt(opt.comboPrice) || 0, inputType: opt.inputType || 'bac', maxPoints: parseInt(opt.maxPoints) || 0, tierCount: parseInt(opt.tierCount) || 1 }));
         const isMulti = type === 'rank' || (type === 'event' && isEventMultiPackage);
 
         const boostData = {
@@ -4550,7 +4581,7 @@ const App = () => {
             {adminTab === 'boosting' && (
               <div className="p-6">
                 {/* CHÚ Ý LỆNH SET ẢNH VỀ NULL ĐỂ TRÁNH LỖI HIỂN THỊ ẢNH CŨ */}
-                <button onClick={() => { setEditingBoosting(null); setAdminBoostingImage(null); setAdminBoostType('rank'); setAdminRankOptions([{ rank: '', price: '' }]); setIsEventMultiPackage(false); setShowBoostingModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18} /> Thêm dịch vụ Cày Thuê</button>
+                <button onClick={() => { setEditingBoosting(null); setAdminBoostingImage(null); setAdminBoostType('rank'); setAdminRankOptions([{ rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }]); setIsEventMultiPackage(false); setShowBoostingModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18} /> Thêm dịch vụ Cày Thuê</button>
                 {/* Modal Admin Thêm Cày Thuê */}
                 {showBoostingModal && (
                   <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -4613,15 +4644,45 @@ const App = () => {
                           <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30 mb-4 mt-4">
                             <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
                               <label className="text-sm text-blue-400 font-bold flex items-center gap-2"><Target size={16} /> CÁC MỐC/GÓI HIỆN TẠI & GIÁ</label>
-                              <button type="button" onClick={() => setAdminRankOptions([...adminRankOptions, { rank: '', price: '' }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm mốc</button>
+                              <button type="button" onClick={() => setAdminRankOptions([...adminRankOptions, { rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm mốc</button>
                             </div>
-                            <div className="space-y-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                            <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
                               {adminRankOptions.map((opt, index) => (
-                                <div key={index} className="flex gap-2 items-center bg-[#0B1120] p-2 rounded-lg border border-slate-700">
-                                  <input type="text" placeholder="Tên gói (VD: Bạc hoặc 50 Trận)" value={opt.rank} onChange={e => { const n = [...adminRankOptions]; n[index].rank = e.target.value; setAdminRankOptions(n) }} className="w-1/2 p-2 bg-transparent outline-none text-sm text-white" required />
-                                  <div className="w-[1px] h-6 bg-slate-700"></div>
-                                  <input type="number" placeholder="Giá tiền lên đích (đ)" value={opt.price} onChange={e => { const n = [...adminRankOptions]; n[index].price = e.target.value; setAdminRankOptions(n) }} className="w-1/2 p-2 bg-transparent outline-none text-sm text-white font-bold" required />
-                                  <button type="button" onClick={() => setAdminRankOptions(adminRankOptions.filter((_, i) => i !== index))} className="w-8 text-slate-500 hover:text-rose-500 flex justify-center transition-colors"><X size={18} /></button>
+                                <div key={index} className="bg-[#0B1120] p-3 rounded-lg border border-slate-700 space-y-2">
+                                  <div className="flex gap-2 items-center">
+                                    <input type="text" placeholder="Tên mốc (VD: Sao Băng V → Ngôi Sao V)" value={opt.rank} onChange={e => { const n = [...adminRankOptions]; n[index].rank = e.target.value; setAdminRankOptions(n) }} className="flex-1 p-2 bg-transparent outline-none text-sm text-white border-b border-slate-700 focus:border-blue-500" required />
+                                    <button type="button" onClick={() => setAdminRankOptions(adminRankOptions.filter((_, i) => i !== index))} className="w-8 text-slate-500 hover:text-rose-500 flex justify-center transition-colors"><X size={18} /></button>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-slate-500 font-bold shrink-0">LOẠI:</span>
+                                    <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'bac'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'bac' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Bậc</button>
+                                    <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'diem'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'diem' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Điểm</button>
+                                    {opt.inputType === 'bac' && (
+                                      <>
+                                        <div className="w-[1px] h-5 bg-slate-700"></div>
+                                        <span className="text-[10px] text-slate-500 font-bold shrink-0">SỐ BẬC:</span>
+                                        <input type="number" min="1" max="10" value={opt.tierCount || 1} onChange={e => { const n = [...adminRankOptions]; n[index].tierCount = Math.max(1, Math.min(10, parseInt(e.target.value) || 1)); setAdminRankOptions(n); }} className="w-14 p-1 bg-slate-900 rounded text-center text-xs text-blue-400 font-bold border border-blue-500/30 outline-none focus:border-blue-500" />
+                                      </>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className={opt.inputType === 'bac' && (opt.tierCount || 1) <= 1 ? "col-span-2" : ""}>
+                                      <label className="text-[10px] text-slate-500 block">Giá bậc lẻ {opt.inputType === 'diem' ? '(đ/điểm)' : '(đ/bậc)'}</label>
+                                      <input type="number" placeholder="VD: 15000" value={opt.price} onChange={e => { const n = [...adminRankOptions]; n[index].price = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-white font-bold border border-slate-700 focus:border-blue-500" required />
+                                    </div>
+                                    {!(opt.inputType === 'bac' && (opt.tierCount || 1) <= 1) && (
+                                      <div>
+                                        <label className="text-[10px] text-slate-500 block">Giá combo (trọn gói)</label>
+                                        <input type="number" placeholder="VD: 70000" value={opt.comboPrice} onChange={e => { const n = [...adminRankOptions]; n[index].comboPrice = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-emerald-400 font-bold border border-slate-700 focus:border-emerald-500" required />
+                                      </div>
+                                    )}
+                                  </div>
+                                  {opt.inputType === 'diem' && (
+                                    <div>
+                                      <label className="text-[10px] text-yellow-400 block">Giới hạn điểm tối đa</label>
+                                      <input type="number" placeholder="VD: 300" value={opt.maxPoints} onChange={e => { const n = [...adminRankOptions]; n[index].maxPoints = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-yellow-400 font-bold border border-yellow-500/30 focus:border-yellow-500" required />
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                             </div>
@@ -4660,7 +4721,7 @@ const App = () => {
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-2 mb-2">
                             <p className="font-bold text-white"><span className="text-blue-400">{req.user}</span> đặt gói: {req.boostingTitle} <span className="text-xs text-slate-500 font-normal">({req.date})</span></p>
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${req.status === 'Hoàn thành' ? 'bg-emerald-500/20 text-emerald-400' : req.status === 'Đang cày' ? 'bg-blue-500/20 text-blue-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${req.status === 'Hoàn thành' ? 'bg-emerald-500/20 text-emerald-400' : req.status === 'Đang cày' ? 'bg-blue-500/20 text-blue-400' : req.status === 'Đã hủy' ? 'bg-rose-500/20 text-rose-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                               {req.status || 'Chờ xử lý'}
                             </span>
                           </div>
@@ -4715,6 +4776,51 @@ const App = () => {
                             <option value="Đang cày">🎮 Đang cày</option>
                             <option value="Hoàn thành">✅ Hoàn thành</option>
                           </select>
+                          {req.status !== 'Đã hủy' && req.status !== 'Hoàn thành' && (
+                            <button onClick={() => setConfirmDialog({
+                              title: 'Hủy đơn & Hoàn tiền', message: `Hủy đơn "${req.boostingTitle}" và hoàn ${new Intl.NumberFormat('vi-VN').format(req.info?.amount || 0)}đ cho ${req.user}?`, onConfirm: async () => {
+                                const refundAmount = req.info?.amount || 0;
+                                const targetUser = usersDb.find(u => u.name === req.user);
+                                if (!targetUser) { showToast('Không tìm thấy người dùng!', 'error'); return; }
+
+                                // Hoàn tiền cho khách (trigger cho phép admin update)
+                                if (refundAmount > 0) {
+                                  const { error: refundErr } = await supabase.from('users').update({ balance: (targetUser.balance || 0) + refundAmount }).eq('id', targetUser.id);
+                                  if (refundErr) { showToast('Lỗi hoàn tiền: ' + refundErr.message, 'error'); return; }
+                                }
+
+                                // Cập nhật trạng thái đơn
+                                await supabase.from('boosting_requests').update({ status: 'Đã hủy' }).eq('id', req.id);
+
+                                // Ghi lịch sử hoàn tiền
+                                const refundTx = {
+                                  id: `RF${Date.now()}`, user: req.user, action: `Hoàn tiền hủy đơn: ${req.boostingTitle}`,
+                                  amount: refundAmount, date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
+                                  status: 'Thành công', type: 'boosting'
+                                };
+                                await supabase.from('transactions').insert([refundTx]);
+
+                                // Gửi tin nhắn cho khách
+                                if (targetUser && currentUser) {
+                                  const msg = { id: `MSG${Date.now()}`, senderId: currentUser.id, receiverId: targetUser.id,
+                                    content: `💰 Đơn cày thuê "${req.boostingTitle}" đã bị HỦY. Bạn đã được hoàn ${new Intl.NumberFormat('vi-VN').format(refundAmount)}đ vào số dư.`,
+                                    timestamp: Date.now(), isRead: false };
+                                  await supabase.from('messages').insert([msg]);
+                                }
+
+                                // Cập nhật UI
+                                setBoostingRequests(boostingRequests.map(r => r.id === req.id ? { ...r, status: 'Đã hủy' } : r));
+                                setUsersDb(usersDb.map(u => u.id === targetUser.id ? { ...u, balance: (u.balance || 0) + refundAmount } : u));
+                                setTransactionsDb([refundTx, ...transactionsDb]);
+                                showToast(`Đã hủy đơn & hoàn ${new Intl.NumberFormat('vi-VN').format(refundAmount)}đ cho ${req.user}!`);
+                              }
+                            })} className="p-2 bg-yellow-500/10 text-yellow-500 rounded hover:bg-yellow-500 hover:text-white flex items-center justify-center text-xs transition-colors font-bold gap-1 whitespace-nowrap">
+                              <RotateCcw size={14} /> <span className="hidden md:inline">Hủy & Hoàn tiền</span><span className="md:hidden">Hủy đơn</span>
+                            </button>
+                          )}
+                          {req.status === 'Đã hủy' && (
+                            <span className="px-2 py-1 bg-rose-500/10 text-rose-400 rounded text-[10px] font-bold">ĐÃ HỦY</span>
+                          )}
                           <button onClick={() => setConfirmDialog({
                             title: 'Xoá đơn', message: 'Bạn có chắc chắn muốn xoá đơn cày thuê này không?', onConfirm: async () => {
                               await supabase.from('boosting_requests').delete().eq('id', req.id);
@@ -4751,7 +4857,7 @@ const App = () => {
                       <span className="text-white font-bold mb-2 line-clamp-2">{b.title}</span>
                       <p className="text-xs text-slate-500 mb-4 flex-1 line-clamp-2">{b.desc}</p>
                       <div className="flex gap-2 border-t border-slate-800 pt-3">
-                        <button onClick={() => { setEditingBoosting(b); setAdminBoostingImage(b.image || null); setAdminBoostType(b.type || 'rank'); setAdminRankOptions(b.rankOptions?.length > 0 ? b.rankOptions : [{ rank: '', price: '' }]); setIsEventMultiPackage(b.type === 'event' && b.rankOptions?.length > 0); setShowBoostingModal(true); }} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Edit size={14} /> Sửa</button>
+                        <button onClick={() => { setEditingBoosting(b); setAdminBoostingImage(b.image || null); setAdminBoostType(b.type || 'rank'); setAdminRankOptions(b.rankOptions?.length > 0 ? b.rankOptions.map(o => ({ rank: o.rank || '', price: o.price || '', comboPrice: o.comboPrice || '', inputType: o.inputType || 'bac', maxPoints: o.maxPoints || '', tierCount: o.tierCount || 1 })) : [{ rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }]); setIsEventMultiPackage(b.type === 'event' && b.rankOptions?.length > 0); setShowBoostingModal(true); }} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Edit size={14} /> Sửa</button>
                         <button onClick={() => setConfirmDialog({
                           title: 'Xoá dịch vụ', message: 'Xoá dịch vụ cày thuê này?', onConfirm: async () => {
                             await supabase.from('boosting').delete().eq('id', b.id);
@@ -5505,15 +5611,45 @@ const App = () => {
                         <label className="text-sm text-blue-400 font-bold flex items-center gap-2">
                           <Target size={16} /> {adminBoostType === 'rank' ? 'CÁC MỐC RANK & GIÁ' : 'DANH SÁCH GÓI & GIÁ'}
                         </label>
-                        <button type="button" onClick={() => setAdminRankOptions([...adminRankOptions, { rank: '', price: '' }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm mốc</button>
+                        <button type="button" onClick={() => setAdminRankOptions([...adminRankOptions, { rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm mốc</button>
                       </div>
-                      <div className="space-y-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                      <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
                         {adminRankOptions.map((opt, index) => (
-                          <div key={index} className="flex gap-2 items-center bg-[#0B1120] p-2 rounded-lg border border-slate-700">
-                            <input type="text" placeholder={adminBoostType === 'rank' ? "Rank đang ở" : "Tên gói (VD: Gói 1)"} value={opt.rank} onChange={e => { const n = [...adminRankOptions]; n[index].rank = e.target.value; setAdminRankOptions(n) }} className="w-1/2 p-2 bg-transparent outline-none text-sm text-white" required />
-                            <div className="w-[1px] h-6 bg-slate-700"></div>
-                            <input type="number" placeholder="Giá (đ)" value={opt.price} onChange={e => { const n = [...adminRankOptions]; n[index].price = e.target.value; setAdminRankOptions(n) }} className="w-1/2 p-2 bg-transparent outline-none text-sm text-white font-bold" required />
-                            <button type="button" onClick={() => setAdminRankOptions(adminRankOptions.filter((_, i) => i !== index))} className="w-8 text-slate-500 hover:text-rose-500 flex justify-center transition-colors"><X size={18} /></button>
+                          <div key={index} className="bg-[#0B1120] p-3 rounded-lg border border-slate-700 space-y-2">
+                            <div className="flex gap-2 items-center">
+                              <input type="text" placeholder="Tên mốc (VD: Sao Băng V → Ngôi Sao V)" value={opt.rank} onChange={e => { const n = [...adminRankOptions]; n[index].rank = e.target.value; setAdminRankOptions(n) }} className="flex-1 p-2 bg-transparent outline-none text-sm text-white border-b border-slate-700 focus:border-blue-500" required />
+                              <button type="button" onClick={() => setAdminRankOptions(adminRankOptions.filter((_, i) => i !== index))} className="w-8 text-slate-500 hover:text-rose-500 flex justify-center transition-colors"><X size={18} /></button>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-slate-500 font-bold shrink-0">LOẠI:</span>
+                              <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'bac'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'bac' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Bậc</button>
+                              <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'diem'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'diem' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Điểm</button>
+                              {opt.inputType === 'bac' && (
+                                <>
+                                  <div className="w-[1px] h-5 bg-slate-700"></div>
+                                  <span className="text-[10px] text-slate-500 font-bold shrink-0">SỐ BẬC:</span>
+                                  <input type="number" min="1" max="10" value={opt.tierCount || 1} onChange={e => { const n = [...adminRankOptions]; n[index].tierCount = Math.max(1, Math.min(10, parseInt(e.target.value) || 1)); setAdminRankOptions(n); }} className="w-14 p-1 bg-slate-900 rounded text-center text-xs text-blue-400 font-bold border border-blue-500/30 outline-none focus:border-blue-500" />
+                                </>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className={opt.inputType === 'bac' && (opt.tierCount || 1) <= 1 ? "col-span-2" : ""}>
+                                <label className="text-[10px] text-slate-500 block">Giá bậc lẻ {opt.inputType === 'diem' ? '(đ/điểm)' : '(đ/bậc)'}</label>
+                                <input type="number" placeholder="VD: 15000" value={opt.price} onChange={e => { const n = [...adminRankOptions]; n[index].price = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-white font-bold border border-slate-700 focus:border-blue-500" required />
+                              </div>
+                              {!(opt.inputType === 'bac' && (opt.tierCount || 1) <= 1) && (
+                                <div>
+                                  <label className="text-[10px] text-slate-500 block">Giá combo (trọn gói)</label>
+                                  <input type="number" placeholder="VD: 70000" value={opt.comboPrice} onChange={e => { const n = [...adminRankOptions]; n[index].comboPrice = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-emerald-400 font-bold border border-slate-700 focus:border-emerald-500" required />
+                                </div>
+                              )}
+                            </div>
+                            {opt.inputType === 'diem' && (
+                              <div>
+                                <label className="text-[10px] text-yellow-400 block">Giới hạn điểm tối đa</label>
+                                <input type="number" placeholder="VD: 300" value={opt.maxPoints} onChange={e => { const n = [...adminRankOptions]; n[index].maxPoints = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-yellow-400 font-bold border border-yellow-500/30 focus:border-yellow-500" required />
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -6474,43 +6610,170 @@ const App = () => {
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-fade-in">
             <div className="bg-[#151D2F] border border-slate-700 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl">
               <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-[#0B1120]">
-                <h3 className="text-xl font-bold text-white flex items-center gap-2"><Target className="text-blue-500" /> Đặt Lịch Cày Thuê</h3>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2"><Target className="text-blue-500" /> Đặt Đơn Cày Thuê</h3>
                 <button onClick={() => setBoostingModalData(null)} className="text-slate-400 hover:text-white"><X size={20} /></button>
               </div>
-              <div className="p-6">
+              <div className="p-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
                 {(() => {
                   const hasOptions = boostingModalData.rankOptions && boostingModalData.rankOptions.length > 0;
-                  const activePrice = hasOptions ? (boostingModalData.rankOptions[selectedBoostRank]?.price || boostingModalData.price) : boostingModalData.price;
-                  const currentOptionName = hasOptions ? boostingModalData.rankOptions[selectedBoostRank]?.rank : '';
+                  const currentOption = hasOptions ? boostingModalData.rankOptions[selectedBoostRank] : null;
+                  const optionInputType = currentOption?.inputType || 'bac';
+                  const currentOptionName = currentOption?.rank || '';
+                  const perUnitPrice = currentOption?.price || boostingModalData.price;
+                  const comboPrice = currentOption?.comboPrice || 0;
+                  const maxPoints = currentOption?.maxPoints || 0;
+                  const optTierCount = currentOption?.tierCount || 1;
+                  // Generate dynamic tier list: e.g. tierCount=3 → ['III','II','I'], tierCount=1 → ['I']
+                  const tierList = Array.from({ length: optTierCount }, (_, i) => toRoman(optTierCount - i));
+
+                  // --- LOGIC TÍNH GIÁ TỰ ĐỘNG ---
+                  let activePrice = boostingModalData.price;
+                  let priceLabel = '';
+
+                  // Trích số điểm đích từ title (VD: "Rank Truyền Kỳ (3700pt)" hoặc "3700 Points")
+                  const titlePointsMatch = boostingModalData.title?.match(/(\d+)\s*(?:Points?|pt)/i);
+                  const titleTargetPoints = titlePointsMatch ? parseInt(titlePointsMatch[1]) : 0;
+
+                  // Trích số điểm tối thiểu từ tên option (VD: "Thần Súng (3000pt)" → 3000)
+                  const optionPointsMatch = currentOptionName?.match(/(\d+)\s*(?:Points?|pt)/i);
+                  const optionMinPoints = optionPointsMatch ? parseInt(optionPointsMatch[1]) : 0;
+
+                  // Validate điểm nhập
+                  let pointsError = '';
+
+                  if (hasOptions && currentOption) {
+                    if (optionInputType === 'bac') {
+                      if (optTierCount <= 1) {
+                        activePrice = perUnitPrice;
+                      } else {
+                        const maxTierLabel = toRoman(optTierCount);
+                        const selectedTierIdx = tierList.indexOf(boostSubTier);
+                        if (boostSubTier === maxTierLabel || selectedTierIdx === 0 || selectedTierIdx === -1) {
+                          activePrice = comboPrice || perUnitPrice;
+                          priceLabel = '(Trọn gói)';
+                        } else {
+                          const romanToNum = {'I':1,'II':2,'III':3,'IV':4,'V':5,'VI':6,'VII':7,'VIII':8,'IX':9,'X':10};
+                          const stepsRemaining = romanToNum[boostSubTier] || 1;
+                          activePrice = perUnitPrice * stepsRemaining;
+                          priceLabel = `(${stepsRemaining} bậc × ${new Intl.NumberFormat('vi-VN').format(perUnitPrice)}đ)`;
+                        }
+                      }
+                    } else {
+                      // ĐIỂM: target (từ title) - điểm hiện tại × đơn giá
+                      const currentPts = parseInt(boostCurrentPoints) || 0;
+                      const targetPts = titleTargetPoints || maxPoints || 0;
+                      if (currentPts > 0 && targetPts > 0) {
+                        // Kiểm tra giới hạn dưới (từ tên option)
+                        if (optionMinPoints > 0 && currentPts < optionMinPoints) {
+                          pointsError = `Không được thấp hơn ${new Intl.NumberFormat('vi-VN').format(optionMinPoints)} điểm`;
+                          activePrice = 0;
+                        } else if (currentPts > targetPts) {
+                          pointsError = `Không được cao hơn ${new Intl.NumberFormat('vi-VN').format(targetPts)} điểm`;
+                          activePrice = 0;
+                        } else {
+                          const pointsNeeded = Math.max(0, targetPts - currentPts);
+                          activePrice = perUnitPrice * pointsNeeded;
+                        }
+                      } else {
+                        activePrice = 0;
+                      }
+                    }
+                  }
 
                   return (
                     <>
+                      <p className="text-sm text-slate-400 mb-3">Số dư của bạn: <span className="text-emerald-400 font-bold text-base">{new Intl.NumberFormat('vi-VN').format(currentUser?.balance || 0)}đ</span></p>
                       <div className="mb-4 bg-blue-900/10 p-4 rounded-xl border border-blue-500/20">
                         <p className="text-sm text-slate-300">Dịch vụ: <strong className="text-white">{boostingModalData.title}</strong></p>
 
                         {hasOptions && (
                           <div className="mt-3">
-                            <label className="text-xs text-slate-400 block mb-1">Vui lòng chọn mốc cày / Gói bạn muốn:</label>
+                            <label className="text-xs text-blue-400 font-bold block mb-1">Rank hiện tại của bạn:</label>
                             <select
                               value={selectedBoostRank}
-                              onChange={(e) => setSelectedBoostRank(parseInt(e.target.value))}
+                              onChange={(e) => { const idx = parseInt(e.target.value); setSelectedBoostRank(idx); const opt = boostingModalData.rankOptions[idx]; setBoostSubTier(opt?.inputType === 'bac' && (opt?.tierCount || 1) > 1 ? toRoman(opt?.tierCount || 1) : ''); setBoostCurrentPoints(''); }}
                               className="w-full p-2.5 bg-[#0B1120] border border-blue-500/50 rounded-lg text-white outline-none font-bold text-sm cursor-pointer shadow-inner"
                             >
                               {boostingModalData.rankOptions.map((opt, idx) => (
-                                <option key={idx} value={idx}>{opt.rank} ➡️ {boostingModalData.type === 'rank' ? 'Lên ' + boostingModalData.title.replace('Cày lên ', '').replace('Cày ', '') : 'Giá: ' + new Intl.NumberFormat('vi-VN').format(opt.price) + 'đ'}</option>
+                                <option key={idx} value={idx}>{opt.rank}</option>
                               ))}
                             </select>
                           </div>
                         )}
 
-                        <p className="text-sm text-slate-300 mt-3 border-t border-blue-500/20 pt-2 flex items-center gap-2">Phí thanh toán: <strong className="text-rose-500 text-xl">{new Intl.NumberFormat('vi-VN').format(activePrice)}đ</strong></p>
-                        <p className="text-xs text-slate-400 mt-1">Số dư của bạn: <span className="text-emerald-400 font-bold">{new Intl.NumberFormat('vi-VN').format(currentUser?.balance || 0)}đ</span></p>
+                        {/* --- KHU VỰC NHẬP BẬC HOẶC ĐIỂM --- */}
+                        {hasOptions && currentOption && (
+                          <div className="mt-3">
+                            {optionInputType === 'bac' ? (
+                              optTierCount > 1 ? (
+                                <div>
+                                  <label className="text-xs text-slate-400 font-bold block mb-1">Đang ở bậc nào?</label>
+                                  <div className="flex gap-1.5 flex-wrap">
+                                    {tierList.map(tier => (
+                                      <button
+                                        key={tier}
+                                        type="button"
+                                        onClick={() => setBoostSubTier(tier)}
+                                        className={`flex-1 min-w-[40px] py-2 rounded-lg text-xs font-black transition-all border ${boostSubTier === tier
+                                          ? (tier === toRoman(optTierCount) ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/30' : 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/30')
+                                          : 'bg-[#0B1120] text-slate-400 border-slate-700 hover:border-slate-500'}`}
+                                      >
+                                        {tier}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  {boostSubTier === toRoman(optTierCount) && (
+                                    <p className="text-[10px] text-emerald-400 mt-1.5 flex items-center gap-1">
+                                      <Sparkles size={12} /> Bậc {toRoman(optTierCount)} → Áp dụng giá trọn gói (combo)
+                                    </p>
+                                  )}
+                                  {boostSubTier && boostSubTier !== toRoman(optTierCount) && (
+                                    <p className="text-[10px] text-blue-400 mt-1.5">
+                                      Bậc {boostSubTier} → Cần cày {({'I':1,'II':2,'III':3,'IV':4,'V':5,'VI':6,'VII':7,'VIII':8,'IX':9,'X':10})[boostSubTier] || '?'} bậc, tính giá bậc lẻ
+                                    </p>
+                                  )}
+                                </div>
+                              ) : null
+                            ) : (
+                              <div>
+                                <label className="text-xs text-emerald-400 font-bold block mb-1.5">Điểm hiện tại của bạn</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={boostCurrentPoints}
+                                  onChange={(e) => {
+                                    let val = parseInt(e.target.value) || 0;
+                                    setBoostCurrentPoints(val > 0 ? val.toString() : '');
+                                  }}
+                                  placeholder="Nhập số điểm bạn đang có..."
+                                  className={`w-full p-2.5 bg-[#0B1120] border rounded-lg font-bold outline-none shadow-inner text-sm ${pointsError ? 'border-rose-500 text-rose-400' : 'border-emerald-500/50 text-emerald-400 focus:border-emerald-400'}`}
+                                />
+                                {pointsError && (
+                                  <p className="text-[10px] text-rose-400 mt-1.5 flex items-center gap-1 font-bold">
+                                    <AlertCircle size={12} /> {pointsError}
+                                  </p>
+                                )}
+                                {!pointsError && (!boostCurrentPoints || parseInt(boostCurrentPoints) === 0) && (
+                                  <p className="text-[10px] text-yellow-400 mt-1.5 flex items-center gap-1">
+                                    <AlertCircle size={12} /> Vui lòng nhập điểm hiện tại để tính phí
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="mt-3 border-t border-blue-500/20 pt-3">
+                          {optionInputType === 'diem' && <p className="text-slate-300 flex items-center gap-2 text-base mb-2">Đơn giá: <strong className="text-emerald-400 text-2xl">{new Intl.NumberFormat('vi-VN').format(perUnitPrice)}đ/điểm</strong></p>}
+                          <p className="text-slate-300 flex items-center gap-2 text-base">Phí thanh toán: <strong className="text-rose-500 text-2xl">{new Intl.NumberFormat('vi-VN').format(activePrice)}đ</strong> {priceLabel && <span className="text-xs text-slate-500">{priceLabel}</span>}</p>
+                        </div>
                       </div>
 
                       <form onSubmit={async (e) => {
                         e.preventDefault();
-                        if (isProcessingAction) return;
-                        isProcessingAction = true;
+                        if (isGlobalProcessing) return;
+                        if (activePrice <= 0) { showToast('Phí thanh toán không hợp lệ (0đ). Vui lòng kiểm tra lại thông tin điểm hoặc bậc.', 'error'); return; }
+                        setIsGlobalProcessing(true);
                         try {
                           const loginMethod = e.target.loginMethod ? e.target.loginMethod.value : 'Không Cần';
                           const username = e.target.username ? e.target.username.value : (e.target.eventCode ? e.target.eventCode.value : '');
@@ -6530,12 +6793,14 @@ const App = () => {
                           const newBalance = currentUser.balance - activePrice;
 
                           let packageTitle = targetModal.title;
-                          if (hasOptions) {
-                            if (targetModal.type === 'rank') {
-                              packageTitle = `Cày từ ${currentOptionName} lên ${targetModal.title.replace('Cày lên ', '').replace('Cày ', '')}`;
-                            } else {
-                              packageTitle = `${targetModal.title} (Mốc chọn: ${currentOptionName})`;
-                            }
+                          const targetPts = titleTargetPoints || maxPoints || 0;
+                          if (hasOptions && currentOption) {
+                            const rankDetail = optionInputType === 'bac'
+                              ? `Bậc ${boostSubTier}${boostSubTier === 'V' ? ' (Combo)' : ''}`
+                              : (boostCurrentPoints && parseInt(boostCurrentPoints) > 0
+                                ? `${boostCurrentPoints} điểm → ${new Intl.NumberFormat('vi-VN').format(targetPts)} điểm`
+                                : 'Combo');
+                            packageTitle = `${targetModal.title} [${rankDetail}]`;
                           }
 
                           const newTx = {
@@ -6570,7 +6835,7 @@ const App = () => {
                             boostingTitle: packageTitle,
                             date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
                             status: 'Chờ xử lý',
-                            info: { loginMethod, username, password, note }
+                            info: { loginMethod, username, password, note, amount: activePrice }
                           };
 
                           const { error: insertErr } = await supabase.from('boosting_requests').insert([dbPayload]);
@@ -6588,10 +6853,11 @@ const App = () => {
                           setTransactionsDb([newTx, ...transactionsDb]);
                           setBoostingRequests([newBoostReq, ...boostingRequests]);
 
-                          showToast("Đặt lịch thành công! Admin sẽ sớm xử lý.");
+                          showToast("Đặt đơn thành công! Admin sẽ sớm xử lý.");
                           sendAdminAlert('ĐẶT CÀY THUÊ', `Khách ${currentUser.name} vừa đặt đơn: ${packageTitle}.`);
+                          setHistoryTab('boost');
                           setCurrentView('lichsu');
-                        } finally { isProcessingAction = false; }
+                        } finally { setIsGlobalProcessing(false); }
                       }}>
                         <div className="space-y-4">
                           {boostingModalData.type === 'event' && boostingModalData.require_login === false ? (
@@ -6628,8 +6894,12 @@ const App = () => {
                             <input name="note" type="text" placeholder="Ghi chú thêm cho Admin..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" />
                           </div>
                         </div>
-                        <button type="submit" className="w-full mt-6 bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-rose-600/20 transition-colors flex items-center justify-center gap-2 text-lg">
-                          Thanh toán {new Intl.NumberFormat('vi-VN').format(activePrice)}đ
+                        <button type="submit" disabled={isGlobalProcessing} className={`w-full mt-6 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-lg ${isGlobalProcessing ? 'bg-slate-600 cursor-not-allowed opacity-70' : 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/20'}`}>
+                          {isGlobalProcessing ? (
+                            <><svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg> Đang xử lý...</>
+                          ) : (
+                            <>Thanh toán {new Intl.NumberFormat('vi-VN').format(activePrice)}đ</>
+                          )}
                         </button>
                       </form>
                     </>
