@@ -5849,9 +5849,17 @@ const App = () => {
                 <div className="flex flex-col md:flex-row gap-6">
                   {/* CỘT TRÁI: Bước 1-3 */}
                   <div className="flex-1 space-y-5">
-                    <div className="flex gap-4 items-center">
-                      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20">1</span>
-                      <p className="leading-relaxed uppercase font-bold">BẤM TỔ HỢP PHÍM <strong className="text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(250,204,21,0.2)] whitespace-nowrap">CTRL + J</strong> TRÊN TRÌNH DUYỆT WEB CỦA BẠN.</p>
+                    <div className="flex gap-4 items-start">
+                      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20 mt-1">1</span>
+                      <div className="w-full">
+                        <p className="leading-relaxed uppercase font-bold mb-3 text-white">BẤM TỔ HỢP PHÍM <strong className="text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(250,204,21,0.2)] whitespace-nowrap">CTRL + J</strong> TRÊN TRÌNH DUYỆT WEB CỦA BẠN VÀ ẤN THEO HÌNH BÊN DƯỚI</p>
+                        <div className="relative cursor-pointer group" onClick={() => setFullScreenImage('/Motep.png')}>
+                          <img src="/Motep.png" alt="Mở tệp" className="w-full rounded-lg border-2 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
+                            <span className="bg-black/70 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5"><ZoomIn size={14} /> Bấm để phóng to</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <div className="flex gap-4 items-start">
                       <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20 mt-1">2</span>
