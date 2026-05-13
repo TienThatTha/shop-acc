@@ -1766,6 +1766,17 @@ const App = () => {
 
                 return (
                   <div key={acc.id} className="bg-[#151D2F] rounded-xl overflow-hidden border border-slate-800 hover:border-blue-500/50 transition-all flex flex-col group shadow-lg hover:-translate-y-1 relative">
+                    {(() => {
+                      const buyDiscount = acc.oldPrice && acc.oldPrice > acc.price ? Math.round(((acc.oldPrice - acc.price) / acc.oldPrice) * 100) : 0;
+                      const rentDiscount = acc.oldRentPrice && acc.oldRentPrice > acc.rentPricePerHour ? Math.round(((acc.oldRentPrice - acc.rentPricePerHour) / acc.oldRentPrice) * 100) : 0;
+                      const packageRentDiscount = acc.rentDiscountPercent || 0;
+                      const maxDiscount = Math.max(buyDiscount, rentDiscount, packageRentDiscount);
+                      return maxDiscount > 0 ? (
+                        <div className="absolute top-6 -right-10 w-40 text-center transform rotate-45 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 text-white font-black text-[11px] py-1 shadow-lg z-40 border-y border-white/20 uppercase tracking-widest pointer-events-none">
+                          GIẢM {maxDiscount}%
+                        </div>
+                      ) : null;
+                    })()}
                     <div className="relative h-44 w-full bg-slate-900 cursor-pointer overflow-hidden" onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}>
                       <img
                         src={acc.coverImage}
@@ -1777,7 +1788,7 @@ const App = () => {
                       />
                       <div className="absolute top-2 left-2 bg-rose-600 text-white text-xs font-bold px-2.5 py-1 rounded shadow-lg backdrop-blur-md bg-opacity-90 z-30">Mã: {acc.code}</div>
                       {/* TAG TIER GÓC PHẢI - DÁN VÀO DƯỚI DÒNG MÃ ACC */}
-                      <span className={`absolute top-2 right-2 text-[10px] font-black px-2.5 py-1 rounded shadow-lg uppercase z-30 ${acc.tier === 'ULVIP' ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white' : acc.tier === 'SVIP' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-[#0B1120]' : 'bg-blue-600 text-white'}`}>
+                      <span className={`absolute top-10 left-2 text-[10px] font-black px-2.5 py-1 rounded shadow-lg uppercase z-30 ${acc.tier === 'ULVIP' ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white' : acc.tier === 'SVIP' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-[#0B1120]' : 'bg-blue-600 text-white'}`}>
                         {acc.tier || 'VIP'}
                       </span>
                       {isRented && (
@@ -1795,12 +1806,18 @@ const App = () => {
                         <div className="flex justify-between items-center">
                           <div>
                             <p className="text-[10px] text-slate-500 font-bold mb-0.5 uppercase">MUA ĐỨT</p>
+                            {acc.oldPrice && acc.oldPrice > acc.price && (
+                              <p className="text-xs font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(acc.oldPrice)}đ</p>
+                            )}
                             <p className="text-base md:text-lg font-black text-rose-500">{new Intl.NumberFormat('vi-VN').format(acc.price)}<span className="text-[10px] md:text-xs opacity-70 ml-0.5">đ</span></p>
                           </div>
 
                           {acc.rentPricePerHour > 0 && (
                             <div className="text-right border-l border-slate-700 pl-3">
                               <p className="text-[10px] text-slate-500 font-bold mb-0.5 uppercase">THUÊ / GIỜ</p>
+                              {acc.oldRentPrice && acc.oldRentPrice > acc.rentPricePerHour && (
+                                <p className="text-xs font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(acc.oldRentPrice)}đ</p>
+                              )}
                               <p className="text-base md:text-lg font-black text-blue-400">{new Intl.NumberFormat('vi-VN').format(acc.rentPricePerHour)}<span className="text-[10px] md:text-xs opacity-70 ml-0.5">đ</span></p>
                             </div>
                           )}
@@ -2970,7 +2987,12 @@ const App = () => {
                 <p className="text-slate-400">Đang cập nhật các gói dịch vụ cho mục này...</p>
               </div>
             ) : filteredBoosting.map((b, index) => (
-              <div key={b.id} className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 md:p-6 hover:border-blue-500/50 transition-colors shadow-xl group flex flex-col overflow-hidden">
+              <div key={b.id} className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 md:p-6 hover:border-blue-500/50 transition-colors shadow-xl group flex flex-col overflow-hidden relative">
+                {(b.oldPrice > b.price || b.discountPercent > 0) && (
+                  <div className="absolute top-6 -right-10 w-40 text-center transform rotate-45 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 text-white font-black text-[11px] py-1 shadow-lg z-40 border-y border-white/20 uppercase tracking-widest pointer-events-none">
+                    GIẢM {b.oldPrice > b.price ? Math.round(((b.oldPrice - b.price) / b.oldPrice) * 100) : b.discountPercent}%
+                  </div>
+                )}
 
                 {/* --- ẢNH HIỂN THỊ Ở TRANG KHÁCH (TỰ MỞ RỘNG & PHÓNG TO ĐƯỢC) --- */}
                 {b.image && (
@@ -3000,7 +3022,19 @@ const App = () => {
                 <div className="flex justify-between items-end border-t border-slate-800 pt-4">
                   <div>
                     <p className="text-[10px] text-slate-500 mb-1 font-bold">GIÁ TỪ</p>
-                    <p className="text-rose-500 font-black text-lg md:text-xl">{new Intl.NumberFormat('vi-VN').format(b.price)}đ{b.priceUnit && <span className="text-slate-400 font-bold text-xs md:text-sm">/{b.priceUnit}</span>}</p>
+                    {b.oldPrice > b.price ? (
+                      <>
+                        <p className="text-xs font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(b.oldPrice)}đ</p>
+                        <p className="text-rose-500 font-black text-lg md:text-xl">{new Intl.NumberFormat('vi-VN').format(b.price)}đ{b.priceUnit && <span className="text-slate-400 font-bold text-xs md:text-sm">/{b.priceUnit}</span>}</p>
+                      </>
+                    ) : b.discountPercent > 0 ? (
+                      <>
+                        <p className="text-xs font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(b.price)}đ</p>
+                        <p className="text-rose-500 font-black text-lg md:text-xl">{new Intl.NumberFormat('vi-VN').format(b.price - Math.floor(b.price * (b.discountPercent / 100)))}đ{b.priceUnit && <span className="text-slate-400 font-bold text-xs md:text-sm">/{b.priceUnit}</span>}</p>
+                      </>
+                    ) : (
+                      <p className="text-rose-500 font-black text-lg md:text-xl">{new Intl.NumberFormat('vi-VN').format(b.price)}đ{b.priceUnit && <span className="text-slate-400 font-bold text-xs md:text-sm">/{b.priceUnit}</span>}</p>
+                    )}
                   </div>
                   <button onClick={() => {
                     if (!currentUser) return requireAuth('login');
@@ -3571,8 +3605,11 @@ const App = () => {
           game: e.target.game.value,
           title: e.target.title.value,
           tags: tagsString,
-          price: parseInt(e.target.price.value),
-          rentPricePerHour: parseInt(e.target.rentPricePerHour.value) || 0,
+          price: e.target.discountedPrice?.value ? parseInt(e.target.discountedPrice.value) : parseInt(e.target.basePrice.value),
+          oldPrice: e.target.discountedPrice?.value ? parseInt(e.target.basePrice.value) : null,
+          rentPricePerHour: e.target.discountedRentPrice?.value ? parseInt(e.target.discountedRentPrice.value) : (parseInt(e.target.baseRentPrice.value) || 0),
+          oldRentPrice: e.target.discountedRentPrice?.value ? parseInt(e.target.baseRentPrice.value) : null,
+          rentDiscountPercent: parseInt(e.target.rentDiscountPercent?.value) || 0,
           rentOptions: validRentOptions,
           rentedUntil: editingAccount ? editingAccount.rentedUntil : null,
           rentStartedAt: editingAccount ? editingAccount.rentStartedAt : null,
@@ -3678,7 +3715,9 @@ const App = () => {
           id: editingBoosting ? editingBoosting.id : Date.now(),
           type: type,
           require_login: type === 'event' ? e.target.requireLogin?.checked : true,
-          price: isMulti && validOptions.length > 0 ? Math.min(...validOptions.map(o => o.price)) : (parseInt(e.target.price?.value) || 0),
+          price: isMulti && validOptions.length > 0 ? Math.min(...validOptions.map(o => o.price)) : (e.target.discountedPrice?.value ? parseInt(e.target.discountedPrice.value) : (parseInt(e.target.basePrice?.value) || 0)),
+          oldPrice: isMulti && validOptions.length > 0 ? null : (e.target.discountedPrice?.value ? parseInt(e.target.basePrice.value) : null),
+          discountPercent: isMulti ? (parseInt(e.target.discountPercent?.value) || 0) : 0,
           priceUnit: adminBoostingPriceUnit.trim() || '',
           rankOptions: isMulti ? validOptions : [],
           image: finalImage,
@@ -4712,7 +4751,10 @@ const App = () => {
                             </div>
                           </div>
                         ) : (
-                          <div className="mt-4"><label className="text-xs text-slate-400 block mb-1">Giá tiền trọn gói (VNĐ)</label><input name="price" type="number" defaultValue={editingBoosting?.price} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-bold outline-none focus:border-blue-500" required /></div>
+                          <div className="mt-4 grid grid-cols-2 gap-4">
+                            <div><label className="text-xs text-emerald-400 block mb-1">Giá tiền gốc (VNĐ)</label><input name="basePrice" type="number" defaultValue={editingBoosting ? (editingBoosting.oldPrice || editingBoosting.price) : ''} className="w-full p-3 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-bold outline-none focus:border-emerald-500" required /></div>
+                            <div><label className="text-xs text-rose-400 block mb-1">Giá đã giảm (Tùy chọn)</label><input name="discountedPrice" type="number" defaultValue={editingBoosting?.oldPrice ? editingBoosting.price : ''} className="w-full p-3 bg-[#0B1120] border border-rose-500/50 rounded-lg text-rose-400 font-bold outline-none focus:border-rose-400" /></div>
+                          </div>
                         )}
                       </div>
                       </div>
@@ -5310,12 +5352,13 @@ const App = () => {
           {/* Modal Account */}
           {showAccModal && (
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm py-10">
-              <div className="bg-[#151D2F] border border-slate-700 w-full max-w-3xl rounded-2xl p-6 shadow-2xl max-h-full overflow-y-auto custom-scrollbar">
-                <div className="flex justify-between items-center mb-6 sticky top-0 bg-[#151D2F] pb-4 border-b border-slate-800 z-10">
+              <div className="bg-[#151D2F] border border-slate-700 w-full max-w-3xl rounded-2xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
+                <div className="flex justify-between items-center p-6 border-b border-slate-800 shrink-0 bg-[#151D2F] z-10">
                   <h3 className="text-xl font-bold text-white flex items-center gap-2"><Gamepad2 className="text-blue-500" /> {editingAccount ? 'Chỉnh sửa Nick' : 'Đăng bán Nick mới'}</h3>
                   <button onClick={() => setShowAccModal(false)} className="p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"><X size={20} /></button>
                 </div>
-                <form onSubmit={handleSaveAccount} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+                  <form onSubmit={handleSaveAccount} className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div><label className="text-xs text-slate-400 font-bold">Tên Game</label><input name="game" defaultValue={editingAccount?.game} placeholder="VD: Liên Quân, Valorant..." className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white" required /></div>
                   <div><label className="text-xs text-slate-400 font-bold">Mã Nick</label><input name="code" defaultValue={editingAccount?.code} placeholder="VD: 12345" className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white" required /></div>
 
@@ -5359,14 +5402,50 @@ const App = () => {
                   </div>
 
                   <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="grid grid-cols-2 gap-3 bg-emerald-900/10 p-4 rounded-xl border border-emerald-500/20">
+                    <div className="grid grid-cols-2 gap-3 bg-emerald-900/10 p-4 rounded-xl border border-emerald-500/20 h-fit shadow-xl">
                       <div>
-                        <label className="text-[11px] text-emerald-400 font-bold mb-2 flex items-center gap-1"><Wallet size={14} /> GIÁ BÁN ĐỨT (VNĐ)</label>
-                        <input name="price" type="number" defaultValue={editingAccount?.price} placeholder="Ví dụ: 500000" className="w-full p-3 bg-[#0B1120] border border-emerald-500/50 focus:border-emerald-400 outline-none rounded-lg text-emerald-400 font-black text-lg shadow-inner" required />
+                        <label className="text-[11px] text-emerald-400 font-bold mb-2 flex items-center gap-1 whitespace-nowrap"><Wallet size={14} /> GIÁ BÁN GỐC</label>
+                        <input name="basePrice" type="number" defaultValue={editingAccount ? (editingAccount.oldPrice || editingAccount.price) : ''} placeholder="Ví dụ: 500000" className="w-full p-3 bg-[#0B1120] border border-emerald-500/50 focus:border-emerald-400 outline-none rounded-lg text-emerald-400 font-black text-sm shadow-inner" required />
                       </div>
                       <div>
-                        <label className="text-[11px] text-blue-400 font-bold mb-2 flex items-center gap-1"><Clock size={14} /> GIÁ THUÊ / GIỜ</label>
-                        <input name="rentPricePerHour" type="number" defaultValue={editingAccount?.rentPricePerHour || 0} placeholder="Ví dụ: 10000" className="w-full p-3 bg-[#0B1120] border border-blue-500/50 focus:border-blue-400 outline-none rounded-lg text-blue-400 font-black text-lg shadow-inner" />
+                        <label className="text-[11px] text-rose-400 font-bold mb-2 flex items-center gap-1 whitespace-nowrap"><Wallet size={14} /> GIÁ BÁN GIẢM</label>
+                        <input name="discountedPrice" type="number" defaultValue={editingAccount?.oldPrice ? editingAccount.price : ''} placeholder="Giá giảm..." className="w-full p-3 bg-[#0B1120] border border-rose-500/50 focus:border-rose-400 outline-none rounded-lg text-rose-400 font-black text-sm shadow-inner" />
+                      </div>
+                      <div className="col-span-2 border-t border-emerald-500/20 my-1"></div>
+                      <div>
+                        <label className="text-[11px] text-blue-400 font-bold mb-2 flex items-center gap-1 whitespace-nowrap"><Clock size={14} /> GIÁ THUÊ/GIỜ</label>
+                        <input id="baseRentPriceInput" name="baseRentPrice" type="number" defaultValue={editingAccount ? (editingAccount.oldRentPrice || editingAccount.rentPricePerHour) : 0} placeholder="Ví dụ: 10000" className="w-full p-3 bg-[#0B1120] border border-blue-500/50 focus:border-blue-400 outline-none rounded-lg text-blue-400 font-black text-sm shadow-inner transition-colors" onChange={(e) => {
+                          const baseVal = parseFloat(e.target.value) || 0;
+                          const percentInput = document.getElementById('rentDiscountPercentInput');
+                          const discountInput = document.getElementById('discountedRentPriceInput');
+                          if (percentInput && discountInput) {
+                            const percent = parseFloat(percentInput.value) || 0;
+                            if (percent > 0 && baseVal > 0) {
+                              discountInput.value = baseVal - Math.floor(baseVal * (percent / 100));
+                            }
+                          }
+                        }}/>
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-rose-400 font-bold mb-2 flex items-center gap-1 whitespace-nowrap"><Clock size={14} /> GIÁ THUÊ GIẢM</label>
+                        <input id="discountedRentPriceInput" name="discountedRentPrice" type="number" defaultValue={editingAccount?.oldRentPrice ? editingAccount.rentPricePerHour : ''} placeholder="Giá giảm..." className="w-full p-3 bg-[#0B1120] border border-rose-500/50 focus:border-rose-400 outline-none rounded-lg text-rose-400 font-black text-sm shadow-inner transition-colors" />
+                      </div>
+                      <div className="col-span-2 border-t border-emerald-500/20 my-1"></div>
+                      <div className="col-span-2">
+                        <label className="text-[11px] text-rose-400 font-bold mb-2 uppercase flex items-center gap-1"><Wallet size={14} /> Giảm giá các gói thuê chung (%)</label>
+                        <input id="rentDiscountPercentInput" name="rentDiscountPercent" type="number" min="0" max="100" defaultValue={editingAccount?.rentDiscountPercent || ''} placeholder="VD: 10 (Sẽ giảm 10% cho MỌI gói thuê bên dưới)" className="w-full p-3 bg-[#0B1120] border border-rose-500/50 focus:border-rose-400 outline-none rounded-lg text-rose-400 font-black text-sm shadow-inner transition-colors" onChange={(e) => {
+                          const percent = parseFloat(e.target.value) || 0;
+                          const baseInput = document.getElementById('baseRentPriceInput');
+                          const discountInput = document.getElementById('discountedRentPriceInput');
+                          if (baseInput && discountInput) {
+                            const baseVal = parseFloat(baseInput.value) || 0;
+                            if (percent > 0 && baseVal > 0) {
+                              discountInput.value = baseVal - Math.floor(baseVal * (percent / 100));
+                            } else if (percent === 0) {
+                              discountInput.value = '';
+                            }
+                          }
+                        }}/>
                       </div>
                     </div>
                     <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30">
@@ -5418,7 +5497,8 @@ const App = () => {
                     <button type="button" onClick={() => setShowAccModal(false)} className="w-1/3 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl transition-colors">Hủy Bỏ</button>
                     <button type="submit" className="w-2/3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-600/20 transition-colors flex items-center justify-center gap-2"><Save size={20} /> Hoàn Tất Lưu</button>
                   </div>
-                </form>
+                  </form>
+                </div>
               </div>
             </div>
           )}
@@ -5638,8 +5718,13 @@ const App = () => {
                 {/* === CỘT PHẢI: Chỉ chứa Bảng giá mốc === */}
                 <div className="space-y-4 mt-4 md:mt-0">
                   {(adminBoostType === 'rank' || (adminBoostType === 'event' && isEventMultiPackage)) ? (
-                    <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30">
-                      <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
+                    <div>
+                      <div className="mb-4 bg-rose-900/10 p-4 rounded-xl border border-rose-500/30">
+                        <label className="text-xs text-rose-400 font-bold block mb-1">Giảm Giá Chung (%) (Tùy chọn)</label>
+                        <input name="discountPercent" type="number" min="0" max="100" defaultValue={editingBoosting?.discountPercent || ''} placeholder="VD: 10 (Sẽ trừ thẳng 10% khi khách thanh toán)" className="w-full p-3 bg-[#0B1120] border border-rose-500/50 rounded-lg text-rose-400 font-bold outline-none focus:border-rose-400" />
+                      </div>
+                      <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30">
+                        <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
                         <label className="text-sm text-blue-400 font-bold flex items-center gap-2">
                           <Target size={16} /> {adminBoostType === 'rank' ? 'CÁC MỐC RANK & GIÁ' : 'DANH SÁCH GÓI & GIÁ'}
                         </label>
@@ -5686,11 +5771,18 @@ const App = () => {
                         ))}
                       </div>
                     </div>
+                    </div>
                   ) : (
                     /* HIỆN Ô NHẬP GIÁ TRỌN GÓI NẾU KHÔNG TÍCH Ô CHIA GÓI */
-                    <div className="mb-4">
-                      <label className="text-xs text-slate-400 block mb-1">Giá tiền trọn gói (VNĐ)</label>
-                      <input name="price" type="number" defaultValue={editingBoosting?.price} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white font-bold outline-none focus:border-blue-500" required />
+                    <div className="mb-4 grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs text-emerald-400 block mb-1">Giá tiền gốc (VNĐ)</label>
+                        <input name="basePrice" type="number" defaultValue={editingBoosting ? (editingBoosting.oldPrice || editingBoosting.price) : ''} className="w-full p-3 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-bold outline-none focus:border-emerald-500" required />
+                      </div>
+                      <div>
+                        <label className="text-xs text-rose-400 block mb-1">Giá đã giảm (Tùy chọn)</label>
+                        <input name="discountedPrice" type="number" defaultValue={editingBoosting?.oldPrice ? editingBoosting.price : ''} className="w-full p-3 bg-[#0B1120] border border-rose-500/50 rounded-lg text-rose-400 font-bold outline-none focus:border-rose-400" />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -6184,11 +6276,16 @@ const App = () => {
                         </div>
                       )}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {viewingAcc.rentOptions.map((opt, idx) => (
+                        {viewingAcc.rentOptions.map((opt, idx) => {
+                          const activePrice = viewingAcc.rentDiscountPercent > 0 
+                            ? opt.price - Math.floor(opt.price * (viewingAcc.rentDiscountPercent / 100)) 
+                            : opt.price;
+                          
+                          return (
                           <button
                             key={idx}
                             disabled={isCurrentlyRented}
-                            onClick={() => initiateRent(viewingAcc, opt)}
+                            onClick={() => initiateRent(viewingAcc, { ...opt, price: activePrice, originalPrice: opt.price })}
                             className={`p-4 rounded-xl border transition-all flex flex-col items-center justify-center text-center gap-1 animate-fade-in shadow-inner w-full ${isCurrentlyRented ? 'border-slate-800 bg-slate-900/50 opacity-50 cursor-not-allowed' : 'border-slate-800 bg-[#0B1120] hover:border-blue-500 hover:bg-blue-900/20 cursor-pointer'}`}
                           >
                             <div className="flex flex-col items-center gap-1.5 w-full mb-1">
@@ -6199,15 +6296,25 @@ const App = () => {
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center justify-center gap-1.5 text-blue-400 mt-2 border-t border-slate-800 w-full pt-3">
+                            <div className="flex items-center justify-center gap-1.5 text-blue-400 mt-2 border-t border-slate-800 w-full pt-3 relative">
+                              {viewingAcc.rentDiscountPercent > 0 && (
+                                <div className="absolute top-0 right-2 bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-lg transform -translate-y-1/2">
+                                  -{viewingAcc.rentDiscountPercent}%
+                                </div>
+                              )}
                               <Wallet size={16} className="text-blue-500" />
-                              <p className="font-black text-lg">
-                                {new Intl.NumberFormat('vi-VN').format(opt.price)}
-                                <span className="text-xs ml-0.5">đ</span>
-                              </p>
+                              <div className="flex flex-col items-start leading-tight">
+                                {viewingAcc.rentDiscountPercent > 0 && (
+                                  <p className="text-[10px] text-slate-500 line-through -mb-0.5">{new Intl.NumberFormat('vi-VN').format(opt.price)}đ</p>
+                                )}
+                                <p className="font-black text-lg">
+                                  {new Intl.NumberFormat('vi-VN').format(activePrice)}
+                                  <span className="text-xs ml-0.5">đ</span>
+                                </p>
+                              </div>
                             </div>
                           </button>
-                        ))}
+                        )})}
                       </div>
                     </div>
                   )}
@@ -6736,6 +6843,13 @@ const App = () => {
                         activePrice = 0;
                       }
                     }
+                  }
+
+                  // --- APPLY DISCOUNT ---
+                  if (boostingModalData.discountPercent > 0 && activePrice > 0) {
+                    const discountAmt = Math.floor(activePrice * (boostingModalData.discountPercent / 100));
+                    activePrice = activePrice - discountAmt;
+                    priceLabel = priceLabel ? `${priceLabel} (Giảm ${boostingModalData.discountPercent}%)` : `(Giảm ${boostingModalData.discountPercent}%)`;
                   }
 
                   return (
