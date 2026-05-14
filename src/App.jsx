@@ -335,6 +335,9 @@ const App = () => {
   const [expandedReplies, setExpandedReplies] = useState({});
   const [showCommentOptionsId, setShowCommentOptionsId] = useState(null);
   const [showReportedCommentsModal, setShowReportedCommentsModal] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editCommentContent, setEditCommentContent] = useState('');
+  const [showEditHistoryId, setShowEditHistoryId] = useState(null);
 
   // 1. Kích hoạt bảng Trang Chủ (Sảnh chính)
   useEffect(() => {
@@ -839,6 +842,31 @@ const App = () => {
     } catch (err) {
       console.error(err);
       setIsGlobalProcessing(false);
+    }
+  };
+
+  const handleUpdateComment = async (commentId, newContent) => {
+    if (!newContent.trim()) return;
+    const comment = commentsDb.find(c => c.id === commentId);
+    if (!comment || comment.content === newContent) {
+      setEditingCommentId(null);
+      return;
+    }
+    
+    const historyItem = { content: comment.content, edited_at: new Date().toISOString() };
+    const edit_history = [...(comment.edit_history || []), historyItem];
+    
+    try {
+      await supabase.from('comments').update({ 
+        content: newContent.trim(), 
+        is_edited: true, 
+        edit_history 
+      }).eq('id', commentId);
+      setEditingCommentId(null);
+      showToast("Đã cập nhật bình luận!");
+    } catch (err) {
+      console.error(err);
+      showToast("Lỗi khi cập nhật bình luận!", "error");
     }
   };
 
@@ -1876,9 +1904,14 @@ const App = () => {
                         <div className="fixed inset-0 z-10" onClick={() => setShowCommentOptionsId(null)}></div>
                         <div className="absolute right-0 top-full mt-1 bg-[#1A233A] border border-slate-700 rounded shadow-xl z-20 py-1 min-w-[120px] overflow-hidden animate-fade-in text-xs">
                           {currentUser.id === comment.user_id ? (
-                            <button onClick={() => handleDeleteComment(comment.id)} className="w-full text-left px-3 py-2 text-rose-400 hover:bg-rose-500/10 flex items-center gap-2">
-                              <Trash2 size={12} /> Xóa bình luận
-                            </button>
+                            <>
+                              <button onClick={() => { setEditingCommentId(comment.id); setEditCommentContent(comment.content); setShowCommentOptionsId(null); }} className="w-full text-left px-3 py-2 text-blue-400 hover:bg-blue-500/10 flex items-center gap-2">
+                                <Edit size={12} /> Chỉnh sửa
+                              </button>
+                              <button onClick={() => handleDeleteComment(comment.id)} className="w-full text-left px-3 py-2 text-rose-400 hover:bg-rose-500/10 flex items-center gap-2">
+                                <Trash2 size={12} /> Xóa bình luận
+                              </button>
+                            </>
                           ) : (
                             <button onClick={() => handleReportComment(comment.id)} className="w-full text-left px-3 py-2 text-yellow-500 hover:bg-yellow-500/10 flex items-center gap-2">
                               <AlertTriangle size={12} /> Báo cáo
@@ -1891,7 +1924,26 @@ const App = () => {
                 )}
               </div>
             </div>
-            <p className="text-sm text-slate-300 mb-2 break-words whitespace-pre-wrap">{comment.content}</p>
+            {editingCommentId === comment.id ? (
+              <div className="mb-2 mt-1 relative">
+                <textarea
+                  value={editCommentContent}
+                  onChange={(e) => {
+                    setEditCommentContent(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
+                  className="w-full bg-[#151D2F] border border-blue-500/50 rounded-xl py-2 px-3 text-sm text-white focus:outline-none focus:border-blue-500 transition-all resize-none custom-scrollbar"
+                  rows={2}
+                />
+                <div className="flex justify-end gap-2 mt-2">
+                  <button onClick={() => setEditingCommentId(null)} className="px-3 py-1 text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">Hủy</button>
+                  <button onClick={() => handleUpdateComment(comment.id, editCommentContent)} disabled={!editCommentContent.trim() || editCommentContent === comment.content} className="px-3 py-1 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 rounded-lg transition-colors shadow-md shadow-blue-600/20">Lưu</button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-300 mb-2 break-words whitespace-pre-wrap">{comment.content}</p>
+            )}
             <div className="flex items-center gap-4">
               <button onClick={() => handleToggleLikeComment(comment.id, 'like')} className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${isLiked ? 'text-blue-400' : 'text-slate-500 hover:text-blue-400'}`}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className={isLiked ? 'scale-110' : ''}><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
@@ -1916,8 +1968,13 @@ const App = () => {
               }} className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-400 transition-colors">
                 Phản hồi
               </button>
+              {comment.is_edited && (
+                <button onClick={() => setShowEditHistoryId(comment.id)} className="text-[10px] text-slate-400 hover:text-blue-400 italic hover:underline transition-colors ml-auto" title="Xem lịch sử chỉnh sửa">
+                  (Đã chỉnh sửa)
+                </button>
+              )}
               {!isReply && currentUser?.role === 'admin' && (
-                <button onClick={() => handlePinComment(comment.id, comment.is_pinned)} className="text-[11px] font-bold text-yellow-500 hover:text-yellow-400 transition-colors ml-auto">
+                <button onClick={() => handlePinComment(comment.id, comment.is_pinned)} className={`text-[11px] font-bold text-yellow-500 hover:text-yellow-400 transition-colors ${comment.is_edited ? 'ml-3' : 'ml-auto'}`}>
                   {comment.is_pinned ? 'Bỏ ghim' : 'Ghim'}
                 </button>
               )}
@@ -6416,6 +6473,39 @@ const App = () => {
             </div>
           </div>
         )}
+        {showEditHistoryId && (() => {
+          const comment = commentsDb.find(c => c.id === showEditHistoryId);
+          if (!comment) return null;
+          return (
+            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+              <div className="bg-[#151D2F] rounded-2xl w-full max-w-lg border border-slate-700 shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+                <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-[#0f172a]">
+                  <h3 className="font-bold text-white flex items-center gap-2"><History size={18} className="text-blue-400" /> Lịch sử chỉnh sửa</h3>
+                  <button onClick={() => setShowEditHistoryId(null)} className="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-800">
+                    <X size={20} />
+                  </button>
+                </div>
+                <div className="p-4 overflow-y-auto custom-scrollbar space-y-4">
+                  <div className="border border-blue-500/30 rounded-xl p-3 bg-blue-500/5">
+                    <div className="text-xs font-bold text-blue-400 mb-1 flex justify-between">
+                      <span>Hiện tại</span>
+                    </div>
+                    <p className="text-sm text-slate-200 whitespace-pre-wrap">{comment.content}</p>
+                  </div>
+                  {(comment.edit_history || []).slice().reverse().map((hist, idx) => (
+                    <div key={idx} className="border border-slate-700 rounded-xl p-3 bg-[#0B1120]">
+                      <div className="text-xs font-bold text-slate-500 mb-1 flex justify-between">
+                        <span>{new Date(hist.edited_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                      </div>
+                      <p className="text-sm text-slate-400 whitespace-pre-wrap line-through opacity-70">{hist.content}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Modal Thông báo ưu đãi Trang Chủ */}
         {showSpinNotice && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
