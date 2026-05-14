@@ -331,6 +331,8 @@ const App = () => {
   const [dismissSpinRules, setDismissSpinRules] = useState(false);
   const [commentsDb, setCommentsDb] = useState([]);
   const [commentInput, setCommentInput] = useState('');
+  const [replyingToId, setReplyingToId] = useState(null);
+  const [expandedReplies, setExpandedReplies] = useState({});
   const [showCommentOptionsId, setShowCommentOptionsId] = useState(null);
   const [showReportedCommentsModal, setShowReportedCommentsModal] = useState(false);
 
@@ -750,10 +752,12 @@ const App = () => {
         content: commentInput.trim(),
         liked_by: [],
         disliked_by: [],
-        is_pinned: false
+        is_pinned: false,
+        parent_id: replyingToId
       });
       if (error) throw error;
       setCommentInput('');
+      setReplyingToId(null);
       if (commentTextareaRef.current) {
         commentTextareaRef.current.style.height = 'auto';
       }
@@ -1838,6 +1842,109 @@ const App = () => {
     </footer>
   );
 
+  const renderComment = (comment, isReply = false) => {
+    const isLiked = comment.liked_by?.includes(currentUser?.id);
+    const isDisliked = comment.disliked_by?.includes(currentUser?.id);
+    const replies = commentsDb.filter(c => c.parent_id === comment.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const isExpanded = expandedReplies[comment.id];
+    const displayedReplies = isExpanded ? replies : replies.slice(0, 1);
+
+    return (
+      <div key={comment.id} className={`${isReply ? 'mt-3 ml-8 border-l-2 border-slate-700 pl-3' : 'p-3 rounded-xl border transition-colors ' + (comment.is_pinned ? 'bg-rose-500/10 border-rose-500/30' : 'bg-[#0B1120] border-slate-800 hover:border-slate-700')}`}>
+        <div className="flex gap-3">
+          <img src={comment.users?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.users?.name || 'K')}&background=151D2F&color=fff`} alt="avatar" className={`${isReply ? 'w-8 h-8' : 'w-10 h-10'} rounded-full object-cover border border-slate-700 shrink-0`} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1 relative">
+              <div className="flex items-center gap-2 truncate pr-2">
+                <span className="font-bold text-sm text-white truncate max-w-[100px]">{comment.users?.name || 'Khách'}</span>
+                {comment.users?.role === 'admin' && (
+                  <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded font-black shrink-0">ADMIN</span>
+                )}
+                {!isReply && comment.is_pinned && (
+                  <span className="text-rose-500 text-[10px] font-bold flex items-center gap-0.5 shrink-0"><Flame size={12} /> Ghim</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[10px] text-slate-500">{new Date(comment.created_at).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                {currentUser && (
+                  <div className="relative">
+                    <button onClick={() => setShowCommentOptionsId(showCommentOptionsId === comment.id ? null : comment.id)} className="text-slate-500 hover:text-white p-0.5 rounded-full hover:bg-slate-800 transition-colors">
+                      <MoreVertical size={14} />
+                    </button>
+                    {showCommentOptionsId === comment.id && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setShowCommentOptionsId(null)}></div>
+                        <div className="absolute right-0 top-full mt-1 bg-[#1A233A] border border-slate-700 rounded shadow-xl z-20 py-1 min-w-[120px] overflow-hidden animate-fade-in text-xs">
+                          {currentUser.id === comment.user_id ? (
+                            <button onClick={() => handleDeleteComment(comment.id)} className="w-full text-left px-3 py-2 text-rose-400 hover:bg-rose-500/10 flex items-center gap-2">
+                              <Trash2 size={12} /> Xóa bình luận
+                            </button>
+                          ) : (
+                            <button onClick={() => handleReportComment(comment.id)} className="w-full text-left px-3 py-2 text-yellow-500 hover:bg-yellow-500/10 flex items-center gap-2">
+                              <AlertTriangle size={12} /> Báo cáo
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            <p className="text-sm text-slate-300 mb-2 break-words whitespace-pre-wrap">{comment.content}</p>
+            <div className="flex items-center gap-4">
+              <button onClick={() => handleToggleLikeComment(comment.id, 'like')} className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${isLiked ? 'text-blue-400' : 'text-slate-500 hover:text-blue-400'}`}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className={isLiked ? 'scale-110' : ''}><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                {comment.liked_by?.length || 0}
+              </button>
+              <button onClick={() => handleToggleLikeComment(comment.id, 'dislike')} className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${isDisliked ? 'text-rose-400' : 'text-slate-500 hover:text-rose-400'}`}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={isDisliked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className={isDisliked ? 'scale-110' : ''}><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
+                {comment.disliked_by?.length || 0}
+              </button>
+              <button onClick={() => {
+                if (!currentUser) return showToast("Vui lòng đăng nhập để phản hồi!", "error");
+                const replyText = `@${comment.users?.name || 'Khách'}: `;
+                setReplyingToId(isReply ? comment.parent_id : comment.id);
+                setCommentInput(prev => prev.includes(replyText) ? prev : prev ? `${prev}\n${replyText}` : replyText);
+                setTimeout(() => {
+                  if (commentTextareaRef.current) {
+                    commentTextareaRef.current.focus();
+                    commentTextareaRef.current.style.height = 'auto';
+                    commentTextareaRef.current.style.height = `${commentTextareaRef.current.scrollHeight}px`;
+                  }
+                }, 50);
+              }} className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-400 transition-colors">
+                Phản hồi
+              </button>
+              {!isReply && currentUser?.role === 'admin' && (
+                <button onClick={() => handlePinComment(comment.id, comment.is_pinned)} className="text-[11px] font-bold text-yellow-500 hover:text-yellow-400 transition-colors ml-auto">
+                  {comment.is_pinned ? 'Bỏ ghim' : 'Ghim'}
+                </button>
+              )}
+            </div>
+
+            {/* Render Replies */}
+            {!isReply && replies.length > 0 && (
+              <div className="mt-2">
+                {displayedReplies.map(reply => renderComment(reply, true))}
+                {!isExpanded && replies.length > 1 && (
+                  <button onClick={() => setExpandedReplies(prev => ({ ...prev, [comment.id]: true }))} className="mt-2 ml-8 text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1">
+                    <ChevronDown size={14} /> Xem thêm {replies.length - 1} câu trả lời
+                  </button>
+                )}
+                {isExpanded && replies.length > 1 && (
+                  <button onClick={() => setExpandedReplies(prev => ({ ...prev, [comment.id]: false }))} className="mt-2 ml-8 text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1">
+                    <ChevronUp size={14} /> Ẩn bớt
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderDashboardScreen = () => {
     // Chỉ lấy những tài khoản chưa bị đánh dấu Đã Bán
     const availableAccounts = accountsDb.filter(acc => !acc.is_sold);
@@ -1851,7 +1958,7 @@ const App = () => {
           <div className="flex flex-col xl:flex-row gap-6 justify-center">
 
             {/* CỘT TRÁI: KHOẢNG TRỐNG CÂN BẰNG BỐ CỤC */}
-            <div className="hidden 2xl:block w-[350px] shrink-0 pointer-events-none"></div>
+            <div className="hidden 2xl:block w-[450px] shrink-0 pointer-events-none"></div>
 
             {/* CỘT GIỮA: HERO BANNER & TẤT CẢ TÀI KHOẢN */}
             <div className="flex-1 w-full max-w-[1300px] mx-auto space-y-8">
@@ -2066,7 +2173,7 @@ const App = () => {
             </div>
 
             {/* CỘT PHẢI: KHUNG HỎI ĐÁP / BÌNH LUẬN */}
-            <div className="hidden 2xl:block w-[350px] shrink-0 relative -left-8 2xl:-left-12">
+            <div className="hidden 2xl:block w-[450px] shrink-0 relative -left-8 2xl:-left-12">
               <div className="bg-[#151D2F] rounded-xl border border-slate-800 shadow-xl overflow-hidden flex flex-col h-[600px] xl:h-[800px] xl:sticky xl:top-24">
                 <div className="p-4 bg-gradient-to-r from-blue-600/20 to-rose-600/20 border-b border-slate-700 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -2085,89 +2192,10 @@ const App = () => {
 
                 {/* Danh sách bình luận */}
                 <div className="flex-1 p-4 overflow-y-auto space-y-4 custom-scrollbar">
-                  {commentsDb.length === 0 ? (
+                  {commentsDb.filter(c => !c.parent_id).length === 0 ? (
                     <p className="text-center text-slate-500 text-sm mt-10">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
                   ) : (
-                    commentsDb.map(comment => {
-                      const isLiked = comment.liked_by?.includes(currentUser?.id);
-                      const isDisliked = comment.disliked_by?.includes(currentUser?.id);
-                      return (
-                        <div key={comment.id} className={`p-3 rounded-xl border transition-colors ${comment.is_pinned ? 'bg-rose-500/10 border-rose-500/30' : 'bg-[#0B1120] border-slate-800 hover:border-slate-700'}`}>
-                          <div className="flex gap-3">
-                            <img src={comment.users?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.users?.name || 'K')}&background=151D2F&color=fff`} alt="avatar" className="w-10 h-10 rounded-full object-cover border border-slate-700 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-1 relative">
-                                <div className="flex items-center gap-2 truncate pr-2">
-                                  <span className="font-bold text-sm text-white truncate max-w-[100px]">{comment.users?.name || 'Khách'}</span>
-                                  {comment.users?.role === 'admin' && (
-                                    <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded font-black shrink-0">ADMIN</span>
-                                  )}
-                                  {comment.is_pinned && (
-                                    <span className="text-rose-500 text-[10px] font-bold flex items-center gap-0.5 shrink-0"><Flame size={12} /> Ghim</span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <span className="text-[10px] text-slate-500">{new Date(comment.created_at).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
-                                  {currentUser && (
-                                    <div className="relative">
-                                      <button onClick={() => setShowCommentOptionsId(showCommentOptionsId === comment.id ? null : comment.id)} className="text-slate-500 hover:text-white p-0.5 rounded-full hover:bg-slate-800 transition-colors">
-                                        <MoreVertical size={14} />
-                                      </button>
-                                      {showCommentOptionsId === comment.id && (
-                                        <>
-                                          <div className="fixed inset-0 z-10" onClick={() => setShowCommentOptionsId(null)}></div>
-                                          <div className="absolute right-0 top-full mt-1 bg-[#1A233A] border border-slate-700 rounded shadow-xl z-20 py-1 min-w-[120px] overflow-hidden animate-fade-in text-xs">
-                                            {currentUser.id === comment.user_id ? (
-                                              <button onClick={() => handleDeleteComment(comment.id)} className="w-full text-left px-3 py-2 text-rose-400 hover:bg-rose-500/10 flex items-center gap-2">
-                                                <Trash2 size={12} /> Xóa bình luận
-                                              </button>
-                                            ) : (
-                                              <button onClick={() => handleReportComment(comment.id)} className="w-full text-left px-3 py-2 text-yellow-500 hover:bg-yellow-500/10 flex items-center gap-2">
-                                                <AlertTriangle size={12} /> Báo cáo
-                                              </button>
-                                            )}
-                                          </div>
-                                        </>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <p className="text-sm text-slate-300 mb-2 break-words whitespace-pre-wrap">{comment.content}</p>
-                              <div className="flex items-center gap-4">
-                                <button onClick={() => handleToggleLikeComment(comment.id, 'like')} className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${isLiked ? 'text-blue-400' : 'text-slate-500 hover:text-blue-400'}`}>
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className={isLiked ? 'scale-110' : ''}><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
-                                  {comment.liked_by?.length || 0}
-                                </button>
-                                <button onClick={() => handleToggleLikeComment(comment.id, 'dislike')} className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${isDisliked ? 'text-rose-400' : 'text-slate-500 hover:text-rose-400'}`}>
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill={isDisliked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className={isDisliked ? 'scale-110' : ''}><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
-                                  {comment.disliked_by?.length || 0}
-                                </button>
-                                <button onClick={() => {
-                                  if (!currentUser) return showToast("Vui lòng đăng nhập để phản hồi!", "error");
-                                  const replyText = `@${comment.users?.name || 'Khách'}: `;
-                                  setCommentInput(prev => prev.includes(replyText) ? prev : prev ? `${prev}\n${replyText}` : replyText);
-                                  setTimeout(() => {
-                                    if (commentTextareaRef.current) {
-                                      commentTextareaRef.current.focus();
-                                      commentTextareaRef.current.style.height = 'auto';
-                                      commentTextareaRef.current.style.height = `${commentTextareaRef.current.scrollHeight}px`;
-                                    }
-                                  }, 50);
-                                }} className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-400 transition-colors">
-                                  Phản hồi
-                                </button>
-                                {currentUser?.role === 'admin' && (
-                                  <button onClick={() => handlePinComment(comment.id, comment.is_pinned)} className="text-[11px] font-bold text-yellow-500 hover:text-yellow-400 transition-colors ml-auto">
-                                    {comment.is_pinned ? 'Bỏ ghim' : 'Ghim'}
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })
+                    commentsDb.filter(c => !c.parent_id).map(comment => renderComment(comment, false))
                   )}
                 </div>
 
