@@ -7,7 +7,7 @@ import {
   History, Target, Gift, Save, Upload, Plus, Unlock, QrCode,
   Download, Copy, Check, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ZoomIn,
   Sparkles, TrendingUp, Users, Ticket, Settings2, MessageCircle, Send, Eye, EyeOff,
-  ArrowLeftRight, RotateCcw
+  ArrowLeftRight, RotateCcw, MoreVertical, AlertTriangle
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import emailjs from '@emailjs/browser';
@@ -328,6 +328,10 @@ const App = () => {
   const [dismissNotice, setDismissNotice] = useState(false);
   const [showSpinRules, setShowSpinRules] = useState(false);
   const [dismissSpinRules, setDismissSpinRules] = useState(false);
+  const [commentsDb, setCommentsDb] = useState([]);
+  const [commentInput, setCommentInput] = useState('');
+  const [showCommentOptionsId, setShowCommentOptionsId] = useState(null);
+  const [showReportedCommentsModal, setShowReportedCommentsModal] = useState(false);
 
   // 1. Kích hoạt bảng Trang Chủ (Sảnh chính)
   useEffect(() => {
@@ -365,12 +369,13 @@ const App = () => {
       // 1. TẢI CÁC DỮ LIỆU CÔNG KHAI NGAY LẬP TỨC
 
       // 1. TẢI CÁC DỮ LIỆU CÔNG KHAI NGAY LẬP TỨC
-      const [accRes, boostRes, wheelRes, voucherRes, boostReqRes] = await Promise.all([
+      const [accRes, boostRes, wheelRes, voucherRes, boostReqRes, commentsRes] = await Promise.all([
         supabase.from('accounts').select('*'),
         supabase.from('boosting').select('*').order('id', { ascending: false }),
         supabase.from('wheel_items').select('*'),
         supabase.from('vouchers').select('*'),
-        supabase.from('boosting_requests').select('*').order('id', { ascending: false }) // Hút đơn Cày Thuê
+        supabase.from('boosting_requests').select('*').order('id', { ascending: false }), // Hút đơn Cày Thuê
+        supabase.from('comments').select('*, users(name, avatar_url, role)').order('is_pinned', { ascending: false }).order('created_at', { ascending: false })
       ]);
 
       if (accRes.data) {
@@ -427,6 +432,9 @@ const App = () => {
           boostingId: r.boostingId || r.boostingid || ''
         }));
         setBoostingRequests(fixedBoostReqs);
+      }
+      if (commentsRes && commentsRes.data) {
+        setCommentsDb(commentsRes.data);
       }
 
       const { data: configData } = await supabase.from('site_config').select('*').eq('id', 'deposit_bonus').maybeSingle();
@@ -684,6 +692,13 @@ const App = () => {
       })
       .subscribe();
 
+    const commentsChannel = supabase.channel('realtime-comments')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, async (payload) => {
+        const { data } = await supabase.from('comments').select('*, users(name, avatar_url, role)').order('is_pinned', { ascending: false }).order('created_at', { ascending: false });
+        if (data) setCommentsDb(data);
+      })
+      .subscribe();
+
     // Dọn dẹp các đường truyền khi khách đóng trình duyệt để chống lag máy
     return () => {
       supabase.removeChannel(messageChannel);
@@ -693,6 +708,7 @@ const App = () => {
       supabase.removeChannel(statsChannel);
       supabase.removeChannel(usersChannel);
       supabase.removeChannel(transactionsChannel);
+      supabase.removeChannel(commentsChannel);
     };
   }, []);
   // Tự động chuyển vòng quay nếu bị trống (Chống lỗi F5)
@@ -719,6 +735,166 @@ const App = () => {
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  // --- HÀM XỬ LÝ HỎI/ĐÁP BÌNH LUẬN ---
+  const handlePostComment = async (e) => {
+    e.preventDefault();
+    if (!currentUser) return showToast("Vui lòng đăng nhập để bình luận!", "error");
+    if (!commentInput.trim()) return;
+
+    try {
+      const { error } = await supabase.from('comments').insert({
+        user_id: currentUser.id,
+        content: commentInput.trim(),
+        liked_by: [],
+        disliked_by: [],
+        is_pinned: false
+      });
+      if (error) throw error;
+      setCommentInput('');
+      showToast("Đã gửi bình luận!");
+    } catch (err) {
+      console.error(err);
+      showToast("Lỗi khi gửi bình luận!", "error");
+    }
+  };
+
+  const handleToggleLikeComment = async (commentId, type) => {
+    if (!currentUser) return showToast("Vui lòng đăng nhập!", "error");
+    const comment = commentsDb.find(c => c.id === commentId);
+    if (!comment) return;
+
+    let liked_by = [...(comment.liked_by || [])];
+    let disliked_by = [...(comment.disliked_by || [])];
+    const userId = currentUser.id;
+
+    if (type === 'like') {
+      if (liked_by.includes(userId)) {
+        liked_by = liked_by.filter(id => id !== userId);
+      } else {
+        liked_by.push(userId);
+        disliked_by = disliked_by.filter(id => id !== userId);
+      }
+    } else {
+      if (disliked_by.includes(userId)) {
+        disliked_by = disliked_by.filter(id => id !== userId);
+      } else {
+        disliked_by.push(userId);
+        liked_by = liked_by.filter(id => id !== userId);
+      }
+    }
+
+    try {
+      await supabase.from('comments').update({ liked_by, disliked_by }).eq('id', commentId);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handlePinComment = async (commentId, is_pinned) => {
+    if (currentUser?.role !== 'admin') return;
+    try {
+      await supabase.from('comments').update({ is_pinned: !is_pinned }).eq('id', commentId);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleChangeAvatar = async (e) => {
+    if (!currentUser) return;
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Check size
+    if (file.size > 5 * 1024 * 1024) return showToast("Ảnh tối đa 5MB", "error");
+
+    try {
+      setIsGlobalProcessing(true);
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const imgUrl = await uploadToImgBB(reader.result);
+          const { error } = await supabase.from('users').update({ avatar_url: imgUrl }).eq('id', currentUser.id);
+          if (error) throw error;
+          setCurrentUser({ ...currentUser, avatar_url: imgUrl });
+          localStorage.setItem('shop_cached_user', JSON.stringify({ ...currentUser, avatar_url: imgUrl }));
+          showToast("Đã cập nhật ảnh đại diện!");
+        } catch (err) {
+          console.error(err);
+          showToast("Lỗi khi tải ảnh lên!", "error");
+        } finally {
+          setIsGlobalProcessing(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error(err);
+      setIsGlobalProcessing(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      await supabase.from('comments').delete().eq('id', commentId);
+      showToast("Đã xóa bình luận!");
+      setShowCommentOptionsId(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleReportComment = async (commentId) => {
+    if (!currentUser) return showToast("Vui lòng đăng nhập!", "error");
+    const comment = commentsDb.find(c => c.id === commentId);
+    if (!comment) return;
+    
+    let reported_by = [...(comment.reported_by || [])];
+    if (!reported_by.includes(currentUser.id)) {
+      reported_by.push(currentUser.id);
+      try {
+        await supabase.from('comments').update({ reported_by }).eq('id', commentId);
+        showToast("Đã báo cáo bình luận!");
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      showToast("Bạn đã báo cáo bình luận này rồi!", "error");
+    }
+    setShowCommentOptionsId(null);
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!currentUser) return;
+    try {
+      setIsGlobalProcessing(true);
+      const { error } = await supabase.from('users').update({ avatar_url: null }).eq('id', currentUser.id);
+      if (error) throw error;
+      const updatedUser = { ...currentUser, avatar_url: null };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+      showToast("Đã gỡ ảnh đại diện!");
+    } catch (err) {
+      console.error(err);
+      showToast("Lỗi khi gỡ ảnh!", "error");
+    } finally {
+      setIsGlobalProcessing(false);
+    }
+  };
+
+  const handleResolveReport = async (commentId, action) => {
+    try {
+      if (action === 'delete') {
+        await supabase.from('comments').delete().eq('id', commentId);
+        showToast("Đã xóa bình luận vi phạm!");
+      } else {
+        await supabase.from('comments').update({ reported_by: [] }).eq('id', commentId);
+        showToast("Đã bỏ qua báo cáo!");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Có lỗi xảy ra", "error");
+    }
   };
 
   // --- HÀM XỬ LÝ LÕI ---
@@ -1143,7 +1319,7 @@ const App = () => {
         // 7. Cập nhật giao diện Web
         const updatedUser = { ...currentUser, rentFund: newFund, balance: newBalance };
         setCurrentUser(updatedUser);
-        localStorage.setItem('shop_cached_user', JSON.stringify(userData));
+        localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
         setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
         setAccountsDb(accountsDb.map(a => a.id === acc.id ? { ...a, rentedUntil: null, currentRenterId: null } : a));
         setViewingAcc(null);
@@ -1185,7 +1361,7 @@ const App = () => {
 
         setUsersDb(usersDb.map(u => u.id === userObj.id ? updatedUser : u));
         if (currentUser?.id === userObj.id) setCurrentUser(updatedUser);
-        localStorage.setItem('shop_cached_user', JSON.stringify(userData));
+        localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
 
         setTransactionsDb(transactionsDb.map(t => t.id === tx.id ? { ...t, status: 'Đã hoàn tác' } : t));
 
@@ -1399,7 +1575,11 @@ const App = () => {
                 {/* Nút cá nhân ẩn bớt trên màn hình cực nhỏ vì đã có bottom nav */}
                 <div className="relative hidden sm:block">
                   <button onClick={() => setShowUserDropdown(!showUserDropdown)} className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors bg-[#0B1120] p-2 rounded-lg px-3 py-2 border border-slate-700 relative">
-                    <User size={18} />
+                    {currentUser.avatar_url ? (
+                      <img src={currentUser.avatar_url} alt="Avatar" className="w-5 h-5 rounded-full object-cover" />
+                    ) : (
+                      <User size={18} />
+                    )}
                     <div className="flex items-center gap-1.5 transition-opacity">
                       <span className="text-sm font-semibold">{currentUser.name}</span>
                       {calculateTotalRecharged(currentUser?.id) >= 3000000 && (
@@ -1415,6 +1595,20 @@ const App = () => {
                     <>
                       <div className="fixed inset-0 z-[29]" onClick={() => setShowUserDropdown(false)}></div>
                       <div className="absolute right-0 top-full mt-2 w-56 bg-[#151D2F] border border-slate-700 rounded-xl shadow-2xl z-[30] py-2 animate-fade-in overflow-hidden">
+                        <div className="p-4 border-b border-slate-700 flex flex-col items-center justify-center gap-2">
+                          <div className="relative group cursor-pointer">
+                            <img src={currentUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=151D2F&color=fff`} alt="Avatar" className="w-16 h-16 rounded-full object-cover border-2 border-slate-600 group-hover:opacity-50 transition-opacity" />
+                            <label className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                              <span className="text-[10px] font-bold text-white bg-black/60 px-2 py-1 rounded">Thay đổi</span>
+                              <input type="file" className="hidden" accept="image/*" onChange={(e) => { setShowUserDropdown(false); handleChangeAvatar(e); }} />
+                            </label>
+                          </div>
+                          {currentUser.avatar_url && (
+                            <button onClick={() => { setShowUserDropdown(false); handleRemoveAvatar(); }} className="text-xs text-rose-400 hover:text-rose-300 transition-colors font-semibold">
+                              Gỡ avatar
+                            </button>
+                          )}
+                        </div>
                         <button onClick={() => { setShowUserDropdown(false); setCurrentView('security'); setProfileTab('info'); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-300 hover:bg-blue-600/20 hover:text-blue-400 transition-colors flex items-center gap-3">
                           <User size={18} className="text-blue-400" /> Quản lý chung
                         </button>
@@ -1649,8 +1843,15 @@ const App = () => {
     return (
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-20">
         {renderNavbar()}
-        <main className="w-full max-w-[1500px] mx-auto px-4 lg:pr-28 pt-6 space-y-8">
-          <section className="relative rounded-2xl border border-slate-800 overflow-hidden shadow-2xl min-h-[350px] flex items-center bg-[#0f172a]">
+        <main className="w-full mx-auto px-4 lg:px-6 2xl:px-12 pt-6">
+          <div className="flex flex-col xl:flex-row gap-6 justify-center">
+            
+            {/* CỘT TRÁI: KHOẢNG TRỐNG CÂN BẰNG BỐ CỤC */}
+            <div className="hidden 2xl:block w-[350px] shrink-0 pointer-events-none"></div>
+
+            {/* CỘT GIỮA: HERO BANNER & TẤT CẢ TÀI KHOẢN */}
+            <div className="flex-1 w-full max-w-[1300px] mx-auto space-y-8">
+              <section className="relative rounded-2xl border border-slate-800 overflow-hidden shadow-2xl min-h-[350px] flex items-center bg-[#0f172a]">
             <div className="absolute inset-0 z-0">
               <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=2000&h=800" alt="Gaming Banner" className="w-full h-full object-cover opacity-30 mix-blend-luminosity" />
               <div className="absolute inset-0 bg-gradient-to-r from-[#0B1120] via-[#0B1120]/90 to-transparent"></div>
@@ -1717,8 +1918,8 @@ const App = () => {
             </div>
           </section>
 
-          <section>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <section>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <div className="flex items-center gap-2">
                 <Flame className="text-rose-500 animate-pulse" />
                 <h3 className="text-xl font-bold text-white uppercase">{activeTab === 'Tất cả' ? 'Tất cả tài khoản' : `Tài khoản ${activeTab}`}</h3>
@@ -1858,6 +2059,130 @@ const App = () => {
               })}
             </div>
           </section>
+          </div>
+
+          {/* CỘT PHẢI: KHUNG HỎI ĐÁP / BÌNH LUẬN */}
+          <div className="hidden 2xl:block w-[350px] shrink-0 relative -left-8 2xl:-left-12">
+            <div className="bg-[#151D2F] rounded-xl border border-slate-800 shadow-xl overflow-hidden flex flex-col h-[600px] xl:h-[800px] xl:sticky xl:top-24">
+              <div className="p-4 bg-gradient-to-r from-blue-600/20 to-rose-600/20 border-b border-slate-700 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="text-blue-400" />
+                  <h3 className="font-bold text-white uppercase tracking-wider text-sm">Hỏi đáp & Bình luận</h3>
+                </div>
+                {currentUser?.role === 'admin' && (
+                  <button onClick={() => setShowReportedCommentsModal(true)} className="text-slate-400 hover:text-white transition-colors relative">
+                    <Settings size={18} />
+                    {commentsDb.filter(c => c.reported_by?.length > 0).length > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-rose-500 w-2.5 h-2.5 rounded-full animate-pulse"></span>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {/* Danh sách bình luận */}
+              <div className="flex-1 p-4 overflow-y-auto space-y-4 custom-scrollbar">
+                {commentsDb.length === 0 ? (
+                  <p className="text-center text-slate-500 text-sm mt-10">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
+                ) : (
+                  commentsDb.map(comment => {
+                    const isLiked = comment.liked_by?.includes(currentUser?.id);
+                    const isDisliked = comment.disliked_by?.includes(currentUser?.id);
+                    return (
+                      <div key={comment.id} className={`p-3 rounded-xl border transition-colors ${comment.is_pinned ? 'bg-rose-500/10 border-rose-500/30' : 'bg-[#0B1120] border-slate-800 hover:border-slate-700'}`}>
+                        <div className="flex gap-3">
+                          <img src={comment.users?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.users?.name || 'K')}&background=151D2F&color=fff`} alt="avatar" className="w-10 h-10 rounded-full object-cover border border-slate-700 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1 relative">
+                              <div className="flex items-center gap-2 truncate pr-2">
+                                <span className="font-bold text-sm text-white truncate max-w-[100px]">{comment.users?.name || 'Khách'}</span>
+                                {comment.users?.role === 'admin' && (
+                                  <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded font-black shrink-0">ADMIN</span>
+                                )}
+                                {comment.is_pinned && (
+                                  <span className="text-rose-500 text-[10px] font-bold flex items-center gap-0.5 shrink-0"><Flame size={12} /> Ghim</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-[10px] text-slate-500">{new Date(comment.created_at).toLocaleDateString('vi-VN', { hour: '2-digit', minute:'2-digit' })}</span>
+                                {currentUser && (
+                                  <div className="relative">
+                                    <button onClick={() => setShowCommentOptionsId(showCommentOptionsId === comment.id ? null : comment.id)} className="text-slate-500 hover:text-white p-0.5 rounded-full hover:bg-slate-800 transition-colors">
+                                      <MoreVertical size={14} />
+                                    </button>
+                                    {showCommentOptionsId === comment.id && (
+                                      <>
+                                        <div className="fixed inset-0 z-10" onClick={() => setShowCommentOptionsId(null)}></div>
+                                        <div className="absolute right-0 top-full mt-1 bg-[#1A233A] border border-slate-700 rounded shadow-xl z-20 py-1 min-w-[120px] overflow-hidden animate-fade-in text-xs">
+                                          {currentUser.id === comment.user_id ? (
+                                            <button onClick={() => handleDeleteComment(comment.id)} className="w-full text-left px-3 py-2 text-rose-400 hover:bg-rose-500/10 flex items-center gap-2">
+                                              <Trash2 size={12} /> Xóa bình luận
+                                            </button>
+                                          ) : (
+                                            <button onClick={() => handleReportComment(comment.id)} className="w-full text-left px-3 py-2 text-yellow-500 hover:bg-yellow-500/10 flex items-center gap-2">
+                                              <AlertTriangle size={12} /> Báo cáo
+                                            </button>
+                                          )}
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-sm text-slate-300 mb-2 break-words">{comment.content}</p>
+                            <div className="flex items-center gap-4">
+                              <button onClick={() => handleToggleLikeComment(comment.id, 'like')} className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${isLiked ? 'text-blue-400' : 'text-slate-500 hover:text-blue-400'}`}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className={isLiked ? 'scale-110' : ''}><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                                {comment.liked_by?.length || 0}
+                              </button>
+                              <button onClick={() => handleToggleLikeComment(comment.id, 'dislike')} className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${isDisliked ? 'text-rose-400' : 'text-slate-500 hover:text-rose-400'}`}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill={isDisliked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className={isDisliked ? 'scale-110' : ''}><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
+                                {comment.disliked_by?.length || 0}
+                              </button>
+                              {currentUser?.role === 'admin' && (
+                                <button onClick={() => handlePinComment(comment.id, comment.is_pinned)} className="text-[11px] font-bold text-yellow-500 hover:text-yellow-400 transition-colors ml-auto">
+                                  {comment.is_pinned ? 'Bỏ ghim' : 'Ghim'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              {/* Form nhập bình luận */}
+              <div className="p-4 border-t border-slate-700 bg-[#0B1120]/50 backdrop-blur-md">
+                {currentUser ? (
+                  <form onSubmit={handlePostComment} className="flex flex-col gap-2 relative group">
+                    <div className="relative">
+                      <img src={currentUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name || 'K')}&background=151D2F&color=fff`} alt="avatar" className="w-9 h-9 rounded-full object-cover border border-slate-700 absolute left-1 top-1 z-10 shadow-sm" />
+                      <input
+                        type="text"
+                        value={commentInput}
+                        onChange={(e) => setCommentInput(e.target.value)}
+                        placeholder="Nhập bình luận của bạn..."
+                        className="w-full bg-[#151D2F] border border-slate-700 rounded-full py-2.5 pl-12 pr-12 text-sm text-white focus:outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all"
+                      />
+                      <button type="submit" disabled={!commentInput.trim()} className="absolute right-1 top-1 bottom-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-md">
+                        <Send size={14} className="ml-0.5" />
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="text-center py-2 bg-[#151D2F] rounded-lg border border-slate-800">
+                    <p className="text-xs text-slate-400 mb-2">Đăng nhập để tham gia thảo luận</p>
+                    <button onClick={() => setCurrentView('login')} className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-1.5 rounded-lg text-sm font-bold transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_20px_rgba(37,99,235,0.5)]">
+                      Đăng nhập ngay
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
         </main>
 
         {/* --- FOOTER TRANG CHỦ --- */}
@@ -7115,6 +7440,45 @@ const App = () => {
             </div>
           </div>
         )}
+
+        {/* Modal Danh sách bình luận bị báo cáo */}
+        {showReportedCommentsModal && currentUser?.role === 'admin' && (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="bg-[#151D2F] border border-slate-700 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh] animate-fade-in">
+              <div className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center sticky top-0 z-10">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <AlertTriangle className="text-yellow-500" size={20} /> Bình luận bị báo cáo
+                </h3>
+                <button onClick={() => setShowReportedCommentsModal(false)} className="text-slate-400 hover:text-white transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto space-y-4 custom-scrollbar">
+                {commentsDb.filter(c => c.reported_by?.length > 0).length === 0 ? (
+                  <p className="text-center text-slate-500 py-10 font-bold">Không có bình luận nào bị báo cáo.</p>
+                ) : (
+                  commentsDb.filter(c => c.reported_by?.length > 0).map(comment => (
+                    <div key={comment.id} className="bg-[#0B1120] border border-rose-500/30 rounded-xl p-4 shadow-lg shadow-rose-500/5">
+                      <div className="flex items-center gap-3 mb-3 pb-3 border-b border-slate-800">
+                        <img src={comment.users?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.users?.name || 'K')}&background=151D2F&color=fff`} className="w-10 h-10 rounded-full border border-slate-700 object-cover" alt="avatar" />
+                        <div>
+                          <p className="text-sm font-bold text-white">{comment.users?.name || 'Khách'} <span className="text-slate-500 font-normal text-[10px] ml-2">{new Date(comment.created_at).toLocaleString('vi-VN')}</span></p>
+                          <p className="text-xs text-rose-400 mt-0.5 font-bold flex items-center gap-1"><AlertTriangle size={12}/> Bị báo cáo bởi {comment.reported_by.length} người</p>
+                        </div>
+                      </div>
+                      <p className="text-slate-300 text-sm mb-4 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
+                      <div className="flex items-center gap-3 justify-end">
+                        <button onClick={() => handleResolveReport(comment.id, 'keep')} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-bold transition-colors">Bỏ qua báo cáo</button>
+                        <button onClick={() => handleResolveReport(comment.id, 'delete')} className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-rose-600/20 transition-colors flex items-center gap-2"><Trash2 size={16}/> Xóa bình luận</button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* --- COMPONENT LIÊN HỆ GÓC DƯỚI --- */}
         <FloatingContact
           currentUser={currentUser}
