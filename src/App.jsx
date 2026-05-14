@@ -307,7 +307,7 @@ const App = () => {
   const [boostSubTier, setBoostSubTier] = useState('');
 
   // Helper: số → La Mã (1-10)
-  const toRoman = (n) => ['I','II','III','IV','V','VI','VII','VIII','IX','X'][n - 1] || n.toString();
+  const toRoman = (n) => ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n - 1] || n.toString();
   const [boostCurrentPoints, setBoostCurrentPoints] = useState('');
   const [adminBoostingImage, setAdminBoostingImage] = useState(null);
   const [adminBoostingPriceUnit, setAdminBoostingPriceUnit] = useState('');
@@ -852,7 +852,7 @@ const App = () => {
     if (!currentUser) return showToast("Vui lòng đăng nhập!", "error");
     const comment = commentsDb.find(c => c.id === commentId);
     if (!comment) return;
-    
+
     let reported_by = [...(comment.reported_by || [])];
     if (!reported_by.includes(currentUser.id)) {
       reported_by.push(currentUser.id);
@@ -1849,358 +1849,358 @@ const App = () => {
         {renderNavbar()}
         <main className="w-full mx-auto px-4 lg:px-6 2xl:px-12 pt-6">
           <div className="flex flex-col xl:flex-row gap-6 justify-center">
-            
+
             {/* CỘT TRÁI: KHOẢNG TRỐNG CÂN BẰNG BỐ CỤC */}
             <div className="hidden 2xl:block w-[350px] shrink-0 pointer-events-none"></div>
 
             {/* CỘT GIỮA: HERO BANNER & TẤT CẢ TÀI KHOẢN */}
             <div className="flex-1 w-full max-w-[1300px] mx-auto space-y-8">
               <section className="relative rounded-2xl border border-slate-800 overflow-hidden shadow-2xl min-h-[350px] flex items-center bg-[#0f172a]">
-            <div className="absolute inset-0 z-0">
-              <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=2000&h=800" alt="Gaming Banner" className="w-full h-full object-cover opacity-30 mix-blend-luminosity" />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#0B1120] via-[#0B1120]/90 to-transparent"></div>
-            </div>
-
-            <div className="relative z-10 w-full p-6 md:p-10 flex flex-col lg:flex-row items-center justify-between gap-8">
-              <div className="flex-1 text-left">
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <div className="inline-block px-4 py-1 bg-rose-500/20 text-rose-400 font-bold text-xs rounded-full border border-rose-500/30 backdrop-blur-sm shadow-[0_0_10px_rgba(225,29,72,0.3)]">🔥 UY TÍN - TỐC ĐỘ - BẢO MẬT</div>
-                  <div
-                    onClick={() => { requireAuth('naptien'); setDepositMethod('card'); }}
-                    className="inline-block px-4 py-1 bg-emerald-500/20 text-emerald-400 font-bold text-xs rounded-full border border-emerald-500/30 backdrop-blur-sm shadow-[0_0_10px_rgba(16,185,129,0.3)] cursor-pointer hover:bg-emerald-500/30 transition-colors"
-                  >
-                    💳 HỖ TRỢ NẠP THẺ CÀO TỰ ĐỘNG
-                  </div>
+                <div className="absolute inset-0 z-0">
+                  <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=2000&h=800" alt="Gaming Banner" className="w-full h-full object-cover opacity-30 mix-blend-luminosity" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#0B1120] via-[#0B1120]/90 to-transparent"></div>
                 </div>
-                <h2 className="text-4xl md:text-5xl font-black text-white mb-4 uppercase leading-tight drop-shadow-lg">
-                  TRẢI NGHIỆM GAMING <br className="hidden md:block" />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-rose-400">ĐỈNH CAO NHẤT</span>
-                </h2>
-                <p className="text-slate-300 mb-8 max-w-xl text-sm md:text-base leading-relaxed">Hệ thống Shop Tiến Gaming uy tín chất lượng số 1 Việt Nam. Hàng ngàn tài khoản VIP cho thuê và mua bán với giá cực sinh viên. Mua ngay nhận tài khoản trong 1 giây, bảo hành 1 đổi 1 nếu sai thông tin.</p>
 
-                <div className="relative max-w-xl w-full group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-                  <input type="text" placeholder="Tìm tên game, mã ID, tướng, skin..." className="w-full pl-12 pr-12 py-4 bg-[#0B1120]/80 backdrop-blur-md border border-slate-700 rounded-xl text-sm md:text-base text-white focus:outline-none focus:border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.1)] transition-all" />
-                  <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors shadow-lg flex items-center justify-center"><ArrowRight size={20} /></button>
-                </div>
-              </div>
-
-              <div className="flex flex-col justify-center bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-5 rounded-2xl shadow-xl hover:border-blue-500/50 transition-all group w-full lg:w-64 relative overflow-hidden hide-on-touch">
-                <div className="absolute -top-6 -right-6 p-4 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
-                  <Download size={120} />
-                </div>
-                <h3 className="text-white font-bold text-lg mb-2 relative z-10 flex items-center gap-2">
-                  <Gamepad2 className="text-blue-500" size={20} /> Tải App Điều Khiển
-                </h3>
-                <p className="text-xs text-slate-400 mb-4 relative z-10">Tải phần mềm điều khiển xa để chuẩn bị sẵn sàng trước khi thuê tài khoản game.</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.open('https://www.dropbox.com/scl/fo/9eai63w3bbs5rpi3csjdi/AD-0_7AgHSULdoN2bmuKXIc?rlkey=x14ooep1r2vma2a6mz57n3r0l&st=lheu321c&dl=1', '_blank');
-                    setAwesunGuideType('outside');
-                  }}
-                  className="w-full bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border border-blue-500/30 shadow-sm relative z-10"
-                >
-                  <Download size={16} /> Tải xuống ngay
-                </button>
-              </div>
-
-              <div className="hidden lg:flex flex-col gap-5 w-72">
-                <div className="bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-4 rounded-xl flex items-center gap-4 shadow-xl transform transition-transform hover:scale-105 hover:border-emerald-500/50 cursor-default">
-                  <div className="bg-emerald-500/20 p-3 rounded-full text-emerald-400"><ShieldCheck size={28} /></div>
-                  <div><p className="text-white font-bold text-lg">Uy tín 100%</p><p className="text-xs text-slate-400">Bảo hành trọn đời</p></div>
-                </div>
-                <div className="bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-4 rounded-xl flex items-center gap-4 shadow-xl transform transition-transform hover:scale-105 hover:border-blue-500/50 cursor-default">
-                  <div className="bg-blue-500/20 p-3 rounded-full text-blue-400"><RefreshCw size={28} /></div>
-                  <div><p className="text-white font-bold text-lg">Giao dịch tự động</p><p className="text-xs text-slate-400">Nhận acc sau 1 giây</p></div>
-                </div>
-                <div className="bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-4 rounded-xl flex items-center gap-4 shadow-xl transform transition-transform hover:scale-105 hover:border-rose-500/50 cursor-default">
-                  <div className="bg-rose-500/20 p-3 rounded-full text-rose-400"><Target size={28} /></div>
-                  <div><p className="text-white font-bold text-lg">Cày thuê VIP</p><p className="text-xs text-slate-400">Nhanh chóng, an toàn</p></div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-            <section>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <div className="flex items-center gap-2">
-                <Flame className="text-rose-500 animate-pulse" />
-                <h3 className="text-xl font-bold text-white uppercase">{activeTab === 'Tất cả' ? 'Tất cả tài khoản' : `Tài khoản ${activeTab}`}</h3>
-              </div>
-              <div className="flex gap-2 overflow-x-auto w-full sm:w-auto pb-2 scrollbar-hide">
-                {gameTabs.map(tab => (
-                  <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors border ${activeTab === tab ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>
-                    {tab}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-5">
-              {filteredAccounts.map((acc, index) => {
-                const isRented = acc.rentedUntil && acc.rentedUntil > now;
-                let timeStr = "";
-                if (isRented) {
-                  const diff = acc.rentedUntil - now;
-
-                  // NẾU THỜI GIAN ĐÃ HẾT (CHẠM MỐC 0 HOẶC ÂM)
-                  if (diff <= 0) {
-                    timeStr = "00:00:00";
-
-                    // CHỈ GỬI MAIL 1 LẦN DUY NHẤT (Kiểm tra xem đã gửi mail chưa, tránh bị gửi liên tục mỗi giây)
-                    if (!acc.is_timeout_alerted && acc.currentRenterId) {
-                      // Gọi hàm gửi Mail thông báo cho Admin
-                      sendAdminAlert(
-                        'HẾT GIỜ THUÊ NICK',
-                        `Nick mã #${acc.code} đã hết thời gian thuê. Vui lòng vào kiểm tra và thu hồi tài khoản.`
-                      );
-
-                      // Cập nhật trạng thái để đánh dấu là "đã gửi mail", tránh bị lặp
-                      acc.is_timeout_alerted = true;
-                    }
-                  }
-                  // NẾU VẪN CÒN THỜI GIAN THÌ ĐẾM NGƯỢC BÌNH THƯỜNG
-                  else {
-                    const h = Math.floor(diff / 3600000);
-                    const m = Math.floor((diff % 3600000) / 60000);
-                    const s = Math.floor((diff % 60000) / 1000);
-                    timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-                  }
-                }
-
-                return (
-                  <div key={acc.id} className="bg-[#151D2F] rounded-xl overflow-hidden border border-slate-800 hover:border-blue-500/50 transition-all flex flex-col group shadow-lg hover:-translate-y-1 relative">
-                    {(() => {
-                      const buyDiscount = acc.oldPrice && acc.oldPrice > acc.price ? Math.round(((acc.oldPrice - acc.price) / acc.oldPrice) * 100) : 0;
-                      const rentDiscount = acc.oldRentPrice && acc.oldRentPrice > acc.rentPricePerHour ? Math.round(((acc.oldRentPrice - acc.rentPricePerHour) / acc.oldRentPrice) * 100) : 0;
-                      const packageRentDiscount = acc.rentDiscountPercent || 0;
-                      const maxDiscount = Math.max(buyDiscount, rentDiscount, packageRentDiscount);
-                      return maxDiscount > 0 ? (
-                        <div className="absolute top-6 -right-10 w-40 text-center transform rotate-45 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 text-white font-black text-[11px] py-1 shadow-lg z-40 border-y border-white/20 uppercase tracking-widest pointer-events-none">
-                          GIẢM {maxDiscount}%
-                        </div>
-                      ) : null;
-                    })()}
-                    <div className="relative h-44 w-full bg-slate-900 cursor-pointer overflow-hidden" onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}>
-                      <img
-                        src={acc.coverImage}
-                        loading={index < 8 ? "eager" : "lazy"}
-                        fetchPriority={index < 4 ? "high" : "auto"}
-                        decoding="async"
-                        alt={acc.game}
-                        className={`w-full h-full object-cover transition-all duration-500 ${isRented ? 'opacity-50 grayscale hover:grayscale-0' : 'opacity-80 group-hover:opacity-100 group-hover:scale-110'}`}
-                      />
-                      <div className="absolute top-2 left-2 bg-rose-600 text-white text-xs font-bold px-2.5 py-1 rounded shadow-lg backdrop-blur-md bg-opacity-90 z-30">Mã: {acc.code}</div>
-                      {/* TAG TIER GÓC PHẢI - DÁN VÀO DƯỚI DÒNG MÃ ACC */}
-                      <span className={`absolute top-10 left-2 text-[10px] font-black px-2.5 py-1 rounded shadow-lg uppercase z-30 ${acc.tier === 'ULVIP' ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white' : acc.tier === 'SVIP' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-[#0B1120]' : 'bg-blue-600 text-white'}`}>
-                        {acc.tier || 'VIP'}
-                      </span>
-                      {isRented && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-[2px] z-20 hover:backdrop-blur-0 transition-all pointer-events-none">
-                          <span className="text-white font-black text-xs tracking-wider bg-black/80 px-3 py-1 rounded-full mb-1 border border-yellow-500/50">ĐANG CHO THUÊ</span>
-                          <span className="text-yellow-400 font-mono font-bold text-sm tracking-widest drop-shadow-md">{timeStr}</span>
-                        </div>
-                      )}
-
-                    </div>
-                    <div className="p-4 flex-1 flex flex-col relative z-10 bg-[#151D2F]">
-                      <div className={`w-fit text-xs font-bold px-2 py-0.5 rounded-md mb-2 border ${acc.tagColor}`}>{acc.game}</div>
-                      <h4 className="text-sm font-bold text-white mb-3 line-clamp-2 cursor-pointer hover:text-blue-400" title={acc.title} onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}>{acc.title}</h4>
-                      <div className="mt-auto border-t border-slate-800 pt-4 flex flex-col gap-3">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="text-[10px] text-slate-500 font-bold mb-0.5 uppercase">MUA ĐỨT</p>
-                            {acc.oldPrice && acc.oldPrice > acc.price && (
-                              <p className="text-xs font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(acc.oldPrice)}đ</p>
-                            )}
-                            <p className="text-base md:text-lg font-black text-rose-500">{new Intl.NumberFormat('vi-VN').format(acc.price)}<span className="text-[10px] md:text-xs opacity-70 ml-0.5">đ</span></p>
-                          </div>
-
-                          {acc.rentPricePerHour > 0 && (
-                            <div className="text-right border-l border-slate-700 pl-3">
-                              <p className="text-[10px] text-slate-500 font-bold mb-0.5 uppercase">THUÊ / GIỜ</p>
-                              {acc.oldRentPrice && acc.oldRentPrice > acc.rentPricePerHour && (
-                                <p className="text-xs font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(acc.oldRentPrice)}đ</p>
-                              )}
-                              <p className="text-base md:text-lg font-black text-blue-400">{new Intl.NumberFormat('vi-VN').format(acc.rentPricePerHour)}<span className="text-[10px] md:text-xs opacity-70 ml-0.5">đ</span></p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* XỬ LÝ NÚT NGOÀI MẶT TIỀN: Phân biệt Chủ Thuê, Khách Vãng Lai và Gói Combo */}
-                        {isRented && currentUser?.id === acc.currentRenterId ? (
-                          (() => {
-                            // Dò xem khách đang thuê gói gì
-                            const activeReq = rentRequests.find(r => r.accCode === acc.code && r.status === 'Đã giao acc');
-                            const isCombo = activeReq && (activeReq.time.toLowerCase().includes('combo đêm') || activeReq.time.toLowerCase().includes('combo ngày'));
-
-                            return isCombo ? (
-                              <button disabled className="w-full py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors bg-slate-700 text-slate-400 cursor-not-allowed shadow-inner border border-slate-600">
-                                <Clock size={16} /> ĐANG THUÊ GÓI COMBO
-                              </button>
-                            ) : (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleStopRent(acc); }}
-                                className="w-full py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/20 active:scale-95"
-                              >
-                                <Clock size={16} className="animate-pulse" /> NGƯNG THUÊ & BẢO LƯU
-                              </button>
-                            );
-                          })()
-                        ) : (
-                          <button
-                            onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}
-                            className={`w-full py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors ${isRented ? 'bg-slate-800 text-yellow-500 border border-slate-700 hover:bg-slate-700' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'}`}
-                          >
-                            {isRented ? 'XEM ACC ĐANG THUÊ' : <>XEM CHI TIẾT <ArrowRight size={16} /></>}
-                          </button>
-                        )}
+                <div className="relative z-10 w-full p-6 md:p-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+                  <div className="flex-1 text-left">
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <div className="inline-block px-4 py-1 bg-rose-500/20 text-rose-400 font-bold text-xs rounded-full border border-rose-500/30 backdrop-blur-sm shadow-[0_0_10px_rgba(225,29,72,0.3)]">🔥 UY TÍN - TỐC ĐỘ - BẢO MẬT</div>
+                      <div
+                        onClick={() => { requireAuth('naptien'); setDepositMethod('card'); }}
+                        className="inline-block px-4 py-1 bg-emerald-500/20 text-emerald-400 font-bold text-xs rounded-full border border-emerald-500/30 backdrop-blur-sm shadow-[0_0_10px_rgba(16,185,129,0.3)] cursor-pointer hover:bg-emerald-500/30 transition-colors"
+                      >
+                        💳 HỖ TRỢ NẠP THẺ CÀO TỰ ĐỘNG
                       </div>
                     </div>
+                    <h2 className="text-4xl md:text-5xl font-black text-white mb-4 uppercase leading-tight drop-shadow-lg">
+                      TRẢI NGHIỆM GAMING <br className="hidden md:block" />
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-rose-400">ĐỈNH CAO NHẤT</span>
+                    </h2>
+                    <p className="text-slate-300 mb-8 max-w-xl text-sm md:text-base leading-relaxed">Hệ thống Shop Tiến Gaming uy tín chất lượng số 1 Việt Nam. Hàng ngàn tài khoản VIP cho thuê và mua bán với giá cực sinh viên. Mua ngay nhận tài khoản trong 1 giây, bảo hành 1 đổi 1 nếu sai thông tin.</p>
+
+                    <div className="relative max-w-xl w-full group">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                      <input type="text" placeholder="Tìm tên game, mã ID, tướng, skin..." className="w-full pl-12 pr-12 py-4 bg-[#0B1120]/80 backdrop-blur-md border border-slate-700 rounded-xl text-sm md:text-base text-white focus:outline-none focus:border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.1)] transition-all" />
+                      <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors shadow-lg flex items-center justify-center"><ArrowRight size={20} /></button>
+                    </div>
                   </div>
-                )
-              })}
-            </div>
-          </section>
-          </div>
 
-          {/* CỘT PHẢI: KHUNG HỎI ĐÁP / BÌNH LUẬN */}
-          <div className="hidden 2xl:block w-[350px] shrink-0 relative -left-8 2xl:-left-12">
-            <div className="bg-[#151D2F] rounded-xl border border-slate-800 shadow-xl overflow-hidden flex flex-col h-[600px] xl:h-[800px] xl:sticky xl:top-24">
-              <div className="p-4 bg-gradient-to-r from-blue-600/20 to-rose-600/20 border-b border-slate-700 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="text-blue-400" />
-                  <h3 className="font-bold text-white uppercase tracking-wider text-sm">Hỏi đáp & Bình luận</h3>
+                  <div className="flex flex-col justify-center bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-5 rounded-2xl shadow-xl hover:border-blue-500/50 transition-all group w-full lg:w-64 relative overflow-hidden hide-on-touch">
+                    <div className="absolute -top-6 -right-6 p-4 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
+                      <Download size={120} />
+                    </div>
+                    <h3 className="text-white font-bold text-lg mb-2 relative z-10 flex items-center gap-2">
+                      <Gamepad2 className="text-blue-500" size={20} /> Tải App Điều Khiển
+                    </h3>
+                    <p className="text-xs text-slate-400 mb-4 relative z-10">Tải phần mềm điều khiển xa để chuẩn bị sẵn sàng trước khi thuê tài khoản game.</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.open('https://www.dropbox.com/scl/fo/9eai63w3bbs5rpi3csjdi/AD-0_7AgHSULdoN2bmuKXIc?rlkey=x14ooep1r2vma2a6mz57n3r0l&st=lheu321c&dl=1', '_blank');
+                        setAwesunGuideType('outside');
+                      }}
+                      className="w-full bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border border-blue-500/30 shadow-sm relative z-10"
+                    >
+                      <Download size={16} /> Tải xuống ngay
+                    </button>
+                  </div>
+
+                  <div className="hidden lg:flex flex-col gap-5 w-72">
+                    <div className="bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-4 rounded-xl flex items-center gap-4 shadow-xl transform transition-transform hover:scale-105 hover:border-emerald-500/50 cursor-default">
+                      <div className="bg-emerald-500/20 p-3 rounded-full text-emerald-400"><ShieldCheck size={28} /></div>
+                      <div><p className="text-white font-bold text-lg">Uy tín 100%</p><p className="text-xs text-slate-400">Bảo hành trọn đời</p></div>
+                    </div>
+                    <div className="bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-4 rounded-xl flex items-center gap-4 shadow-xl transform transition-transform hover:scale-105 hover:border-blue-500/50 cursor-default">
+                      <div className="bg-blue-500/20 p-3 rounded-full text-blue-400"><RefreshCw size={28} /></div>
+                      <div><p className="text-white font-bold text-lg">Giao dịch tự động</p><p className="text-xs text-slate-400">Nhận acc sau 1 giây</p></div>
+                    </div>
+                    <div className="bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-4 rounded-xl flex items-center gap-4 shadow-xl transform transition-transform hover:scale-105 hover:border-rose-500/50 cursor-default">
+                      <div className="bg-rose-500/20 p-3 rounded-full text-rose-400"><Target size={28} /></div>
+                      <div><p className="text-white font-bold text-lg">Cày thuê VIP</p><p className="text-xs text-slate-400">Nhanh chóng, an toàn</p></div>
+                    </div>
+                  </div>
                 </div>
-                {currentUser?.role === 'admin' && (
-                  <button onClick={() => setShowReportedCommentsModal(true)} className="text-slate-400 hover:text-white transition-colors relative">
-                    <Settings size={18} />
-                    {commentsDb.filter(c => c.reported_by?.length > 0).length > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-rose-500 w-2.5 h-2.5 rounded-full animate-pulse"></span>
-                    )}
-                  </button>
-                )}
-              </div>
+              </section>
 
-              {/* Danh sách bình luận */}
-              <div className="flex-1 p-4 overflow-y-auto space-y-4 custom-scrollbar">
-                {commentsDb.length === 0 ? (
-                  <p className="text-center text-slate-500 text-sm mt-10">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
-                ) : (
-                  commentsDb.map(comment => {
-                    const isLiked = comment.liked_by?.includes(currentUser?.id);
-                    const isDisliked = comment.disliked_by?.includes(currentUser?.id);
+              <section>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                  <div className="flex items-center gap-2">
+                    <Flame className="text-rose-500 animate-pulse" />
+                    <h3 className="text-xl font-bold text-white uppercase">{activeTab === 'Tất cả' ? 'Tất cả tài khoản' : `Tài khoản ${activeTab}`}</h3>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto w-full sm:w-auto pb-2 scrollbar-hide">
+                    {gameTabs.map(tab => (
+                      <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors border ${activeTab === tab ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>
+                        {tab}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+                  {filteredAccounts.map((acc, index) => {
+                    const isRented = acc.rentedUntil && acc.rentedUntil > now;
+                    let timeStr = "";
+                    if (isRented) {
+                      const diff = acc.rentedUntil - now;
+
+                      // NẾU THỜI GIAN ĐÃ HẾT (CHẠM MỐC 0 HOẶC ÂM)
+                      if (diff <= 0) {
+                        timeStr = "00:00:00";
+
+                        // CHỈ GỬI MAIL 1 LẦN DUY NHẤT (Kiểm tra xem đã gửi mail chưa, tránh bị gửi liên tục mỗi giây)
+                        if (!acc.is_timeout_alerted && acc.currentRenterId) {
+                          // Gọi hàm gửi Mail thông báo cho Admin
+                          sendAdminAlert(
+                            'HẾT GIỜ THUÊ NICK',
+                            `Nick mã #${acc.code} đã hết thời gian thuê. Vui lòng vào kiểm tra và thu hồi tài khoản.`
+                          );
+
+                          // Cập nhật trạng thái để đánh dấu là "đã gửi mail", tránh bị lặp
+                          acc.is_timeout_alerted = true;
+                        }
+                      }
+                      // NẾU VẪN CÒN THỜI GIAN THÌ ĐẾM NGƯỢC BÌNH THƯỜNG
+                      else {
+                        const h = Math.floor(diff / 3600000);
+                        const m = Math.floor((diff % 3600000) / 60000);
+                        const s = Math.floor((diff % 60000) / 1000);
+                        timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                      }
+                    }
+
                     return (
-                      <div key={comment.id} className={`p-3 rounded-xl border transition-colors ${comment.is_pinned ? 'bg-rose-500/10 border-rose-500/30' : 'bg-[#0B1120] border-slate-800 hover:border-slate-700'}`}>
-                        <div className="flex gap-3">
-                          <img src={comment.users?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.users?.name || 'K')}&background=151D2F&color=fff`} alt="avatar" className="w-10 h-10 rounded-full object-cover border border-slate-700 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1 relative">
-                              <div className="flex items-center gap-2 truncate pr-2">
-                                <span className="font-bold text-sm text-white truncate max-w-[100px]">{comment.users?.name || 'Khách'}</span>
-                                {comment.users?.role === 'admin' && (
-                                  <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded font-black shrink-0">ADMIN</span>
-                                )}
-                                {comment.is_pinned && (
-                                  <span className="text-rose-500 text-[10px] font-bold flex items-center gap-0.5 shrink-0"><Flame size={12} /> Ghim</span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                <span className="text-[10px] text-slate-500">{new Date(comment.created_at).toLocaleDateString('vi-VN', { hour: '2-digit', minute:'2-digit' })}</span>
-                                {currentUser && (
-                                  <div className="relative">
-                                    <button onClick={() => setShowCommentOptionsId(showCommentOptionsId === comment.id ? null : comment.id)} className="text-slate-500 hover:text-white p-0.5 rounded-full hover:bg-slate-800 transition-colors">
-                                      <MoreVertical size={14} />
-                                    </button>
-                                    {showCommentOptionsId === comment.id && (
-                                      <>
-                                        <div className="fixed inset-0 z-10" onClick={() => setShowCommentOptionsId(null)}></div>
-                                        <div className="absolute right-0 top-full mt-1 bg-[#1A233A] border border-slate-700 rounded shadow-xl z-20 py-1 min-w-[120px] overflow-hidden animate-fade-in text-xs">
-                                          {currentUser.id === comment.user_id ? (
-                                            <button onClick={() => handleDeleteComment(comment.id)} className="w-full text-left px-3 py-2 text-rose-400 hover:bg-rose-500/10 flex items-center gap-2">
-                                              <Trash2 size={12} /> Xóa bình luận
-                                            </button>
-                                          ) : (
-                                            <button onClick={() => handleReportComment(comment.id)} className="w-full text-left px-3 py-2 text-yellow-500 hover:bg-yellow-500/10 flex items-center gap-2">
-                                              <AlertTriangle size={12} /> Báo cáo
-                                            </button>
-                                          )}
-                                        </div>
-                                      </>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
+                      <div key={acc.id} className="bg-[#151D2F] rounded-xl overflow-hidden border border-slate-800 hover:border-blue-500/50 transition-all flex flex-col group shadow-lg hover:-translate-y-1 relative">
+                        {(() => {
+                          const buyDiscount = acc.oldPrice && acc.oldPrice > acc.price ? Math.round(((acc.oldPrice - acc.price) / acc.oldPrice) * 100) : 0;
+                          const rentDiscount = acc.oldRentPrice && acc.oldRentPrice > acc.rentPricePerHour ? Math.round(((acc.oldRentPrice - acc.rentPricePerHour) / acc.oldRentPrice) * 100) : 0;
+                          const packageRentDiscount = acc.rentDiscountPercent || 0;
+                          const maxDiscount = Math.max(buyDiscount, rentDiscount, packageRentDiscount);
+                          return maxDiscount > 0 ? (
+                            <div className="absolute top-6 -right-10 w-40 text-center transform rotate-45 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 text-white font-black text-[11px] py-1 shadow-lg z-40 border-y border-white/20 uppercase tracking-widest pointer-events-none">
+                              GIẢM {maxDiscount}%
                             </div>
-                            <p className="text-sm text-slate-300 mb-2 break-words">{comment.content}</p>
-                            <div className="flex items-center gap-4">
-                              <button onClick={() => handleToggleLikeComment(comment.id, 'like')} className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${isLiked ? 'text-blue-400' : 'text-slate-500 hover:text-blue-400'}`}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className={isLiked ? 'scale-110' : ''}><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
-                                {comment.liked_by?.length || 0}
-                              </button>
-                              <button onClick={() => handleToggleLikeComment(comment.id, 'dislike')} className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${isDisliked ? 'text-rose-400' : 'text-slate-500 hover:text-rose-400'}`}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill={isDisliked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className={isDisliked ? 'scale-110' : ''}><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
-                                {comment.disliked_by?.length || 0}
-                              </button>
-                              {currentUser?.role === 'admin' && (
-                                <button onClick={() => handlePinComment(comment.id, comment.is_pinned)} className="text-[11px] font-bold text-yellow-500 hover:text-yellow-400 transition-colors ml-auto">
-                                  {comment.is_pinned ? 'Bỏ ghim' : 'Ghim'}
-                                </button>
+                          ) : null;
+                        })()}
+                        <div className="relative h-44 w-full bg-slate-900 cursor-pointer overflow-hidden" onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}>
+                          <img
+                            src={acc.coverImage}
+                            loading={index < 8 ? "eager" : "lazy"}
+                            fetchPriority={index < 4 ? "high" : "auto"}
+                            decoding="async"
+                            alt={acc.game}
+                            className={`w-full h-full object-cover transition-all duration-500 ${isRented ? 'opacity-50 grayscale hover:grayscale-0' : 'opacity-80 group-hover:opacity-100 group-hover:scale-110'}`}
+                          />
+                          <div className="absolute top-2 left-2 bg-rose-600 text-white text-xs font-bold px-2.5 py-1 rounded shadow-lg backdrop-blur-md bg-opacity-90 z-30">Mã: {acc.code}</div>
+                          {/* TAG TIER GÓC PHẢI - DÁN VÀO DƯỚI DÒNG MÃ ACC */}
+                          <span className={`absolute top-10 left-2 text-[10px] font-black px-2.5 py-1 rounded shadow-lg uppercase z-30 ${acc.tier === 'ULVIP' ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white' : acc.tier === 'SVIP' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-[#0B1120]' : 'bg-blue-600 text-white'}`}>
+                            {acc.tier || 'VIP'}
+                          </span>
+                          {isRented && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-[2px] z-20 hover:backdrop-blur-0 transition-all pointer-events-none">
+                              <span className="text-white font-black text-xs tracking-wider bg-black/80 px-3 py-1 rounded-full mb-1 border border-yellow-500/50">ĐANG CHO THUÊ</span>
+                              <span className="text-yellow-400 font-mono font-bold text-sm tracking-widest drop-shadow-md">{timeStr}</span>
+                            </div>
+                          )}
+
+                        </div>
+                        <div className="p-4 flex-1 flex flex-col relative z-10 bg-[#151D2F]">
+                          <div className={`w-fit text-xs font-bold px-2 py-0.5 rounded-md mb-2 border ${acc.tagColor}`}>{acc.game}</div>
+                          <h4 className="text-sm font-bold text-white mb-3 line-clamp-2 cursor-pointer hover:text-blue-400" title={acc.title} onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}>{acc.title}</h4>
+                          <div className="mt-auto border-t border-slate-800 pt-4 flex flex-col gap-3">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="text-[10px] text-slate-500 font-bold mb-0.5 uppercase">MUA ĐỨT</p>
+                                {acc.oldPrice && acc.oldPrice > acc.price && (
+                                  <p className="text-xs font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(acc.oldPrice)}đ</p>
+                                )}
+                                <p className="text-base md:text-lg font-black text-rose-500">{new Intl.NumberFormat('vi-VN').format(acc.price)}<span className="text-[10px] md:text-xs opacity-70 ml-0.5">đ</span></p>
+                              </div>
+
+                              {acc.rentPricePerHour > 0 && (
+                                <div className="text-right border-l border-slate-700 pl-3">
+                                  <p className="text-[10px] text-slate-500 font-bold mb-0.5 uppercase">THUÊ / GIỜ</p>
+                                  {acc.oldRentPrice && acc.oldRentPrice > acc.rentPricePerHour && (
+                                    <p className="text-xs font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(acc.oldRentPrice)}đ</p>
+                                  )}
+                                  <p className="text-base md:text-lg font-black text-blue-400">{new Intl.NumberFormat('vi-VN').format(acc.rentPricePerHour)}<span className="text-[10px] md:text-xs opacity-70 ml-0.5">đ</span></p>
+                                </div>
                               )}
                             </div>
+
+                            {/* XỬ LÝ NÚT NGOÀI MẶT TIỀN: Phân biệt Chủ Thuê, Khách Vãng Lai và Gói Combo */}
+                            {isRented && currentUser?.id === acc.currentRenterId ? (
+                              (() => {
+                                // Dò xem khách đang thuê gói gì
+                                const activeReq = rentRequests.find(r => r.accCode === acc.code && r.status === 'Đã giao acc');
+                                const isCombo = activeReq && (activeReq.time.toLowerCase().includes('combo đêm') || activeReq.time.toLowerCase().includes('combo ngày'));
+
+                                return isCombo ? (
+                                  <button disabled className="w-full py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors bg-slate-700 text-slate-400 cursor-not-allowed shadow-inner border border-slate-600">
+                                    <Clock size={16} /> ĐANG THUÊ GÓI COMBO
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleStopRent(acc); }}
+                                    className="w-full py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/20 active:scale-95"
+                                  >
+                                    <Clock size={16} className="animate-pulse" /> NGƯNG THUÊ & BẢO LƯU
+                                  </button>
+                                );
+                              })()
+                            ) : (
+                              <button
+                                onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}
+                                className={`w-full py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors ${isRented ? 'bg-slate-800 text-yellow-500 border border-slate-700 hover:bg-slate-700' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'}`}
+                              >
+                                {isRented ? 'XEM ACC ĐANG THUÊ' : <>XEM CHI TIẾT <ArrowRight size={16} /></>}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
                     )
-                  })
-                )}
-              </div>
+                  })}
+                </div>
+              </section>
+            </div>
 
-              {/* Form nhập bình luận */}
-              <div className="p-4 border-t border-slate-700 bg-[#0B1120]/50 backdrop-blur-md">
-                {currentUser ? (
-                  <form onSubmit={handlePostComment} className="flex flex-col gap-2 relative group">
-                    <div className="relative">
-                      <img src={currentUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name || 'K')}&background=151D2F&color=fff`} alt="avatar" className="w-9 h-9 rounded-full object-cover border border-slate-700 absolute left-1 top-1 z-10 shadow-sm" />
-                      <textarea
-                        ref={commentTextareaRef}
-                        rows={1}
-                        value={commentInput}
-                        onChange={(e) => {
-                          setCommentInput(e.target.value);
-                          e.target.style.height = 'auto';
-                          e.target.style.height = `${e.target.scrollHeight}px`;
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            if (commentInput.trim()) {
-                              handlePostComment(e);
+            {/* CỘT PHẢI: KHUNG HỎI ĐÁP / BÌNH LUẬN */}
+            <div className="hidden 2xl:block w-[350px] shrink-0 relative -left-8 2xl:-left-12">
+              <div className="bg-[#151D2F] rounded-xl border border-slate-800 shadow-xl overflow-hidden flex flex-col h-[600px] xl:h-[800px] xl:sticky xl:top-24">
+                <div className="p-4 bg-gradient-to-r from-blue-600/20 to-rose-600/20 border-b border-slate-700 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MessageCircle className="text-blue-400" />
+                    <h3 className="font-bold text-white uppercase tracking-wider text-sm">Hỏi đáp & Bình luận</h3>
+                  </div>
+                  {currentUser?.role === 'admin' && (
+                    <button onClick={() => setShowReportedCommentsModal(true)} className="text-slate-400 hover:text-white transition-colors relative">
+                      <Settings size={18} />
+                      {commentsDb.filter(c => c.reported_by?.length > 0).length > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-rose-500 w-2.5 h-2.5 rounded-full animate-pulse"></span>
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                {/* Danh sách bình luận */}
+                <div className="flex-1 p-4 overflow-y-auto space-y-4 custom-scrollbar">
+                  {commentsDb.length === 0 ? (
+                    <p className="text-center text-slate-500 text-sm mt-10">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
+                  ) : (
+                    commentsDb.map(comment => {
+                      const isLiked = comment.liked_by?.includes(currentUser?.id);
+                      const isDisliked = comment.disliked_by?.includes(currentUser?.id);
+                      return (
+                        <div key={comment.id} className={`p-3 rounded-xl border transition-colors ${comment.is_pinned ? 'bg-rose-500/10 border-rose-500/30' : 'bg-[#0B1120] border-slate-800 hover:border-slate-700'}`}>
+                          <div className="flex gap-3">
+                            <img src={comment.users?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.users?.name || 'K')}&background=151D2F&color=fff`} alt="avatar" className="w-10 h-10 rounded-full object-cover border border-slate-700 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1 relative">
+                                <div className="flex items-center gap-2 truncate pr-2">
+                                  <span className="font-bold text-sm text-white truncate max-w-[100px]">{comment.users?.name || 'Khách'}</span>
+                                  {comment.users?.role === 'admin' && (
+                                    <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded font-black shrink-0">ADMIN</span>
+                                  )}
+                                  {comment.is_pinned && (
+                                    <span className="text-rose-500 text-[10px] font-bold flex items-center gap-0.5 shrink-0"><Flame size={12} /> Ghim</span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="text-[10px] text-slate-500">{new Date(comment.created_at).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                  {currentUser && (
+                                    <div className="relative">
+                                      <button onClick={() => setShowCommentOptionsId(showCommentOptionsId === comment.id ? null : comment.id)} className="text-slate-500 hover:text-white p-0.5 rounded-full hover:bg-slate-800 transition-colors">
+                                        <MoreVertical size={14} />
+                                      </button>
+                                      {showCommentOptionsId === comment.id && (
+                                        <>
+                                          <div className="fixed inset-0 z-10" onClick={() => setShowCommentOptionsId(null)}></div>
+                                          <div className="absolute right-0 top-full mt-1 bg-[#1A233A] border border-slate-700 rounded shadow-xl z-20 py-1 min-w-[120px] overflow-hidden animate-fade-in text-xs">
+                                            {currentUser.id === comment.user_id ? (
+                                              <button onClick={() => handleDeleteComment(comment.id)} className="w-full text-left px-3 py-2 text-rose-400 hover:bg-rose-500/10 flex items-center gap-2">
+                                                <Trash2 size={12} /> Xóa bình luận
+                                              </button>
+                                            ) : (
+                                              <button onClick={() => handleReportComment(comment.id)} className="w-full text-left px-3 py-2 text-yellow-500 hover:bg-yellow-500/10 flex items-center gap-2">
+                                                <AlertTriangle size={12} /> Báo cáo
+                                              </button>
+                                            )}
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <p className="text-sm text-slate-300 mb-2 break-words">{comment.content}</p>
+                              <div className="flex items-center gap-4">
+                                <button onClick={() => handleToggleLikeComment(comment.id, 'like')} className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${isLiked ? 'text-blue-400' : 'text-slate-500 hover:text-blue-400'}`}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className={isLiked ? 'scale-110' : ''}><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                                  {comment.liked_by?.length || 0}
+                                </button>
+                                <button onClick={() => handleToggleLikeComment(comment.id, 'dislike')} className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${isDisliked ? 'text-rose-400' : 'text-slate-500 hover:text-rose-400'}`}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill={isDisliked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className={isDisliked ? 'scale-110' : ''}><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
+                                  {comment.disliked_by?.length || 0}
+                                </button>
+                                {currentUser?.role === 'admin' && (
+                                  <button onClick={() => handlePinComment(comment.id, comment.is_pinned)} className="text-[11px] font-bold text-yellow-500 hover:text-yellow-400 transition-colors ml-auto">
+                                    {comment.is_pinned ? 'Bỏ ghim' : 'Ghim'}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+
+                {/* Form nhập bình luận */}
+                <div className="p-4 border-t border-slate-700 bg-[#0B1120]/50 backdrop-blur-md">
+                  {currentUser ? (
+                    <form onSubmit={handlePostComment} className="flex flex-col gap-2 relative group">
+                      <div className="relative">
+                        <img src={currentUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name || 'K')}&background=151D2F&color=fff`} alt="avatar" className="w-9 h-9 rounded-full object-cover border border-slate-700 absolute left-1 top-1 z-10 shadow-sm" />
+                        <textarea
+                          ref={commentTextareaRef}
+                          rows={1}
+                          value={commentInput}
+                          onChange={(e) => {
+                            setCommentInput(e.target.value);
+                            e.target.style.height = 'auto';
+                            e.target.style.height = `${e.target.scrollHeight}px`;
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              if (commentInput.trim()) {
+                                handlePostComment(e);
+                              }
                             }
-                          }
-                        }}
-                        placeholder="Nhập bình luận của bạn..."
-                        className="w-full bg-[#151D2F] border border-slate-700 rounded-[21px] py-2.5 pl-12 pr-12 text-sm text-white focus:outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all resize-none overflow-hidden"
-                        style={{ minHeight: '44px', maxHeight: '150px' }}
-                      />
-                      <button type="submit" disabled={!commentInput.trim()} className="absolute right-1 bottom-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-md">
-                        <Send size={14} className="ml-0.5" />
+                          }}
+                          placeholder="Nhập bình luận của bạn..."
+                          className="w-full bg-[#151D2F] border border-slate-700 rounded-[21px] py-2.5 pl-12 pr-12 text-sm text-white focus:outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all resize-none overflow-y-auto custom-scrollbar"
+                          style={{ minHeight: '44px', maxHeight: '150px' }}
+                        />
+                        <button type="submit" disabled={!commentInput.trim()} className="absolute right-1 bottom-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-md">
+                          <Send size={14} className="ml-0.5" />
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="text-center py-2 bg-[#151D2F] rounded-lg border border-slate-800">
+                      <p className="text-xs text-slate-400 mb-2">Đăng nhập để tham gia thảo luận</p>
+                      <button onClick={() => setCurrentView('login')} className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-1.5 rounded-lg text-sm font-bold transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_20px_rgba(37,99,235,0.5)]">
+                        Đăng nhập ngay
                       </button>
                     </div>
-                  </form>
-                ) : (
-                  <div className="text-center py-2 bg-[#151D2F] rounded-lg border border-slate-800">
-                    <p className="text-xs text-slate-400 mb-2">Đăng nhập để tham gia thảo luận</p>
-                    <button onClick={() => setCurrentView('login')} className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-1.5 rounded-lg text-sm font-bold transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_20px_rgba(37,99,235,0.5)]">
-                      Đăng nhập ngay
-                    </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
         </main>
 
         {/* --- FOOTER TRANG CHỦ --- */}
@@ -2491,18 +2491,18 @@ const App = () => {
                           // 2. Ghi lịch sử giao dịch cho CẢ HAI
                           const now = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN');
                           const feeNote = fee > 0 ? ` (Phí: ${new Intl.NumberFormat('vi-VN').format(fee)}đ)` : ' (VIP miễn phí)';
-                          
+
                           const txSender = {
-                              id: `TF${Date.now()}S`, user: liveSender.name,
-                              action: `Chuyển tiền cho ${liveReceiver.name} (${liveReceiver.phone})${feeNote}`,
-                              amount: -totalDeduct, date: now, status: 'Thành công', type: 'transfer_out',
-                              accDetails: { balanceAfter: liveSender.balance - totalDeduct, fundAfter: liveSender.rentFund || 0, fee: fee, originalAmount: amount }
+                            id: `TF${Date.now()}S`, user: liveSender.name,
+                            action: `Chuyển tiền cho ${liveReceiver.name} (${liveReceiver.phone})${feeNote}`,
+                            amount: -totalDeduct, date: now, status: 'Thành công', type: 'transfer_out',
+                            accDetails: { balanceAfter: liveSender.balance - totalDeduct, fundAfter: liveSender.rentFund || 0, fee: fee, originalAmount: amount }
                           };
                           const txReceiver = {
-                              id: `TF${Date.now()}R`, user: liveReceiver.name,
-                              action: `Nhận tiền từ ${liveSender.name} (${liveSender.phone})`,
-                              amount: amount, date: now, status: 'Thành công', type: 'transfer_in',
-                              accDetails: { balanceAfter: liveReceiver.balance + amount, fundAfter: liveReceiver.rentFund || 0 }
+                            id: `TF${Date.now()}R`, user: liveReceiver.name,
+                            action: `Nhận tiền từ ${liveSender.name} (${liveSender.phone})`,
+                            amount: amount, date: now, status: 'Thành công', type: 'transfer_in',
+                            accDetails: { balanceAfter: liveReceiver.balance + amount, fundAfter: liveReceiver.rentFund || 0 }
                           };
 
                           // 3. Gọi RPC an toàn trên Backend
@@ -4975,132 +4975,132 @@ const App = () => {
                         <button onClick={() => setShowBoostingModal(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
                       </div>
                       <form onSubmit={handleSaveBoosting}>
-                      <div className="md:grid md:grid-cols-2 md:gap-6">
-                      {/* === CỘT TRÁI: Ảnh + Cài đặt cơ bản === */}
-                      <div className="space-y-4">
-                        {/* --- KHU VỰC UP ẢNH CÀY THUÊ CÓ NÚT X --- */}
-                        <div>
-                          <label className="text-xs text-slate-400 font-bold">Ảnh mô tả dịch vụ (Tùy chọn)</label>
-                          <div className="mt-1 border border-dashed border-slate-600 rounded-xl p-4 text-center hover:bg-slate-800/50 transition-colors relative group bg-[#0B1120]">
-                            <input type="file" accept="image/*" onChange={handleBoostingImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                            {adminBoostingImage ? (
-                              <div className="relative z-20">
-                                <img src={adminBoostingImage} className="mx-auto h-24 object-cover rounded-lg shadow-md w-full" alt="Preview" />
-                                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAdminBoostingImage(null); }} className="absolute top-2 right-2 bg-rose-500 hover:bg-rose-600 text-white p-1.5 rounded-full shadow-lg transition-colors z-30" title="Xóa ảnh này"><X size={14} /></button>
+                        <div className="md:grid md:grid-cols-2 md:gap-6">
+                          {/* === CỘT TRÁI: Ảnh + Cài đặt cơ bản === */}
+                          <div className="space-y-4">
+                            {/* --- KHU VỰC UP ẢNH CÀY THUÊ CÓ NÚT X --- */}
+                            <div>
+                              <label className="text-xs text-slate-400 font-bold">Ảnh mô tả dịch vụ (Tùy chọn)</label>
+                              <div className="mt-1 border border-dashed border-slate-600 rounded-xl p-4 text-center hover:bg-slate-800/50 transition-colors relative group bg-[#0B1120]">
+                                <input type="file" accept="image/*" onChange={handleBoostingImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                {adminBoostingImage ? (
+                                  <div className="relative z-20">
+                                    <img src={adminBoostingImage} className="mx-auto h-24 object-cover rounded-lg shadow-md w-full" alt="Preview" />
+                                    <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAdminBoostingImage(null); }} className="absolute top-2 right-2 bg-rose-500 hover:bg-rose-600 text-white p-1.5 rounded-full shadow-lg transition-colors z-30" title="Xóa ảnh này"><X size={14} /></button>
+                                  </div>
+                                ) : (
+                                  <div className="text-slate-500 flex flex-col items-center"><ImageIcon size={28} className="mb-2" /><span className="text-[10px] font-bold">Bấm để tải Ảnh lên</span></div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* CHỌN LOẠI CÀY VÀ TÊN GAME */}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="text-xs text-slate-400 block mb-1">Cày gì?</label>
+                                <select name="boostType" value={adminBoostType} onChange={(e) => setAdminBoostType(e.target.value)} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
+                                  <option value="rank">Cày Rank</option>
+                                  <option value="event">Cày Sự Kiện</option>
+                                </select>
+                              </div>
+                              {/* LUÔN HIỆN Ô TÊN GAME CHO CẢ 2 LOẠI */}
+                              <div>
+                                <label className="text-xs text-slate-400 block mb-1">Tên Game</label>
+                                <input name="game" defaultValue={editingBoosting?.game && editingBoosting.game !== 'Cày Sự Kiện' ? editingBoosting.game : ''} placeholder="VD: Liên Quân, Tốc Chiến..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required />
+                              </div>
+                            </div>
+
+                            {/* Nếu chọn Cày Sự Kiện thì hiện thêm ô Tên Sự Kiện */}
+                            {adminBoostType === 'event' && (
+                              <div>
+                                <label className="text-xs text-rose-400 font-bold block mb-1">Sự Kiện Gì?</label>
+                                <input name="eventName" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.title : ''} placeholder="VD: Cày Sổ Sứ Mệnh, Sự kiện Tết..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-rose-500" required />
+                              </div>
+                            )}
+
+                            {adminBoostType === 'event' && (
+                              <div className="mt-2">
+                                <label className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer transition-colors hover:bg-blue-500/20">
+                                  <input type="checkbox" checked={isEventMultiPackage} onChange={(e) => setIsEventMultiPackage(e.target.checked)} className="w-5 h-5 accent-blue-500 cursor-pointer" />
+                                  <span className="text-sm font-bold text-blue-400">Bật chia nhiều Gói nhỏ (Cày nhiều mốc)</span>
+                                </label>
+                              </div>
+                            )}
+
+                            {adminBoostType === 'rank' ? (
+                              <div className="space-y-4 mt-4">
+                                <div><label className="text-xs text-slate-400 block mb-1">Tiêu đề Dịch vụ (Hiển thị to)</label><input name="title" defaultValue={editingBoosting?.title} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required /></div>
+                                <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingBoosting?.desc} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
+                                <div><label className="text-xs text-slate-400 block mb-1">Đơn vị hiển thị sau giá <span className="text-slate-600">(VD: điểm, bậc, gói...)</span></label><input name="priceUnit" value={adminBoostingPriceUnit} onChange={e => setAdminBoostingPriceUnit(e.target.value)} placeholder="Để trống nếu không cần" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-emerald-500" /></div>
                               </div>
                             ) : (
-                              <div className="text-slate-500 flex flex-col items-center"><ImageIcon size={28} className="mb-2" /><span className="text-[10px] font-bold">Bấm để tải Ảnh lên</span></div>
+                              <>
+                                <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết sự kiện</label><textarea name="amount" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.desc : ''} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
+                                <div><label className="text-xs text-slate-400 block mb-1">Đơn vị hiển thị sau giá <span className="text-slate-600">(VD: điểm, bậc, gói...)</span></label><input name="priceUnit" value={adminBoostingPriceUnit} onChange={e => setAdminBoostingPriceUnit(e.target.value)} placeholder="Để trống nếu không cần" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-emerald-500" /></div>
+                                <label className="flex items-center gap-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg cursor-pointer mt-2">
+                                  <input type="checkbox" name="requireLogin" defaultChecked={editingBoosting?.type === 'event' ? editingBoosting.require_login : false} className="w-5 h-5 accent-rose-500 cursor-pointer" />
+                                  <span className="text-sm font-bold text-rose-400">Yêu cầu cung cấp TK/MK Game?</span>
+                                </label>
+                              </>
+                            )}
+                          </div>
+                          {/* === CỘT PHẢI: Chỉ chứa Bảng giá mốc === */}
+                          <div className="space-y-4 mt-4 md:mt-0">
+                            {(adminBoostType === 'rank' || (adminBoostType === 'event' && isEventMultiPackage)) ? (
+                              <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30">
+                                <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
+                                  <label className="text-sm text-blue-400 font-bold flex items-center gap-2"><Target size={16} /> CÁC MỐC/GÓI HIỆN TẠI & GIÁ</label>
+                                  <button type="button" onClick={() => setAdminRankOptions([...adminRankOptions, { rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm mốc</button>
+                                </div>
+                                <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
+                                  {adminRankOptions.map((opt, index) => (
+                                    <div key={index} className="bg-[#0B1120] p-3 rounded-lg border border-slate-700 space-y-2">
+                                      <div className="flex gap-2 items-center">
+                                        <input type="text" placeholder="Tên mốc (VD: Sao Băng V → Ngôi Sao V)" value={opt.rank} onChange={e => { const n = [...adminRankOptions]; n[index].rank = e.target.value; setAdminRankOptions(n) }} className="flex-1 p-2 bg-transparent outline-none text-sm text-white border-b border-slate-700 focus:border-blue-500" required />
+                                        <button type="button" onClick={() => setAdminRankOptions(adminRankOptions.filter((_, i) => i !== index))} className="w-8 text-slate-500 hover:text-rose-500 flex justify-center transition-colors"><X size={18} /></button>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[10px] text-slate-500 font-bold shrink-0">LOẠI:</span>
+                                        <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'bac'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'bac' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Bậc</button>
+                                        <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'diem'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'diem' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Điểm</button>
+                                        {opt.inputType === 'bac' && (
+                                          <>
+                                            <div className="w-[1px] h-5 bg-slate-700"></div>
+                                            <span className="text-[10px] text-slate-500 font-bold shrink-0">SỐ BẬC:</span>
+                                            <input type="number" min="1" max="10" value={opt.tierCount || 1} onChange={e => { const n = [...adminRankOptions]; n[index].tierCount = Math.max(1, Math.min(10, parseInt(e.target.value) || 1)); setAdminRankOptions(n); }} className="w-14 p-1 bg-slate-900 rounded text-center text-xs text-blue-400 font-bold border border-blue-500/30 outline-none focus:border-blue-500" />
+                                          </>
+                                        )}
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div className={opt.inputType === 'bac' && (opt.tierCount || 1) <= 1 ? "col-span-2" : ""}>
+                                          <label className="text-[10px] text-slate-500 block">Giá bậc lẻ {opt.inputType === 'diem' ? '(đ/điểm)' : '(đ/bậc)'}</label>
+                                          <input type="number" placeholder="VD: 15000" value={opt.price} onChange={e => { const n = [...adminRankOptions]; n[index].price = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-white font-bold border border-slate-700 focus:border-blue-500" required />
+                                        </div>
+                                        {!(opt.inputType === 'bac' && (opt.tierCount || 1) <= 1) && (
+                                          <div>
+                                            <label className="text-[10px] text-slate-500 block">Giá combo (trọn gói)</label>
+                                            <input type="number" placeholder="VD: 70000" value={opt.comboPrice} onChange={e => { const n = [...adminRankOptions]; n[index].comboPrice = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-emerald-400 font-bold border border-slate-700 focus:border-emerald-500" required />
+                                          </div>
+                                        )}
+                                      </div>
+                                      {opt.inputType === 'diem' && (
+                                        <div>
+                                          <label className="text-[10px] text-yellow-400 block">Giới hạn điểm tối đa</label>
+                                          <input type="number" placeholder="VD: 300" value={opt.maxPoints} onChange={e => { const n = [...adminRankOptions]; n[index].maxPoints = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-yellow-400 font-bold border border-yellow-500/30 focus:border-yellow-500" required />
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-4 grid grid-cols-2 gap-4">
+                                <div><label className="text-xs text-emerald-400 block mb-1">Giá tiền gốc (VNĐ)</label><input name="basePrice" type="number" defaultValue={editingBoosting ? (editingBoosting.oldPrice || editingBoosting.price) : ''} className="w-full p-3 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-bold outline-none focus:border-emerald-500" required /></div>
+                                <div><label className="text-xs text-rose-400 block mb-1">Giá đã giảm (Tùy chọn)</label><input name="discountedPrice" type="number" defaultValue={editingBoosting?.oldPrice ? editingBoosting.price : ''} className="w-full p-3 bg-[#0B1120] border border-rose-500/50 rounded-lg text-rose-400 font-bold outline-none focus:border-rose-400" /></div>
+                              </div>
                             )}
                           </div>
                         </div>
-
-                        {/* CHỌN LOẠI CÀY VÀ TÊN GAME */}
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-xs text-slate-400 block mb-1">Cày gì?</label>
-                            <select name="boostType" value={adminBoostType} onChange={(e) => setAdminBoostType(e.target.value)} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
-                              <option value="rank">Cày Rank</option>
-                              <option value="event">Cày Sự Kiện</option>
-                            </select>
-                          </div>
-                          {/* LUÔN HIỆN Ô TÊN GAME CHO CẢ 2 LOẠI */}
-                          <div>
-                            <label className="text-xs text-slate-400 block mb-1">Tên Game</label>
-                            <input name="game" defaultValue={editingBoosting?.game && editingBoosting.game !== 'Cày Sự Kiện' ? editingBoosting.game : ''} placeholder="VD: Liên Quân, Tốc Chiến..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required />
-                          </div>
-                        </div>
-
-                        {/* Nếu chọn Cày Sự Kiện thì hiện thêm ô Tên Sự Kiện */}
-                        {adminBoostType === 'event' && (
-                          <div>
-                            <label className="text-xs text-rose-400 font-bold block mb-1">Sự Kiện Gì?</label>
-                            <input name="eventName" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.title : ''} placeholder="VD: Cày Sổ Sứ Mệnh, Sự kiện Tết..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-rose-500" required />
-                          </div>
-                        )}
-
-                        {adminBoostType === 'event' && (
-                          <div className="mt-2">
-                            <label className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer transition-colors hover:bg-blue-500/20">
-                              <input type="checkbox" checked={isEventMultiPackage} onChange={(e) => setIsEventMultiPackage(e.target.checked)} className="w-5 h-5 accent-blue-500 cursor-pointer" />
-                              <span className="text-sm font-bold text-blue-400">Bật chia nhiều Gói nhỏ (Cày nhiều mốc)</span>
-                            </label>
-                          </div>
-                        )}
-
-                        {adminBoostType === 'rank' ? (
-                          <div className="space-y-4 mt-4">
-                            <div><label className="text-xs text-slate-400 block mb-1">Tiêu đề Dịch vụ (Hiển thị to)</label><input name="title" defaultValue={editingBoosting?.title} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required /></div>
-                            <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingBoosting?.desc} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
-                            <div><label className="text-xs text-slate-400 block mb-1">Đơn vị hiển thị sau giá <span className="text-slate-600">(VD: điểm, bậc, gói...)</span></label><input name="priceUnit" value={adminBoostingPriceUnit} onChange={e => setAdminBoostingPriceUnit(e.target.value)} placeholder="Để trống nếu không cần" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-emerald-500" /></div>
-                          </div>
-                        ) : (
-                          <>
-                            <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết sự kiện</label><textarea name="amount" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.desc : ''} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
-                            <div><label className="text-xs text-slate-400 block mb-1">Đơn vị hiển thị sau giá <span className="text-slate-600">(VD: điểm, bậc, gói...)</span></label><input name="priceUnit" value={adminBoostingPriceUnit} onChange={e => setAdminBoostingPriceUnit(e.target.value)} placeholder="Để trống nếu không cần" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-emerald-500" /></div>
-                            <label className="flex items-center gap-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg cursor-pointer mt-2">
-                              <input type="checkbox" name="requireLogin" defaultChecked={editingBoosting?.type === 'event' ? editingBoosting.require_login : false} className="w-5 h-5 accent-rose-500 cursor-pointer" />
-                              <span className="text-sm font-bold text-rose-400">Yêu cầu cung cấp TK/MK Game?</span>
-                            </label>
-                          </>
-                        )}
-                      </div>
-                      {/* === CỘT PHẢI: Chỉ chứa Bảng giá mốc === */}
-                      <div className="space-y-4 mt-4 md:mt-0">
-                        {(adminBoostType === 'rank' || (adminBoostType === 'event' && isEventMultiPackage)) ? (
-                          <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30">
-                            <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
-                              <label className="text-sm text-blue-400 font-bold flex items-center gap-2"><Target size={16} /> CÁC MỐC/GÓI HIỆN TẠI & GIÁ</label>
-                              <button type="button" onClick={() => setAdminRankOptions([...adminRankOptions, { rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm mốc</button>
-                            </div>
-                            <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
-                              {adminRankOptions.map((opt, index) => (
-                                <div key={index} className="bg-[#0B1120] p-3 rounded-lg border border-slate-700 space-y-2">
-                                  <div className="flex gap-2 items-center">
-                                    <input type="text" placeholder="Tên mốc (VD: Sao Băng V → Ngôi Sao V)" value={opt.rank} onChange={e => { const n = [...adminRankOptions]; n[index].rank = e.target.value; setAdminRankOptions(n) }} className="flex-1 p-2 bg-transparent outline-none text-sm text-white border-b border-slate-700 focus:border-blue-500" required />
-                                    <button type="button" onClick={() => setAdminRankOptions(adminRankOptions.filter((_, i) => i !== index))} className="w-8 text-slate-500 hover:text-rose-500 flex justify-center transition-colors"><X size={18} /></button>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[10px] text-slate-500 font-bold shrink-0">LOẠI:</span>
-                                    <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'bac'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'bac' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Bậc</button>
-                                    <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'diem'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'diem' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Điểm</button>
-                                    {opt.inputType === 'bac' && (
-                                      <>
-                                        <div className="w-[1px] h-5 bg-slate-700"></div>
-                                        <span className="text-[10px] text-slate-500 font-bold shrink-0">SỐ BẬC:</span>
-                                        <input type="number" min="1" max="10" value={opt.tierCount || 1} onChange={e => { const n = [...adminRankOptions]; n[index].tierCount = Math.max(1, Math.min(10, parseInt(e.target.value) || 1)); setAdminRankOptions(n); }} className="w-14 p-1 bg-slate-900 rounded text-center text-xs text-blue-400 font-bold border border-blue-500/30 outline-none focus:border-blue-500" />
-                                      </>
-                                    )}
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <div className={opt.inputType === 'bac' && (opt.tierCount || 1) <= 1 ? "col-span-2" : ""}>
-                                      <label className="text-[10px] text-slate-500 block">Giá bậc lẻ {opt.inputType === 'diem' ? '(đ/điểm)' : '(đ/bậc)'}</label>
-                                      <input type="number" placeholder="VD: 15000" value={opt.price} onChange={e => { const n = [...adminRankOptions]; n[index].price = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-white font-bold border border-slate-700 focus:border-blue-500" required />
-                                    </div>
-                                    {!(opt.inputType === 'bac' && (opt.tierCount || 1) <= 1) && (
-                                      <div>
-                                        <label className="text-[10px] text-slate-500 block">Giá combo (trọn gói)</label>
-                                        <input type="number" placeholder="VD: 70000" value={opt.comboPrice} onChange={e => { const n = [...adminRankOptions]; n[index].comboPrice = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-emerald-400 font-bold border border-slate-700 focus:border-emerald-500" required />
-                                      </div>
-                                    )}
-                                  </div>
-                                  {opt.inputType === 'diem' && (
-                                    <div>
-                                      <label className="text-[10px] text-yellow-400 block">Giới hạn điểm tối đa</label>
-                                      <input type="number" placeholder="VD: 300" value={opt.maxPoints} onChange={e => { const n = [...adminRankOptions]; n[index].maxPoints = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-yellow-400 font-bold border border-yellow-500/30 focus:border-yellow-500" required />
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="mt-4 grid grid-cols-2 gap-4">
-                            <div><label className="text-xs text-emerald-400 block mb-1">Giá tiền gốc (VNĐ)</label><input name="basePrice" type="number" defaultValue={editingBoosting ? (editingBoosting.oldPrice || editingBoosting.price) : ''} className="w-full p-3 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-bold outline-none focus:border-emerald-500" required /></div>
-                            <div><label className="text-xs text-rose-400 block mb-1">Giá đã giảm (Tùy chọn)</label><input name="discountedPrice" type="number" defaultValue={editingBoosting?.oldPrice ? editingBoosting.price : ''} className="w-full p-3 bg-[#0B1120] border border-rose-500/50 rounded-lg text-rose-400 font-bold outline-none focus:border-rose-400" /></div>
-                          </div>
-                        )}
-                      </div>
-                      </div>
                         <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl mt-6 shadow-lg shadow-blue-600/20">Lưu Dịch Vụ</button>
                       </form>
                     </div>
@@ -5198,9 +5198,11 @@ const App = () => {
 
                                 // Gửi tin nhắn cho khách
                                 if (targetUser && currentUser) {
-                                  const msg = { id: `MSG${Date.now()}`, senderId: currentUser.id, receiverId: targetUser.id,
+                                  const msg = {
+                                    id: `MSG${Date.now()}`, senderId: currentUser.id, receiverId: targetUser.id,
                                     content: `💰 Đơn cày thuê "${req.boostingTitle}" đã bị HỦY. Bạn đã được hoàn ${new Intl.NumberFormat('vi-VN').format(refundAmount)}đ vào số dư.`,
-                                    timestamp: Date.now(), isRead: false };
+                                    timestamp: Date.now(), isRead: false
+                                  };
                                   await supabase.from('messages').insert([msg]);
                                 }
 
@@ -5702,144 +5704,144 @@ const App = () => {
                 </div>
                 <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
                   <form onSubmit={handleSaveAccount} className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div><label className="text-xs text-slate-400 font-bold">Tên Game</label><input name="game" defaultValue={editingAccount?.game} placeholder="VD: Liên Quân, Valorant..." className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white" required /></div>
-                  <div><label className="text-xs text-slate-400 font-bold">Mã Nick</label><input name="code" defaultValue={editingAccount?.code} placeholder="VD: 12345" className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white" required /></div>
+                    <div><label className="text-xs text-slate-400 font-bold">Tên Game</label><input name="game" defaultValue={editingAccount?.game} placeholder="VD: Liên Quân, Valorant..." className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white" required /></div>
+                    <div><label className="text-xs text-slate-400 font-bold">Mã Nick</label><input name="code" defaultValue={editingAccount?.code} placeholder="VD: 12345" className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white" required /></div>
 
-                  {/* CHÈN THÊM Ô PHÂN LOẠI ACC (TIER) Ở ĐÂY */}
-                  <div className="md:col-span-2">
-                    <label className="text-xs text-slate-400 font-bold">Phân loại Đẳng cấp (Tier)</label>
-                    <select name="tier" defaultValue={editingAccount?.tier || 'VIP'} className="w-full mt-1.5 p-3 bg-[#0B1120] border border-yellow-500/50 focus:border-yellow-400 outline-none rounded-lg text-yellow-500 font-bold">
-                      <option value="VIP">Tài khoản VIP (Thường)</option>
-                      <option value="SVIP">Tài khoản SUPER VIP (Cao cấp)</option>
-                      <option value="ULVIP">Tài khoản ULTRA VIP (Đỉnh cao)</option>
-                    </select>
-                  </div>
-                  <div className="md:col-span-2"><label className="text-xs text-slate-400 font-bold">Tiêu đề (Giật tít)</label><input name="title" defaultValue={editingAccount?.title} placeholder="Acc vip full tướng, trắng thông tin..." className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white" required /></div>
-                  <div className="md:col-span-2"><label className="text-xs text-slate-400 font-bold">Tags nổi bật (Cách bằng dấu phẩy)</label><input name="tags" defaultValue={Array.isArray(editingAccount?.tags) ? editingAccount.tags.join(', ') : (editingAccount?.tags || '')} placeholder="VD: Rank Cao Thủ, Trắng TT, 120 Skin" className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white" required /></div>
+                    {/* CHÈN THÊM Ô PHÂN LOẠI ACC (TIER) Ở ĐÂY */}
+                    <div className="md:col-span-2">
+                      <label className="text-xs text-slate-400 font-bold">Phân loại Đẳng cấp (Tier)</label>
+                      <select name="tier" defaultValue={editingAccount?.tier || 'VIP'} className="w-full mt-1.5 p-3 bg-[#0B1120] border border-yellow-500/50 focus:border-yellow-400 outline-none rounded-lg text-yellow-500 font-bold">
+                        <option value="VIP">Tài khoản VIP (Thường)</option>
+                        <option value="SVIP">Tài khoản SUPER VIP (Cao cấp)</option>
+                        <option value="ULVIP">Tài khoản ULTRA VIP (Đỉnh cao)</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-2"><label className="text-xs text-slate-400 font-bold">Tiêu đề (Giật tít)</label><input name="title" defaultValue={editingAccount?.title} placeholder="Acc vip full tướng, trắng thông tin..." className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white" required /></div>
+                    <div className="md:col-span-2"><label className="text-xs text-slate-400 font-bold">Tags nổi bật (Cách bằng dấu phẩy)</label><input name="tags" defaultValue={Array.isArray(editingAccount?.tags) ? editingAccount.tags.join(', ') : (editingAccount?.tags || '')} placeholder="VD: Rank Cao Thủ, Trắng TT, 120 Skin" className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white" required /></div>
 
-                  {/* UPLOAD ẢNH */}
-                  <div className="md:col-span-2 bg-slate-800/30 p-5 rounded-xl border border-slate-700 space-y-4">
-                    <h4 className="text-sm font-bold text-white flex items-center gap-2"><Upload size={16} className="text-blue-400" /> Quản lý Hình ảnh</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="border border-dashed border-slate-500 rounded-xl p-4 text-center hover:bg-slate-800/50 transition-colors relative group">
-                        <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, true)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                        {adminCoverImage ? <div className="relative"><img src={adminCoverImage} className="w-full h-32 object-cover rounded-lg mb-2 shadow-md" /><div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-sm font-bold transition-opacity rounded-lg">Đổi Ảnh Khác</div></div> : <div className="h-32 flex flex-col items-center justify-center text-slate-400 mb-2 bg-slate-900 rounded-lg"><ImageIcon size={30} className="mb-2 text-slate-500" /><span className="text-xs">Bấm để tải Ảnh Bìa lên</span></div>}
-                        <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-md border border-blue-500/20">Ảnh Bìa Chính (1 ảnh)</span>
-                      </div>
-                      <div className="border border-dashed border-slate-500 rounded-xl p-4 text-center hover:bg-slate-800/50 transition-colors relative">
-                        <input type="file" accept="image/*" multiple onChange={(e) => handleFileUpload(e, false)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" title="Tải ảnh phụ" />
-                        {adminDetailImages.length > 0 ? (
-                          <div className="flex gap-2 h-32 overflow-x-auto custom-scrollbar mb-2 relative z-20 pb-2">
-                            {adminDetailImages.map((img, i) => (
-                              <div key={i} className="relative flex-shrink-0 w-32 h-full group">
-                                <img src={img} className="w-full h-full object-cover rounded-lg shadow-md" />
-                                <button type="button" onClick={() => setAdminDetailImages(adminDetailImages.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-rose-500 text-white p-1 rounded-full z-30 hover:bg-rose-600 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button>
-                              </div>
-                            ))}
-                            <div className="flex-shrink-0 w-20 h-full border-2 border-dashed border-slate-600 rounded-lg flex items-center justify-center text-slate-500 pointer-events-none bg-slate-900/50"><Plus size={24} /></div>
-                          </div>
-                        ) : <div className="h-32 flex flex-col items-center justify-center text-slate-400 mb-2 bg-slate-900 rounded-lg"><ImageIcon size={30} className="mb-2 text-slate-500" /><span className="text-xs">Bấm để tải nhiều Ảnh Phụ</span></div>}
-                        <span className="text-xs font-bold text-slate-400 bg-slate-800 px-3 py-1.5 rounded-md border border-slate-700">Ảnh Phụ (nhiều ảnh)</span>
+                    {/* UPLOAD ẢNH */}
+                    <div className="md:col-span-2 bg-slate-800/30 p-5 rounded-xl border border-slate-700 space-y-4">
+                      <h4 className="text-sm font-bold text-white flex items-center gap-2"><Upload size={16} className="text-blue-400" /> Quản lý Hình ảnh</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="border border-dashed border-slate-500 rounded-xl p-4 text-center hover:bg-slate-800/50 transition-colors relative group">
+                          <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, true)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                          {adminCoverImage ? <div className="relative"><img src={adminCoverImage} className="w-full h-32 object-cover rounded-lg mb-2 shadow-md" /><div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-sm font-bold transition-opacity rounded-lg">Đổi Ảnh Khác</div></div> : <div className="h-32 flex flex-col items-center justify-center text-slate-400 mb-2 bg-slate-900 rounded-lg"><ImageIcon size={30} className="mb-2 text-slate-500" /><span className="text-xs">Bấm để tải Ảnh Bìa lên</span></div>}
+                          <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-md border border-blue-500/20">Ảnh Bìa Chính (1 ảnh)</span>
+                        </div>
+                        <div className="border border-dashed border-slate-500 rounded-xl p-4 text-center hover:bg-slate-800/50 transition-colors relative">
+                          <input type="file" accept="image/*" multiple onChange={(e) => handleFileUpload(e, false)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" title="Tải ảnh phụ" />
+                          {adminDetailImages.length > 0 ? (
+                            <div className="flex gap-2 h-32 overflow-x-auto custom-scrollbar mb-2 relative z-20 pb-2">
+                              {adminDetailImages.map((img, i) => (
+                                <div key={i} className="relative flex-shrink-0 w-32 h-full group">
+                                  <img src={img} className="w-full h-full object-cover rounded-lg shadow-md" />
+                                  <button type="button" onClick={() => setAdminDetailImages(adminDetailImages.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-rose-500 text-white p-1 rounded-full z-30 hover:bg-rose-600 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button>
+                                </div>
+                              ))}
+                              <div className="flex-shrink-0 w-20 h-full border-2 border-dashed border-slate-600 rounded-lg flex items-center justify-center text-slate-500 pointer-events-none bg-slate-900/50"><Plus size={24} /></div>
+                            </div>
+                          ) : <div className="h-32 flex flex-col items-center justify-center text-slate-400 mb-2 bg-slate-900 rounded-lg"><ImageIcon size={30} className="mb-2 text-slate-500" /><span className="text-xs">Bấm để tải nhiều Ảnh Phụ</span></div>}
+                          <span className="text-xs font-bold text-slate-400 bg-slate-800 px-3 py-1.5 rounded-md border border-slate-700">Ảnh Phụ (nhiều ảnh)</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="grid grid-cols-2 gap-3 bg-emerald-900/10 p-4 rounded-xl border border-emerald-500/20 h-fit shadow-xl">
-                      <div>
-                        <label className="text-[11px] text-emerald-400 font-bold mb-2 flex items-center gap-1 whitespace-nowrap"><Wallet size={14} /> GIÁ BÁN GỐC</label>
-                        <input name="basePrice" type="number" defaultValue={editingAccount ? (editingAccount.oldPrice || editingAccount.price) : ''} placeholder="Ví dụ: 500000" className="w-full p-3 bg-[#0B1120] border border-emerald-500/50 focus:border-emerald-400 outline-none rounded-lg text-emerald-400 font-black text-sm shadow-inner" required />
-                      </div>
-                      <div>
-                        <label className="text-[11px] text-rose-400 font-bold mb-2 flex items-center gap-1 whitespace-nowrap"><Wallet size={14} /> GIÁ BÁN GIẢM</label>
-                        <input name="discountedPrice" type="number" defaultValue={editingAccount?.oldPrice ? editingAccount.price : ''} placeholder="Giá giảm..." className="w-full p-3 bg-[#0B1120] border border-rose-500/50 focus:border-rose-400 outline-none rounded-lg text-rose-400 font-black text-sm shadow-inner" />
-                      </div>
-                      <div className="col-span-2 border-t border-emerald-500/20 my-1"></div>
-                      <div>
-                        <label className="text-[11px] text-blue-400 font-bold mb-2 flex items-center gap-1 whitespace-nowrap"><Clock size={14} /> GIÁ THUÊ/GIỜ</label>
-                        <input id="baseRentPriceInput" name="baseRentPrice" type="number" defaultValue={editingAccount ? (editingAccount.oldRentPrice || editingAccount.rentPricePerHour) : 0} placeholder="Ví dụ: 10000" className="w-full p-3 bg-[#0B1120] border border-blue-500/50 focus:border-blue-400 outline-none rounded-lg text-blue-400 font-black text-sm shadow-inner transition-colors" onChange={(e) => {
-                          const baseVal = parseFloat(e.target.value) || 0;
-                          const percentInput = document.getElementById('rentDiscountPercentInput');
-                          const discountInput = document.getElementById('discountedRentPriceInput');
-                          if (percentInput && discountInput) {
-                            const percent = parseFloat(percentInput.value) || 0;
-                            if (percent > 0 && baseVal > 0) {
-                              discountInput.value = baseVal - Math.floor(baseVal * (percent / 100));
+                    <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-3 bg-emerald-900/10 p-4 rounded-xl border border-emerald-500/20 h-fit shadow-xl">
+                        <div>
+                          <label className="text-[11px] text-emerald-400 font-bold mb-2 flex items-center gap-1 whitespace-nowrap"><Wallet size={14} /> GIÁ BÁN GỐC</label>
+                          <input name="basePrice" type="number" defaultValue={editingAccount ? (editingAccount.oldPrice || editingAccount.price) : ''} placeholder="Ví dụ: 500000" className="w-full p-3 bg-[#0B1120] border border-emerald-500/50 focus:border-emerald-400 outline-none rounded-lg text-emerald-400 font-black text-sm shadow-inner" required />
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-rose-400 font-bold mb-2 flex items-center gap-1 whitespace-nowrap"><Wallet size={14} /> GIÁ BÁN GIẢM</label>
+                          <input name="discountedPrice" type="number" defaultValue={editingAccount?.oldPrice ? editingAccount.price : ''} placeholder="Giá giảm..." className="w-full p-3 bg-[#0B1120] border border-rose-500/50 focus:border-rose-400 outline-none rounded-lg text-rose-400 font-black text-sm shadow-inner" />
+                        </div>
+                        <div className="col-span-2 border-t border-emerald-500/20 my-1"></div>
+                        <div>
+                          <label className="text-[11px] text-blue-400 font-bold mb-2 flex items-center gap-1 whitespace-nowrap"><Clock size={14} /> GIÁ THUÊ/GIỜ</label>
+                          <input id="baseRentPriceInput" name="baseRentPrice" type="number" defaultValue={editingAccount ? (editingAccount.oldRentPrice || editingAccount.rentPricePerHour) : 0} placeholder="Ví dụ: 10000" className="w-full p-3 bg-[#0B1120] border border-blue-500/50 focus:border-blue-400 outline-none rounded-lg text-blue-400 font-black text-sm shadow-inner transition-colors" onChange={(e) => {
+                            const baseVal = parseFloat(e.target.value) || 0;
+                            const percentInput = document.getElementById('rentDiscountPercentInput');
+                            const discountInput = document.getElementById('discountedRentPriceInput');
+                            if (percentInput && discountInput) {
+                              const percent = parseFloat(percentInput.value) || 0;
+                              if (percent > 0 && baseVal > 0) {
+                                discountInput.value = baseVal - Math.floor(baseVal * (percent / 100));
+                              }
                             }
-                          }
-                        }}/>
-                      </div>
-                      <div>
-                        <label className="text-[11px] text-rose-400 font-bold mb-2 flex items-center gap-1 whitespace-nowrap"><Clock size={14} /> GIÁ THUÊ GIẢM</label>
-                        <input id="discountedRentPriceInput" name="discountedRentPrice" type="number" defaultValue={editingAccount?.oldRentPrice ? editingAccount.rentPricePerHour : ''} placeholder="Giá giảm..." className="w-full p-3 bg-[#0B1120] border border-rose-500/50 focus:border-rose-400 outline-none rounded-lg text-rose-400 font-black text-sm shadow-inner transition-colors" />
-                      </div>
-                      <div className="col-span-2 border-t border-emerald-500/20 my-1"></div>
-                      <div className="col-span-2">
-                        <label className="text-[11px] text-rose-400 font-bold mb-2 uppercase flex items-center gap-1"><Wallet size={14} /> Giảm giá các gói thuê chung (%)</label>
-                        <input id="rentDiscountPercentInput" name="rentDiscountPercent" type="number" min="0" max="100" defaultValue={editingAccount?.rentDiscountPercent || ''} placeholder="VD: 10 (Sẽ giảm 10% cho MỌI gói thuê bên dưới)" className="w-full p-3 bg-[#0B1120] border border-rose-500/50 focus:border-rose-400 outline-none rounded-lg text-rose-400 font-black text-sm shadow-inner transition-colors" onChange={(e) => {
-                          const percent = parseFloat(e.target.value) || 0;
-                          const baseInput = document.getElementById('baseRentPriceInput');
-                          const discountInput = document.getElementById('discountedRentPriceInput');
-                          if (baseInput && discountInput) {
-                            const baseVal = parseFloat(baseInput.value) || 0;
-                            if (percent > 0 && baseVal > 0) {
-                              discountInput.value = baseVal - Math.floor(baseVal * (percent / 100));
-                            } else if (percent === 0) {
-                              discountInput.value = '';
+                          }} />
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-rose-400 font-bold mb-2 flex items-center gap-1 whitespace-nowrap"><Clock size={14} /> GIÁ THUÊ GIẢM</label>
+                          <input id="discountedRentPriceInput" name="discountedRentPrice" type="number" defaultValue={editingAccount?.oldRentPrice ? editingAccount.rentPricePerHour : ''} placeholder="Giá giảm..." className="w-full p-3 bg-[#0B1120] border border-rose-500/50 focus:border-rose-400 outline-none rounded-lg text-rose-400 font-black text-sm shadow-inner transition-colors" />
+                        </div>
+                        <div className="col-span-2 border-t border-emerald-500/20 my-1"></div>
+                        <div className="col-span-2">
+                          <label className="text-[11px] text-rose-400 font-bold mb-2 uppercase flex items-center gap-1"><Wallet size={14} /> Giảm giá các gói thuê chung (%)</label>
+                          <input id="rentDiscountPercentInput" name="rentDiscountPercent" type="number" min="0" max="100" defaultValue={editingAccount?.rentDiscountPercent || ''} placeholder="VD: 10 (Sẽ giảm 10% cho MỌI gói thuê bên dưới)" className="w-full p-3 bg-[#0B1120] border border-rose-500/50 focus:border-rose-400 outline-none rounded-lg text-rose-400 font-black text-sm shadow-inner transition-colors" onChange={(e) => {
+                            const percent = parseFloat(e.target.value) || 0;
+                            const baseInput = document.getElementById('baseRentPriceInput');
+                            const discountInput = document.getElementById('discountedRentPriceInput');
+                            if (baseInput && discountInput) {
+                              const baseVal = parseFloat(baseInput.value) || 0;
+                              if (percent > 0 && baseVal > 0) {
+                                discountInput.value = baseVal - Math.floor(baseVal * (percent / 100));
+                              } else if (percent === 0) {
+                                discountInput.value = '';
+                              }
                             }
-                          }
-                        }}/>
+                          }} />
+                        </div>
+                      </div>
+                      <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30">
+                        <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
+                          <label className="text-sm text-blue-400 font-bold flex items-center gap-2"><Clock size={16} /> CÁC GÓI THUÊ</label>
+                          <button type="button" onClick={() => setAdminRentOptions([...adminRentOptions, { time: '', bonusTime: '', price: '' }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm gói</button>
+                        </div>
+                        <div className="space-y-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                          {adminRentOptions.map((opt, index) => (
+                            <div key={index} className="flex gap-2 items-center bg-[#0B1120] p-2 rounded-lg border border-slate-700">
+                              <input type="text" placeholder="Giờ thuê" value={opt.time} onChange={e => { const n = [...adminRentOptions]; n[index].time = e.target.value; setAdminRentOptions(n) }} className="w-[30%] p-2 bg-transparent outline-none text-xs text-white" title="VD: 2 Giờ" />
+                              <div className="w-[1px] h-6 bg-slate-700"></div>
+                              <input type="text" placeholder="Tặng thêm" value={opt.bonusTime || ''} onChange={e => { const n = [...adminRentOptions]; n[index].bonusTime = e.target.value; setAdminRentOptions(n) }} className="w-[30%] p-2 bg-transparent outline-none text-xs text-emerald-400" title="VD: 30 Phút hoặc 1 Giờ" />
+                              <div className="w-[1px] h-6 bg-slate-700"></div>
+                              <input type="number" placeholder="Giá (đ)" value={opt.price} onChange={e => { const n = [...adminRentOptions]; n[index].price = e.target.value; setAdminRentOptions(n) }} className="w-[30%] p-2 bg-transparent outline-none text-xs text-white font-bold" />
+                              <button type="button" onClick={() => setAdminRentOptions(adminRentOptions.filter((_, i) => i !== index))} className="w-[10%] text-slate-500 hover:text-rose-500 flex justify-center transition-colors"><X size={18} /></button>
+                            </div>
+                          ))}
+                          {adminRentOptions.length === 0 && <p className="text-xs text-slate-500 italic text-center py-2">Không có gói thuê nào. Nick chỉ được bán đứt.</p>}
+                        </div>
                       </div>
                     </div>
-                    <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30">
-                      <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
-                        <label className="text-sm text-blue-400 font-bold flex items-center gap-2"><Clock size={16} /> CÁC GÓI THUÊ</label>
-                        <button type="button" onClick={() => setAdminRentOptions([...adminRentOptions, { time: '', bonusTime: '', price: '' }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm gói</button>
-                      </div>
-                      <div className="space-y-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                        {adminRentOptions.map((opt, index) => (
-                          <div key={index} className="flex gap-2 items-center bg-[#0B1120] p-2 rounded-lg border border-slate-700">
-                            <input type="text" placeholder="Giờ thuê" value={opt.time} onChange={e => { const n = [...adminRentOptions]; n[index].time = e.target.value; setAdminRentOptions(n) }} className="w-[30%] p-2 bg-transparent outline-none text-xs text-white" title="VD: 2 Giờ" />
-                            <div className="w-[1px] h-6 bg-slate-700"></div>
-                            <input type="text" placeholder="Tặng thêm" value={opt.bonusTime || ''} onChange={e => { const n = [...adminRentOptions]; n[index].bonusTime = e.target.value; setAdminRentOptions(n) }} className="w-[30%] p-2 bg-transparent outline-none text-xs text-emerald-400" title="VD: 30 Phút hoặc 1 Giờ" />
-                            <div className="w-[1px] h-6 bg-slate-700"></div>
-                            <input type="number" placeholder="Giá (đ)" value={opt.price} onChange={e => { const n = [...adminRentOptions]; n[index].price = e.target.value; setAdminRentOptions(n) }} className="w-[30%] p-2 bg-transparent outline-none text-xs text-white font-bold" />
-                            <button type="button" onClick={() => setAdminRentOptions(adminRentOptions.filter((_, i) => i !== index))} className="w-[10%] text-slate-500 hover:text-rose-500 flex justify-center transition-colors"><X size={18} /></button>
-                          </div>
-                        ))}
-                        {adminRentOptions.length === 0 && <p className="text-xs text-slate-500 italic text-center py-2">Không có gói thuê nào. Nick chỉ được bán đứt.</p>}
+
+                    <div className="md:col-span-2 bg-rose-900/10 p-5 rounded-xl border border-rose-500/30">
+                      <p className="text-sm font-bold text-rose-400 mb-4 flex items-center gap-2"><Key size={16} /> Tài khoản & Mật khẩu Game (Bảo mật)</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[10px] text-slate-400 mb-1 block">Tài khoản đăng nhập</label>
+                          <input name="accUsername" defaultValue={editingAccount?.accUsername} placeholder="Tài khoản..." className="w-full p-3 bg-[#0B1120] border border-slate-700 focus:border-rose-500 outline-none rounded-lg text-white font-mono" required />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-400 mb-1 block">Mật khẩu</label>
+                          <input name="accPassword" defaultValue={editingAccount?.accPassword} placeholder="Mật khẩu..." className="w-full p-3 bg-[#0B1120] border border-slate-700 focus:border-rose-500 outline-none rounded-lg text-white font-mono" required />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-400 mb-1 block">Email (Nếu có)</label>
+                          <input name="accEmail" defaultValue={editingAccount?.accEmail} placeholder="VD: lienquan@gmail.com" className="w-full p-3 bg-[#0B1120] border border-slate-700 focus:border-rose-500 outline-none rounded-lg text-white font-mono" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-400 mb-1 block">SĐT (Nếu có)</label>
+                          <input name="accPhone" type="tel" pattern="[0-9]{10,11}" maxLength="11" onInput={enforceNumberInput} defaultValue={editingAccount?.accPhone} placeholder="VD: 0912345678" className="w-full p-3 bg-[#0B1120] border border-slate-700 focus:border-rose-500 outline-none rounded-lg text-white font-mono" />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="md:col-span-2 bg-rose-900/10 p-5 rounded-xl border border-rose-500/30">
-                    <p className="text-sm font-bold text-rose-400 mb-4 flex items-center gap-2"><Key size={16} /> Tài khoản & Mật khẩu Game (Bảo mật)</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-[10px] text-slate-400 mb-1 block">Tài khoản đăng nhập</label>
-                        <input name="accUsername" defaultValue={editingAccount?.accUsername} placeholder="Tài khoản..." className="w-full p-3 bg-[#0B1120] border border-slate-700 focus:border-rose-500 outline-none rounded-lg text-white font-mono" required />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-slate-400 mb-1 block">Mật khẩu</label>
-                        <input name="accPassword" defaultValue={editingAccount?.accPassword} placeholder="Mật khẩu..." className="w-full p-3 bg-[#0B1120] border border-slate-700 focus:border-rose-500 outline-none rounded-lg text-white font-mono" required />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-slate-400 mb-1 block">Email (Nếu có)</label>
-                        <input name="accEmail" defaultValue={editingAccount?.accEmail} placeholder="VD: lienquan@gmail.com" className="w-full p-3 bg-[#0B1120] border border-slate-700 focus:border-rose-500 outline-none rounded-lg text-white font-mono" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-slate-400 mb-1 block">SĐT (Nếu có)</label>
-                        <input name="accPhone" type="tel" pattern="[0-9]{10,11}" maxLength="11" onInput={enforceNumberInput} defaultValue={editingAccount?.accPhone} placeholder="VD: 0912345678" className="w-full p-3 bg-[#0B1120] border border-slate-700 focus:border-rose-500 outline-none rounded-lg text-white font-mono" />
-                      </div>
+                    <div className="md:col-span-2"><label className="text-xs text-slate-400 font-bold block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingAccount?.description} placeholder="Viết vài dòng mô tả chi tiết về nick này để khách dễ chọn..." rows="4" className="w-full p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-xl text-white resize-none" required></textarea></div>
+
+                    <div className="md:col-span-2 flex gap-4 mt-6">
+                      <button type="button" onClick={() => setShowAccModal(false)} className="w-1/3 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl transition-colors">Hủy Bỏ</button>
+                      <button type="submit" className="w-2/3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-600/20 transition-colors flex items-center justify-center gap-2"><Save size={20} /> Hoàn Tất Lưu</button>
                     </div>
-                  </div>
-
-                  <div className="md:col-span-2"><label className="text-xs text-slate-400 font-bold block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingAccount?.description} placeholder="Viết vài dòng mô tả chi tiết về nick này để khách dễ chọn..." rows="4" className="w-full p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-xl text-white resize-none" required></textarea></div>
-
-                  <div className="md:col-span-2 flex gap-4 mt-6">
-                    <button type="button" onClick={() => setShowAccModal(false)} className="w-1/3 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl transition-colors">Hủy Bỏ</button>
-                    <button type="submit" className="w-2/3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-600/20 transition-colors flex items-center justify-center gap-2"><Save size={20} /> Hoàn Tất Lưu</button>
-                  </div>
                   </form>
                 </div>
               </div>
@@ -5983,153 +5985,153 @@ const App = () => {
                   <button onClick={() => setShowBoostingModal(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
                 </div>
                 <form onSubmit={handleSaveBoosting}>
-                <div className="md:grid md:grid-cols-2 md:gap-6">
-                {/* === CỘT TRÁI === */}
-                <div className="space-y-4">
-                  {/* --- KHU VỰC UP ẢNH CÀY THUÊ CÓ NÚT X --- */}
-                  <div>
-                    <label className="text-xs text-slate-400 font-bold">Ảnh mô tả dịch vụ (Tùy chọn)</label>
-                    <div className="mt-1 border border-dashed border-slate-600 rounded-xl p-4 text-center hover:bg-slate-800/50 transition-colors relative group bg-[#0B1120]">
-                      <input type="file" accept="image/*" onChange={handleBoostingImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                      {adminBoostingImage ? (
-                        <div className="relative z-20">
-                          <img src={adminBoostingImage} className="mx-auto h-24 object-cover rounded-lg shadow-md w-full" alt="Preview" />
-                          <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAdminBoostingImage(null); }} className="absolute top-2 right-2 bg-rose-500 hover:bg-rose-600 text-white p-1.5 rounded-full shadow-lg transition-colors z-30" title="Xóa ảnh này"><X size={14} /></button>
+                  <div className="md:grid md:grid-cols-2 md:gap-6">
+                    {/* === CỘT TRÁI === */}
+                    <div className="space-y-4">
+                      {/* --- KHU VỰC UP ẢNH CÀY THUÊ CÓ NÚT X --- */}
+                      <div>
+                        <label className="text-xs text-slate-400 font-bold">Ảnh mô tả dịch vụ (Tùy chọn)</label>
+                        <div className="mt-1 border border-dashed border-slate-600 rounded-xl p-4 text-center hover:bg-slate-800/50 transition-colors relative group bg-[#0B1120]">
+                          <input type="file" accept="image/*" onChange={handleBoostingImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                          {adminBoostingImage ? (
+                            <div className="relative z-20">
+                              <img src={adminBoostingImage} className="mx-auto h-24 object-cover rounded-lg shadow-md w-full" alt="Preview" />
+                              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAdminBoostingImage(null); }} className="absolute top-2 right-2 bg-rose-500 hover:bg-rose-600 text-white p-1.5 rounded-full shadow-lg transition-colors z-30" title="Xóa ảnh này"><X size={14} /></button>
+                            </div>
+                          ) : (
+                            <div className="text-slate-500 flex flex-col items-center"><ImageIcon size={28} className="mb-2" /><span className="text-[10px] font-bold">Bấm để tải Ảnh lên</span></div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* CHỌN LOẠI CÀY VÀ TÊN GAME */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs text-slate-400 block mb-1">Cày gì?</label>
+                          <select name="boostType" value={adminBoostType} onChange={(e) => setAdminBoostType(e.target.value)} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
+                            <option value="rank">Cày Rank</option>
+                            <option value="event">Cày Sự Kiện</option>
+                          </select>
+                        </div>
+                        {/* LUÔN HIỆN Ô TÊN GAME CHO CẢ 2 LOẠI */}
+                        <div>
+                          <label className="text-xs text-slate-400 block mb-1">Tên Game</label>
+                          <input name="game" defaultValue={editingBoosting?.game && editingBoosting.game !== 'Cày Sự Kiện' ? editingBoosting.game : ''} placeholder="VD: Liên Quân, Tốc Chiến..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required />
+                        </div>
+                      </div>
+
+                      {/* Nếu chọn Cày Sự Kiện thì hiện thêm ô Tên Sự Kiện */}
+                      {adminBoostType === 'event' && (
+                        <div>
+                          <label className="text-xs text-rose-400 font-bold block mb-1">Sự Kiện Gì?</label>
+                          <input name="eventName" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.title : ''} placeholder="VD: Cày Sổ Sứ Mệnh, Sự kiện Tết..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-rose-500" required />
+                        </div>
+                      )}
+                      {/* 1. HIỆN Ô TÍCH CHỌN KHI LÀ CÀY SỰ KIỆN */}
+                      {adminBoostType === 'event' && (
+                        <label className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer mb-4 transition-colors hover:bg-blue-500/20 shadow-inner">
+                          <input
+                            type="checkbox"
+                            checked={isEventMultiPackage}
+                            onChange={(e) => setIsEventMultiPackage(e.target.checked)}
+                            className="w-5 h-5 accent-blue-500 cursor-pointer"
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold text-blue-400">Bật chia nhiều Gói nhỏ</span>
+                            <span className="text-[10px] text-slate-500">Tích vào nếu muốn khách chọn mốc (VD: Mốc 1, Mốc 2...)</span>
+                          </div>
+                        </label>
+                      )}
+
+                      {adminBoostType === 'rank' ? (
+                        <>
+                          <div><label className="text-xs text-slate-400 block mb-1">Tiêu đề Gói</label><input name="title" defaultValue={editingBoosting?.title} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required /></div>
+                          <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingBoosting?.desc} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
+                          <div><label className="text-xs text-slate-400 block mb-1">Đơn vị hiển thị sau giá <span className="text-slate-600">(VD: điểm, bậc, gói...)</span></label><input name="priceUnit" value={adminBoostingPriceUnit} onChange={e => setAdminBoostingPriceUnit(e.target.value)} placeholder="Để trống nếu không cần" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-emerald-500" /></div>
+                        </>
+                      ) : (
+                        <>
+                          <div><label className="text-xs text-slate-400 block mb-1">Số lượng / Mô tả chi tiết</label><textarea name="amount" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.desc : ''} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
+                          <div><label className="text-xs text-slate-400 block mb-1">Đơn vị hiển thị sau giá <span className="text-slate-600">(VD: điểm, bậc, gói...)</span></label><input name="priceUnit" value={adminBoostingPriceUnit} onChange={e => setAdminBoostingPriceUnit(e.target.value)} placeholder="Để trống nếu không cần" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-emerald-500" /></div>
+                          <label className="flex items-center gap-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg cursor-pointer">
+                            <input type="checkbox" name="requireLogin" defaultChecked={editingBoosting?.type === 'event' ? editingBoosting.require_login : false} className="w-5 h-5 accent-rose-500 cursor-pointer" />
+                            <span className="text-sm font-bold text-rose-400">Yêu cầu cung cấp TK/MK?</span>
+                          </label>
+                        </>
+                      )}
+                    </div>
+                    {/* === CỘT PHẢI: Chỉ chứa Bảng giá mốc === */}
+                    <div className="space-y-4 mt-4 md:mt-0">
+                      {(adminBoostType === 'rank' || (adminBoostType === 'event' && isEventMultiPackage)) ? (
+                        <div>
+                          <div className="mb-4 bg-rose-900/10 p-4 rounded-xl border border-rose-500/30">
+                            <label className="text-xs text-rose-400 font-bold block mb-1">Giảm Giá Chung (%) (Tùy chọn)</label>
+                            <input name="discountPercent" type="number" min="0" max="100" defaultValue={editingBoosting?.discountPercent || ''} placeholder="VD: 10 (Sẽ trừ thẳng 10% khi khách thanh toán)" className="w-full p-3 bg-[#0B1120] border border-rose-500/50 rounded-lg text-rose-400 font-bold outline-none focus:border-rose-400" />
+                          </div>
+                          <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30">
+                            <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
+                              <label className="text-sm text-blue-400 font-bold flex items-center gap-2">
+                                <Target size={16} /> {adminBoostType === 'rank' ? 'CÁC MỐC RANK & GIÁ' : 'DANH SÁCH GÓI & GIÁ'}
+                              </label>
+                              <button type="button" onClick={() => setAdminRankOptions([...adminRankOptions, { rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm mốc</button>
+                            </div>
+                            <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
+                              {adminRankOptions.map((opt, index) => (
+                                <div key={index} className="bg-[#0B1120] p-3 rounded-lg border border-slate-700 space-y-2">
+                                  <div className="flex gap-2 items-center">
+                                    <input type="text" placeholder="Tên mốc (VD: Sao Băng V → Ngôi Sao V)" value={opt.rank} onChange={e => { const n = [...adminRankOptions]; n[index].rank = e.target.value; setAdminRankOptions(n) }} className="flex-1 p-2 bg-transparent outline-none text-sm text-white border-b border-slate-700 focus:border-blue-500" required />
+                                    <button type="button" onClick={() => setAdminRankOptions(adminRankOptions.filter((_, i) => i !== index))} className="w-8 text-slate-500 hover:text-rose-500 flex justify-center transition-colors"><X size={18} /></button>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-slate-500 font-bold shrink-0">LOẠI:</span>
+                                    <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'bac'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'bac' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Bậc</button>
+                                    <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'diem'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'diem' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Điểm</button>
+                                    {opt.inputType === 'bac' && (
+                                      <>
+                                        <div className="w-[1px] h-5 bg-slate-700"></div>
+                                        <span className="text-[10px] text-slate-500 font-bold shrink-0">SỐ BẬC:</span>
+                                        <input type="number" min="1" max="10" value={opt.tierCount || 1} onChange={e => { const n = [...adminRankOptions]; n[index].tierCount = Math.max(1, Math.min(10, parseInt(e.target.value) || 1)); setAdminRankOptions(n); }} className="w-14 p-1 bg-slate-900 rounded text-center text-xs text-blue-400 font-bold border border-blue-500/30 outline-none focus:border-blue-500" />
+                                      </>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className={opt.inputType === 'bac' && (opt.tierCount || 1) <= 1 ? "col-span-2" : ""}>
+                                      <label className="text-[10px] text-slate-500 block">Giá bậc lẻ {opt.inputType === 'diem' ? '(đ/điểm)' : '(đ/bậc)'}</label>
+                                      <input type="number" placeholder="VD: 15000" value={opt.price} onChange={e => { const n = [...adminRankOptions]; n[index].price = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-white font-bold border border-slate-700 focus:border-blue-500" required />
+                                    </div>
+                                    {!(opt.inputType === 'bac' && (opt.tierCount || 1) <= 1) && (
+                                      <div>
+                                        <label className="text-[10px] text-slate-500 block">Giá combo (trọn gói)</label>
+                                        <input type="number" placeholder="VD: 70000" value={opt.comboPrice} onChange={e => { const n = [...adminRankOptions]; n[index].comboPrice = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-emerald-400 font-bold border border-slate-700 focus:border-emerald-500" required />
+                                      </div>
+                                    )}
+                                  </div>
+                                  {opt.inputType === 'diem' && (
+                                    <div>
+                                      <label className="text-[10px] text-yellow-400 block">Giới hạn điểm tối đa</label>
+                                      <input type="number" placeholder="VD: 300" value={opt.maxPoints} onChange={e => { const n = [...adminRankOptions]; n[index].maxPoints = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-yellow-400 font-bold border border-yellow-500/30 focus:border-yellow-500" required />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         </div>
                       ) : (
-                        <div className="text-slate-500 flex flex-col items-center"><ImageIcon size={28} className="mb-2" /><span className="text-[10px] font-bold">Bấm để tải Ảnh lên</span></div>
+                        /* HIỆN Ô NHẬP GIÁ TRỌN GÓI NẾU KHÔNG TÍCH Ô CHIA GÓI */
+                        <div className="mb-4 grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs text-emerald-400 block mb-1">Giá tiền gốc (VNĐ)</label>
+                            <input name="basePrice" type="number" defaultValue={editingBoosting ? (editingBoosting.oldPrice || editingBoosting.price) : ''} className="w-full p-3 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-bold outline-none focus:border-emerald-500" required />
+                          </div>
+                          <div>
+                            <label className="text-xs text-rose-400 block mb-1">Giá đã giảm (Tùy chọn)</label>
+                            <input name="discountedPrice" type="number" defaultValue={editingBoosting?.oldPrice ? editingBoosting.price : ''} className="w-full p-3 bg-[#0B1120] border border-rose-500/50 rounded-lg text-rose-400 font-bold outline-none focus:border-rose-400" />
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
-
-                  {/* CHỌN LOẠI CÀY VÀ TÊN GAME */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-slate-400 block mb-1">Cày gì?</label>
-                      <select name="boostType" value={adminBoostType} onChange={(e) => setAdminBoostType(e.target.value)} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
-                        <option value="rank">Cày Rank</option>
-                        <option value="event">Cày Sự Kiện</option>
-                      </select>
-                    </div>
-                    {/* LUÔN HIỆN Ô TÊN GAME CHO CẢ 2 LOẠI */}
-                    <div>
-                      <label className="text-xs text-slate-400 block mb-1">Tên Game</label>
-                      <input name="game" defaultValue={editingBoosting?.game && editingBoosting.game !== 'Cày Sự Kiện' ? editingBoosting.game : ''} placeholder="VD: Liên Quân, Tốc Chiến..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required />
-                    </div>
-                  </div>
-
-                  {/* Nếu chọn Cày Sự Kiện thì hiện thêm ô Tên Sự Kiện */}
-                  {adminBoostType === 'event' && (
-                    <div>
-                      <label className="text-xs text-rose-400 font-bold block mb-1">Sự Kiện Gì?</label>
-                      <input name="eventName" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.title : ''} placeholder="VD: Cày Sổ Sứ Mệnh, Sự kiện Tết..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-rose-500" required />
-                    </div>
-                  )}
-                  {/* 1. HIỆN Ô TÍCH CHỌN KHI LÀ CÀY SỰ KIỆN */}
-                  {adminBoostType === 'event' && (
-                    <label className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer mb-4 transition-colors hover:bg-blue-500/20 shadow-inner">
-                      <input
-                        type="checkbox"
-                        checked={isEventMultiPackage}
-                        onChange={(e) => setIsEventMultiPackage(e.target.checked)}
-                        className="w-5 h-5 accent-blue-500 cursor-pointer"
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-blue-400">Bật chia nhiều Gói nhỏ</span>
-                        <span className="text-[10px] text-slate-500">Tích vào nếu muốn khách chọn mốc (VD: Mốc 1, Mốc 2...)</span>
-                      </div>
-                    </label>
-                  )}
-
-                  {adminBoostType === 'rank' ? (
-                    <>
-                      <div><label className="text-xs text-slate-400 block mb-1">Tiêu đề Gói</label><input name="title" defaultValue={editingBoosting?.title} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required /></div>
-                      <div><label className="text-xs text-slate-400 block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingBoosting?.desc} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
-                      <div><label className="text-xs text-slate-400 block mb-1">Đơn vị hiển thị sau giá <span className="text-slate-600">(VD: điểm, bậc, gói...)</span></label><input name="priceUnit" value={adminBoostingPriceUnit} onChange={e => setAdminBoostingPriceUnit(e.target.value)} placeholder="Để trống nếu không cần" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-emerald-500" /></div>
-                    </>
-                  ) : (
-                    <>
-                      <div><label className="text-xs text-slate-400 block mb-1">Số lượng / Mô tả chi tiết</label><textarea name="amount" defaultValue={editingBoosting?.type === 'event' ? editingBoosting.desc : ''} rows="3" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required></textarea></div>
-                      <div><label className="text-xs text-slate-400 block mb-1">Đơn vị hiển thị sau giá <span className="text-slate-600">(VD: điểm, bậc, gói...)</span></label><input name="priceUnit" value={adminBoostingPriceUnit} onChange={e => setAdminBoostingPriceUnit(e.target.value)} placeholder="Để trống nếu không cần" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-emerald-500" /></div>
-                      <label className="flex items-center gap-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg cursor-pointer">
-                        <input type="checkbox" name="requireLogin" defaultChecked={editingBoosting?.type === 'event' ? editingBoosting.require_login : false} className="w-5 h-5 accent-rose-500 cursor-pointer" />
-                        <span className="text-sm font-bold text-rose-400">Yêu cầu cung cấp TK/MK?</span>
-                      </label>
-                    </>
-                  )}
-                </div>
-                {/* === CỘT PHẢI: Chỉ chứa Bảng giá mốc === */}
-                <div className="space-y-4 mt-4 md:mt-0">
-                  {(adminBoostType === 'rank' || (adminBoostType === 'event' && isEventMultiPackage)) ? (
-                    <div>
-                      <div className="mb-4 bg-rose-900/10 p-4 rounded-xl border border-rose-500/30">
-                        <label className="text-xs text-rose-400 font-bold block mb-1">Giảm Giá Chung (%) (Tùy chọn)</label>
-                        <input name="discountPercent" type="number" min="0" max="100" defaultValue={editingBoosting?.discountPercent || ''} placeholder="VD: 10 (Sẽ trừ thẳng 10% khi khách thanh toán)" className="w-full p-3 bg-[#0B1120] border border-rose-500/50 rounded-lg text-rose-400 font-bold outline-none focus:border-rose-400" />
-                      </div>
-                      <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30">
-                        <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
-                        <label className="text-sm text-blue-400 font-bold flex items-center gap-2">
-                          <Target size={16} /> {adminBoostType === 'rank' ? 'CÁC MỐC RANK & GIÁ' : 'DANH SÁCH GÓI & GIÁ'}
-                        </label>
-                        <button type="button" onClick={() => setAdminRankOptions([...adminRankOptions, { rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm mốc</button>
-                      </div>
-                      <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
-                        {adminRankOptions.map((opt, index) => (
-                          <div key={index} className="bg-[#0B1120] p-3 rounded-lg border border-slate-700 space-y-2">
-                            <div className="flex gap-2 items-center">
-                              <input type="text" placeholder="Tên mốc (VD: Sao Băng V → Ngôi Sao V)" value={opt.rank} onChange={e => { const n = [...adminRankOptions]; n[index].rank = e.target.value; setAdminRankOptions(n) }} className="flex-1 p-2 bg-transparent outline-none text-sm text-white border-b border-slate-700 focus:border-blue-500" required />
-                              <button type="button" onClick={() => setAdminRankOptions(adminRankOptions.filter((_, i) => i !== index))} className="w-8 text-slate-500 hover:text-rose-500 flex justify-center transition-colors"><X size={18} /></button>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-slate-500 font-bold shrink-0">LOẠI:</span>
-                              <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'bac'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'bac' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Bậc</button>
-                              <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'diem'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'diem' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Điểm</button>
-                              {opt.inputType === 'bac' && (
-                                <>
-                                  <div className="w-[1px] h-5 bg-slate-700"></div>
-                                  <span className="text-[10px] text-slate-500 font-bold shrink-0">SỐ BẬC:</span>
-                                  <input type="number" min="1" max="10" value={opt.tierCount || 1} onChange={e => { const n = [...adminRankOptions]; n[index].tierCount = Math.max(1, Math.min(10, parseInt(e.target.value) || 1)); setAdminRankOptions(n); }} className="w-14 p-1 bg-slate-900 rounded text-center text-xs text-blue-400 font-bold border border-blue-500/30 outline-none focus:border-blue-500" />
-                                </>
-                              )}
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className={opt.inputType === 'bac' && (opt.tierCount || 1) <= 1 ? "col-span-2" : ""}>
-                                <label className="text-[10px] text-slate-500 block">Giá bậc lẻ {opt.inputType === 'diem' ? '(đ/điểm)' : '(đ/bậc)'}</label>
-                                <input type="number" placeholder="VD: 15000" value={opt.price} onChange={e => { const n = [...adminRankOptions]; n[index].price = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-white font-bold border border-slate-700 focus:border-blue-500" required />
-                              </div>
-                              {!(opt.inputType === 'bac' && (opt.tierCount || 1) <= 1) && (
-                                <div>
-                                  <label className="text-[10px] text-slate-500 block">Giá combo (trọn gói)</label>
-                                  <input type="number" placeholder="VD: 70000" value={opt.comboPrice} onChange={e => { const n = [...adminRankOptions]; n[index].comboPrice = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-emerald-400 font-bold border border-slate-700 focus:border-emerald-500" required />
-                                </div>
-                              )}
-                            </div>
-                            {opt.inputType === 'diem' && (
-                              <div>
-                                <label className="text-[10px] text-yellow-400 block">Giới hạn điểm tối đa</label>
-                                <input type="number" placeholder="VD: 300" value={opt.maxPoints} onChange={e => { const n = [...adminRankOptions]; n[index].maxPoints = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-yellow-400 font-bold border border-yellow-500/30 focus:border-yellow-500" required />
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    </div>
-                  ) : (
-                    /* HIỆN Ô NHẬP GIÁ TRỌN GÓI NẾU KHÔNG TÍCH Ô CHIA GÓI */
-                    <div className="mb-4 grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs text-emerald-400 block mb-1">Giá tiền gốc (VNĐ)</label>
-                        <input name="basePrice" type="number" defaultValue={editingBoosting ? (editingBoosting.oldPrice || editingBoosting.price) : ''} className="w-full p-3 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-bold outline-none focus:border-emerald-500" required />
-                      </div>
-                      <div>
-                        <label className="text-xs text-rose-400 block mb-1">Giá đã giảm (Tùy chọn)</label>
-                        <input name="discountedPrice" type="number" defaultValue={editingBoosting?.oldPrice ? editingBoosting.price : ''} className="w-full p-3 bg-[#0B1120] border border-rose-500/50 rounded-lg text-rose-400 font-bold outline-none focus:border-rose-400" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-                </div>
                   <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl mt-6 shadow-lg shadow-blue-600/20">Lưu Dịch Vụ</button>
                 </form>
               </div>
@@ -6620,44 +6622,45 @@ const App = () => {
                       )}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {viewingAcc.rentOptions.map((opt, idx) => {
-                          const activePrice = viewingAcc.rentDiscountPercent > 0 
-                            ? opt.price - Math.floor(opt.price * (viewingAcc.rentDiscountPercent / 100)) 
+                          const activePrice = viewingAcc.rentDiscountPercent > 0
+                            ? opt.price - Math.floor(opt.price * (viewingAcc.rentDiscountPercent / 100))
                             : opt.price;
-                          
+
                           return (
-                          <button
-                            key={idx}
-                            disabled={isCurrentlyRented}
-                            onClick={() => initiateRent(viewingAcc, { ...opt, price: activePrice, originalPrice: opt.price })}
-                            className={`p-4 rounded-xl border transition-all flex flex-col items-center justify-center text-center gap-1 animate-fade-in shadow-inner w-full ${isCurrentlyRented ? 'border-slate-800 bg-slate-900/50 opacity-50 cursor-not-allowed' : 'border-slate-800 bg-[#0B1120] hover:border-blue-500 hover:bg-blue-900/20 cursor-pointer'}`}
-                          >
-                            <div className="flex flex-col items-center gap-1.5 w-full mb-1">
-                              <p className="font-black text-xl text-white">Thuê {opt.time}</p>
-                              {opt.bonusTime && (
-                                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 whitespace-nowrap font-bold shadow-sm">
-                                  + Tặng {opt.bonusTime}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center justify-center gap-1.5 text-blue-400 mt-2 border-t border-slate-800 w-full pt-3 relative">
-                              {viewingAcc.rentDiscountPercent > 0 && (
-                                <div className="absolute top-0 right-2 bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-lg transform -translate-y-1/2">
-                                  -{viewingAcc.rentDiscountPercent}%
-                                </div>
-                              )}
-                              <Wallet size={16} className="text-blue-500" />
-                              <div className="flex flex-col items-start leading-tight">
-                                {viewingAcc.rentDiscountPercent > 0 && (
-                                  <p className="text-[10px] text-slate-500 line-through -mb-0.5">{new Intl.NumberFormat('vi-VN').format(opt.price)}đ</p>
+                            <button
+                              key={idx}
+                              disabled={isCurrentlyRented}
+                              onClick={() => initiateRent(viewingAcc, { ...opt, price: activePrice, originalPrice: opt.price })}
+                              className={`p-4 rounded-xl border transition-all flex flex-col items-center justify-center text-center gap-1 animate-fade-in shadow-inner w-full ${isCurrentlyRented ? 'border-slate-800 bg-slate-900/50 opacity-50 cursor-not-allowed' : 'border-slate-800 bg-[#0B1120] hover:border-blue-500 hover:bg-blue-900/20 cursor-pointer'}`}
+                            >
+                              <div className="flex flex-col items-center gap-1.5 w-full mb-1">
+                                <p className="font-black text-xl text-white">Thuê {opt.time}</p>
+                                {opt.bonusTime && (
+                                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 whitespace-nowrap font-bold shadow-sm">
+                                    + Tặng {opt.bonusTime}
+                                  </span>
                                 )}
-                                <p className="font-black text-lg">
-                                  {new Intl.NumberFormat('vi-VN').format(activePrice)}
-                                  <span className="text-xs ml-0.5">đ</span>
-                                </p>
                               </div>
-                            </div>
-                          </button>
-                        )})}
+                              <div className="flex items-center justify-center gap-1.5 text-blue-400 mt-2 border-t border-slate-800 w-full pt-3 relative">
+                                {viewingAcc.rentDiscountPercent > 0 && (
+                                  <div className="absolute top-0 right-2 bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-lg transform -translate-y-1/2">
+                                    -{viewingAcc.rentDiscountPercent}%
+                                  </div>
+                                )}
+                                <Wallet size={16} className="text-blue-500" />
+                                <div className="flex flex-col items-start leading-tight">
+                                  {viewingAcc.rentDiscountPercent > 0 && (
+                                    <p className="text-[10px] text-slate-500 line-through -mb-0.5">{new Intl.NumberFormat('vi-VN').format(opt.price)}đ</p>
+                                  )}
+                                  <p className="font-black text-lg">
+                                    {new Intl.NumberFormat('vi-VN').format(activePrice)}
+                                    <span className="text-xs ml-0.5">đ</span>
+                                  </p>
+                                </div>
+                              </div>
+                            </button>
+                          )
+                        })}
                       </div>
                     </div>
                   )}
@@ -6857,8 +6860,8 @@ const App = () => {
                       // Tự động lưu CCCD vào profile theo yêu cầu nếu khách có cung cấp
                       if (!skipKyc && rentKycMethod === 'cccd' && finalImgBase64) {
                         const { error: cccdErr } = await supabase.from('users').update({
-                           cccd_image: finalImgBase64,
-                           cccd_number: capturedCccd
+                          cccd_image: finalImgBase64,
+                          cccd_number: capturedCccd
                         }).eq('id', currentUser.id);
                         if (cccdErr) console.error("Lỗi cập nhật CCCD:", cccdErr);
                       }
@@ -7160,7 +7163,7 @@ const App = () => {
                           activePrice = comboPrice || perUnitPrice;
                           priceLabel = '(Trọn gói)';
                         } else {
-                          const romanToNum = {'I':1,'II':2,'III':3,'IV':4,'V':5,'VI':6,'VII':7,'VIII':8,'IX':9,'X':10};
+                          const romanToNum = { 'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7, 'VIII': 8, 'IX': 9, 'X': 10 };
                           const stepsRemaining = romanToNum[boostSubTier] || 1;
                           activePrice = perUnitPrice * stepsRemaining;
                           priceLabel = `(${stepsRemaining} bậc × ${new Intl.NumberFormat('vi-VN').format(perUnitPrice)}đ)`;
@@ -7244,7 +7247,7 @@ const App = () => {
                                   )}
                                   {boostSubTier && boostSubTier !== toRoman(optTierCount) && (
                                     <p className="text-[10px] text-blue-400 mt-1.5">
-                                      Bậc {boostSubTier} → Cần cày {({'I':1,'II':2,'III':3,'IV':4,'V':5,'VI':6,'VII':7,'VIII':8,'IX':9,'X':10})[boostSubTier] || '?'} bậc, tính giá bậc lẻ
+                                      Bậc {boostSubTier} → Cần cày {({ 'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7, 'VIII': 8, 'IX': 9, 'X': 10 })[boostSubTier] || '?'} bậc, tính giá bậc lẻ
                                     </p>
                                   )}
                                 </div>
@@ -7411,7 +7414,7 @@ const App = () => {
                         </div>
                         <button type="submit" disabled={isGlobalProcessing} className={`w-full mt-6 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-lg ${isGlobalProcessing ? 'bg-slate-600 cursor-not-allowed opacity-70' : 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/20'}`}>
                           {isGlobalProcessing ? (
-                            <><svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg> Đang xử lý...</>
+                            <><svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg> Đang xử lý...</>
                           ) : (
                             <>Thanh toán {new Intl.NumberFormat('vi-VN').format(activePrice)}đ</>
                           )}
@@ -7481,13 +7484,13 @@ const App = () => {
                         <img src={comment.users?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.users?.name || 'K')}&background=151D2F&color=fff`} className="w-10 h-10 rounded-full border border-slate-700 object-cover" alt="avatar" />
                         <div>
                           <p className="text-sm font-bold text-white">{comment.users?.name || 'Khách'} <span className="text-slate-500 font-normal text-[10px] ml-2">{new Date(comment.created_at).toLocaleString('vi-VN')}</span></p>
-                          <p className="text-xs text-rose-400 mt-0.5 font-bold flex items-center gap-1"><AlertTriangle size={12}/> Bị báo cáo bởi {comment.reported_by.length} người</p>
+                          <p className="text-xs text-rose-400 mt-0.5 font-bold flex items-center gap-1"><AlertTriangle size={12} /> Bị báo cáo bởi {comment.reported_by.length} người</p>
                         </div>
                       </div>
                       <p className="text-slate-300 text-sm mb-4 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
                       <div className="flex items-center gap-3 justify-end">
                         <button onClick={() => handleResolveReport(comment.id, 'keep')} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-bold transition-colors">Bỏ qua báo cáo</button>
-                        <button onClick={() => handleResolveReport(comment.id, 'delete')} className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-rose-600/20 transition-colors flex items-center gap-2"><Trash2 size={16}/> Xóa bình luận</button>
+                        <button onClick={() => handleResolveReport(comment.id, 'delete')} className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-rose-600/20 transition-colors flex items-center gap-2"><Trash2 size={16} /> Xóa bình luận</button>
                       </div>
                     </div>
                   ))
