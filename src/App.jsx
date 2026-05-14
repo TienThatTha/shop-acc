@@ -319,6 +319,7 @@ const App = () => {
   const [editRentModal, setEditRentModal] = useState(null);
   const [activeChatUser, setActiveChatUser] = useState(null);
   const chatMessagesEndRef = useRef(null);
+  const commentTextareaRef = useRef(null);
 
   // CCCD Preview cho form thuê
   const [kycImagePreview, setKycImagePreview] = useState(null);
@@ -753,6 +754,9 @@ const App = () => {
       });
       if (error) throw error;
       setCommentInput('');
+      if (commentTextareaRef.current) {
+        commentTextareaRef.current.style.height = 'auto';
+      }
       showToast("Đã gửi bình luận!");
     } catch (err) {
       console.error(err);
@@ -2159,14 +2163,28 @@ const App = () => {
                   <form onSubmit={handlePostComment} className="flex flex-col gap-2 relative group">
                     <div className="relative">
                       <img src={currentUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name || 'K')}&background=151D2F&color=fff`} alt="avatar" className="w-9 h-9 rounded-full object-cover border border-slate-700 absolute left-1 top-1 z-10 shadow-sm" />
-                      <input
-                        type="text"
+                      <textarea
+                        ref={commentTextareaRef}
+                        rows={1}
                         value={commentInput}
-                        onChange={(e) => setCommentInput(e.target.value)}
+                        onChange={(e) => {
+                          setCommentInput(e.target.value);
+                          e.target.style.height = 'auto';
+                          e.target.style.height = `${e.target.scrollHeight}px`;
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            if (commentInput.trim()) {
+                              handlePostComment(e);
+                            }
+                          }
+                        }}
                         placeholder="Nhập bình luận của bạn..."
-                        className="w-full bg-[#151D2F] border border-slate-700 rounded-full py-2.5 pl-12 pr-12 text-sm text-white focus:outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all"
+                        className="w-full bg-[#151D2F] border border-slate-700 rounded-[21px] py-2.5 pl-12 pr-12 text-sm text-white focus:outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all resize-none overflow-hidden"
+                        style={{ minHeight: '44px', maxHeight: '150px' }}
                       />
-                      <button type="submit" disabled={!commentInput.trim()} className="absolute right-1 top-1 bottom-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-md">
+                      <button type="submit" disabled={!commentInput.trim()} className="absolute right-1 bottom-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-md">
                         <Send size={14} className="ml-0.5" />
                       </button>
                     </div>
