@@ -2018,7 +2018,7 @@ const App = () => {
             <div className="hidden 3xl:block w-[250px] shrink-0 pointer-events-none"></div>
 
             {/* CỘT GIỮA: HERO BANNER & TẤT CẢ TÀI KHOẢN */}
-            <div className="flex-1 w-full space-y-8">
+            <div className="flex-1 w-full max-w-[1300px] space-y-8">
               <section className="relative rounded-2xl border border-slate-800 overflow-hidden shadow-2xl min-h-[350px] flex items-center bg-[#0f172a]">
                 <div className="absolute inset-0 z-0">
                   <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=2000&h=800" alt="Gaming Banner" className="w-full h-full object-cover opacity-30 mix-blend-luminosity" />
