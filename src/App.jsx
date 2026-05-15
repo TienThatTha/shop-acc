@@ -6721,7 +6721,7 @@ const App = () => {
             <button onClick={() => setFullScreenImage(null)} className="absolute top-4 right-4 p-2 bg-slate-800/50 hover:bg-rose-600 rounded-full text-white transition-colors z-[101]">
               <X size={28} />
             </button>
-            <img src={fullScreenImage} className="max-w-full max-h-[90vh] object-contain shadow-2xl border border-slate-800 rounded" alt="Full Screen" />
+            <img src={fullScreenImage} className="max-w-full max-h-[90vh] w-auto h-auto object-contain shadow-2xl border border-slate-800 rounded" alt="Full Screen" />
           </div>
         )}
 
@@ -6736,16 +6736,16 @@ const App = () => {
 
                 <div className="w-full md:w-1/2 bg-[#0B1120] p-4 flex flex-col gap-2 overflow-y-auto custom-scrollbar">
                   <div
-                    className="relative w-full aspect-video rounded-xl overflow-hidden border border-slate-800 bg-black flex items-center justify-center cursor-zoom-in group"
+                    className="relative w-full shrink-0 rounded-xl overflow-hidden border border-slate-800 bg-black cursor-zoom-in group"
                     onClick={() => setFullScreenImage(viewingAllImages[selectedImageIndex])}
                   >
-                    <img src={viewingAllImages[selectedImageIndex]} className="max-w-full max-h-full object-contain" alt="Main View" />
+                    <img src={viewingAllImages[selectedImageIndex]} className="w-full h-auto block" alt="Main View" />
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                       <div className="bg-black/60 p-3 rounded-full text-white flex items-center gap-2"><ZoomIn size={24} /></div>
                     </div>
                   </div>
                   {viewingAllImages.length > 1 && (
-                    <div className="flex gap-2 overflow-x-auto custom-scrollbar py-2">
+                    <div className="flex gap-2 overflow-x-auto custom-scrollbar py-2 shrink-0">
                       {viewingAllImages.map((img, idx) => (
                         <button key={idx} onClick={() => setSelectedImageIndex(idx)} className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-all ${selectedImageIndex === idx ? 'border-blue-500' : 'border-transparent opacity-50 hover:opacity-100'}`}>
                           <img src={img} className="w-full h-full object-cover" />
