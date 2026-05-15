@@ -2780,13 +2780,15 @@ const App = () => {
   const renderNaptienScreen = () => {
     // 1. TẠO BIẾN KIỂM TRA LỆNH ĐANG CHỜ DUYỆT
     const hasPendingRequest = depositRequests.some(d => d.userId === currentUser?.id && d.status === 'Chờ duyệt');
+    const activePendingBankingReq = depositRequests.find(d => d.userId === currentUser?.id && d.status === 'Chờ duyệt' && d.type !== 'card');
 
     const removeAccents = (str) => {
       return str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D') : '';
     }
     // Thay thế đoạn transferContent cũ bằng đoạn này
     const transferContent = `NAP ${currentUser?.phone}`;
-    const qrUrl = pendingDeposit?.amount ? `https://img.vietqr.io/image/tpbank-10002973552-compact2.png?amount=${pendingDeposit.amount}&addInfo=${encodeURIComponent(transferContent)}` : `https://img.vietqr.io/image/tpbank-10002973552-compact2.png`;
+    const displayAmount = activePendingBankingReq ? activePendingBankingReq.amount : pendingDeposit?.amount;
+    const qrUrl = displayAmount ? `https://img.vietqr.io/image/tpbank-10002973552-compact2.png?amount=${displayAmount}&addInfo=${encodeURIComponent(transferContent)}` : `https://img.vietqr.io/image/tpbank-10002973552-compact2.png`;
 
     const handleCreateDepositDraft = (e) => {
       e.preventDefault();
@@ -2957,9 +2959,9 @@ const App = () => {
     return (
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-10">
         {renderNavbar()}
-        <div className="w-full max-w-[1400px] mx-auto mt-8 px-4 lg:pr-28 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="w-full max-w-[1400px] mx-auto mt-8 px-4 lg:pr-28 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="bg-[#151D2F] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden">
-            {depositStep === 1 && (
+            {!activePendingBankingReq && depositStep === 1 && (
               <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-6 text-center">
                 <QrCode size={48} className="text-slate-500 mb-4" />
                 <h3 className="text-white font-bold mb-2">Chưa có mã QR</h3>
@@ -2976,8 +2978,8 @@ const App = () => {
               <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">Số tài khoản:</span><span className="font-bold text-emerald-400 flex items-center gap-2">10002973552 <button onClick={() => copyToClipboard('10002973552')} className="relative z-20"><Copy size={14} className="text-slate-500 hover:text-white" /></button></span></div>
               <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">Chủ tài khoản:</span><span className="font-bold text-white uppercase text-right ml-2 line-clamp-1">NHAM GIA TIEN</span></div>
               <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">Nội dung CK:</span><span className="font-bold text-rose-400 flex items-center justify-end gap-2 ml-2 text-right">{transferContent} <button onClick={() => copyToClipboard(transferContent)} className="relative z-20 shrink-0"><Copy size={14} className="text-slate-500 hover:text-white" /></button></span></div>
-              {depositStep === 2 && pendingDeposit && (
-                <div className="flex justify-between border-b border-slate-800 pb-2 bg-emerald-500/10 p-2 rounded mt-2"><span className="text-slate-400 font-bold">Số tiền:</span><span className="font-black text-emerald-400">{new Intl.NumberFormat('vi-VN').format(pendingDeposit.amount)} đ</span></div>
+              {(activePendingBankingReq || (depositStep === 2 && pendingDeposit)) && (
+                <div className="flex justify-between border-b border-slate-800 pb-2 bg-emerald-500/10 p-2 rounded mt-2"><span className="text-slate-400 font-bold">Số tiền:</span><span className="font-black text-emerald-400">{new Intl.NumberFormat('vi-VN').format(displayAmount)} đ</span></div>
               )}
             </div>
             <p className="text-[10px] md:text-xs text-yellow-500 flex gap-1"><AlertCircle size={14} className="shrink-0" /> Vui lòng chuyển đúng Số tiền và Nội dung để được duyệt tự động.</p>
@@ -3002,7 +3004,16 @@ const App = () => {
             {depositMethod === 'banking' ? (
               <>
                 <h3 className="font-bold text-white mb-4 text-lg">Tạo Lệnh Nạp</h3>
-                {depositStep === 1 ? (
+                {activePendingBankingReq ? (
+                  <div className="text-center bg-[#0B1120] p-4 md:p-6 rounded-xl border border-blue-500/30">
+                    <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/30">
+                      <Clock size={30} className="text-blue-400 animate-pulse" />
+                    </div>
+                    <h4 className="text-white font-bold text-lg mb-2">Đang chờ Admin duyệt</h4>
+                    <p className="text-sm text-slate-400 mb-6">Lệnh nạp <strong className="text-blue-400">{new Intl.NumberFormat('vi-VN').format(activePendingBankingReq.amount)}đ</strong> của bạn đang được xử lý. Mã QR sẽ hiển thị cho tới khi đơn hàng được duyệt.</p>
+                    <button onClick={() => handleCancelDepositClient(activePendingBankingReq.id)} className="w-full bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-bold text-white transition-colors text-sm">Hủy Lệnh Nạp</button>
+                  </div>
+                ) : depositStep === 1 ? (
                   <form onSubmit={handleCreateDepositDraft}>
                     <p className="text-sm text-slate-400 mb-4">Nhập số tiền để hệ thống tạo mã quét QR thanh toán nhanh cho bạn.</p>
                     <div className="mb-4">
@@ -3122,6 +3133,43 @@ const App = () => {
               </div>
             </div>
           </div>
+
+          {/* KHUYẾN MÃI MỚI PANE */}
+          <div className="bg-gradient-to-br from-[#151D2F] to-[#1e1423] p-5 rounded-2xl border border-pink-500/30 h-fit shadow-lg shadow-pink-500/5">
+            <div className="flex items-center gap-4 mb-5 border-b border-slate-800/80 pb-4">
+              <div className="relative">
+                <div className="w-12 h-12 bg-[#0B1120] rounded-xl flex items-center justify-center border border-pink-500/40 z-10 relative shadow-[0_0_15px_rgba(236,72,153,0.3)]">
+                  <Gift size={24} className="text-pink-400" />
+                </div>
+                <div className="absolute inset-0 bg-pink-500/20 blur-md rounded-xl"></div>
+              </div>
+              <div>
+                <h3 className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-rose-400 text-lg uppercase tracking-wide">Đặc Quyền Nạp</h3>
+                <p className="text-[11px] text-slate-400 font-medium">Chỉ dành cho bạn hôm nay</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="group bg-[#0B1120]/60 hover:bg-[#0B1120] transition-colors p-4 rounded-xl border border-slate-800/80 hover:border-pink-500/30 flex items-start gap-3 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-pink-500/10 to-transparent rounded-bl-full -z-0"></div>
+                <Ticket size={22} className="text-pink-400 shrink-0 relative z-10 mt-0.5" />
+                <div className="relative z-10">
+                  <p className="text-sm text-slate-300">Nhận ngay <strong className="text-pink-400 text-base">1 Lượt Quay</strong> cho mỗi <strong className="text-white">20.000đ</strong> nạp vào.</p>
+                  <p className="text-[11px] text-pink-500/80 mt-1.5 flex items-center gap-1 font-medium"><CheckCircle2 size={12} /> Tích lũy không giới hạn</p>
+                </div>
+              </div>
+
+              <div className="group bg-[#0B1120]/60 hover:bg-[#0B1120] transition-colors p-4 rounded-xl border border-slate-800/80 hover:border-yellow-500/30 flex items-start gap-3 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-yellow-500/10 to-transparent rounded-bl-full -z-0"></div>
+                <Flame size={22} className="text-yellow-400 shrink-0 relative z-10 mt-0.5" />
+                <div className="relative z-10">
+                  <p className="text-sm text-slate-300">Thử vận may với giải thưởng cực khủng lên đến:</p>
+                  <p className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500 mt-1 drop-shadow-sm">500.000 VNĐ</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
         {renderFooter()}
       </div>
