@@ -2015,7 +2015,7 @@ const App = () => {
           <div className="flex flex-col xl:flex-row gap-6 justify-center">
 
             {/* CỘT TRÁI: KHOẢNG TRỐNG CÂN BẰNG BỐ CỤC */}
-            <div className="hidden 2xl:block w-[450px] shrink-0 pointer-events-none"></div>
+            <div className="hidden 3xl:block w-[250px] shrink-0 pointer-events-none"></div>
 
             {/* CỘT GIỮA: HERO BANNER & TẤT CẢ TÀI KHOẢN */}
             <div className="flex-1 w-full max-w-[1300px] mx-auto space-y-8">
@@ -2101,7 +2101,7 @@ const App = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                   {filteredAccounts.map((acc, index) => {
                     const isRented = acc.rentedUntil && acc.rentedUntil > now;
                     let timeStr = "";
@@ -2230,7 +2230,7 @@ const App = () => {
             </div>
 
             {/* CỘT PHẢI: KHUNG HỎI ĐÁP / BÌNH LUẬN */}
-            <div className="hidden 2xl:block w-[450px] shrink-0 relative -left-8 2xl:-left-12">
+            <div className="hidden xl:block w-[350px] 2xl:w-[400px] shrink-0 relative">
               <div className="bg-[#151D2F] rounded-xl border border-slate-800 shadow-xl overflow-hidden flex flex-col h-[600px] xl:h-[800px] xl:sticky xl:top-24">
                 <div className="p-4 bg-gradient-to-r from-blue-600/20 to-rose-600/20 border-b border-slate-700 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -2959,8 +2959,10 @@ const App = () => {
     return (
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-10">
         {renderNavbar()}
-        <div className="w-full max-w-[1400px] mx-auto mt-8 px-4 lg:pr-28 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="bg-[#151D2F] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden">
+        <div className="w-full max-w-[1500px] mx-auto mt-8 px-4 grid grid-cols-1 lg:grid-cols-[1fr_1fr_350px] xl:grid-cols-[1fr_1fr_400px] gap-6">
+          
+          {/* CỘT 1: MÃ QR */}
+          <div className="bg-[#151D2F] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden h-fit">
             {!activePendingBankingReq && depositStep === 1 && (
               <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-6 text-center">
                 <QrCode size={48} className="text-slate-500 mb-4" />
@@ -2985,6 +2987,7 @@ const App = () => {
             <p className="text-[10px] md:text-xs text-yellow-500 flex gap-1"><AlertCircle size={14} className="shrink-0" /> Vui lòng chuyển đúng Số tiền và Nội dung để được duyệt tự động.</p>
           </div>
 
+          {/* CỘT 2: FORM */}
           <div className="bg-[#151D2F] p-6 rounded-2xl border border-slate-800 h-fit shadow-xl">
             <div className="flex gap-2 mb-4 p-1 bg-[#0B1120] rounded-xl border border-slate-800">
               <button
@@ -3134,7 +3137,7 @@ const App = () => {
             </div>
           </div>
 
-          {/* KHUYẾN MÃI MỚI PANE */}
+          {/* CỘT 3: ĐẶC QUYỀN NẠP */}
           <div className="bg-gradient-to-br from-[#151D2F] to-[#1e1423] p-5 rounded-2xl border border-pink-500/30 h-fit shadow-lg shadow-pink-500/5">
             <div className="flex items-center gap-4 mb-5 border-b border-slate-800/80 pb-4">
               <div className="relative">
