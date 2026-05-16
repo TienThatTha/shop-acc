@@ -1,0 +1,1 @@
+ALTER TABLE boosting ADD COLUMN IF NOT EXISTS allow_quantity BOOLEAN DEFAULT false;

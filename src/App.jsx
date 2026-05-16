@@ -309,6 +309,7 @@ const App = () => {
   // Helper: số → La Mã (1-10)
   const toRoman = (n) => ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n - 1] || n.toString();
   const [boostCurrentPoints, setBoostCurrentPoints] = useState('');
+  const [boostQuantity, setBoostQuantity] = useState(1);
   const [adminBoostingImage, setAdminBoostingImage] = useState(null);
   const [adminBoostingPriceUnit, setAdminBoostingPriceUnit] = useState('');
   const [showWheelModal, setShowWheelModal] = useState(false);
@@ -737,6 +738,13 @@ const App = () => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [currentView, profileTab, messagesDb, currentUser]);
+
+  // Xử lý cuộn tự động cho Admin khi có tin nhắn mới
+  useEffect(() => {
+    if (currentView === 'admin' && adminTab === 'messages' && activeChatUser) {
+      setTimeout(() => chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+    }
+  }, [messagesDb, currentView, adminTab, activeChatUser]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -2496,6 +2504,11 @@ const App = () => {
         isRead: false
       };
 
+      // Optimistic update để hiện ngay lên màn hình
+      setMessagesDb(prev => {
+        if (prev.find(m => m.id === newMsg.id)) return prev;
+        return [...prev, newMsg];
+      });
       await supabase.from('messages').insert([newMsg]);
       e.target.reset();
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
@@ -3616,6 +3629,7 @@ const App = () => {
                     const firstOpt = b.rankOptions?.[0];
                     setBoostSubTier(firstOpt?.inputType === 'bac' && (firstOpt?.tierCount || 1) > 1 ? toRoman(firstOpt?.tierCount || 1) : '');
                     setBoostCurrentPoints('');
+                    setBoostQuantity(1);
                     setBoostingModalData(b);
                   }} className="bg-blue-600 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-sm font-bold text-white hover:bg-blue-500 shadow-lg shadow-blue-600/20 md:group-hover:-translate-y-1 transition-transform">Đặt Đơn</button>
                 </div>
@@ -4288,6 +4302,7 @@ const App = () => {
           id: editingBoosting ? editingBoosting.id : Date.now(),
           type: type,
           require_login: type === 'event' ? e.target.requireLogin?.checked : true,
+          allow_quantity: type === 'event' && !isEventMultiPackage ? (e.target.allowQuantity?.checked || false) : false,
           price: isMulti && validOptions.length > 0 ? Math.min(...validOptions.map(o => o.price)) : (e.target.discountedPrice?.value ? parseInt(e.target.discountedPrice.value) : (parseInt(e.target.basePrice?.value) || 0)),
           oldPrice: isMulti && validOptions.length > 0 ? null : (e.target.discountedPrice?.value ? parseInt(e.target.basePrice.value) : null),
           discountPercent: isMulti ? (parseInt(e.target.discountPercent?.value) || 0) : 0,
@@ -4462,6 +4477,11 @@ const App = () => {
         isRead: false
       };
 
+      // Optimistic update để hiện ngay lên màn hình
+      setMessagesDb(prev => {
+        if (prev.find(m => m.id === newMsg.id)) return prev;
+        return [...prev, newMsg];
+      });
       await supabase.from('messages').insert([newMsg]);
       e.target.reset();
       setTimeout(() => chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
@@ -4498,11 +4518,11 @@ const App = () => {
       const clearedTime = parseInt(localStorage.getItem(`admin_cleared_chat_${otherId}`) || '0');
       return m.timestamp > clearedTime;
     }).map(m => m.senderId === currentUser?.id ? m.receiverId : m.senderId))];
-    const chatUsersList = usersDb.filter(u => usersWithMessagesIds.includes(u.id));
+    const chatUsersList = usersDb.filter(u => usersWithMessagesIds.includes(u.id) && u.role !== 'admin' && u.id !== currentUser?.id);
 
     // Tự động tìm kiếm toàn bộ khách hàng nếu Admin gõ vào ô tìm kiếm
     const displayChatUsers = adminMessageSearch.trim() !== ''
-      ? usersDb.filter(u => u.role !== 'admin' && (u.name.toLowerCase().includes(adminMessageSearch.toLowerCase()) || u.phone.includes(adminMessageSearch)))
+      ? usersDb.filter(u => u.role !== 'admin' && u.id !== currentUser?.id && (u.name.toLowerCase().includes(adminMessageSearch.toLowerCase()) || u.phone.includes(adminMessageSearch)))
       : chatUsersList;
 
     // Lọc nội dung chat giữa Admin và Khách đang chọn
@@ -4674,7 +4694,7 @@ const App = () => {
                     {displayChatUsers.length === 0 ? <p className="text-center text-slate-500 p-4 text-sm">Không tìm thấy khách hàng</p> : (
                       displayChatUsers.map(u => {
                         const unread = messagesDb.filter(m => {
-                          if (m.senderId !== u.id || m.isRead) return false;
+                          if (m.senderId !== u.id || m.receiverId !== currentUser?.id || m.isRead) return false;
                           const clearedTime = parseInt(localStorage.getItem(`admin_cleared_chat_${u.id}`) || '0');
                           return m.timestamp > clearedTime;
                         }).length;
@@ -5249,11 +5269,25 @@ const App = () => {
                             )}
 
                             {adminBoostType === 'event' && (
-                              <div className="mt-2">
+                              <div className="mt-2 space-y-2">
                                 <label className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer transition-colors hover:bg-blue-500/20">
                                   <input type="checkbox" checked={isEventMultiPackage} onChange={(e) => setIsEventMultiPackage(e.target.checked)} className="w-5 h-5 accent-blue-500 cursor-pointer" />
                                   <span className="text-sm font-bold text-blue-400">Bật chia nhiều Gói nhỏ (Cày nhiều mốc)</span>
                                 </label>
+                                {!isEventMultiPackage && (
+                                  <label className="flex items-center gap-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg cursor-pointer transition-colors hover:bg-emerald-500/20 shadow-inner">
+                                    <input
+                                      type="checkbox"
+                                      name="allowQuantity"
+                                      defaultChecked={editingBoosting?.allow_quantity || false}
+                                      className="w-5 h-5 accent-emerald-500 cursor-pointer"
+                                    />
+                                    <div className="flex flex-col">
+                                      <span className="text-sm font-bold text-emerald-400">Cho phép khách điền số lượng</span>
+                                      <span className="text-[10px] text-slate-500">Tự động nhân giá với số lượng khách điền</span>
+                                    </div>
+                                  </label>
+                                )}
                               </div>
                             )}
 
@@ -6259,18 +6293,34 @@ const App = () => {
                       )}
                       {/* 1. HIỆN Ô TÍCH CHỌN KHI LÀ CÀY SỰ KIỆN */}
                       {adminBoostType === 'event' && (
-                        <label className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer mb-4 transition-colors hover:bg-blue-500/20 shadow-inner">
-                          <input
-                            type="checkbox"
-                            checked={isEventMultiPackage}
-                            onChange={(e) => setIsEventMultiPackage(e.target.checked)}
-                            className="w-5 h-5 accent-blue-500 cursor-pointer"
-                          />
-                          <div className="flex flex-col">
-                            <span className="text-sm font-bold text-blue-400">Bật chia nhiều Gói nhỏ</span>
-                            <span className="text-[10px] text-slate-500">Tích vào nếu muốn khách chọn mốc (VD: Mốc 1, Mốc 2...)</span>
-                          </div>
-                        </label>
+                        <>
+                          <label className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer mb-4 transition-colors hover:bg-blue-500/20 shadow-inner">
+                            <input
+                              type="checkbox"
+                              checked={isEventMultiPackage}
+                              onChange={(e) => setIsEventMultiPackage(e.target.checked)}
+                              className="w-5 h-5 accent-blue-500 cursor-pointer"
+                            />
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-blue-400">Bật chia nhiều Gói nhỏ</span>
+                              <span className="text-[10px] text-slate-500">Tích vào nếu muốn khách chọn mốc (VD: Mốc 1, Mốc 2...)</span>
+                            </div>
+                          </label>
+                          {!isEventMultiPackage && (
+                            <label className="flex items-center gap-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg cursor-pointer mb-4 transition-colors hover:bg-emerald-500/20 shadow-inner">
+                              <input
+                                type="checkbox"
+                                name="allowQuantity"
+                                defaultChecked={editingBoosting?.allow_quantity || false}
+                                className="w-5 h-5 accent-emerald-500 cursor-pointer"
+                              />
+                              <div className="flex flex-col">
+                                <span className="text-sm font-bold text-emerald-400">Cho phép khách điền số lượng</span>
+                                <span className="text-[10px] text-slate-500">Tự động nhân giá với số lượng khách điền</span>
+                              </div>
+                            </label>
+                          )}
+                        </>
                       )}
 
                       {adminBoostType === 'rank' ? (
@@ -7461,11 +7511,33 @@ const App = () => {
                     priceLabel = priceLabel ? `${priceLabel} (Giảm ${boostingModalData.discountPercent}%)` : `(Giảm ${boostingModalData.discountPercent}%)`;
                   }
 
+                  // --- APPLY QUANTITY ---
+                  if (boostingModalData.allow_quantity && boostQuantity > 1) {
+                    activePrice = activePrice * boostQuantity;
+                  }
+
                   return (
                     <>
                       <p className="text-sm text-slate-400 mb-3">Số dư của bạn: <span className="text-emerald-400 font-bold text-base">{new Intl.NumberFormat('vi-VN').format(currentUser?.balance || 0)}đ</span></p>
                       <div className="mb-4 bg-blue-900/10 p-4 rounded-xl border border-blue-500/20">
                         <p className="text-sm text-slate-300">Dịch vụ: <strong className="text-white">{boostingModalData.title}</strong></p>
+
+                        {/* --- KHU VỰC NHẬP SỐ LƯỢNG --- */}
+                        {boostingModalData.allow_quantity && !hasOptions && (
+                          <div className="mt-3">
+                            <label className="text-xs text-emerald-400 font-bold block mb-1">Số lượng mua</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={boostQuantity}
+                              onChange={(e) => {
+                                let val = parseInt(e.target.value) || 1;
+                                setBoostQuantity(Math.max(1, val));
+                              }}
+                              className="w-full p-2.5 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-bold outline-none shadow-inner"
+                            />
+                          </div>
+                        )}
 
                         {hasOptions && (
                           <div className="mt-3">
@@ -7583,6 +7655,10 @@ const App = () => {
                                 : 'Combo');
                             packageTitle = `${targetModal.title} [${rankDetail}]`;
                           }
+                          
+                          if (targetModal.allow_quantity && boostQuantity > 1) {
+                            packageTitle += ` (x${boostQuantity})`;
+                          }
 
                           const newTx = {
                             id: `TX${Date.now()}`,
@@ -7616,7 +7692,7 @@ const App = () => {
                             boostingTitle: packageTitle,
                             date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
                             status: 'Chờ xử lý',
-                            info: { loginMethod, username, password, note, amount: activePrice }
+                            info: { loginMethod, username, password, note, amount: activePrice, quantity: targetModal.allow_quantity ? boostQuantity : 1 }
                           };
 
                           const { error: insertErr } = await supabase.from('boosting_requests').insert([dbPayload]);
