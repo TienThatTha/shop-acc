@@ -935,6 +935,9 @@ const App = () => {
 
   // --- HÀM XỬ LÝ LÕI ---
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [forgotPasswordStep, setForgotPasswordStep] = useState(1);
+  const [recoveryEmail, setRecoveryEmail] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -1090,13 +1093,49 @@ const App = () => {
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
-    const email = e.target.email.value;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin,
-    });
+    if (isRecovering) return;
+    setIsRecovering(true);
+    const email = e.target.email.value.trim();
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    setIsRecovering(false);
     if (error) return showToast("Lỗi: " + error.message, 'error');
-    showToast("Đã gửi link khôi phục mật khẩu vào Email của bạn!", 'success');
+    setRecoveryEmail(email);
+    setForgotPasswordStep(2);
+    showToast("Đã gửi mã xác thực vào Email của bạn!", 'success');
+  };
+
+  const handleVerifyRecoveryOtp = async (e) => {
+    e.preventDefault();
+    if (isRecovering) return;
+    setIsRecovering(true);
+    const token = e.target.otp.value.trim();
+    const { error } = await supabase.auth.verifyOtp({
+      email: recoveryEmail,
+      token,
+      type: 'recovery'
+    });
+    setIsRecovering(false);
+    if (error) return showToast("Mã xác thực không hợp lệ hoặc đã hết hạn!", 'error');
+    showToast("Xác thực thành công! Vui lòng đặt mật khẩu mới.", 'success');
+    setForgotPasswordStep(3);
+  };
+
+  const handleSetNewPassword = async (e) => {
+    e.preventDefault();
+    if (isRecovering) return;
+    const newPassword = e.target.newPassword.value;
+    const confirmPassword = e.target.confirmPassword.value;
+    if (newPassword !== confirmPassword) {
+      return showToast("Mật khẩu xác nhận không khớp!", 'error');
+    }
+    setIsRecovering(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setIsRecovering(false);
+    if (error) return showToast("Lỗi cập nhật mật khẩu: " + error.message, 'error');
+    showToast("Đổi mật khẩu thành công! Bạn có thể đăng nhập ngay bây giờ.", 'success');
+    setForgotPasswordStep(1);
     setCurrentView('login');
+    await supabase.auth.signOut();
   };
   // HÀM TÍNH TỔNG TIỀN KHÁCH ĐÃ TIÊU & KIỂM TRA VIP (Tiêu trên 3tr)
   // Sửa hàm nạp tiền
@@ -1685,11 +1724,52 @@ const App = () => {
     <div className="min-h-screen bg-[#0B1120] flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-[#151D2F] border border-slate-800 rounded-2xl p-8 shadow-2xl">
         <h2 className="text-2xl font-bold text-white mb-2 text-center">Khôi phục mật khẩu</h2>
-        <p className="text-slate-400 text-sm text-center mb-6">Nhập Email bạn đã đăng ký, chúng tôi sẽ gửi link đặt lại mật khẩu.</p>
-        <form onSubmit={handleForgotPassword} className="space-y-4">
-          <input name="email" type="email" required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 outline-none focus:border-blue-500" placeholder="Nhập Email của bạn..." />
-          <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg shadow-lg transition-colors">Gửi Link Khôi Phục</button>
-        </form>
+        {forgotPasswordStep === 1 && (
+          <>
+            <p className="text-slate-400 text-sm text-center mb-6">Nhập Email bạn đã đăng ký, chúng tôi sẽ gửi mã xác thực gồm 6 số.</p>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <input name="email" type="email" required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 outline-none focus:border-blue-500" placeholder="Nhập Email của bạn..." />
+              <button type="submit" disabled={isRecovering} className={`w-full ${isRecovering ? 'bg-blue-800 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'} text-white font-bold py-3 rounded-lg shadow-lg flex items-center justify-center gap-2 transition-colors`}>
+                {isRecovering ? <><RefreshCw className="animate-spin" size={20} /> Đang gửi mã...</> : 'Gửi Mã Xác Thực'}
+              </button>
+            </form>
+          </>
+        )}
+
+        {forgotPasswordStep === 2 && (
+          <>
+            <p className="text-slate-400 text-sm text-center mb-6">Mã xác thực 6 số đã được gửi đến <strong>{recoveryEmail}</strong>. Vui lòng kiểm tra hộp thư (kể cả thư rác).</p>
+            <form onSubmit={handleVerifyRecoveryOtp} className="space-y-4">
+              <input name="otp" type="text" maxLength="6" required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 outline-none focus:border-blue-500 tracking-widest text-center text-xl font-bold" placeholder="------" />
+              <button type="submit" disabled={isRecovering} className={`w-full ${isRecovering ? 'bg-blue-800 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'} text-white font-bold py-3 rounded-lg shadow-lg flex items-center justify-center gap-2 transition-colors`}>
+                {isRecovering ? <><RefreshCw className="animate-spin" size={20} /> Đang kiểm tra...</> : 'Xác Nhận Mã'}
+              </button>
+            </form>
+          </>
+        )}
+
+        {forgotPasswordStep === 3 && (
+          <>
+            <p className="text-slate-400 text-sm text-center mb-6">Xác thực thành công. Vui lòng tạo mật khẩu mới.</p>
+            <form onSubmit={handleSetNewPassword} className="space-y-4">
+              <div className="relative">
+                <input name="newPassword" type={showNewPass ? "text" : "password"} required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 outline-none focus:border-blue-500 pr-10" placeholder="Mật khẩu mới" />
+                <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute right-3 top-3 text-slate-500 hover:text-white transition-colors">
+                  {showNewPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+              <div className="relative">
+                <input name="confirmPassword" type={showConfirmPass ? "text" : "password"} required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 outline-none focus:border-blue-500 pr-10" placeholder="Nhập lại mật khẩu mới" />
+                <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute right-3 top-3 text-slate-500 hover:text-white transition-colors">
+                  {showConfirmPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+              <button type="submit" disabled={isRecovering} className={`w-full ${isRecovering ? 'bg-blue-800 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'} text-white font-bold py-3 rounded-lg shadow-lg flex items-center justify-center gap-2 transition-colors`}>
+                {isRecovering ? <><RefreshCw className="animate-spin" size={20} /> Đang cập nhật...</> : 'Đổi Mật Khẩu'}
+              </button>
+            </form>
+          </>
+        )}
         <button onClick={() => setCurrentView('login')} className="w-full mt-4 text-slate-400 text-sm hover:text-white transition-colors">Quay lại đăng nhập</button>
       </div>
     </div>
