@@ -7,39 +7,92 @@ import {
   History, Target, Gift, Save, Upload, Plus, Unlock, QrCode,
   Download, Copy, Check, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ZoomIn,
   Sparkles, TrendingUp, Users, Ticket, Settings2, MessageCircle, Send, Eye, EyeOff,
-  ArrowLeftRight, RotateCcw, MoreVertical, AlertTriangle
+  ArrowLeftRight, RotateCcw, MoreVertical, AlertTriangle, ArrowLeft, Loader2
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import emailjs from '@emailjs/browser';
+
+const getRankByPoints = (points, rankTiers = []) => {
+  if (!rankTiers || rankTiers.length === 0) return 'Chưa xếp hạng';
+  if (points == null || points < rankTiers[0].points) return 'Chưa xếp hạng';
+  let currentRank = rankTiers[0].name;
+  for (let i = 0; i < rankTiers.length; i++) {
+    if (points >= rankTiers[i].points) {
+      currentRank = rankTiers[i].name;
+    } else {
+      break;
+    }
+  }
+  return currentRank;
+};
+
+const calculateBoostPrice = (currentPoints, targetPoints, rankTiers = []) => {
+  if (!rankTiers || rankTiers.length === 0) return 0;
+  if (currentPoints == null || targetPoints == null || currentPoints >= targetPoints) return 0;
+
+  let totalCost = 0;
+  let remainingPoints = currentPoints;
+
+  for (let i = 0; i < rankTiers.length; i++) {
+    const tier = rankTiers[i];
+    const nextTier = rankTiers[i + 1];
+
+    if (remainingPoints >= tier.points && (!nextTier || remainingPoints < nextTier.points)) {
+      const priceForTier = tier.price || 0;
+
+      if (!nextTier || targetPoints <= nextTier.points) {
+        totalCost += (targetPoints - remainingPoints) * priceForTier;
+        break;
+      } else {
+        totalCost += (nextTier.points - remainingPoints) * priceForTier;
+        remainingPoints = nextTier.points;
+      }
+    }
+  }
+  return totalCost;
+};
+
+const getActiveStatus = (lastActiveTime) => {
+  if (!lastActiveTime) return { text: 'Ngoại tuyến', isOnline: false };
+  const diffInMinutes = Math.floor((new Date() - new Date(lastActiveTime)) / 60000);
+  if (diffInMinutes < 3) return { text: 'Đang trực tuyến', isOnline: true };
+  if (diffInMinutes < 60) return { text: `${diffInMinutes} phút trước`, isOnline: false };
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return { text: `${diffInHours} giờ trước`, isOnline: false };
+  const diffInDays = Math.floor(diffInHours / 24);
+  return { text: `${diffInDays} ngày trước`, isOnline: false };
+};
+
 // --- COMPONENT LOGO TÙY CHỈNH ---
 const CustomLogo = ({ className = "" }) => (
-  <div className={`flex items-center gap-2 ${className} cursor-pointer`}>
-    <div className="relative flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-600 to-rose-600 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.5)] border border-white/20">
-      <Gamepad2 size={24} className="text-white relative z-10" />
-      <div className="absolute inset-0 bg-white/20 rounded-xl animate-pulse"></div>
-    </div>
-    <div className="flex flex-col">
-      <span className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-rose-400 tracking-wider leading-none drop-shadow-sm">
-        TIẾN
-      </span>
-      <span className="text-[10px] md:text-xs font-bold text-white tracking-widest leading-none mt-0.5">
-        GAMING
-      </span>
-    </div>
+  <div className={`group shrink-0 ${className} cursor-pointer md:mr-6`}>
+    <img
+      src="/Tiengaming.png"
+      alt="Shop Tiến Gaming"
+      className="h-16 md:h-[4.5rem] w-auto object-contain drop-shadow-[0_2px_8px_rgba(16,185,129,0.25)] group-hover:drop-shadow-[0_2px_16px_rgba(16,185,129,0.5)] group-hover:scale-105 transition-all duration-300"
+    />
   </div>
 );
 
 // --- COMPONENT NÚT LIÊN HỆ NỔI ---
-// --- COMPONENT NÚT LIÊN HỆ NỔI ---
-const FloatingContact = ({ currentUser, unreadCount, onOpenInbox }) => (
+const FloatingContact = ({ currentUser, unreadCount, onOpenInbox, isAdminOnline }) => (
   <div className="fixed bottom-24 md:bottom-6 right-4 md:right-6 z-50 flex flex-col gap-3 transition-all duration-300">
 
     {/* Nút Hộp Thư Mới */}
     {currentUser && (
-      <button onClick={onOpenInbox} className="w-12 h-12 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] hover:-translate-y-1 transition-transform group relative">
-        <MessageCircle size={22} className="text-emerald-400" />
-        {unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#151D2F] animate-pulse">{unreadCount}</span>}
+      <button onClick={onOpenInbox} className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 border border-blue-400 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.5)] hover:-translate-y-1 transition-transform group relative">
+        <MessageCircle size={22} className="text-white" />
+        {unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-blue-500 animate-pulse">{unreadCount}</span>}
         <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-black/80 text-white text-xs font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Hộp thư hỗ trợ</span>
+        {isAdminOnline && (
+          <>
+            <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1.5 bg-slate-900/95 border border-emerald-500/30 px-3 py-1.5 rounded-full pointer-events-none group-hover:opacity-0 transition-opacity shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+              <span className="text-[10px] text-emerald-400 font-bold whitespace-nowrap">Đang trực tuyến</span>
+            </div>
+            <span className="absolute top-0 right-0 md:hidden w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#151D2F] animate-pulse shadow-sm"></span>
+          </>
+        )}
       </button>
     )}
 
@@ -110,6 +163,52 @@ const getCustomerFriendlyError = (details) => {
   return null;
 };
 
+const ImageCarousel = ({ images, title, setFullScreenImage, index, isFeatured }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (!images || images.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [images?.length]);
+
+  if (!images || images.length === 0) return null;
+  const currentImage = images[currentIndex] || images[0];
+
+  return (
+    <div
+      className="relative w-full bg-slate-900 cursor-pointer overflow-hidden mt-1 md:mt-2 group/img cursor-zoom-in"
+      onClick={() => setFullScreenImage(currentImage)}
+      title="Bấm để phóng to ảnh"
+    >
+      <img
+        src={currentImage}
+        loading={index < 8 ? "eager" : "lazy"}
+        fetchPriority={index < 4 ? "high" : "auto"}
+        decoding="async"
+        className="w-full h-auto object-cover transition-transform duration-500 group-hover/img:scale-105"
+        alt={title}
+      />
+
+      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity">
+        <div className="bg-black/60 p-2 rounded-full text-white flex items-center gap-1 text-xs font-bold">
+          <ZoomIn size={16} /> Phóng to
+        </div>
+      </div>
+
+      {isFeatured && (
+        <div className="absolute bottom-1.5 left-1.5 z-20 pointer-events-none">
+          <span className="text-[9px] md:text-[10px] font-black px-2.5 py-1 rounded-md uppercase w-fit bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-[0_2px_10px_rgba(0,0,0,0.8)] border border-amber-300/50 backdrop-blur-md">
+            🔥 DỊCH VỤ NỔI BẬT
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const App = () => {
 
   // --- BỘ ĐÀM GỬI EMAIL & TELEGRAM BÁO CHO ADMIN ---
@@ -159,7 +258,7 @@ const App = () => {
     }
   };
 
-  const [usersDb, setUsersDb] = useState([]);
+  const [usersDb, setUsersDb] = useState(() => { try { const saved = localStorage.getItem('shop_users_db'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; } });
   const [visitorCount, setVisitorCount] = useState(0);
   const [accountsDb, setAccountsDb] = useState(() => {
     const saved = localStorage.getItem('shop_accounts_db');
@@ -172,6 +271,7 @@ const App = () => {
 
   useEffect(() => {
     localStorage.setItem('shop_current_view', currentView);
+    setViewingAcc(null); // Tự động đóng modal xem chi tiết nick khi chuyển tab/trang khác
   }, [currentView]);
   // Lấy data tạm từ RAM lên ngay lập tức lúc F5 để web không bị trống
   const [currentUser, setCurrentUser] = useState(() => {
@@ -211,6 +311,8 @@ const App = () => {
   const [showUserDropdown, setShowUserDropdown] = useState(false); // State dropdown menu user
 
   // --- STATE MODALS ---
+  const [buyModalData, setBuyModalData] = useState(null);
+  const [buyQuantity, setBuyQuantity] = useState(1);
   const [rentModalData, setRentModalData] = useState(null);
   const [rentKycMethod, setRentKycMethod] = useState('cccd'); // State quản lý chọn CCCD hay Cọc tiền
   // STATE MỚI CHO BẢNG QUY ĐỊNH THUÊ NICK
@@ -236,7 +338,8 @@ const App = () => {
   });
   const [vouchersDb, setVouchersDb] = useState([]);
   const [adminSearchUser, setAdminSearchUser] = useState('');
-  const [historyTab, setHistoryTab] = useState('buy'); // Quản lý Tab đang mở
+  const [historyTab, setHistoryTab] = useState(() => localStorage.getItem('shop_history_tab') || 'buy'); // Quản lý Tab đang mở
+  useEffect(() => { localStorage.setItem('shop_history_tab', historyTab); }, [historyTab]);
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(5); // Số lượng hiển thị mỗi lần cuộn
   const [visibleUsersCount, setVisibleUsersCount] = useState(8); // Ban đầu chỉ hiện 10 user
   const [visibleDepsClient, setVisibleDepsClient] = useState(5); // Nạp tiền (Khách)
@@ -249,24 +352,21 @@ const App = () => {
 
 
 
-  const [transactionsDb, setTransactionsDb] = useState([]);
-  const [depositRequests, setDepositRequests] = useState([]);
-  const [rentRequests, setRentRequests] = useState([]);
-  const [boostingRequests, setBoostingRequests] = useState([]);
+  const [transactionsDb, setTransactionsDb] = useState(() => { const saved = localStorage.getItem('shop_tx_db'); return saved ? JSON.parse(saved) : []; });
+  const [depositRequests, setDepositRequests] = useState(() => { const saved = localStorage.getItem('shop_dep_db'); return saved ? JSON.parse(saved) : []; });
+  const [rentRequests, setRentRequests] = useState(() => { const saved = localStorage.getItem('shop_rent_db'); return saved ? JSON.parse(saved) : []; });
+  const [boostingRequests, setBoostingRequests] = useState(() => { const saved = localStorage.getItem('shop_boost_db'); return saved ? JSON.parse(saved) : []; });
   const [approveDepositModal, setApproveDepositModal] = useState(null);
 
-  // HỘP THƯ (TIN NHẮN) DB
-  const [messagesDb, setMessagesDb] = useState([
-    { id: 1, senderId: 2, receiverId: 1, content: 'Chào bạn, chúc bạn mua sắm vui vẻ tại hệ thống!', timestamp: Date.now() - 3600000, isRead: false }
-  ]);
+  const [messagesDb, setMessagesDb] = useState(() => { try { const saved = localStorage.getItem('shop_msg_db'); return saved ? JSON.parse(saved) : [{ id: 1, senderId: 2, receiverId: 1, content: 'Chào bạn, chúc bạn mua sắm vui vẻ tại hệ thống!', timestamp: Date.now() - 3600000, isRead: false }]; } catch (e) { return [{ id: 1, senderId: 2, receiverId: 1, content: 'Chào bạn, chúc bạn mua sắm vui vẻ tại hệ thống!', timestamp: Date.now() - 3600000, isRead: false }]; } });
 
   const [boostingDb, setBoostingDb] = useState(() => {
     const saved = localStorage.getItem('shop_boosting_db');
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState([]);
-  const [wheelItemsSpinDb, setWheelItemsSpinDb] = useState([]);
+  const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState(() => { try { const saved = localStorage.getItem('shop_wheel_money'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; } });
+  const [wheelItemsSpinDb, setWheelItemsSpinDb] = useState(() => { try { const saved = localStorage.getItem('shop_wheel_spin'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; } });
 
 
   // --- LIFTED STATES TỪ CÁC TAB ĐỂ TRÁNH MẤT FOCUS KHI COMPONENT RENDER LẠI ---
@@ -279,6 +379,10 @@ const App = () => {
   const [depositAmount, setDepositAmount] = useState('');
   const [voucherInput, setVoucherInput] = useState('');
   const [pendingDeposit, setPendingDeposit] = useState(null);
+  const [payosPaymentData, setPayosPaymentData] = useState(null);
+  const [payosSuccess, setPayosSuccess] = useState(false);
+  const [payosTimeLeft, setPayosTimeLeft] = useState(600);
+  const [liveCardError, setLiveCardError] = useState(null);
   const [cardTelco, setCardTelco] = useState('VIETTEL');
   const [cardAmount, setCardAmount] = useState('10000');
   const [cardCode, setCardCode] = useState('');
@@ -286,7 +390,8 @@ const App = () => {
 
   const [expandedTx, setExpandedTx] = useState(null);
 
-  const [adminTab, setAdminTab] = useState('users');
+  const [adminTab, setAdminTab] = useState(() => localStorage.getItem('shop_admin_tab') || 'users');
+  useEffect(() => { localStorage.setItem('shop_admin_tab', adminTab); }, [adminTab]);
   const [adminWheelType, setAdminWheelType] = useState('money');
   const [showAccModal, setShowAccModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
@@ -295,6 +400,7 @@ const App = () => {
   const [adminRentOptions, setAdminRentOptions] = useState([{ time: '', price: '' }]);
   const [showUserModal, setShowUserModal] = useState(false);
   const [isGlobalProcessing, setIsGlobalProcessing] = useState(false);
+  const [globalProgressText, setGlobalProgressText] = useState('');
   const [isConfirmProcessing, setIsConfirmProcessing] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [viewUserHistory, setViewUserHistory] = useState(null);
@@ -302,15 +408,31 @@ const App = () => {
   const [editingBoosting, setEditingBoosting] = useState(null);
   const [adminBoostType, setAdminBoostType] = useState('rank');
   const [isEventMultiPackage, setIsEventMultiPackage] = useState(false);
-  const [adminRankOptions, setAdminRankOptions] = useState([{ rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }]);
+  const [adminRankOptions, setAdminRankOptions] = useState([{ rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', basePoints: '', tierCount: 1 }]);
+  const [adminGame, setAdminGame] = useState('');
+  const [crossfireText, setCrossfireText] = useState('');
+  const [adminConfigType, setAdminConfigType] = useState('rank_price');
   const [selectedBoostRank, setSelectedBoostRank] = useState(0);
   const [boostSubTier, setBoostSubTier] = useState('');
 
   // Helper: số → La Mã (1-10)
   const toRoman = (n) => ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n - 1] || n.toString();
   const [boostCurrentPoints, setBoostCurrentPoints] = useState('');
+  const [boostTargetPoints, setBoostTargetPoints] = useState('');
+  const [boostTargetRank, setBoostTargetRank] = useState('');
   const [boostQuantity, setBoostQuantity] = useState(1);
-  const [adminBoostingImage, setAdminBoostingImage] = useState(null);
+  const [adminBoostingImage, setAdminBoostingImage] = useState([]);
+  const [adminGameAvatar, setAdminGameAvatar] = useState(null);
+  const [adminAccGameAvatar, setAdminAccGameAvatar] = useState(null);
+
+  const getGameInfo = (gameStr) => {
+    if (!gameStr) return { name: '', avatar: null, isFeatured: false, allowQuantity: false, maxQuantityPerOrder: 0 };
+    try {
+      const parsed = JSON.parse(gameStr);
+      if (parsed && typeof parsed === 'object') return { name: parsed.name || gameStr, avatar: parsed.avatar || null, isFeatured: parsed.isFeatured || false, allowQuantity: parsed.allowQuantity || false, maxQuantityPerOrder: parsed.maxQuantityPerOrder || 0 };
+    } catch (e) { }
+    return { name: gameStr, avatar: null, isFeatured: false, allowQuantity: false, maxQuantityPerOrder: 0 };
+  };
   const [adminBoostingPriceUnit, setAdminBoostingPriceUnit] = useState('');
   const [showWheelModal, setShowWheelModal] = useState(false);
   const [editingWheel, setEditingWheel] = useState(null);
@@ -330,7 +452,7 @@ const App = () => {
   const [dismissNotice, setDismissNotice] = useState(false);
   const [showSpinRules, setShowSpinRules] = useState(false);
   const [dismissSpinRules, setDismissSpinRules] = useState(false);
-  const [commentsDb, setCommentsDb] = useState([]);
+  const [commentsDb, setCommentsDb] = useState(() => { const saved = localStorage.getItem('shop_comments_db'); return saved ? JSON.parse(saved) : []; });
   const [commentInput, setCommentInput] = useState('');
   const [replyingToId, setReplyingToId] = useState(null);
   const [expandedReplies, setExpandedReplies] = useState({});
@@ -361,182 +483,195 @@ const App = () => {
     }
   }, [currentView, dismissSpinRules]); useEffect(() => {
     const fetchInitialData = async () => {
-      // --- TÍNH NĂNG TỰ ĐỘNG ĐĂNG XUẤT SAU 1 TIẾNG (3.600.000 ms) ---
-      const lastActive = localStorage.getItem('shop_last_active');
-      if (lastActive && (Date.now() - parseInt(lastActive)) > 3600000) {
-        await supabase.auth.signOut();
-        localStorage.removeItem('shop_cached_user');
-        localStorage.removeItem('shop_last_active');
-        setCurrentUser(null);
-        showToast("Phiên đăng nhập đã hết hạn! Vui lòng đăng nhập lại.", "error");
-        setCurrentView('login');
-      }
-      // -------------------------------------------------------------
 
       // 1. TẢI CÁC DỮ LIỆU CÔNG KHAI NGAY LẬP TỨC
 
-      // 1. TẢI CÁC DỮ LIỆU CÔNG KHAI NGAY LẬP TỨC
-      const [accRes, boostRes, wheelRes, voucherRes, boostReqRes, commentsRes] = await Promise.all([
+      // 1. CHẠY SONG SONG CÁC TIẾN TRÌNH ĐỂ GIẢM ĐỘ TRỄ (LATENCY)
+      const publicDataPromise = Promise.all([
         supabase.from('accounts').select('*'),
         supabase.from('boosting').select('*').order('id', { ascending: false }),
         supabase.from('wheel_items').select('*'),
         supabase.from('vouchers').select('*'),
-        supabase.from('boosting_requests').select('*').order('id', { ascending: false }), // Hút đơn Cày Thuê
-        supabase.from('comments').select('*, users(name, avatar_url, role)').order('is_pinned', { ascending: false }).order('created_at', { ascending: false })
-      ]);
+        supabase.from('boosting_requests').select('*').order('id', { ascending: false }).limit(200), // Hút đơn Cày Thuê
+        supabase.from('comments').select('*, users(name, avatar_url, role)').order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(200)
+      ]).then(([accRes, boostRes, wheelRes, voucherRes, boostReqRes, commentsRes]) => {
+        if (accRes.data) {
+          const fixedAccounts = accRes.data.map(acc => {
+            let fixedRentOptions = acc.rentOptions;
+            if (typeof fixedRentOptions === 'string') {
+              try { fixedRentOptions = JSON.parse(fixedRentOptions); } catch (e) { fixedRentOptions = []; }
+            }
+            if (!Array.isArray(fixedRentOptions)) fixedRentOptions = [];
 
-      if (accRes.data) {
-        const fixedAccounts = accRes.data.map(acc => {
-          let fixedRentOptions = acc.rentOptions;
-          if (typeof fixedRentOptions === 'string') {
-            try { fixedRentOptions = JSON.parse(fixedRentOptions); } catch (e) { fixedRentOptions = []; }
-          }
-          if (!Array.isArray(fixedRentOptions)) fixedRentOptions = [];
+            let fixedDetailImages = acc.detailImages;
+            if (typeof fixedDetailImages === 'string') {
+              try { fixedDetailImages = JSON.parse(fixedDetailImages); } catch (e) { fixedDetailImages = []; }
+            }
+            if (!Array.isArray(fixedDetailImages)) fixedDetailImages = [];
 
-          let fixedDetailImages = acc.detailImages;
-          if (typeof fixedDetailImages === 'string') {
-            try { fixedDetailImages = JSON.parse(fixedDetailImages); } catch (e) { fixedDetailImages = []; }
-          }
-          if (!Array.isArray(fixedDetailImages)) fixedDetailImages = [];
+            let fixedTags = acc.tags;
+            if (typeof fixedTags === 'string') {
+              try {
+                let parsed = JSON.parse(fixedTags);
+                fixedTags = Array.isArray(parsed) ? parsed : fixedTags.split(',').map(t => t.trim());
+              } catch (e) {
+                fixedTags = fixedTags.split(',').map(t => t.trim());
+              }
+            }
+            if (!Array.isArray(fixedTags)) fixedTags = [];
 
-          let fixedTags = acc.tags;
-          if (typeof fixedTags === 'string') {
-            try {
-              let parsed = JSON.parse(fixedTags);
-              fixedTags = Array.isArray(parsed) ? parsed : fixedTags.split(',').map(t => t.trim());
-            } catch (e) {
-              fixedTags = fixedTags.split(',').map(t => t.trim());
+            return {
+              ...acc,
+              rentOptions: fixedRentOptions,
+              detailImages: fixedDetailImages,
+              tags: fixedTags,
+              rentedUntil: acc.rentedUntil || acc.renteduntil || null,
+              rentStartedAt: acc.rentStartedAt || acc.rentstartedat || null,
+              currentRenterId: acc.currentRenterId || acc.currentrenterid || null
+            };
+          });
+          setAccountsDb(fixedAccounts);
+          localStorage.setItem('shop_accounts_db', JSON.stringify(fixedAccounts));
+        }
+        if (boostRes.data) {
+          setBoostingDb(boostRes.data);
+          localStorage.setItem('shop_boosting_db', JSON.stringify(boostRes.data));
+        }
+        if (wheelRes.data) {
+          const moneyItems = wheelRes.data.filter(w => w.wheel_type === 'money');
+          const spinItems = wheelRes.data.filter(w => w.wheel_type === 'spin');
+          setWheelItemsMoneyDb(moneyItems);
+          setWheelItemsSpinDb(spinItems);
+          try { localStorage.setItem('shop_wheel_money', JSON.stringify(moneyItems)); } catch (e) { }
+          try { localStorage.setItem('shop_wheel_spin', JSON.stringify(spinItems)); } catch (e) { }
+        }
+        if (voucherRes.data) setVouchersDb(voucherRes.data);
+        if (boostReqRes.data) {
+          const fixedBoostReqs = boostReqRes.data.map(r => ({
+            ...r,
+            boostingTitle: r.boostingTitle || r.boostingtitle || '',
+            boostingId: r.boostingId || r.boostingid || ''
+          }));
+          setBoostingRequests(fixedBoostReqs);
+        }
+        if (commentsRes && commentsRes.data) {
+          setCommentsDb(commentsRes.data);
+          localStorage.setItem('shop_comments_db', JSON.stringify(commentsRes.data));
+        }
+      });
+
+      const configPromise = supabase.from('site_config').select('*').eq('id', 'deposit_bonus').maybeSingle().then(({ data: configData }) => {
+        if (configData && configData.value) {
+          setDepositBonusConfig(configData.value);
+        } else {
+          const savedDepositConfig = localStorage.getItem('shop_deposit_config');
+          if (savedDepositConfig) setDepositBonusConfig(JSON.parse(savedDepositConfig));
+        }
+      });
+
+      // 2. KIỂM TRA ĐĂNG NHẬP NGẦM & TẢI DỮ LIỆU THEO CHỨC VỤ (CHẠY SONG SONG VỚI PUBLIC DATA)
+      const userDataPromise = (async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session) {
+          // Tìm xem ai đang đăng nhập
+          const { data: user } = await supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').eq('id', session.user.id).single();
+
+          if (user && !user.is_locked) {
+            setCurrentUser(user);
+            localStorage.setItem('shop_cached_user', JSON.stringify(user));
+
+            // GIẢI QUYẾT LỖI MẤT QUYỀN ADMIN (Chữ Hoa/Thường)
+            const role = (user.role || 'user').toLowerCase();
+
+            if (role === 'admin') {
+              // QUYỀN ADMIN: TẢI TOÀN BỘ DATABASE VỀ PANEL
+              const [usersRes, txRes, depRes, rentRes, msgRes, boostReqRes] = await Promise.all([
+                supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').order('id', { ascending: false }),
+                supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(300),
+                supabase.from('deposit_requests').select('*').order('created_at', { ascending: false }).limit(300),
+                supabase.from('rent_requests').select('*').order('created_at', { ascending: false }).limit(200),
+                supabase.from('messages').select('*').order('timestamp', { ascending: true }).limit(500),
+                supabase.from('boosting_requests').select('*').order('created_at', { ascending: false }).limit(200)
+              ]);
+
+              if (usersRes.data) { setUsersDb(usersRes.data); try { localStorage.setItem('shop_users_db', JSON.stringify(usersRes.data)); } catch (e) { } }
+              if (txRes.data) { setTransactionsDb(txRes.data); try { localStorage.setItem('shop_tx_db', JSON.stringify(txRes.data)); } catch (e) { } }
+              if (depRes.data) { setDepositRequests(depRes.data); try { localStorage.setItem('shop_dep_db', JSON.stringify(depRes.data)); } catch (e) { } }
+              if (msgRes.data) { setMessagesDb(msgRes.data); try { localStorage.setItem('shop_msg_db', JSON.stringify(msgRes.data)); } catch (e) { } }
+              if (boostReqRes.data) {
+                const fixedBoostReqs = boostReqRes.data.map(r => ({
+                  ...r,
+                  boostingTitle: r.boostingTitle || r.boostingtitle || '',
+                  boostingId: r.boostingId || r.boostingid || ''
+                }));
+                setBoostingRequests(fixedBoostReqs);
+                try { localStorage.setItem('shop_boost_db', JSON.stringify(fixedBoostReqs)); } catch (e) { }
+              }
+              if (rentRes.data) {
+                const fixedRentReqs = rentRes.data.map(r => ({
+                  ...r,
+                  accCode: r.accCode || r.acccode || '',
+                  userId: r.userId || r.userid || ''
+                }));
+                setRentRequests(fixedRentReqs);
+                localStorage.setItem('shop_rent_db', JSON.stringify(fixedRentReqs));
+              }
+            } else {
+              // QUYỀN KHÁCH: CHỈ TẢI CỦA KHÁCH
+              const [myTx, myDep, myRent, myMsg, myBoostReq, adminRes] = await Promise.all([
+                supabase.from('transactions').select('*').eq('user', user.name).order('created_at', { ascending: false }).limit(100),
+                supabase.from('deposit_requests').select('*').eq('userId', session.user.id).order('created_at', { ascending: false }).limit(100),
+                supabase.from('rent_requests').select('*').eq('userId', session.user.id).order('created_at', { ascending: false }).limit(100),
+                supabase.from('messages').select('*').or(`senderId.eq.${session.user.id},receiverId.eq.${session.user.id}`).order('timestamp', { ascending: true }).limit(2000),
+                supabase.from('boosting_requests').select('*').eq('user', user.name).order('created_at', { ascending: false }).limit(100), // <--- Đã thêm lệnh lấy Cày Thuê
+                supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').eq('role', 'admin').limit(1).maybeSingle()
+              ]);
+
+              if (myTx.data) { setTransactionsDb(myTx.data); localStorage.setItem('shop_tx_db', JSON.stringify(myTx.data)); }
+              if (myDep.data) { setDepositRequests(myDep.data); localStorage.setItem('shop_dep_db', JSON.stringify(myDep.data)); }
+              if (myMsg.data) { setMessagesDb(myMsg.data); localStorage.setItem('shop_msg_db', JSON.stringify(myMsg.data)); }
+              if (adminRes.data) { setUsersDb([adminRes.data]); localStorage.setItem('shop_users_db', JSON.stringify([adminRes.data])); }
+              if (myRent.data) {
+                const fixedRentReqs = myRent.data.map(r => ({
+                  ...r,
+                  accCode: r.accCode || r.acccode || '',
+                  userId: r.userId || r.userid || ''
+                }));
+                setRentRequests(fixedRentReqs);
+                localStorage.setItem('shop_rent_db', JSON.stringify(fixedRentReqs));
+              }
+              // Lọc và hiển thị Cày Thuê cho khách
+              if (myBoostReq.data) {
+                const fixedBoostReqs = myBoostReq.data.map(r => ({
+                  ...r,
+                  boostingTitle: r.boostingTitle || r.boostingtitle || '',
+                  boostingId: r.boostingId || r.boostingid || ''
+                }));
+                setBoostingRequests(fixedBoostReqs);
+                localStorage.setItem('shop_boost_db', JSON.stringify(fixedBoostReqs));
+              }
             }
           }
-          if (!Array.isArray(fixedTags)) fixedTags = [];
-
-          return {
-            ...acc,
-            rentOptions: fixedRentOptions,
-            detailImages: fixedDetailImages,
-            tags: fixedTags,
-            rentedUntil: acc.rentedUntil || acc.renteduntil || null,
-            rentStartedAt: acc.rentStartedAt || acc.rentstartedat || null,
-            currentRenterId: acc.currentRenterId || acc.currentrenterid || null
-          };
-        });
-        setAccountsDb(fixedAccounts);
-        localStorage.setItem('shop_accounts_db', JSON.stringify(fixedAccounts));
-      }
-      if (boostRes.data) {
-        setBoostingDb(boostRes.data);
-        localStorage.setItem('shop_boosting_db', JSON.stringify(boostRes.data));
-      }
-      if (wheelRes.data) {
-        setWheelItemsMoneyDb(wheelRes.data.filter(w => w.wheel_type === 'money'));
-        setWheelItemsSpinDb(wheelRes.data.filter(w => w.wheel_type === 'spin'));
-      }
-      if (voucherRes.data) setVouchersDb(voucherRes.data);
-      if (boostReqRes.data) {
-        const fixedBoostReqs = boostReqRes.data.map(r => ({
-          ...r,
-          boostingTitle: r.boostingTitle || r.boostingtitle || '',
-          boostingId: r.boostingId || r.boostingid || ''
-        }));
-        setBoostingRequests(fixedBoostReqs);
-      }
-      if (commentsRes && commentsRes.data) {
-        setCommentsDb(commentsRes.data);
-      }
-
-      const { data: configData } = await supabase.from('site_config').select('*').eq('id', 'deposit_bonus').maybeSingle();
-      if (configData && configData.value) {
-        setDepositBonusConfig(configData.value);
-      } else {
-        const savedDepositConfig = localStorage.getItem('shop_deposit_config');
-        if (savedDepositConfig) setDepositBonusConfig(JSON.parse(savedDepositConfig));
-      }
-
-      // 2. KIỂM TRA ĐĂNG NHẬP NGẦM & TẢI DỮ LIỆU THEO CHỨC VỤ
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (session) {
-        // Tìm xem ai đang đăng nhập
-        const { data: user } = await supabase.from('users').select('*').eq('id', session.user.id).single();
-
-        if (user && !user.is_locked) {
-          setCurrentUser(user);
-          localStorage.setItem('shop_cached_user', JSON.stringify(user));
-
-          // GIẢI QUYẾT LỖI MẤT QUYỀN ADMIN (Chữ Hoa/Thường)
-          const role = (user.role || 'user').toLowerCase();
-
-          if (role === 'admin') {
-            // QUYỀN ADMIN: TẢI TOÀN BỘ DATABASE VỀ PANEL
-            const [usersRes, txRes, depRes, rentRes, msgRes, boostReqRes] = await Promise.all([
-              supabase.from('users').select('*').order('id', { ascending: false }),
-              supabase.from('transactions').select('*').order('created_at', { ascending: false }),
-              supabase.from('deposit_requests').select('*').order('created_at', { ascending: false }),
-              supabase.from('rent_requests').select('*').order('created_at', { ascending: false }),
-              supabase.from('messages').select('*').order('timestamp', { ascending: true }),
-              supabase.from('boosting_requests').select('*').order('created_at', { ascending: false })
-            ]);
-
-            if (usersRes.data) setUsersDb(usersRes.data);
-            if (txRes.data) setTransactionsDb(txRes.data);
-            if (depRes.data) setDepositRequests(depRes.data);
-            if (msgRes.data) setMessagesDb(msgRes.data);
-            if (boostReqRes.data) {
-              const fixedBoostReqs = boostReqRes.data.map(r => ({
-                ...r,
-                boostingTitle: r.boostingTitle || r.boostingtitle || '',
-                boostingId: r.boostingId || r.boostingid || ''
-              }));
-              setBoostingRequests(fixedBoostReqs);
-            }
-            if (rentRes.data) {
-              const fixedRentReqs = rentRes.data.map(r => ({
-                ...r,
-                accCode: r.accCode || r.acccode || '',
-                userId: r.userId || r.userid || ''
-              }));
-              setRentRequests(fixedRentReqs);
-            }
-          } else {
-            // QUYỀN KHÁCH: CHỈ TẢI CỦA KHÁCH
-            const [myTx, myDep, myRent, myMsg, myBoostReq] = await Promise.all([
-              supabase.from('transactions').select('*').eq('user', user.name).order('created_at', { ascending: false }),
-              supabase.from('deposit_requests').select('*').eq('userId', session.user.id).order('created_at', { ascending: false }),
-              supabase.from('rent_requests').select('*').eq('userId', session.user.id).order('created_at', { ascending: false }),
-              supabase.from('messages').select('*').or(`senderId.eq.${session.user.id},receiverId.eq.${session.user.id}`).order('timestamp', { ascending: true }),
-              supabase.from('boosting_requests').select('*').eq('user', user.name).order('created_at', { ascending: false }) // <--- Đã thêm lệnh lấy Cày Thuê
-            ]);
-
-            if (myTx.data) setTransactionsDb(myTx.data);
-            if (myDep.data) setDepositRequests(myDep.data);
-            if (myMsg.data) setMessagesDb(myMsg.data);
-            if (myRent.data) {
-              const fixedRentReqs = myRent.data.map(r => ({
-                ...r,
-                accCode: r.accCode || r.acccode || '',
-                userId: r.userId || r.userid || ''
-              }));
-              setRentRequests(fixedRentReqs);
-            }
-            // Lọc và hiển thị Cày Thuê cho khách
-            if (myBoostReq.data) {
-              const fixedBoostReqs = myBoostReq.data.map(r => ({
-                ...r,
-                boostingTitle: r.boostingTitle || r.boostingtitle || '',
-                boostingId: r.boostingId || r.boostingid || ''
-              }));
-              setBoostingRequests(fixedBoostReqs);
-            }
+        } else {
+          if (localStorage.getItem('shop_cached_user')) {
+            localStorage.removeItem('shop_cached_user');
+            localStorage.removeItem('shop_tx_db');
+            localStorage.removeItem('shop_dep_db');
+            localStorage.removeItem('shop_rent_db');
+            localStorage.removeItem('shop_boost_db');
+            localStorage.removeItem('shop_users_db');
+            localStorage.removeItem('shop_msg_db');
+            localStorage.removeItem('shop_comments_db');
+            setCurrentUser(null);
+            setCurrentView('login');
+            showToast("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!", "error");
           }
         }
-      } else {
-        if (localStorage.getItem('shop_cached_user')) {
-          localStorage.removeItem('shop_cached_user');
-          setCurrentUser(null);
-          setCurrentView('login');
-          showToast("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!", "error");
-        }
-      }
+      })();
+
+      // ĐỢI CẢ 3 TIẾN TRÌNH HOÀN THÀNH (Tiết kiệm được ít nhất 2 vòng chờ mạng)
+      await Promise.all([publicDataPromise, configPromise, userDataPromise]);
     };
 
     fetchInitialData();
@@ -566,10 +701,6 @@ const App = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setNow(Date.now());
-      // Lưu lại thời gian cuối cùng khách còn online
-      if (localStorage.getItem('shop_cached_user')) {
-        localStorage.setItem('shop_last_active', Date.now().toString());
-      }
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -593,7 +724,8 @@ const App = () => {
         const me = currentUserRef.current;
         const isAdmin = me?.role?.toLowerCase() === 'admin';
         // Khách chỉ nhận đơn nạp của chính mình, Admin nhận hết
-        if (!isAdmin && payload.new.userId !== me?.id) return;
+        const payloadUserId = payload.new.userId || payload.new.userid;
+        if (!isAdmin && payloadUserId !== me?.id) return;
         setDepositRequests(prev => {
           if (prev.find(d => d.id === payload.new.id)) return prev;
           return [payload.new, ...prev];
@@ -602,8 +734,25 @@ const App = () => {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'deposit_requests' }, (payload) => {
         const me = currentUserRef.current;
         const isAdmin = me?.role?.toLowerCase() === 'admin';
-        if (!isAdmin && payload.new.userId !== me?.id) return;
-        setDepositRequests(prev => prev.map(req => req.id === payload.new.id ? payload.new : req));
+
+        // Cập nhật state một cách an toàn: nếu request đã có trong danh sách của user thì cập nhật luôn
+        setDepositRequests(prev => {
+          const exists = prev.some(req => req.id === payload.new.id);
+          if (exists || isAdmin) {
+            return prev.map(req => req.id === payload.new.id ? { ...req, ...payload.new } : req);
+          }
+          return prev;
+        });
+
+        if (!isAdmin && payload.new.type === 'card' && payload.new.status === 'Thất bại') {
+          setDepositRequests(prev => {
+            const matched = prev.find(req => req.id === payload.new.id);
+            if (matched && matched.userId === me?.id) {
+              setLiveCardError(payload.new.details);
+            }
+            return prev;
+          });
+        }
       })
       .subscribe();
 
@@ -662,8 +811,30 @@ const App = () => {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' }, (payload) => {
         const me = currentUserRef.current;
         const isAdmin = me?.role?.toLowerCase() === 'admin';
+
+        // Tạo biến nhận diện user giống hệt cách webhook lưu
+        const myIdentifier = me?.name || me?.phone || 'Khách Vô Danh';
+
+        // CƠ CHẾ DỰ PHÒNG: Nếu có giao dịch nạp tiền thành công của user này, tắt luôn QR PayOS
+        if (payload.new.type === 'deposit_auto' && payload.new.user === myIdentifier) {
+          setPayosPaymentData(null);
+          setPayosSuccess(true);
+          setDepositAmount('');
+          setVoucherInput('');
+          showToast("Thanh toán tự động thành công!", "success");
+          setTimeout(() => setPayosSuccess(false), 5000);
+
+          // Tự động cập nhật trạng thái trong depositRequests nội bộ để giao diện đồng bộ
+          setDepositRequests(prev => prev.map(req => {
+            if (req.type === 'banking' && req.status !== 'Thành công' && req.status !== 'Đã hủy') {
+              return { ...req, status: 'Thành công' };
+            }
+            return req;
+          }));
+        }
+
         // Khách chỉ thấy của mình, Admin thấy hết (User name is used in transactions)
-        if (!isAdmin && payload.new.user !== me?.name) return;
+        if (!isAdmin && payload.new.user !== myIdentifier) return;
         setTransactionsDb(prev => {
           if (prev.find(t => t.id === payload.new.id)) return prev;
           return [payload.new, ...prev];
@@ -689,6 +860,14 @@ const App = () => {
         // Admin: cập nhật toàn bộ bảng users cho Panel
         if (isAdmin) {
           setUsersDb(prev => prev.map(u => u.id === payload.new.id ? payload.new : u));
+        } else if (payload.new.role?.toLowerCase() === 'admin') {
+          // GUEST: Cập nhật thông tin admin để lấy status online realtime
+          setUsersDb(prev => {
+            if (prev.find(u => u.id === payload.new.id)) {
+              return prev.map(u => u.id === payload.new.id ? payload.new : u);
+            }
+            return [...prev, payload.new];
+          });
         }
         // TẤT CẢ: Nếu data thay đổi là của chính mình → tự cập nhật số dư, lượt quay, v.v.
         // (Giải quyết bug: Duyệt qua Telegram nhưng khách phải F5 mới thấy số dư mới)
@@ -701,8 +880,77 @@ const App = () => {
 
     const commentsChannel = supabase.channel('realtime-comments')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, async (payload) => {
-        const { data } = await supabase.from('comments').select('*, users(name, avatar_url, role)').order('is_pinned', { ascending: false }).order('created_at', { ascending: false });
+        const { data } = await supabase.from('comments').select('*, users(name, avatar_url, role)').order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(200);
         if (data) setCommentsDb(data);
+      })
+      .subscribe();
+
+    // 6. Lắng nghe TÀI KHOẢN MỚI / BỊ MUA / BỊ THUÊ
+    const accountsChannel = supabase.channel('realtime-accounts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'accounts' }, (payload) => {
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          const acc = payload.new;
+          // Hàm chuẩn hóa data giống như lúc load ban đầu
+          let fixedRentOptions = acc.rentOptions;
+          if (typeof fixedRentOptions === 'string') {
+            try { fixedRentOptions = JSON.parse(fixedRentOptions); } catch (e) { fixedRentOptions = []; }
+          }
+          if (!Array.isArray(fixedRentOptions)) fixedRentOptions = [];
+
+          let fixedDetailImages = acc.detailImages;
+          if (typeof fixedDetailImages === 'string') {
+            try { fixedDetailImages = JSON.parse(fixedDetailImages); } catch (e) { fixedDetailImages = []; }
+          }
+          if (!Array.isArray(fixedDetailImages)) fixedDetailImages = [];
+
+          let fixedTags = acc.tags;
+          if (typeof fixedTags === 'string') {
+            try {
+              let parsed = JSON.parse(fixedTags);
+              fixedTags = Array.isArray(parsed) ? parsed : fixedTags.split(',').map(t => t.trim());
+            } catch (e) {
+              fixedTags = fixedTags.split(',').map(t => t.trim());
+            }
+          }
+          if (!Array.isArray(fixedTags)) fixedTags = [];
+
+          const formattedAcc = {
+            ...acc,
+            rentOptions: fixedRentOptions,
+            detailImages: fixedDetailImages,
+            tags: fixedTags,
+            rentedUntil: acc.rentedUntil || acc.renteduntil || null,
+            rentStartedAt: acc.rentStartedAt || acc.rentstartedat || null,
+            currentRenterId: acc.currentRenterId || acc.currentrenterid || null
+          };
+
+          setAccountsDb(prev => {
+            const exists = prev.some(a => a.id === formattedAcc.id);
+            if (exists) {
+              return prev.map(a => a.id === formattedAcc.id ? formattedAcc : a);
+            }
+            return [formattedAcc, ...prev];
+          });
+        } else if (payload.eventType === 'DELETE') {
+          setAccountsDb(prev => prev.filter(a => a.id !== payload.old.id));
+        }
+      })
+      .subscribe();
+
+    // 7. Lắng nghe DỊCH VỤ CÀY THUÊ (Admin thêm/sửa dịch vụ)
+    const boostingChannel = supabase.channel('realtime-boosting')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'boosting' }, (payload) => {
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          setBoostingDb(prev => {
+            const exists = prev.some(b => b.id === payload.new.id);
+            if (exists) {
+              return prev.map(b => b.id === payload.new.id ? payload.new : b);
+            }
+            return [payload.new, ...prev];
+          });
+        } else if (payload.eventType === 'DELETE') {
+          setBoostingDb(prev => prev.filter(b => b.id !== payload.old.id));
+        }
       })
       .subscribe();
 
@@ -716,6 +964,8 @@ const App = () => {
       supabase.removeChannel(usersChannel);
       supabase.removeChannel(transactionsChannel);
       supabase.removeChannel(commentsChannel);
+      supabase.removeChannel(accountsChannel);
+      supabase.removeChannel(boostingChannel);
     };
   }, []);
   // Tự động chuyển vòng quay nếu bị trống (Chống lỗi F5)
@@ -727,6 +977,102 @@ const App = () => {
     }
   }, [wheelItemsMoneyDb.length, wheelItemsSpinDb.length, playMode]);
 
+  // Lấy đơn nạp tự động hiện tại để đếm ngược
+  const activePendingBankingReq = depositRequests.find(d => d.userId === currentUser?.id && (d.status === 'Chờ duyệt' || d.status === 'Chờ thanh toán') && d.type !== 'card');
+
+  // Đếm ngược 10 phút tự hủy lệnh nạp
+  useEffect(() => {
+    let timer;
+    const pendingReq = activePendingBankingReq || (payosPaymentData ? { created_at: new Date().toISOString(), id: `PAYOS_${payosPaymentData.orderCode}` } : null);
+
+    if (pendingReq) {
+      const createdAtTime = new Date(pendingReq.created_at || Date.now()).getTime();
+      timer = setInterval(() => {
+        const now = Date.now();
+        const diff = Math.max(0, 600 - Math.floor((now - createdAtTime) / 1000));
+        setPayosTimeLeft(diff);
+        if (diff === 0) {
+          clearInterval(timer);
+          supabase.from('deposit_requests').update({ status: 'Đã hủy' }).eq('id', pendingReq.id).then(() => {
+            setPayosPaymentData(null);
+            showToast("Lệnh nạp tự động hủy do quá thời gian chờ (10 phút)!", "error");
+          });
+        }
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [activePendingBankingReq, payosPaymentData]);
+
+  const formatPayosTime = (seconds) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  // Lắng nghe lệnh PayOS để tắt QR khi thanh toán thành công
+  useEffect(() => {
+    if (payosPaymentData) {
+      const matchedReq = depositRequests.find(d => d.id === `PAYOS_${payosPaymentData.orderCode}`);
+      if (matchedReq) {
+        if (matchedReq.status === 'Thành công' || matchedReq.status === 'Đã duyệt') {
+          setPayosPaymentData(null);
+          setPayosSuccess(true);
+          setDepositAmount('');
+          setVoucherInput('');
+          showToast("Thanh toán tự động thành công!", "success");
+          setTimeout(() => setPayosSuccess(false), 5000);
+        } else if (matchedReq.status === 'Đã hủy' || matchedReq.status === 'Thất bại') {
+          setPayosPaymentData(null);
+        }
+      }
+    }
+  }, [depositRequests, payosPaymentData]);
+
+  // POLLING DỰ PHÒNG: Trong trường hợp Supabase Realtime bị lỗi/mất kết nối
+  useEffect(() => {
+    let pollTimer;
+    if (payosPaymentData) {
+      pollTimer = setInterval(async () => {
+        try {
+          const { data, error } = await supabase
+            .from('deposit_requests')
+            .select('status, details')
+            .eq('id', `PAYOS_${payosPaymentData.orderCode}`)
+            .single();
+
+          if (data) {
+            if (data.status === 'Thành công' || data.status === 'Đã duyệt') {
+              setPayosPaymentData(null);
+              setPayosSuccess(true);
+              setDepositAmount('');
+              setVoucherInput('');
+              showToast("Thanh toán tự động thành công!", "success");
+              setTimeout(() => setPayosSuccess(false), 5000);
+              // Ép cập nhật local state để UI đồng bộ ngay lập tức
+              setDepositRequests(prev => prev.map(r =>
+                r.id === `PAYOS_${payosPaymentData.orderCode}` ? { ...r, status: data.status, details: data.details } : r
+              ));
+            } else if (data.status === 'Thất bại' || data.status === 'Đã hủy') {
+              setPayosPaymentData(null);
+              setDepositRequests(prev => prev.map(r =>
+                r.id === `PAYOS_${payosPaymentData.orderCode}` ? { ...r, status: data.status, details: data.details } : r
+              ));
+            }
+          }
+        } catch (e) {
+          console.error("Polling lỗi:", e);
+        }
+      }, 3000); // Check mỗi 3 giây
+    }
+    return () => clearInterval(pollTimer);
+  }, [payosPaymentData]);
+
+  // =====================================================================
+  // ĐÃ XÓA POLLING TOÀN DIỆN DỰ PHÒNG: Gây tốn quá nhiều băng thông (Egress)
+  // Hệ thống Realtime (supabase.channel) ở trên đã đủ để cập nhật dữ liệu
+  // =====================================================================
+
+
   // Xử lý Check In Hộp Thư Tự Động (Lọc để tránh loop)
   useEffect(() => {
     if (currentView === 'security' && profileTab === 'inbox') {
@@ -734,6 +1080,7 @@ const App = () => {
       if (hasUnread) {
         const updatedMsgs = messagesDb.map(m => m.receiverId === currentUser?.id ? { ...m, isRead: true } : m);
         setMessagesDb(updatedMsgs);
+        supabase.from('messages').update({ isRead: true }).eq('receiverId', currentUser.id).then();
       }
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
@@ -745,6 +1092,19 @@ const App = () => {
       setTimeout(() => chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     }
   }, [messagesDb, currentView, adminTab, activeChatUser]);
+
+  // Cập nhật trạng thái "Đang hoạt động" cho currentUser (Ping mỗi 1 phút)
+  useEffect(() => {
+    if (!currentUser) return;
+    const updateLastActive = async () => {
+      try {
+        await supabase.from('users').update({ last_active: new Date().toISOString() }).eq('id', currentUser.id);
+      } catch (e) { }
+    };
+    updateLastActive(); // Cập nhật ngay khi load
+    const interval = setInterval(updateLastActive, 60000);
+    return () => clearInterval(interval);
+  }, [currentUser?.id]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -860,15 +1220,15 @@ const App = () => {
       setEditingCommentId(null);
       return;
     }
-    
+
     const historyItem = { content: comment.content, edited_at: new Date().toISOString() };
     const edit_history = [...(comment.edit_history || []), historyItem];
-    
+
     try {
-      await supabase.from('comments').update({ 
-        content: newContent.trim(), 
-        is_edited: true, 
-        edit_history 
+      await supabase.from('comments').update({
+        content: newContent.trim(),
+        is_edited: true,
+        edit_history
       }).eq('id', commentId);
       setEditingCommentId(null);
       showToast("Đã cập nhật bình luận!");
@@ -988,7 +1348,7 @@ const App = () => {
       // Lấy thông tin user để hiển thị lên web
       const { data: userData } = await supabase
         .from('users')
-        .select('*')
+        .select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at')
         .eq('id', authData.user.id)
         .single();
 
@@ -1005,16 +1365,16 @@ const App = () => {
         const role = (userData.role || 'user').toLowerCase();
         if (role === 'admin') {
           const [usersRes, txRes, depRes, rentRes, msgRes, boostReqRes] = await Promise.all([
-            supabase.from('users').select('*').order('id', { ascending: false }),
-            supabase.from('transactions').select('*').order('created_at', { ascending: false }),
-            supabase.from('deposit_requests').select('*').order('created_at', { ascending: false }),
-            supabase.from('rent_requests').select('*').order('created_at', { ascending: false }),
-            supabase.from('messages').select('*').order('timestamp', { ascending: true }),
-            supabase.from('boosting_requests').select('*').order('created_at', { ascending: false }) // Phải kéo cái này về
+            supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').order('id', { ascending: false }),
+            supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(300),
+            supabase.from('deposit_requests').select('*').order('created_at', { ascending: false }).limit(300),
+            supabase.from('rent_requests').select('*').order('created_at', { ascending: false }).limit(200),
+            supabase.from('messages').select('*').order('timestamp', { ascending: true }).limit(500),
+            supabase.from('boosting_requests').select('*').order('created_at', { ascending: false }).limit(200)
           ]);
-          if (usersRes.data) setUsersDb(usersRes.data);
-          if (txRes.data) setTransactionsDb(txRes.data);
-          if (depRes.data) setDepositRequests(depRes.data);
+          if (usersRes.data) { setUsersDb(usersRes.data); try { localStorage.setItem('shop_users_db', JSON.stringify(usersRes.data)); } catch (e) { } }
+          if (txRes.data) { setTransactionsDb(txRes.data); try { localStorage.setItem('shop_tx_db', JSON.stringify(txRes.data)); } catch (e) { } }
+          if (depRes.data) { setDepositRequests(depRes.data); try { localStorage.setItem('shop_dep_db', JSON.stringify(depRes.data)); } catch (e) { } }
           if (rentRes.data) {
             // Nhớ lọc chữ hoa/thường cho bảng Thuê Nick
             const fixedRentReqs = rentRes.data.map(r => ({
@@ -1023,8 +1383,9 @@ const App = () => {
               userId: r.userId || r.userid || ''
             }));
             setRentRequests(fixedRentReqs);
+            try { localStorage.setItem('shop_rent_db', JSON.stringify(fixedRentReqs)); } catch (e) { }
           }
-          if (msgRes.data) setMessagesDb(msgRes.data);
+          if (msgRes.data) { setMessagesDb(msgRes.data); try { localStorage.setItem('shop_msg_db', JSON.stringify(msgRes.data)); } catch (e) { } }
           if (boostReqRes.data) {
             const fixedBoostReqs = boostReqRes.data.map(r => ({
               ...r,
@@ -1032,6 +1393,7 @@ const App = () => {
               boostingId: r.boostingId || r.boostingid || ''
             }));
             setBoostingRequests(fixedBoostReqs);
+            try { localStorage.setItem('shop_boost_db', JSON.stringify(fixedBoostReqs)); } catch (e) { }
           }
         }
 
@@ -1194,47 +1556,53 @@ const App = () => {
 
   const handleBuyAccount = (acc) => {
     if (!currentUser) return requireAuth('login');
-    if (!currentUser.is_email_verified) return showToast("Vui lòng xác thực Email!", "error");
 
-    setConfirmDialog({
-      title: 'Xác nhận Mua Đứt',
-      message: `Bạn muốn mua nick #${acc.code} với giá ${new Intl.NumberFormat('vi-VN').format(acc.price)}đ?`,
-      onConfirm: async () => {
-        // GỌI HÀM BẢO MẬT TRÊN SERVER (RPC)
-        // Chúng ta không tự tính toán ở đây nữa, mà để Database tự làm
-        const { data, error } = await supabase.rpc('m_buy_acc', {
-          nick_id: acc.id,
-          khach_id: currentUser.id
-        });
+    setBuyQuantity(1);
+    setBuyModalData(acc);
+  };
 
-        // Nếu Database trả về lỗi (Ví dụ: hết tiền, hoặc nick đã bán)
-        if (error) {
-          return showToast(error.message || "Giao dịch thất bại!", 'error');
-        }
+  const executeBuyAccount = async (acc, quantity) => {
+    if (!currentUser.is_email_verified) return showToast("Vui lòng vào mục Cá nhân để xác thực Email trước khi thanh toán!", "error");
+    if (isGlobalProcessing) return;
+    setIsGlobalProcessing(true);
 
-        // Nếu Database báo Success: true
-        if (data && data.success) {
-          // Cập nhật lại số dư trên giao diện web cho khách thấy
-          const newBalance = currentUser.balance - acc.price;
-          const updatedUser = { ...currentUser, balance: newBalance };
-          setCurrentUser(updatedUser);
-
-          // Lưu lại vào bộ nhớ trình duyệt để khi load lại trang không bị mất số dư mới
-          localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
-
-          // Xóa nick vừa mua khỏi danh sách đang hiển thị ở Shop
-          setAccountsDb(accountsDb.filter(a => a.id !== acc.id));
-          setViewingAcc(null);
-
-          // Hiện thông báo chúc mừng
-          setSuccessTxData({ type: 'buy', title: 'Mua Thành Công!', acc: acc });
-          showToast("Giao dịch thành công!");
-        } else {
-          // Trường hợp data.success = false (do hàm SQL trả về)
-          showToast(data.message || "Giao dịch không thành công!", "error");
-        }
-      }
+    // GỌI HÀM BẢO MẬT TRÊN SERVER (RPC)
+    // Cập nhật RPC của bạn để hỗ trợ tham số soluong nhé. Nếu chưa có, hãy tạo mới hàm m_buy_acc_v2
+    const { data, error } = await supabase.rpc('m_buy_acc_v2', {
+      nick_id: acc.id,
+      khach_id: currentUser.id,
+      soluong: quantity
     });
+
+    setIsGlobalProcessing(false);
+
+    if (error) {
+      return showToast(error.message || "Giao dịch thất bại!", 'error');
+    }
+
+    if (data && data.success) {
+      const newBalance = currentUser.balance - (acc.price * quantity);
+      const updatedUser = { ...currentUser, balance: newBalance };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+
+      // Cập nhật stock ở client
+      setAccountsDb(accountsDb.map(a => {
+        if (a.id === acc.id) {
+          const currentStock = a.stock !== undefined ? a.stock : 1;
+          const newStock = currentStock - quantity;
+          if (newStock <= 0) return { ...a, stock: 0, is_sold: true };
+          return { ...a, stock: newStock };
+        }
+        return a;
+      }));
+      setViewingAcc(null);
+      setBuyModalData(null);
+      setSuccessTxData({ type: 'buy', title: 'Mua Thành Công!', acc: acc, quantity: quantity });
+      showToast(`Mua thành công ${quantity} tài khoản!`);
+    } else {
+      showToast(data?.message || "Giao dịch không thành công!", "error");
+    }
   };
 
   const initiateRent = (acc, opt) => {
@@ -1244,8 +1612,6 @@ const App = () => {
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
       return showToast("Hệ thống chỉ hỗ trợ thuê nick trên máy tính. Vui lòng thực hiện trên máy tính!", "error");
     }
-
-    if (!currentUser.is_email_verified) return showToast("Vui lòng vào mục Cá nhân để xác thực Email trước khi giao dịch!", "error");
 
     // THAY VÌ MỞ BẢNG THANH TOÁN, CHÚNG TA MỞ BẢNG QUY ĐỊNH TRƯỚC
     setIsRulesAccepted(false); // Reset lại ô checkbox về rỗng
@@ -1293,7 +1659,9 @@ const App = () => {
 
     // Nếu mã đúng, hệ thống cấp quyền và cập nhật DB
     await supabase.from('users').update({ is_email_verified: true }).eq('id', currentUser.id);
-    setCurrentUser({ ...currentUser, is_email_verified: true });
+    const updatedUser = { ...currentUser, is_email_verified: true };
+    setCurrentUser(updatedUser);
+    localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
     setShowOtpModal(false);
     setOtpCode('');
     showToast("Xác thực Email thành công!", 'success');
@@ -1420,7 +1788,7 @@ const App = () => {
       message: `Hoàn tác giao dịch "${tx.action}"? Hệ thống sẽ cộng/trừ ngược lại ${tx.isSpinCost ? 'Lượt quay' : 'Tiền'} vào tài khoản khách. (Lưu ý: Bạn tự chủ động thu hồi Acc/Dịch vụ nếu có).`,
       onConfirm: async () => {
         // 1. Lấy Data sống từ Database trước khi hoàn tác
-        const { data: liveUser } = await supabase.from('users').select('*').eq('id', userObj.id).single();
+        const { data: liveUser } = await supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').eq('id', userObj.id).single();
         if (!liveUser) return showToast("Lỗi: Không tìm thấy khách hàng!", "error");
 
         const reverseAmount = tx.amount;
@@ -1455,7 +1823,7 @@ const App = () => {
       }
     });
   };
-  const unreadCount = currentUser ? messagesDb.filter(m => m.receiverId === currentUser?.id && !m.isRead).length : 0;
+  const unreadCount = currentUser ? messagesDb.filter(m => m.receiverId === currentUser?.id && m.senderId !== currentUser?.id && !m.isRead).length : 0;
 
   // --- CÁC HÀM RENDER COMPONENTS ---
 
@@ -1514,7 +1882,7 @@ const App = () => {
               { name: 'Trang Chủ', view: 'dashboard', auth: false, icon: <Gamepad2 size={20} /> },
               { name: 'Nạp Tiền VNĐ', view: 'naptien', auth: true, icon: <Wallet size={20} /> },
               { name: 'Dịch Vụ Cày Thuê', view: 'caythue', auth: false, icon: <Target size={20} /> },
-              ...(wheelItemsMoneyDb.length > 0 || wheelItemsSpinDb.length > 0 ? [{ name: 'Vòng Quay May Mắn', view: 'vongquay', auth: false, icon: <Gift size={20} /> }] : []),
+              { name: 'Vòng Quay May Mắn', view: 'vongquay', auth: false, icon: <Gift size={20} /> },
               { name: 'Lịch Sử Giao Dịch', view: 'lichsu', auth: true, icon: <History size={20} /> },
               ...(currentUser?.role === 'admin' ? [{ name: 'Panel Quản Trị Hệ Thống', view: 'admin', auth: true, icon: <Settings size={20} />, adminOnly: true }] : [])
             ].map((item, idx) => (
@@ -1564,7 +1932,7 @@ const App = () => {
           { id: 'dashboard', name: 'Trang chủ', icon: <Gamepad2 size={22} />, auth: false },
           { id: 'caythue', name: 'Cày thuê', icon: <Target size={22} />, auth: false },
           { id: 'naptien', name: 'Nạp tiền', icon: <Wallet size={22} />, auth: true },
-          ...(wheelItemsMoneyDb.length > 0 || wheelItemsSpinDb.length > 0 ? [{ id: 'vongquay', name: 'Vòng quay', icon: <Gift size={22} />, auth: false }] : []),
+          { id: 'vongquay', name: 'Vòng quay', icon: <Gift size={22} />, auth: false },
           { id: 'security', name: 'Cá nhân', icon: <User size={22} />, auth: true }
         ].map(item => {
           const isActive = currentView === item.id;
@@ -1598,13 +1966,13 @@ const App = () => {
           <Clock size={16} className="animate-bounce shrink-0" />
           <span className="relative z-10 tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-rose-400">Giờ hoạt động: 8h00 - 23h00. Ngoài khung giờ này quý khách vui lòng kiên nhẫn chờ đợi, xin cảm ơn!</span>
         </div>
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden text-slate-300 hover:text-white p-2 -ml-2 bg-slate-800/50 rounded-lg transition-colors"><Menu size={24} /></button>
             <div onClick={() => setCurrentView('dashboard')}>
               <CustomLogo className="hidden sm:flex" />
-              <div className="sm:hidden flex items-center gap-2 cursor-pointer">
-                <div className="bg-gradient-to-br from-blue-600 to-rose-600 text-white p-1.5 rounded-lg shadow-lg"><Gamepad2 size={20} /></div>
+              <div className="sm:hidden cursor-pointer">
+                <img src="/Tiengaming.png" alt="Shop Tiến Gaming" className="h-14 w-auto object-contain" />
               </div>
             </div>
           </div>
@@ -1614,7 +1982,7 @@ const App = () => {
               { name: 'Mua Nick', view: 'dashboard', auth: false },
               { name: 'Nạp Tiền', view: 'naptien', auth: true },
               { name: 'Cày Thuê', view: 'caythue', auth: false },
-              ...(wheelItemsMoneyDb.length > 0 || wheelItemsSpinDb.length > 0 ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false }] : []),
+              { name: 'Vòng Quay', view: 'vongquay', auth: false },
               { name: 'Lịch Sử', view: 'lichsu', auth: true }
             ].map((item, idx) => (
               <button key={idx} onClick={() => item.auth ? requireAuth(item.view) : setCurrentView(item.view)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${currentView === item.view ? 'bg-blue-600/10 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
@@ -1633,27 +2001,24 @@ const App = () => {
             {currentUser ? (
               <>
                 {/* --- KHU VỰC HIỂN THỊ SỐ DƯ ĐÃ CHỈNH RESPONSIVE (GIỮ NGUYÊN CHỮ) --- */}
-                <div className="flex items-center gap-1.5 sm:gap-3 bg-[#0B1120] border border-slate-700 rounded-full px-2.5 sm:px-4 py-1 sm:py-1.5 cursor-pointer hover:border-slate-500 transition-colors overflow-hidden max-w-full">
-
-                  <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap" title="Số dư">
-                    <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
-                    <span className="text-emerald-400 font-bold text-[10px] sm:text-sm">{new Intl.NumberFormat('vi-VN').format(currentUser.balance)} đ</span>
+                <div className="flex items-center gap-1.5 sm:gap-2.5 max-w-full">
+                  {/* Số Dư Ví */}
+                  <div className="flex items-center gap-1.5 sm:gap-2.5 bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/60 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 transition-all shadow-[0_0_15px_rgba(16,185,129,0.05)] cursor-pointer" title="Số dư">
+                    <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0" />
+                    <span className="text-emerald-400 font-extrabold text-[12px] sm:text-[16px] whitespace-nowrap">{new Intl.NumberFormat('vi-VN').format(currentUser.balance)}<span className="text-[10px] sm:text-sm ml-0.5 font-bold">đ</span></span>
                   </div>
 
-                  <div className="w-[1px] h-3 sm:h-4 bg-slate-700 shrink-0"></div>
-
-                  <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap" title="Quỹ tiền thuê bảo lưu">
-                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400 shrink-0" />
-                    <span className="text-yellow-400 font-bold text-[10px] sm:text-sm">{new Intl.NumberFormat('vi-VN').format(currentUser.rentFund || 0)} đ</span>
+                  {/* Quỹ bảo lưu */}
+                  <div className="flex items-center gap-1.5 sm:gap-2.5 bg-yellow-500/10 border border-yellow-500/30 hover:border-yellow-500/60 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 transition-all shadow-[0_0_15px_rgba(234,179,8,0.05)] cursor-pointer" title="Quỹ tiền thuê bảo lưu">
+                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 shrink-0" />
+                    <span className="text-yellow-400 font-extrabold text-[12px] sm:text-[16px] whitespace-nowrap">{new Intl.NumberFormat('vi-VN').format(currentUser.rentFund || 0)}<span className="text-[10px] sm:text-sm ml-0.5 font-bold">đ</span></span>
                   </div>
 
-                  <div className="w-[1px] h-3 sm:h-4 bg-slate-700 shrink-0"></div>
-
-                  <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap" title="Lượt quay">
-                    <Ticket className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400 shrink-0" />
-                    <span className="text-rose-400 font-bold text-[10px] sm:text-sm">{currentUser.spins || 0} Lượt</span>
+                  {/* Lượt quay */}
+                  <div className="flex items-center gap-1.5 sm:gap-2.5 bg-rose-500/10 border border-rose-500/30 hover:border-rose-500/60 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 transition-all shadow-[0_0_15px_rgba(244,63,94,0.05)] cursor-pointer" title="Lượt quay">
+                    <Ticket className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 shrink-0" />
+                    <span className="text-rose-400 font-extrabold text-[12px] sm:text-[16px] whitespace-nowrap">{currentUser.spins || 0}<span className="text-[10px] sm:text-sm ml-0.5 font-bold"> Lượt</span></span>
                   </div>
-
                 </div>
                 {/* Nút cá nhân ẩn bớt trên màn hình cực nhỏ vì đã có bottom nav */}
                 <div className="relative hidden sm:block">
@@ -1850,10 +2215,10 @@ const App = () => {
   );
 
   const renderFooter = () => (
-    <footer className="w-full max-w-[1500px] mx-auto mt-16 mb-4 px-4 lg:pr-28 flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-12 pb-8 border-t border-slate-800 pt-12">
+    <footer className="w-full max-w-[1500px] mx-auto mt-16 mb-4 px-4 flex flex-col items-center justify-center gap-10 pb-8 border-t border-slate-800 pt-12">
 
       {/* CỘT TRÁI: LOGO & SLOGAN */}
-      <div className="flex-shrink-0 flex flex-col items-center justify-center lg:justify-start w-full lg:w-[45%] xl:w-[40%] gap-5">
+      <div className="flex-shrink-0 flex flex-col items-center justify-center w-full max-w-2xl gap-5">
 
         {/* CÂU SLOGAN TRÊN CÙNG ĐƯỢC TÙY BIẾN THÀNH CÁC THẺ (PILLS) */}
         <div className="w-full max-w-[650px] flex flex-wrap justify-center gap-2 md:gap-3 px-2 mb-2">
@@ -1867,7 +2232,7 @@ const App = () => {
             <Target size={18} /> Tìm Acc Theo Yêu Cầu
           </span>
           <span className="px-4 py-2 bg-[#151D2F] border border-yellow-500/30 text-yellow-400 text-[11px] sm:text-[13px] md:text-sm rounded-full font-black shadow-[0_0_15px_rgba(234,179,8,0.15)] flex items-center gap-2 hover:bg-yellow-500/10 hover:scale-105 transition-all cursor-default">
-            <ShieldCheck size={18} /> Trung Gian Cực Rẻ - Phí 4%
+            <ShieldCheck size={18} /> Trung Gian Cực Rẻ - Phí Chỉ Từ 2.5%
           </span>
         </div>
 
@@ -1893,8 +2258,8 @@ const App = () => {
       </div>
 
       {/* CỘT PHẢI: THÔNG TIN */}
-      <div className="flex flex-col items-center lg:items-end justify-center w-full lg:flex-1 xl:w-[60%] gap-6">
-        <div className="flex flex-col sm:flex-row gap-4 w-full lg:justify-end">
+      <div className="flex flex-col items-center justify-center w-full max-w-2xl gap-6">
+        <div className="flex flex-col sm:flex-row gap-4 w-full justify-center mt-2">
           <a href="https://zalo.me/0938240332" target="_blank" rel="noreferrer" className="flex-1 lg:max-w-[280px] flex items-center justify-center lg:justify-start gap-4 bg-[#151D2F] hover:bg-[#1a233a] px-5 py-3.5 rounded-xl border border-blue-500/20 hover:border-blue-500/50 transition-all shadow-lg group relative overflow-hidden">
             <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform z-10 shrink-0">
@@ -1916,43 +2281,6 @@ const App = () => {
               <p className="text-white font-black tracking-wide text-base">Nhâm Gia Tiến</p>
             </div>
           </a>
-        </div>
-
-        <div className="bg-[#0f172a] border border-slate-700 p-1 rounded-2xl shadow-2xl w-full max-w-3xl relative overflow-hidden group hover:border-slate-600 transition-colors">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-yellow-500/10 to-emerald-500/10 opacity-50"></div>
-          <div className="bg-[#151D2F] rounded-xl px-4 md:px-6 lg:px-8 py-6 relative z-10 flex flex-col items-center">
-            <p className="text-[11px] md:text-xs text-slate-400 font-bold mb-4 uppercase tracking-widest text-center">Tài Khoản Giao Dịch Chính Thức</p>
-            {/* LOGO TPBANK NẰM TRÊN */}
-            <div className="flex justify-center mb-4 w-full">
-              <img src="/tpbank.png" alt="TPBank" className="h-10 md:h-14 lg:h-16 object-contain rounded-lg bg-white px-3 py-1.5 shadow-[0_0_15px_rgba(139,92,246,0.3)] border border-purple-500/30 hover:scale-105 transition-transform" />
-            </div>
-
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-2 md:gap-3 text-[14px] sm:text-[15px] md:text-base lg:text-lg font-black w-full">
-              <span className="text-[#8B5CF6] drop-shadow-[0_0_10px_rgba(139,92,246,0.3)] bg-purple-500/10 px-3 py-1.5 rounded-lg border border-purple-500/20 text-center w-full sm:w-auto">TPBANK</span>
-              <span className="hidden sm:block text-slate-700">|</span>
-              <span className="text-yellow-400 tracking-wider font-mono bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/20 text-center whitespace-nowrap w-full sm:w-auto">1000 2973 552</span>
-              <span className="hidden sm:block text-slate-700">|</span>
-              <span className="text-emerald-400 uppercase drop-shadow-[0_0_10px_rgba(16,185,129,0.3)] bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 text-center whitespace-nowrap w-full sm:w-auto">NHAM GIA TIEN</span>
-
-              {/* NÚT COPY TẤT CẢ */}
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText('Ngân hàng: TPBANK\nSTK: 10002973552\nChủ TK: NHAM GIA TIEN');
-                  alert('Đã copy toàn bộ thông tin giao dịch!');
-                }}
-                className="mt-2 sm:mt-0 p-2 sm:ml-1 w-full sm:w-auto bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-white border border-blue-500/30 hover:border-blue-500 rounded-lg transition-all shadow-lg flex items-center justify-center flex-shrink-0 group"
-                title="Copy toàn bộ thông tin"
-              >
-                <Copy size={20} className="group-hover:scale-110 transition-transform" />
-                <span className="ml-2 text-xs font-bold uppercase sm:hidden">Copy Thông Tin</span>
-              </button>
-            </div>
-
-            <div className="mt-5 flex items-center justify-center gap-2 bg-rose-500/10 border border-rose-500/20 w-full py-3 rounded-lg px-2 text-center">
-              <AlertCircle size={16} className="text-rose-500 animate-pulse shrink-0" />
-              <p className="text-[11px] md:text-xs text-rose-400 italic font-bold">Lưu ý: Chỉ sử dụng duy nhất tài khoản này khi giao dịch trên website. Vui lòng kiểm tra kỹ trước khi chuyển khoản!</p>
-            </div>
-          </div>
         </div>
       </div>
     </footer>
@@ -2089,13 +2417,121 @@ const App = () => {
       </div>
     );
   };
+  const renderBoostingCard = (b, index) => {
+    let gName = b.game || '';
+    let gAvatar = null;
+    try {
+      const parsed = JSON.parse(b.game);
+      gName = parsed.name || '';
+      gAvatar = parsed.avatar || null;
+    } catch (e) { }
+
+    return (
+      <div key={b.id} className="bg-[#151D2F] h-full border border-slate-800 rounded-2xl hover:border-blue-500/50 transition-all shadow-xl group flex flex-col relative mt-5 hover:-translate-y-1">
+        <div className="flex justify-center -mt-5 relative z-30">
+          <div className="flex items-center gap-2 bg-gradient-to-r from-[#1a2744] to-[#1e2d4a] border border-blue-500/30 rounded-full pl-1 pr-4 py-1 shadow-xl shadow-blue-500/10">
+            {gAvatar && <img src={gAvatar} alt={gName} className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover shrink-0 ring-2 ring-blue-400/50" />}
+            <span className="text-xs md:text-sm font-black text-blue-300 whitespace-nowrap">{gName}</span>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col relative overflow-hidden rounded-xl">
+          {(b.oldPrice > b.price || b.discountPercent > 0) && (
+            <div className="absolute top-3 md:top-6 -right-12 md:-right-10 w-36 md:w-40 text-center transform rotate-45 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 text-white font-black text-[8px] md:text-[11px] py-0.5 md:py-1 shadow-lg z-30 border-y border-white/20 uppercase tracking-widest pointer-events-none mt-4">
+              GIẢM {b.oldPrice > b.price ? Math.round(((b.oldPrice - b.price) / b.oldPrice) * 100) : b.discountPercent}%
+            </div>
+          )}
+
+          {b.image && (
+            <ImageCarousel
+              images={b.image.split(',')}
+              title={b.title}
+              setFullScreenImage={setFullScreenImage}
+              index={index}
+              isFeatured={(() => { try { return JSON.parse(b.game).isFeatured; } catch (e) { return false; } })()}
+            />
+          )}
+
+          <div className="p-2 md:p-4 flex-1 flex flex-col relative z-10 bg-[#151D2F]">
+            <h4 className="text-sm md:text-base font-black text-white text-center mb-1 line-clamp-2 cursor-pointer hover:text-blue-400 leading-tight px-1 whitespace-pre-line" title={b.title} onClick={() => {
+              setSelectedBoostRank(0);
+              const firstOpt = b.rankOptions?.[0];
+              setBoostSubTier(firstOpt?.inputType === 'bac' && (firstOpt?.tierCount || 1) > 1 ? toRoman(firstOpt?.tierCount || 1) : '');
+              setBoostCurrentPoints('');
+              setBoostTargetPoints('');
+              setBoostTargetRank('');
+              setBoostQuantity(1);
+              setBoostingModalData(b);
+            }}>{b.title}</h4>
+            <p className="text-[10px] md:text-xs text-slate-400 mb-2 flex-grow whitespace-pre-wrap text-center px-1 line-clamp-2">{b.desc}</p>
+            <div className="border-t border-slate-800 pt-2 md:pt-4 flex flex-col gap-2 md:gap-3 flex-1">
+              {(() => {
+                const isCumulative = b.rankOptions && b.rankOptions.length > 0 && b.rankOptions[0].points !== undefined;
+                return (
+                  <>
+                    <div className="flex flex-col sm:flex-row gap-1.5 justify-center items-center text-center">
+                      {!isCumulative && (
+                        <div className="flex flex-col items-center py-1.5">
+                          <p className="text-[10px] md:text-xs tracking-wider text-slate-500 font-bold mb-0.5 uppercase">GIÁ TỪ</p>
+                          {b.oldPrice > b.price ? (
+                            <>
+                              <p className="text-xs md:text-sm font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(b.oldPrice)}đ</p>
+                              <p className="text-lg md:text-2xl mt-0.5 font-black text-rose-500">{new Intl.NumberFormat('vi-VN').format(b.price)}<span className="text-xs md:text-sm opacity-70 ml-0.5">đ{b.priceUnit && `/${b.priceUnit}`}</span></p>
+                            </>
+                          ) : b.discountPercent > 0 ? (
+                            <>
+                              <p className="text-xs md:text-sm font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(b.price)}đ</p>
+                              <p className="text-lg md:text-2xl mt-0.5 font-black text-rose-500">{new Intl.NumberFormat('vi-VN').format(b.price - Math.floor(b.price * (b.discountPercent / 100)))}<span className="text-xs md:text-sm opacity-70 ml-0.5">đ{b.priceUnit && `/${b.priceUnit}`}</span></p>
+                            </>
+                          ) : (
+                            <p className="text-lg md:text-2xl mt-0.5 font-black text-rose-500">{new Intl.NumberFormat('vi-VN').format(b.price)}<span className="text-xs md:text-sm opacity-70 ml-0.5">đ{b.priceUnit && `/${b.priceUnit}`}</span></p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-auto w-full pt-1 md:pt-2">
+                      <button onClick={() => {
+                        if (!currentUser) return requireAuth('login');
+                        setSelectedBoostRank(0);
+                        const firstOpt = b.rankOptions?.[0];
+                        setBoostSubTier(firstOpt?.inputType === 'bac' && (firstOpt?.tierCount || 1) > 1 ? toRoman(firstOpt?.tierCount || 1) : '');
+                        setBoostCurrentPoints('');
+                        setBoostTargetPoints('');
+                        setBoostTargetRank('');
+                        setBoostQuantity(1);
+                        setBoostingModalData(b);
+                      }} className="w-full py-1.5 md:py-2.5 rounded-lg text-[10px] md:text-sm font-bold flex items-center justify-center gap-1 transition-colors bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20">Đặt Đơn</button>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderDashboardScreen = () => {
     // Chỉ lấy những tài khoản chưa bị đánh dấu Đã Bán
-    const availableAccounts = accountsDb.filter(acc => !acc.is_sold);
+    const availableAccounts = accountsDb.filter(acc => !acc.is_sold && (acc.stock === undefined || acc.stock > 0));
 
-    const gameTabs = ['Tất cả', ...new Set(availableAccounts.map(acc => acc.game))];
-    const filteredAccounts = activeTab === 'Tất cả' ? availableAccounts : availableAccounts.filter(acc => acc.game === activeTab);
+    const uniqueGamesMap = new Map();
+    availableAccounts.forEach(acc => {
+      const info = getGameInfo(acc.game);
+      if (!uniqueGamesMap.has(info.name)) uniqueGamesMap.set(info.name, info.avatar);
+    });
+    const gameTabs = ['Tất cả', ...uniqueGamesMap.keys()];
+    const baseAccounts = activeTab === 'Tất cả' ? availableAccounts : availableAccounts.filter(acc => getGameInfo(acc.game).name === activeTab);
+    const baseBoosting = boostingDb.filter(b => getGameInfo(b.game).isFeatured && (activeTab === 'Tất cả' || getGameInfo(b.game).name === activeTab));
+
+    const mixedItems = [...baseBoosting, ...baseAccounts].sort((a, b) => {
+      const aFeatured = getGameInfo(a.game).isFeatured;
+      const bFeatured = getGameInfo(b.game).isFeatured;
+      return (bFeatured === true) - (aFeatured === true);
+    });
+
+
     return (
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-20">
         {renderNavbar()}
@@ -2137,7 +2573,7 @@ const App = () => {
                     </div>
                   </div>
 
-                  <div className="flex flex-col justify-center bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-5 rounded-2xl shadow-xl hover:border-blue-500/50 transition-all group w-full lg:w-64 relative overflow-hidden hide-on-touch">
+                  <div className="hidden lg:flex flex-col justify-center bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-5 rounded-2xl shadow-xl hover:border-blue-500/50 transition-all group w-full lg:w-64 relative overflow-hidden">
                     <div className="absolute -top-6 -right-6 p-4 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
                       <Download size={120} />
                     </div>
@@ -2174,23 +2610,28 @@ const App = () => {
                 </div>
               </section>
 
+
+
               <section>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                   <div className="flex items-center gap-2">
                     <Flame className="text-rose-500 animate-pulse" />
-                    <h3 className="text-xl font-bold text-white uppercase">{activeTab === 'Tất cả' ? 'Tất cả tài khoản' : `Tài khoản ${activeTab}`}</h3>
+                    <h3 className="text-xl font-bold text-white uppercase">{activeTab === 'Tất cả' ? 'Tất cả sản phẩm' : `Tài khoản ${activeTab}`}</h3>
                   </div>
                   <div className="flex gap-2 overflow-x-auto w-full sm:w-auto pb-2 scrollbar-hide">
                     {gameTabs.map(tab => (
-                      <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors border ${activeTab === tab ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>
+                      <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors border flex items-center gap-1.5 ${activeTab === tab ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>
+                        {tab !== 'Tất cả' && uniqueGamesMap.get(tab) && <img src={uniqueGamesMap.get(tab)} className="w-4 h-4 rounded" alt="" />}
                         {tab}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                  {filteredAccounts.map((acc, index) => {
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-2.5 md:gap-x-5 gap-y-8 md:gap-y-10">
+                  {mixedItems.map((item, index) => {
+                    if (!item.code) return renderBoostingCard(item, index);
+                    const acc = item;
                     const isRented = acc.rentedUntil && acc.rentedUntil > now;
                     let timeStr = "";
                     if (isRented) {
@@ -2222,92 +2663,119 @@ const App = () => {
                     }
 
                     return (
-                      <div key={acc.id} className="bg-[#151D2F] rounded-xl overflow-hidden border border-slate-800 hover:border-blue-500/50 transition-all flex flex-col group shadow-lg hover:-translate-y-1 relative">
-                        {(() => {
-                          const buyDiscount = acc.oldPrice && acc.oldPrice > acc.price ? Math.round(((acc.oldPrice - acc.price) / acc.oldPrice) * 100) : 0;
-                          const rentDiscount = acc.oldRentPrice && acc.oldRentPrice > acc.rentPricePerHour ? Math.round(((acc.oldRentPrice - acc.rentPricePerHour) / acc.oldRentPrice) * 100) : 0;
-                          const packageRentDiscount = acc.rentDiscountPercent || 0;
-                          const maxDiscount = Math.max(buyDiscount, rentDiscount, packageRentDiscount);
-                          return maxDiscount > 0 ? (
-                            <div className="absolute top-6 -right-10 w-40 text-center transform rotate-45 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 text-white font-black text-[11px] py-1 shadow-lg z-40 border-y border-white/20 uppercase tracking-widest pointer-events-none">
-                              GIẢM {maxDiscount}%
-                            </div>
-                          ) : null;
-                        })()}
-                        <div className="relative h-44 w-full bg-slate-900 cursor-pointer overflow-hidden" onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}>
-                          <img
-                            src={acc.coverImage}
-                            loading={index < 8 ? "eager" : "lazy"}
-                            fetchPriority={index < 4 ? "high" : "auto"}
-                            decoding="async"
-                            alt={acc.game}
-                            className={`w-full h-full object-cover transition-all duration-500 ${isRented ? 'opacity-50 grayscale hover:grayscale-0' : 'opacity-80 group-hover:opacity-100 group-hover:scale-110'}`}
-                          />
-                          <div className="absolute top-2 left-2 bg-rose-600 text-white text-xs font-bold px-2.5 py-1 rounded shadow-lg backdrop-blur-md bg-opacity-90 z-30">Mã: {acc.code}</div>
-                          {/* TAG TIER GÓC PHẢI - DÁN VÀO DƯỚI DÒNG MÃ ACC */}
-                          <span className={`absolute top-10 left-2 text-[10px] font-black px-2.5 py-1 rounded shadow-lg uppercase z-30 ${acc.tier === 'ULVIP' ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white' : acc.tier === 'SVIP' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-[#0B1120]' : 'bg-blue-600 text-white'}`}>
-                            {acc.tier || 'VIP'}
-                          </span>
-                          {isRented && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-[2px] z-20 hover:backdrop-blur-0 transition-all pointer-events-none">
-                              <span className="text-white font-black text-xs tracking-wider bg-black/80 px-3 py-1 rounded-full mb-1 border border-yellow-500/50">ĐANG CHO THUÊ</span>
-                              <span className="text-yellow-400 font-mono font-bold text-sm tracking-widest drop-shadow-md">{timeStr}</span>
-                            </div>
-                          )}
-
+                      <div key={acc.id} className="bg-[#151D2F] h-full rounded-xl border border-slate-800 hover:border-blue-500/50 transition-all flex flex-col group shadow-lg hover:-translate-y-1 relative mt-5">
+                        {/* --- BADGE GAME (NHÔ LÊN TRÊN THẺ) --- */}
+                        <div className="flex justify-center -mt-5 relative z-30">
+                          <div className="flex items-center gap-2 bg-gradient-to-r from-[#1a2744] to-[#1e2d4a] border border-blue-500/30 rounded-full pl-1.5 pr-4 md:pr-5 py-1 shadow-xl shadow-blue-500/10">
+                            {getGameInfo(acc.game).avatar ? <img src={getGameInfo(acc.game).avatar} alt={getGameInfo(acc.game).name} className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover shrink-0 ring-2 ring-blue-400/50" /> : <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-blue-500/20 ring-2 ring-blue-400/50 flex items-center justify-center shrink-0"><Gamepad2 size={16} className="text-blue-400" /></div>}
+                            <span className="text-xs md:text-sm font-black text-blue-300 whitespace-nowrap">{getGameInfo(acc.game).name}</span>
+                          </div>
                         </div>
-                        <div className="p-4 flex-1 flex flex-col relative z-10 bg-[#151D2F]">
-                          <div className={`w-fit text-xs font-bold px-2 py-0.5 rounded-md mb-2 border ${acc.tagColor}`}>{acc.game}</div>
-                          <h4 className="text-sm font-bold text-white mb-3 line-clamp-2 cursor-pointer hover:text-blue-400" title={acc.title} onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}>{acc.title}</h4>
-                          <div className="mt-auto border-t border-slate-800 pt-4 flex flex-col gap-3">
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <p className="text-[10px] text-slate-500 font-bold mb-0.5 uppercase">MUA ĐỨT</p>
-                                {acc.oldPrice && acc.oldPrice > acc.price && (
-                                  <p className="text-xs font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(acc.oldPrice)}đ</p>
+
+                        <div className="flex-1 flex flex-col relative overflow-hidden rounded-xl">
+                          {(() => {
+                            const buyDiscount = acc.oldPrice && acc.oldPrice > acc.price ? Math.round(((acc.oldPrice - acc.price) / acc.oldPrice) * 100) : 0;
+                            const rentDiscount = acc.oldRentPrice && acc.oldRentPrice > acc.rentPricePerHour ? Math.round(((acc.oldRentPrice - acc.rentPricePerHour) / acc.oldRentPrice) * 100) : 0;
+                            const packageRentDiscount = acc.rentDiscountPercent || 0;
+                            const maxDiscount = Math.max(buyDiscount, rentDiscount, packageRentDiscount);
+                            return maxDiscount > 0 ? (
+                              <div className="absolute top-3 md:top-6 -right-12 md:-right-10 w-36 md:w-40 text-center transform rotate-45 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 text-white font-black text-[8px] md:text-[11px] py-0.5 md:py-1 shadow-lg z-30 border-y border-white/20 uppercase tracking-widest pointer-events-none mt-4">
+                                GIẢM {maxDiscount}%
+                              </div>
+                            ) : null;
+                          })()}
+                          <div className="relative h-24 sm:h-32 md:h-44 w-full bg-slate-900 cursor-pointer overflow-hidden mt-1 md:mt-2" onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}>
+                            <img
+                              src={acc.coverImage}
+                              loading={index < 8 ? "eager" : "lazy"}
+                              fetchPriority={index < 4 ? "high" : "auto"}
+                              decoding="async"
+                              alt={getGameInfo(acc.game).name}
+                              className={`w-full h-full object-cover transition-all duration-500 ${isRented ? 'opacity-50 grayscale hover:grayscale-0' : 'opacity-80 group-hover:opacity-100 group-hover:scale-110'}`}
+                            />
+                            <div className="absolute top-1.5 left-1.5 flex flex-col items-start gap-1 z-20">
+                              <div className="bg-rose-600 text-white text-[9px] md:text-xs font-bold px-1.5 md:px-2.5 py-0.5 md:py-1 rounded shadow-lg backdrop-blur-md bg-opacity-90 w-fit">Mã: {acc.code}</div>
+                              <div className="flex gap-1">
+                                <span className={`text-[8px] md:text-[10px] font-black px-1.5 md:px-2.5 py-0.5 md:py-1 rounded shadow-lg uppercase w-fit ${acc.tier === 'ULVIP' ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white' : acc.tier === 'SVIP' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-[#0B1120]' : 'bg-blue-600 text-white'}`}>
+                                  {acc.tier || 'VIP'}
+                                </span>
+                              </div>
+                            </div>
+                            {isRented && (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-[2px] z-20 hover:backdrop-blur-0 transition-all pointer-events-none">
+                                <span className="text-white font-black text-[9px] md:text-xs tracking-wider bg-black/80 px-1.5 md:px-3 py-0.5 md:py-1 rounded-full mb-1 border border-yellow-500/50">ĐANG THUÊ</span>
+                                <span className="text-yellow-400 font-mono font-bold text-xs md:text-sm tracking-widest drop-shadow-md">{timeStr}</span>
+                              </div>
+                            )}
+
+                            {getGameInfo(acc.game).isFeatured && (
+                              <div className="absolute bottom-1.5 left-1.5 z-20 pointer-events-none">
+                                <span className="text-[9px] md:text-[10px] font-black px-2.5 py-1 rounded-md uppercase w-fit bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-[0_2px_10px_rgba(0,0,0,0.8)] border border-amber-300/50 backdrop-blur-md">
+                                  🔥 DỊCH VỤ NỔI BẬT
+                                </span>
+                              </div>
+                            )}
+
+                          </div>
+                          <div className="p-2 md:p-4 flex-1 flex flex-col relative z-10 bg-[#151D2F]">
+                            <h4 className="text-sm md:text-base font-black text-white text-center mb-1 line-clamp-2 cursor-pointer hover:text-blue-400 leading-tight px-1 whitespace-pre-line" title={acc.title} onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}>{acc.title}</h4>
+                            <div className="flex justify-center w-full mb-3 md:mb-4">
+                              <span className="w-fit px-4 md:px-6 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors text-emerald-400 text-xs md:text-sm font-bold py-1 md:py-1.5 rounded-lg border border-emerald-500/30 text-center tracking-wide">
+                                Kho: {acc.stock !== undefined ? acc.stock : 1}
+                              </span>
+                            </div>
+                            <div className="border-t border-slate-800 pt-2 md:pt-4 flex flex-col gap-2 md:gap-3 flex-1">
+                              <div className={`flex flex-col sm:flex-row gap-1.5 ${acc.rentPricePerHour > 0 ? 'justify-between items-start sm:items-center' : 'justify-center items-center text-center'}`}>
+                                <div className={acc.rentPricePerHour > 0 ? '' : 'flex flex-col items-center py-1.5'}>
+                                  <p className={`${acc.rentPricePerHour > 0 ? 'text-[8px] md:text-[10px]' : 'text-[10px] md:text-xs tracking-wider'} text-slate-500 font-bold mb-0.5 uppercase`}>MUA ĐỨT</p>
+                                  {acc.oldPrice && acc.oldPrice > acc.price && (
+                                    <p className={`${acc.rentPricePerHour > 0 ? 'text-[10px] md:text-xs' : 'text-xs md:text-sm'} font-bold text-slate-500 line-through mb-0.5`}>{new Intl.NumberFormat('vi-VN').format(acc.oldPrice)}đ</p>
+                                  )}
+                                  <p className={`${acc.rentPricePerHour > 0 ? 'text-sm md:text-lg' : 'text-lg md:text-2xl mt-0.5'} font-black text-rose-500`}>{new Intl.NumberFormat('vi-VN').format(acc.price)}<span className={`${acc.rentPricePerHour > 0 ? 'text-[9px] md:text-xs' : 'text-xs md:text-sm'} opacity-70 ml-0.5`}>đ</span></p>
+                                </div>
+
+                                {acc.rentPricePerHour > 0 && (
+                                  <div className="text-left sm:text-right sm:border-l sm:border-slate-700 sm:pl-3 w-full sm:w-auto">
+                                    <p className="text-[8px] md:text-[10px] text-slate-500 font-bold mb-0.5 uppercase">THUÊ / GIỜ</p>
+                                    {acc.oldRentPrice && acc.oldRentPrice > acc.rentPricePerHour && (
+                                      <p className="text-[10px] md:text-xs font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(acc.oldRentPrice)}đ</p>
+                                    )}
+                                    <p className="text-sm md:text-lg font-black text-blue-400">{new Intl.NumberFormat('vi-VN').format(acc.rentPricePerHour)}<span className="text-[9px] md:text-xs opacity-70 ml-0.5">đ</span></p>
+                                  </div>
                                 )}
-                                <p className="text-base md:text-lg font-black text-rose-500">{new Intl.NumberFormat('vi-VN').format(acc.price)}<span className="text-[10px] md:text-xs opacity-70 ml-0.5">đ</span></p>
                               </div>
 
-                              {acc.rentPricePerHour > 0 && (
-                                <div className="text-right border-l border-slate-700 pl-3">
-                                  <p className="text-[10px] text-slate-500 font-bold mb-0.5 uppercase">THUÊ / GIỜ</p>
-                                  {acc.oldRentPrice && acc.oldRentPrice > acc.rentPricePerHour && (
-                                    <p className="text-xs font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(acc.oldRentPrice)}đ</p>
-                                  )}
-                                  <p className="text-base md:text-lg font-black text-blue-400">{new Intl.NumberFormat('vi-VN').format(acc.rentPricePerHour)}<span className="text-[10px] md:text-xs opacity-70 ml-0.5">đ</span></p>
-                                </div>
-                              )}
-                            </div>
+                              <div className="mt-auto w-full pt-1 md:pt-2">
+                                {/* XỬ LÝ NÚT NGOÀI MẶT TIỀN: Phân biệt Chủ Thuê, Khách Vãng Lai và Gói Combo */}
+                                {isRented && currentUser?.id === acc.currentRenterId ? (
+                                  (() => {
+                                    // Dò xem khách đang thuê gói gì
+                                    const activeReq = rentRequests.find(r => r.accCode === acc.code && r.status === 'Đã giao acc');
+                                    const isCombo = activeReq && (activeReq.time.toLowerCase().includes('combo đêm') || activeReq.time.toLowerCase().includes('combo ngày'));
 
-                            {/* XỬ LÝ NÚT NGOÀI MẶT TIỀN: Phân biệt Chủ Thuê, Khách Vãng Lai và Gói Combo */}
-                            {isRented && currentUser?.id === acc.currentRenterId ? (
-                              (() => {
-                                // Dò xem khách đang thuê gói gì
-                                const activeReq = rentRequests.find(r => r.accCode === acc.code && r.status === 'Đã giao acc');
-                                const isCombo = activeReq && (activeReq.time.toLowerCase().includes('combo đêm') || activeReq.time.toLowerCase().includes('combo ngày'));
-
-                                return isCombo ? (
-                                  <button disabled className="w-full py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors bg-slate-700 text-slate-400 cursor-not-allowed shadow-inner border border-slate-600">
-                                    <Clock size={16} /> ĐANG THUÊ GÓI COMBO
-                                  </button>
+                                    return isCombo ? (
+                                      <button disabled className="w-full py-1.5 md:py-2.5 rounded-lg text-[10px] md:text-sm font-bold flex items-center justify-center gap-1 md:gap-2 bg-slate-700 text-slate-400 cursor-not-allowed shadow-inner border border-slate-600">
+                                        ĐANG THUÊ COMBO
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleStopRent(acc); }}
+                                        className="w-full py-1.5 md:py-2.5 rounded-lg text-[10px] md:text-sm font-bold flex items-center justify-center gap-1 md:gap-2 transition-colors bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/20 active:scale-95"
+                                      >
+                                        <Clock size={12} className="animate-pulse" /> NGỪNG THUÊ
+                                      </button>
+                                    );
+                                  })()
                                 ) : (
                                   <button
-                                    onClick={(e) => { e.stopPropagation(); handleStopRent(acc); }}
-                                    className="w-full py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/20 active:scale-95"
+                                    onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}
+                                    className={`w-full py-1.5 md:py-2.5 rounded-lg text-[10px] md:text-sm font-bold flex items-center justify-center gap-1 transition-colors ${isRented ? 'bg-slate-800 text-yellow-500 border border-slate-700 hover:bg-slate-700' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'}`}
                                   >
-                                    <Clock size={16} className="animate-pulse" /> NGƯNG THUÊ & BẢO LƯU
+                                    {isRented ? 'ĐANG THUÊ' : <>CHI TIẾT <ArrowRight size={12} /></>}
                                   </button>
-                                );
-                              })()
-                            ) : (
-                              <button
-                                onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}
-                                className={`w-full py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors ${isRented ? 'bg-slate-800 text-yellow-500 border border-slate-700 hover:bg-slate-700' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'}`}
-                              >
-                                {isRented ? 'XEM ACC ĐANG THUÊ' : <>XEM CHI TIẾT <ArrowRight size={16} /></>}
-                              </button>
-                            )}
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -2653,7 +3121,7 @@ const App = () => {
                     const receiver = usersDb.find(u => u.phone === phone);
                     if (!receiver) {
                       // Nếu không có trong RAM, thử gọi DB
-                      const { data: dbUser } = await supabase.from('users').select('*').eq('phone', phone).single();
+                      const { data: dbUser } = await supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').eq('phone', phone).single();
                       if (!dbUser) return showToast('Không tìm thấy tài khoản với SĐT này!', 'error');
                       // Tìm thấy trên DB
                       handleTransferMoney(dbUser, amount, fee, totalDeduct, e.target);
@@ -2675,8 +3143,8 @@ const App = () => {
                         message: `Chuyển ${new Intl.NumberFormat('vi-VN').format(amount)}đ cho "${receiver.name}" (SĐT: ${receiver.phone})?${feeText}\n\nSố dư sau giao dịch: ${new Intl.NumberFormat('vi-VN').format(currentUser.balance - totalDeduct)}đ`,
                         onConfirm: async () => {
                           // 1. Lấy dữ liệu sống từ DB
-                          const { data: liveSender } = await supabase.from('users').select('*').eq('id', currentUser.id).single();
-                          const { data: liveReceiver } = await supabase.from('users').select('*').eq('id', receiver.id).single();
+                          const { data: liveSender } = await supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').eq('id', currentUser.id).single();
+                          const { data: liveReceiver } = await supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').eq('id', receiver.id).single();
                           if (!liveSender || !liveReceiver) return showToast('Lỗi hệ thống!', 'error');
                           if (liveSender.balance < totalDeduct) return showToast('Số dư không đủ (đã tính phí)!', 'error');
 
@@ -2830,12 +3298,21 @@ const App = () => {
           )}
 
           {profileTab === 'inbox' && (
-            <div className="bg-[#151D2F] border border-slate-800 rounded-2xl shadow-xl flex flex-col h-[60vh] min-h-[400px] max-h-[800px]">
+            <div className="bg-[#151D2F] border border-slate-800 rounded-2xl shadow-xl flex flex-col h-[calc(100vh-280px)] md:h-[60vh] min-h-[350px] max-h-[800px]">
               <div className="p-4 border-b border-slate-800 flex items-center gap-3 bg-[#0B1120] rounded-t-2xl">
                 <div className="w-10 h-10 bg-blue-500/20 text-blue-500 rounded-full flex items-center justify-center"><Gamepad2 size={20} /></div>
                 <div>
                   <h3 className="font-bold text-white">Admin Hệ Thống Shop</h3>
-                  <p className="text-[10px] text-emerald-400 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400 block"></span> Luôn sẵn sàng hỗ trợ</p>
+                  {(() => {
+                    const adminUser = usersDb.find(u => u.role?.toLowerCase() === 'admin');
+                    const status = getActiveStatus(adminUser?.last_active);
+                    return (
+                      <p className={`text-[10px] flex items-center gap-1 ${status.isOnline ? 'text-emerald-400' : 'text-slate-400'}`}>
+                        <span className={`w-2 h-2 rounded-full block ${status.isOnline ? 'bg-emerald-400' : 'bg-slate-400'}`}></span>
+                        {status.isOnline ? 'Đang trực tuyến' : (status.text === 'Ngoại tuyến' ? 'Ngoại tuyến' : `Hoạt động: ${status.text}`)}
+                      </p>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -2881,7 +3358,70 @@ const App = () => {
     // Thay thế đoạn transferContent cũ bằng đoạn này
     const transferContent = `NAP ${currentUser?.phone}`;
     const displayAmount = activePendingBankingReq ? activePendingBankingReq.amount : pendingDeposit?.amount;
-    const qrUrl = displayAmount ? `https://img.vietqr.io/image/tpbank-10002973552-compact2.png?amount=${displayAmount}&addInfo=${encodeURIComponent(transferContent)}` : `https://img.vietqr.io/image/tpbank-10002973552-compact2.png`;
+
+    const handleCreatePayosLink = async (e) => {
+      e.preventDefault();
+      if (hasPendingRequest) {
+        return showToast("Bạn đang có lệnh nạp chờ duyệt. Vui lòng đợi Admin xử lý!", "error");
+      }
+      const parsedAmount = parseInt(depositAmount.toString().replace(/\D/g, ''));
+      if (!parsedAmount || parsedAmount < 10000) return showToast("Số tiền tối thiểu 10.000đ", 'error');
+
+      let bonusAmount = 0;
+      let bonusSpins = 0;
+      let appliedVoucher = null;
+
+      if (voucherInput.trim() !== '') {
+        const validVoucher = vouchersDb.find(v => v.code === voucherInput.trim().toUpperCase() && v.isActive);
+        if (!validVoucher) {
+          setIsGlobalProcessing(false);
+          return showToast("Mã voucher không hợp lệ hoặc đã bị vô hiệu hóa!", 'error');
+        }
+        bonusAmount = (parsedAmount * (validVoucher.percent || 0)) / 100;
+        bonusSpins = validVoucher.bonusSpins || 0;
+        appliedVoucher = validVoucher.code;
+      }
+
+      if (isGlobalProcessing) return;
+      setIsGlobalProcessing(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('payos-create-payment', {
+          body: {
+            amount: parsedAmount,
+            userId: currentUser.id,
+            phone: currentUser.phone || currentUser.name,
+            bonusAmount: bonusAmount,
+            voucherSpins: bonusSpins,
+            voucherCode: appliedVoucher,
+            returnUrl: window.location.origin + '/?tab=history' // Quay về trang lịch sử
+          }
+        });
+
+        if (error) throw new Error(error.message);
+        if (data && data.checkoutUrl) {
+          setPayosPaymentData(data);
+          // Cập nhật giao diện Lịch sử nạp ngay lập tức
+          const newDraft = {
+            id: `PAYOS_${data.orderCode}`,
+            userId: currentUser.id,
+            amount: parsedAmount,
+            bonusAmount: bonusAmount,
+            voucherCode: appliedVoucher,
+            status: 'Chờ duyệt',
+            type: 'banking',
+            created_at: new Date().toISOString()
+          };
+          setDepositRequests(prev => [newDraft, ...prev]);
+        } else {
+          showToast("Không thể tạo link thanh toán, vui lòng thử lại sau.", "error");
+        }
+      } catch (err) {
+        console.error(err);
+        showToast("Lỗi hệ thống khi gọi PayOS", "error");
+      } finally {
+        setIsGlobalProcessing(false);
+      }
+    };
 
     const handleCreateDepositDraft = (e) => {
       e.preventDefault();
@@ -2891,7 +3431,7 @@ const App = () => {
         return showToast("Bạn đang có lệnh nạp chờ duyệt. Vui lòng đợi Admin xử lý!", "error");
       }
 
-      const parsedAmount = parseInt(depositAmount);
+      const parsedAmount = parseInt(depositAmount.toString().replace(/\D/g, ''));
       if (!parsedAmount || parsedAmount < 10000) return showToast("Số tiền tối thiểu 10.000đ", 'error');
 
       let bonusAmount = 0;
@@ -2989,6 +3529,7 @@ const App = () => {
             showToast("Lỗi khi hủy đơn: " + error.message, 'error');
           } else {
             setDepositRequests(depositRequests.map(req => req.id === id ? { ...req, status: 'Đã hủy' } : req));
+            setPayosPaymentData(null);
             showToast("Đã hủy đơn nạp thành công!", 'success');
 
             // Xóa tin nhắn Telegram
@@ -3002,9 +3543,12 @@ const App = () => {
 
     const handleCardSubmit = async (e) => {
       e.preventDefault();
-      if (isDepositing) return;
+      if (isDepositing || window.isSubmittingCard) return;
+      window.isSubmittingCard = true;
+      setLiveCardError(null);
 
       if (!cardCode.trim() || !cardSerial.trim()) {
+        window.isSubmittingCard = false;
         return showToast("Vui lòng nhập đầy đủ Mã thẻ và Số Serial!", "error");
       }
 
@@ -3046,6 +3590,7 @@ const App = () => {
         showToast("Lỗi kết nối máy chủ nạp thẻ!", "error");
       } finally {
         setIsDepositing(false);
+        window.isSubmittingCard = false;
       }
     };
 
@@ -3053,28 +3598,61 @@ const App = () => {
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-10">
         {renderNavbar()}
         <div className="w-full max-w-[1500px] mx-auto mt-8 px-4 grid grid-cols-1 lg:grid-cols-[1fr_1fr_350px] xl:grid-cols-[1fr_1fr_400px] gap-6">
-          
+
           {/* CỘT 1: MÃ QR */}
           <div className="bg-[#151D2F] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden h-fit">
-            {!activePendingBankingReq && depositStep === 1 && (
-              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-6 text-center">
-                <QrCode size={48} className="text-slate-500 mb-4" />
-                <h3 className="text-white font-bold mb-2">Chưa có mã QR</h3>
-                <p className="text-sm text-slate-400">Vui lòng điền số tiền ở Form bên cạnh và bấm Tạo lệnh để lấy mã quét.</p>
+
+            {/* OVERLAY THÀNH CÔNG */}
+            {payosSuccess && (
+              <div className="absolute inset-0 bg-emerald-900/90 backdrop-blur-md z-40 flex flex-col items-center justify-center p-6 text-center animate-in zoom-in duration-500">
+                <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(16,185,129,0.5)]">
+                  <Check size={40} className="text-white" />
+                </div>
+                <h3 className="text-2xl md:text-3xl text-white font-bold mb-3 uppercase tracking-wider">Thành Công!</h3>
+                <p className="text-sm md:text-base text-emerald-100 mb-6">Số tiền đã được cộng vào tài khoản của bạn.</p>
+                <button onClick={() => setPayosSuccess(false)} className="px-6 py-2 bg-white text-emerald-600 font-bold rounded-lg hover:bg-emerald-50 transition-colors shadow-lg">Đóng</button>
               </div>
             )}
 
-            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 flex items-center gap-2"><QrCode className="text-blue-500" /> Nạp Tiền Chuyển Khoản</h2>
-            <div className="bg-[#0B1120] p-4 rounded-xl border border-slate-700 mb-6 flex justify-center bg-white shadow-inner">
-              <img src={qrUrl} alt="QR Code" className="max-w-[200px] rounded-lg" />
+            {!payosPaymentData && !payosSuccess && (
+              <div className="absolute inset-0 bg-[#151D2F]/90 backdrop-blur-md z-30 flex flex-col items-center justify-center p-6 text-center">
+                <QrCode size={48} className="text-slate-500 mb-4" />
+                <h3 className="text-white font-bold mb-2">{activePendingBankingReq ? "Đang có lệnh chờ" : "Chưa có mã QR"}</h3>
+                <p className="text-sm text-slate-400">{activePendingBankingReq ? "Vui lòng hủy lệnh chờ ở bảng bên cạnh để tạo mã mới." : "Vui lòng điền số tiền ở Form bên cạnh và bấm Tạo lệnh để lấy mã quét."}</p>
+              </div>
+            )}
+
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 flex items-center gap-2"><QrCode className="text-blue-500" /> {payosPaymentData ? "Thanh Toán Tự Động" : "Nạp Tiền Chuyển Khoản"}</h2>
+            {payosPaymentData && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 md:p-4 mb-4 text-center shadow-[0_0_15px_rgba(239,68,68,0.15)] ring-1 ring-red-500/50">
+                <p className="text-xs md:text-sm text-red-400 font-bold uppercase animate-pulse flex items-center justify-center gap-1.5">
+                  <AlertCircle size={18} className="shrink-0" /> Cảnh báo: KHÔNG tải lại hoặc tắt trang web trong quá trình nạp để tránh phát sinh lỗi !!!
+                </p>
+              </div>
+            )}
+            <div className="mb-6 flex flex-col items-center justify-center">
+              <div className="bg-white p-2 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.1)] overflow-hidden border-2 border-white flex items-center justify-center w-[200px] h-[200px] md:w-[240px] md:h-[240px]">
+                {payosPaymentData ? (
+                  <img src={`https://img.vietqr.io/image/${payosPaymentData.bin}-${payosPaymentData.accountNumber}-qr_only.png?amount=${payosPaymentData.amount}&addInfo=${encodeURIComponent(payosPaymentData.description)}&accountName=${encodeURIComponent(payosPaymentData.accountName)}`} alt="QR Code" className="w-full h-full object-contain p-2" />
+                ) : (
+                  <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                    <QrCode size={48} className="text-slate-300" />
+                  </div>
+                )}
+              </div>
+              {payosPaymentData && (
+                <div className="mt-4 bg-[#0B1120] px-5 py-2 rounded-full border border-rose-500/30 text-rose-500 font-black text-xl md:text-2xl tracking-[0.2em] font-mono shadow-[0_0_15px_rgba(244,63,94,0.2)]">
+                  {formatPayosTime(payosTimeLeft)}
+                </div>
+              )}
             </div>
             <div className="space-y-3 mb-6 text-sm">
-              <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">Ngân hàng:</span><span className="font-bold text-white">TPBank</span></div>
-              <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">Số tài khoản:</span><span className="font-bold text-emerald-400 flex items-center gap-2">10002973552 <button onClick={() => copyToClipboard('10002973552')} className="relative z-20"><Copy size={14} className="text-slate-500 hover:text-white" /></button></span></div>
-              <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">Chủ tài khoản:</span><span className="font-bold text-white uppercase text-right ml-2 line-clamp-1">NHAM GIA TIEN</span></div>
-              <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">Nội dung CK:</span><span className="font-bold text-rose-400 flex items-center justify-end gap-2 ml-2 text-right">{transferContent} <button onClick={() => copyToClipboard(transferContent)} className="relative z-20 shrink-0"><Copy size={14} className="text-slate-500 hover:text-white" /></button></span></div>
-              {(activePendingBankingReq || (depositStep === 2 && pendingDeposit)) && (
-                <div className="flex justify-between border-b border-slate-800 pb-2 bg-emerald-500/10 p-2 rounded mt-2"><span className="text-slate-400 font-bold">Số tiền:</span><span className="font-black text-emerald-400">{new Intl.NumberFormat('vi-VN').format(displayAmount)} đ</span></div>
+              <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">Ngân hàng:</span><span className="font-bold text-white">{payosPaymentData ? ({ '970416': 'ACB (Ngân hàng Á Châu)', '970436': 'Vietcombank', '970422': 'MBBank', '970415': 'VietinBank', '970418': 'BIDV', '970407': 'Techcombank', '970423': 'TPBank' }[payosPaymentData.bin] || payosPaymentData.bin) : "..."}</span></div>
+              <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">Số tài khoản:</span><span className="font-bold text-emerald-400 flex items-center gap-2">{payosPaymentData ? payosPaymentData.accountNumber : "..."} <button onClick={() => copyToClipboard(payosPaymentData ? payosPaymentData.accountNumber : '')} className="relative z-20"><Copy size={14} className="text-slate-500 hover:text-white" /></button></span></div>
+              <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">Chủ tài khoản:</span><span className="font-bold text-white uppercase text-right ml-2 line-clamp-1">{payosPaymentData ? payosPaymentData.accountName : "..."}</span></div>
+              <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">Nội dung CK:</span><span className="font-bold text-rose-400 flex items-center justify-end gap-2 ml-2 text-right">{payosPaymentData ? payosPaymentData.description : "..."} <button onClick={() => copyToClipboard(payosPaymentData ? payosPaymentData.description : '')} className="relative z-20 shrink-0"><Copy size={14} className="text-slate-500 hover:text-white" /></button></span></div>
+              {(payosPaymentData || activePendingBankingReq || (depositStep === 2 && pendingDeposit)) && (
+                <div className="flex justify-between border-b border-slate-800 pb-2 bg-emerald-500/10 p-2 rounded mt-2"><span className="text-slate-400 font-bold">Số tiền:</span><span className="font-black text-emerald-400">{new Intl.NumberFormat('vi-VN').format(payosPaymentData ? payosPaymentData.amount : displayAmount)} đ</span></div>
               )}
             </div>
             <p className="text-[10px] md:text-xs text-yellow-500 flex gap-1"><AlertCircle size={14} className="shrink-0" /> Vui lòng chuyển đúng Số tiền và Nội dung để được duyệt tự động.</p>
@@ -3085,36 +3663,58 @@ const App = () => {
             <div className="flex gap-2 mb-4 p-1 bg-[#0B1120] rounded-xl border border-slate-800">
               <button
                 onClick={() => setDepositMethod('banking')}
-                className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${depositMethod === 'banking' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                className={`flex-1 py-2 rounded-lg font-bold text-xs md:text-sm transition-all ${depositMethod === 'banking' || depositMethod === 'payos' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
               >
                 Chuyển Khoản
               </button>
               <button
                 onClick={() => setDepositMethod('card')}
-                className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${depositMethod === 'card' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                className={`flex-1 py-2 rounded-lg font-bold text-xs md:text-sm transition-all ${depositMethod === 'card' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
               >
-                Thẻ Cào (Phí 20%)
+                Thẻ Cào
               </button>
             </div>
 
-            {depositMethod === 'banking' ? (
+            {depositMethod === 'banking' || depositMethod === 'payos' ? (
               <>
-                <h3 className="font-bold text-white mb-4 text-lg">Tạo Lệnh Nạp</h3>
+                <h3 className="font-bold text-white mb-4 text-lg">Nạp Tiền Chuyển Khoản</h3>
                 {activePendingBankingReq ? (
-                  <div className="text-center bg-[#0B1120] p-4 md:p-6 rounded-xl border border-blue-500/30">
-                    <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/30">
-                      <Clock size={30} className="text-blue-400 animate-pulse" />
+                  <div className="text-center bg-[#0B1120] p-4 md:p-6 rounded-xl border border-indigo-500/30 animate-in fade-in zoom-in duration-300">
+                    <div className="w-16 h-16 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-indigo-500/30">
+                      <QrCode size={30} className="text-indigo-400" />
                     </div>
-                    <h4 className="text-white font-bold text-lg mb-2">Đang chờ Admin duyệt</h4>
-                    <p className="text-sm text-slate-400 mb-6">Lệnh nạp <strong className="text-blue-400">{new Intl.NumberFormat('vi-VN').format(activePendingBankingReq.amount)}đ</strong> của bạn đang được xử lý. Mã QR sẽ hiển thị cho tới khi đơn hàng được duyệt.</p>
-                    <button onClick={() => handleCancelDepositClient(activePendingBankingReq.id)} className="w-full bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-bold text-white transition-colors text-sm">Hủy Lệnh Nạp</button>
+                    <h4 className="text-white font-bold text-lg mb-2">Đang chờ thanh toán</h4>
+                    <p className="text-sm text-slate-400 mb-6">Bạn đang có một lệnh nạp <strong className="text-indigo-400">{new Intl.NumberFormat('vi-VN').format(activePendingBankingReq.amount)}đ</strong> chờ xử lý. Hãy quét mã QR hoặc hủy lệnh để tạo mới.</p>
+
+                    <button onClick={() => {
+                      handleCancelDepositClient(activePendingBankingReq.id);
+                    }} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-3 md:py-4 rounded-xl font-bold transition-colors text-sm">Hủy / Tạo lệnh mới</button>
                   </div>
-                ) : depositStep === 1 ? (
-                  <form onSubmit={handleCreateDepositDraft}>
-                    <p className="text-sm text-slate-400 mb-4">Nhập số tiền để hệ thống tạo mã quét QR thanh toán nhanh cho bạn.</p>
+                ) : payosPaymentData ? (
+                  <div className="text-center bg-[#0B1120] p-4 md:p-6 rounded-xl border border-indigo-500/30 animate-in fade-in zoom-in duration-300">
+                    <div className="w-16 h-16 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-indigo-500/30">
+                      <QrCode size={30} className="text-indigo-400" />
+                    </div>
+                    <h4 className="text-white font-bold text-lg mb-2">Đang chờ thanh toán</h4>
+                    <p className="text-sm text-slate-400 mb-6">Hãy sử dụng App Ngân hàng quét mã QR bên cạnh để chuyển số tiền <strong className="text-indigo-400">{new Intl.NumberFormat('vi-VN').format(payosPaymentData.amount)}đ</strong>.</p>
+
+                    <button onClick={() => {
+                      handleCancelDepositClient(`PAYOS_${payosPaymentData.orderCode}`);
+                    }} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-3 md:py-4 rounded-xl font-bold transition-colors text-sm">Hủy / Tạo lệnh mới</button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleCreatePayosLink}>
+                    <p className="text-sm text-slate-400 mb-4">Hệ thống sẽ tạo mã QR chuyển khoản tự động. Tiền sẽ được cộng ngay lập tức sau khi chuyển thành công.</p>
                     <div className="mb-4">
-                      <label className="text-xs text-slate-400 font-bold mb-1 block">Số tiền cần nạp (Bội số 10.000đ)</label>
-                      <input type="number" step="10000" min="10000" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="Nhập số tiền..." className="w-full p-4 bg-[#0B1120] border border-slate-700 rounded-xl text-white focus:border-emerald-500 outline-none text-lg font-bold" required />
+                      <label className="text-xs text-slate-400 font-bold mb-1 block">Số tiền cần nạp (Tối thiểu 10.000đ)</label>
+                      <input type="text" value={depositAmount} onChange={e => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        if (val) {
+                          setDepositAmount(new Intl.NumberFormat('vi-VN').format(val));
+                        } else {
+                          setDepositAmount('');
+                        }
+                      }} placeholder="VD: 10.000" className="w-full p-4 bg-[#0B1120] border border-slate-700 rounded-xl text-white focus:border-indigo-500 outline-none text-lg font-bold" required />
                     </div>
 
                     <div className="mb-4">
@@ -3122,30 +3722,14 @@ const App = () => {
                       <input type="text" value={voucherInput} onChange={e => setVoucherInput(e.target.value.toUpperCase())} placeholder="Nhập mã voucher..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-xl text-rose-400 focus:border-rose-500 outline-none text-base font-bold uppercase" />
                     </div>
 
-                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-xl font-bold text-white transition-colors shadow-lg shadow-blue-600/20 text-base md:text-lg flex items-center justify-center gap-2">Tạo Mã QR Nạp</button>
+                    <button type="submit" disabled={isGlobalProcessing} className="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-xl font-bold text-white transition-colors shadow-lg shadow-blue-600/20 text-base md:text-lg flex items-center justify-center gap-2">
+                      {isGlobalProcessing ? <RefreshCw className="animate-spin" size={20} /> : "Tạo Mã QR Nạp"}
+                    </button>
                   </form>
-                ) : (
-                  <div className="text-center bg-[#0B1120] p-4 md:p-6 rounded-xl border border-emerald-500/30">
-                    <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
-                      <QrCode size={30} className="text-emerald-400" />
-                    </div>
-                    <h4 className="text-white font-bold text-lg mb-2">Đang chờ thanh toán</h4>
-                    <p className="text-sm text-slate-400 mb-6">Hãy sử dụng App Ngân hàng quét mã QR bên cạnh để chuyển số tiền <strong className="text-emerald-400">{new Intl.NumberFormat('vi-VN').format(pendingDeposit.amount)}đ</strong>. Sau khi chuyển xong, hãy nhấn nút bên dưới.</p>
-
-                    <div className="flex gap-2">
-                      <button onClick={() => { if (!isDepositing) { setDepositStep(1); setPendingDeposit(null); } }} disabled={isDepositing} className="w-1/3 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed py-3 md:py-4 rounded-xl font-bold text-white transition-colors text-xs md:text-sm">Hủy Bỏ</button>
-                      <button onClick={handleConfirmTransfer} disabled={isDepositing} className="w-2/3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed py-3 md:py-4 rounded-xl font-bold text-white transition-colors shadow-lg shadow-emerald-600/20 text-xs md:text-sm flex items-center justify-center gap-2">
-                        {isDepositing ? (
-                          <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Đang gửi...</>
-                        ) : (
-                          <><CheckCircle2 size={18} /> Đã Chuyển Khoản</>
-                        )}
-                      </button>
-                    </div>
-                  </div>
                 )}
               </>
             ) : (
+
               <form onSubmit={handleCardSubmit} className="space-y-4">
                 <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-lg text-rose-400 text-xs md:text-sm leading-relaxed">
                   <strong>Lưu ý quan trọng:</strong>
@@ -3154,6 +3738,13 @@ const App = () => {
                     <li><strong className="text-red-500">CHỌN SAI MỆNH GIÁ SẼ BỊ TRỪ 50% GIÁ TRỊ THẺ HOẶC MẤT THẺ.</strong></li>
                   </ul>
                 </div>
+
+                {liveCardError && (
+                  <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-lg flex items-center gap-2 animate-fade-in shadow-sm">
+                    <AlertCircle size={18} className="text-red-500 shrink-0" />
+                    <span className="text-red-500 text-sm font-bold">{getCustomerFriendlyError(liveCardError)}</span>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -3181,12 +3772,12 @@ const App = () => {
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 font-bold mb-1 block">Mã Thẻ (PIN)</label>
-                  <input type="text" value={cardCode} onChange={e => setCardCode(e.target.value)} placeholder="Nhập mã thẻ..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-xl text-white focus:border-emerald-500 outline-none" required />
-                </div>
-                <div>
                   <label className="text-xs text-slate-400 font-bold mb-1 block">Số Serial</label>
                   <input type="text" value={cardSerial} onChange={e => setCardSerial(e.target.value)} placeholder="Nhập số seri..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-xl text-white focus:border-emerald-500 outline-none" required />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 font-bold mb-1 block">Mã Thẻ (PIN)</label>
+                  <input type="text" value={cardCode} onChange={e => setCardCode(e.target.value)} placeholder="Nhập mã thẻ..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-xl text-white focus:border-emerald-500 outline-none" required />
                 </div>
 
                 <button type="submit" disabled={isDepositing} className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 py-4 rounded-xl font-bold text-white transition-colors shadow-lg shadow-emerald-600/20 text-base md:text-lg flex items-center justify-center gap-2">
@@ -3218,10 +3809,7 @@ const App = () => {
                         </span>
                       </div>
                       <div className="flex flex-col gap-1 items-end whitespace-nowrap">
-                        <span className={`px-2 py-1 rounded text-[10px] md:text-xs font-bold ${d.status === 'Thành công' ? 'bg-emerald-500/10 text-emerald-400' : d.status === 'Từ chối' || d.status === 'Thất bại' || d.status === 'Đã hủy' ? 'bg-red-500/10 text-red-400' : 'bg-yellow-500/10 text-yellow-400'}`}>{d.status}</span>
-                        {d.status === 'Chờ duyệt' && (
-                          <button onClick={() => handleCancelDepositClient(d.id)} className="text-[10px] text-red-400 hover:text-red-300 underline font-bold mt-1">Hủy đơn</button>
-                        )}
+                        <span className={`px-2 py-1 rounded text-[10px] md:text-xs font-bold ${d.status === 'Thành công' ? 'bg-emerald-500/10 text-emerald-400' : d.status === 'Từ chối' || d.status === 'Thất bại' || d.status === 'Đã hủy' ? 'bg-red-500/10 text-red-400' : 'bg-yellow-500/10 text-yellow-400'}`}>{d.status === 'Chờ duyệt' && d.type === 'banking' ? 'Chờ thanh toán' : d.status}</span>
                       </div>
                     </div>
                   ))
@@ -3277,7 +3865,7 @@ const App = () => {
     const myTransactions = transactionsDb.filter(t => t.user === currentUser?.name);
 
     const historyBuy = myTransactions.filter(t => t.type === 'buy_acc' && !t.action.includes('Cày thuê') && !t.action.includes('cày thuê'));
-    const historyRent = myTransactions.filter(t => t.type?.includes('rent') || t.type?.includes('fund') || t.type?.includes('deposit_') || t.action?.toLowerCase().includes('thuê nick') || t.action?.toLowerCase().includes('quy đổi') || t.action?.toLowerCase().includes('hoàn cọc'));
+    const historyRent = myTransactions.filter(t => t.type?.includes('rent') || t.type?.includes('fund') || t.type === 'deposit_refund' || t.action?.toLowerCase().includes('thuê nick') || t.action?.toLowerCase().includes('quy đổi') || t.action?.toLowerCase().includes('hoàn cọc'));
     const historySpin = myTransactions.filter(t => t.type === 'spin_win' && t.amount !== 0 && !t.isSpinCost);
     const historyBoost = boostingRequests.filter(r => r.user === currentUser?.name);
     const historyDeposit = depositRequests.filter(d => d.userId === currentUser?.id);
@@ -3445,7 +4033,15 @@ const App = () => {
                         <span className="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-black rounded shadow-sm">GÓI ĐẶT</span>
                         <p className="font-bold text-white text-sm md:text-base">{req.boostingTitle}</p>
                       </div>
-                      {req.info?.username && <p className="text-[10px] md:text-xs text-slate-400 mt-1">TK: <span className="font-mono text-white">{req.info.username}</span> | Nền tảng: <span className="text-white">{req.info.loginMethod}</span></p>}
+                      {req.info?.username && (
+                        <p className="text-[10px] md:text-xs text-slate-400 mt-1">
+                          {req.info.loginMethod === 'Không Cần' ? (
+                            <>Mã sự kiện / Link: <span className="font-mono text-white">{req.info.username}</span></>
+                          ) : (
+                            <>TK: <span className="font-mono text-white">{req.info.username}</span> | Nền tảng: <span className="text-white">{req.info.loginMethod}</span></>
+                          )}
+                        </p>
+                      )}
                       <p className="text-[10px] text-slate-500 mt-1.5">{req.date}</p>
                     </div>
                     <div className="text-left md:text-right">
@@ -3526,14 +4122,26 @@ const App = () => {
       { id: 'event', label: 'Cày Sự Kiện' }
     ];
 
+    // Hàm Helper lấy tên game thật
+    const getGameName = (gameStr) => {
+      if (!gameStr) return '';
+      try { return JSON.parse(gameStr).name || gameStr; } catch (e) { return gameStr; }
+    };
+
     // Tìm danh sách Game duy nhất cho Tab hiện tại
-    const currentTabGames = ['Tất cả', ...new Set(boostingDb.filter(b => (b.type || 'rank') === activeBoostingTab).map(b => b.game))];
+    const currentTabGames = ['Tất cả', ...new Set(boostingDb.filter(b => (b.type || 'rank') === activeBoostingTab).map(b => getGameName(b.game)))];
 
     const filteredBoosting = boostingDb.filter(b => {
       const type = b.type || 'rank'; // Mặc định là rank nếu không có type
       const matchType = type === activeBoostingTab;
-      const matchGame = activeBoostingGameClient === 'Tất cả' || b.game === activeBoostingGameClient;
+      const gName = getGameName(b.game);
+      const matchGame = activeBoostingGameClient === 'Tất cả' || gName === activeBoostingGameClient;
       return matchType && matchGame;
+    }).sort((a, b) => {
+      let aFeatured = false, bFeatured = false;
+      try { aFeatured = JSON.parse(a.game).isFeatured || false; } catch (e) { }
+      try { bFeatured = JSON.parse(b.game).isFeatured || false; } catch (e) { }
+      return (bFeatured === true) - (aFeatured === true);
     });
 
     return (
@@ -3557,11 +4165,21 @@ const App = () => {
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-2">
-              {currentTabGames.map(game => (
-                <button key={game} onClick={() => setActiveBoostingGameClient(game)} className={`px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap transition-colors border ${activeBoostingGameClient === game ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>
-                  {game === 'Tất cả' ? 'Tất cả Game' : game}
-                </button>
-              ))}
+              {currentTabGames.map(game => {
+                let gAvatar = null;
+                if (game !== 'Tất cả') {
+                  const matchedItem = boostingDb.find(b => getGameName(b.game) === game);
+                  if (matchedItem) {
+                    try { gAvatar = JSON.parse(matchedItem.game).avatar; } catch (e) { }
+                  }
+                }
+                return (
+                  <button key={game} onClick={() => setActiveBoostingGameClient(game)} className={`px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap transition-colors border flex items-center gap-1.5 ${activeBoostingGameClient === game ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>
+                    {gAvatar && <img src={gAvatar} alt={game} className="w-4 h-4 rounded-full object-cover shrink-0" />}
+                    {game === 'Tất cả' ? 'Tất cả Game' : game}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -3572,69 +4190,17 @@ const App = () => {
                 <Target size={40} className="mx-auto mb-3 text-slate-600" />
                 <p className="text-slate-400">Đang cập nhật các gói dịch vụ cho mục này...</p>
               </div>
-            ) : filteredBoosting.map((b, index) => (
-              <div key={b.id} className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 md:p-6 hover:border-blue-500/50 transition-colors shadow-xl group flex flex-col overflow-hidden relative">
-                {(b.oldPrice > b.price || b.discountPercent > 0) && (
-                  <div className="absolute top-6 -right-10 w-40 text-center transform rotate-45 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 text-white font-black text-[11px] py-1 shadow-lg z-40 border-y border-white/20 uppercase tracking-widest pointer-events-none">
-                    GIẢM {b.oldPrice > b.price ? Math.round(((b.oldPrice - b.price) / b.oldPrice) * 100) : b.discountPercent}%
-                  </div>
-                )}
+            ) : filteredBoosting.map((b, index) => {
+              let gName = b.game || '';
+              let gAvatar = null;
+              try {
+                const parsed = JSON.parse(b.game);
+                gName = parsed.name || '';
+                gAvatar = parsed.avatar || null;
+              } catch (e) { }
 
-                {/* --- ẢNH HIỂN THỊ Ở TRANG KHÁCH (TỰ MỞ RỘNG & PHÓNG TO ĐƯỢC) --- */}
-                {b.image && (
-                  <div
-                    className="w-full mb-4 rounded-xl overflow-hidden shrink-0 border border-slate-700/50 shadow-inner relative group/img cursor-zoom-in bg-black/40"
-                    onClick={() => setFullScreenImage(b.image)}
-                    title="Bấm để phóng to ảnh"
-                  >
-                    <img
-                      src={b.image}
-                      loading={index < 8 ? "eager" : "lazy"}
-                      fetchPriority={index < 4 ? "high" : "auto"}
-                      decoding="async"
-                      className="w-full h-auto object-contain transition-transform duration-500 group-hover/img:scale-105"
-                      alt={b.title}
-                    />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity">
-                      <div className="bg-black/60 p-2 rounded-full text-white flex items-center gap-1 text-xs font-bold">
-                        <ZoomIn size={16} /> Phóng to
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-md inline-block mb-3 w-fit">{b.game}</span>
-                <h3 className="text-base md:text-lg font-bold text-white mb-2 leading-tight">{b.title}</h3>
-                {/* Giữ nguyên các phần mô tả và giá tiền bên dưới... */}              <p className="text-xs md:text-sm text-slate-400 mb-6 flex-grow whitespace-pre-wrap">{b.desc}</p>
-                <div className="flex justify-between items-end border-t border-slate-800 pt-4">
-                  <div>
-                    <p className="text-[10px] text-slate-500 mb-1 font-bold">GIÁ TỪ</p>
-                    {b.oldPrice > b.price ? (
-                      <>
-                        <p className="text-xs font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(b.oldPrice)}đ</p>
-                        <p className="text-rose-500 font-black text-lg md:text-xl">{new Intl.NumberFormat('vi-VN').format(b.price)}đ{b.priceUnit && <span className="text-slate-400 font-bold text-xs md:text-sm">/{b.priceUnit}</span>}</p>
-                      </>
-                    ) : b.discountPercent > 0 ? (
-                      <>
-                        <p className="text-xs font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(b.price)}đ</p>
-                        <p className="text-rose-500 font-black text-lg md:text-xl">{new Intl.NumberFormat('vi-VN').format(b.price - Math.floor(b.price * (b.discountPercent / 100)))}đ{b.priceUnit && <span className="text-slate-400 font-bold text-xs md:text-sm">/{b.priceUnit}</span>}</p>
-                      </>
-                    ) : (
-                      <p className="text-rose-500 font-black text-lg md:text-xl">{new Intl.NumberFormat('vi-VN').format(b.price)}đ{b.priceUnit && <span className="text-slate-400 font-bold text-xs md:text-sm">/{b.priceUnit}</span>}</p>
-                    )}
-                  </div>
-                  <button onClick={() => {
-                    if (!currentUser) return requireAuth('login');
-                    if (!currentUser.is_email_verified) return showToast("Vui lòng vào mục Cá nhân để xác thực Email trước khi giao dịch!", "error");
-                    setSelectedBoostRank(0);
-                    const firstOpt = b.rankOptions?.[0];
-                    setBoostSubTier(firstOpt?.inputType === 'bac' && (firstOpt?.tierCount || 1) > 1 ? toRoman(firstOpt?.tierCount || 1) : '');
-                    setBoostCurrentPoints('');
-                    setBoostQuantity(1);
-                    setBoostingModalData(b);
-                  }} className="bg-blue-600 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-sm font-bold text-white hover:bg-blue-500 shadow-lg shadow-blue-600/20 md:group-hover:-translate-y-1 transition-transform">Đặt Đơn</button>
-                </div>
-              </div>
-            ))}
+              return renderBoostingCard(b, index);
+            })}
           </div>
           {/* LỊCH SỬ CÀY THUÊ CHO BẠN */}
           <div className="mt-16 border-t border-slate-800 pt-8">
@@ -3821,7 +4387,7 @@ const App = () => {
 
     return (
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-10 overflow-hidden relative">        {renderNavbar()}
-        <div className="w-full max-w-[1400px] mx-auto px-4 lg:pr-28 mt-4 md:mt-8 text-center relative z-10">
+        <div className="w-full max-w-[1400px] mx-auto px-3 md:px-4 lg:pr-28 mt-2 md:mt-8 text-center relative z-10">
 
           {/* BỐ CỤC CHIA CỘT TRÊN MÁY TÍNH (VÒNG QUAY TRÁI - LỊCH SỬ PHẢI) */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-10 mb-12 items-start">
@@ -3830,9 +4396,9 @@ const App = () => {
             <div className="lg:col-span-2 flex flex-col items-center">
 
               {/* TIÊU ĐỀ NẰM NGAY ĐẦU CỘT TRÁI, CÂN ĐỐI VỚI VÒNG QUAY */}
-              <h2 className="text-2xl md:text-4xl font-black text-white flex items-center justify-center gap-2 md:gap-3 mb-6 drop-shadow-[0_0_15px_rgba(225,29,72,0.5)]"><Gift className="text-rose-500 w-8 h-8 md:w-9 md:h-9" /> VÒNG QUAY NHÂN PHẨM</h2>
+              <h2 className="text-xl md:text-4xl font-black text-white flex items-center justify-center gap-2 md:gap-3 mb-4 md:mb-6 drop-shadow-[0_0_15px_rgba(225,29,72,0.5)]"><Gift className="text-rose-500 w-6 h-6 md:w-9 md:h-9" /> VÒNG QUAY NHÂN PHẨM</h2>
 
-              <div className="flex bg-[#151D2F] p-1 md:p-1.5 rounded-xl border border-slate-800 shadow-lg mx-auto w-fit mb-8 relative z-20">
+              <div className="flex bg-[#151D2F] p-1 md:p-1.5 rounded-xl border border-slate-800 shadow-lg mx-auto w-fit mb-4 md:mb-8 relative z-20">
                 {wheelItemsMoneyDb.length > 0 && (
                   <button onClick={() => setPlayMode('money')} className={`px-4 md:px-6 py-2 md:py-2.5 text-xs md:text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${playMode === 'money' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}><Wallet size={16} /> Tiền VNĐ</button>
                 )}
@@ -3888,7 +4454,7 @@ const App = () => {
               )}
 
               {/* KHUNG VÒNG QUAY */}
-              <div className="relative w-full max-w-[320px] md:max-w-[380px] mx-auto aspect-square flex items-center justify-center p-4 md:p-6 mb-8 md:mb-12 mt-4">
+              <div className="relative shrink-0 w-[260px] h-[260px] md:w-[380px] md:h-[380px] mx-auto flex items-center justify-center p-2 md:p-6 mb-6 md:mb-12 mt-2 md:mt-4">
                 <div className="absolute inset-0 rounded-full blur-[40px] md:blur-[50px] opacity-60 animate-pulse-slow bg-gradient-to-br from-emerald-500 via-blue-600 to-rose-500" style={{ transform: 'scale(1.1)' }}></div>
                 <div className="absolute inset-0 md:inset-2 rounded-full border-[4px] md:border-[6px] border-slate-800 shadow-[0_0_30px_rgba(59,130,246,0.6)]"
                   style={{
@@ -3912,7 +4478,7 @@ const App = () => {
                 </div>
 
                 {/* VÒNG QUAY CHÍNH */}
-                <div className="w-full h-full relative rounded-full overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.8)] border-[6px] md:border-[10px] border-slate-700 bg-[#0B1120] z-20"
+                <div className="w-full h-full relative rounded-full overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.8)] border-[5px] md:border-[10px] border-slate-700 bg-[#0B1120] z-20"
                   style={{
                     transition: isSpinning ? 'transform 4s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
                     transform: `rotate(${rotation}deg)`
@@ -3959,7 +4525,7 @@ const App = () => {
             </div>
 
             {/* CỘT PHẢI: LỊCH SỬ QUAY (Chiếm 1 phần, có thanh cuộn dọc) */}
-            <div className="lg:col-span-1 flex flex-col bg-[#151D2F] rounded-2xl border border-slate-800 overflow-hidden shadow-xl h-[450px] md:h-[550px] w-full mt-6 lg:mt-[110px]">
+            <div className="lg:col-span-1 flex flex-col bg-[#151D2F] rounded-2xl border border-slate-800 overflow-hidden shadow-xl h-[350px] md:h-[550px] w-full mt-4 lg:mt-[110px]">
               <div className="p-4 border-b border-slate-800 bg-[#0B1120] shrink-0">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <History size={18} className="text-blue-400" /> Lịch sử Vòng quay
@@ -4127,11 +4693,13 @@ const App = () => {
       const files = Array.from(e.target.files);
       if (!files.length) return;
 
-      // Cấu hình máy nén: Ép dung lượng tối đa 200KB, kích thước tối đa 1280px
+      // Tối ưu hóa: Nén ảnh chất lượng cao (WebP, Full HD, Tối đa 1MB)
       const options = {
-        maxSizeMB: 0.2,
-        maxWidthOrHeight: 1280,
-        useWebWorker: true
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        fileType: "image/webp",
+        initialQuality: 0.9
       };
 
       try {
@@ -4159,12 +4727,29 @@ const App = () => {
       }
     };
 
+    const handleAccGameAvatarUpload = async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true, fileType: "image/webp", initialQuality: 0.9 };
+        try {
+          const compressedFile = await imageCompression(file, options);
+          const reader = new FileReader();
+          reader.onloadend = () => setAdminAccGameAvatar(reader.result);
+          reader.readAsDataURL(compressedFile);
+        } catch (err) {
+          const reader = new FileReader();
+          reader.onloadend = () => setAdminAccGameAvatar(reader.result);
+          reader.readAsDataURL(file);
+        }
+      }
+    };
+
     const handleSaveAccount = async (e) => {
       e.preventDefault();
 
       if (isGlobalProcessing) return;
       setIsGlobalProcessing(true);
-      setShowAccModal(false);
+      setGlobalProgressText("Đang xử lý dữ liệu và hình ảnh...");
       showToast("Đang xử lý ảnh và lưu dữ liệu (có thể hơi lâu)...", "info");
 
       try {
@@ -4183,13 +4768,24 @@ const App = () => {
           }
         }
 
+        const isFeatured = e.target.isFeatured?.checked || false;
+        const allowQuantity = e.target.allowQuantity?.checked || false;
+        const maxQuantityPerOrder = parseInt(e.target.maxQuantityPerOrder?.value) || 0;
+        let finalGameStr = JSON.stringify({ name: e.target.game.value, avatar: adminAccGameAvatar || null, isFeatured, allowQuantity, maxQuantityPerOrder });
+        if (adminAccGameAvatar && adminAccGameAvatar.startsWith('data:image')) {
+          setGlobalProgressText("Đang tải lên Avatar Game...");
+          const finalAvatar = await uploadToImgBB(adminAccGameAvatar);
+          finalGameStr = JSON.stringify({ name: e.target.game.value, avatar: finalAvatar, isFeatured, allowQuantity, maxQuantityPerOrder });
+        }
+
         const tagsString = e.target.tags.value;
         const validRentOptions = adminRentOptions.filter(opt => opt.time.trim() !== '' && opt.price !== '').map(opt => ({ time: opt.time, bonusTime: opt.bonusTime || '', price: parseInt(opt.price) }));
         // Tạo đối tượng dữ liệu. Lưu ý: BỎ trường 'id' đi để Supabase tự động sinh ID (UUID).
         const accData = {
           code: e.target.code.value,
+          stock: e.target.stock?.value !== undefined ? parseInt(e.target.stock.value) : 1,
           tier: e.target.tier.value,
-          game: e.target.game.value,
+          game: finalGameStr,
           title: e.target.title.value,
           tags: tagsString,
           price: e.target.discountedPrice?.value ? parseInt(e.target.discountedPrice.value) : parseInt(e.target.basePrice.value),
@@ -4217,30 +4813,31 @@ const App = () => {
 
           if (error) {
             showToast("Lỗi cập nhật: " + error.message, 'error');
-            setShowAccModal(true); // Mở lại nếu lỗi
           } else if (data && data.length > 0) {
             let savedAcc = { ...data[0], tags: tagsString.split(',').map(t => t.trim()) };
             setAccountsDb(accountsDb.map(a => a.id === editingAccount.id ? savedAcc : a));
             showToast("Đã lưu chỉnh sửa Nick!");
+            setShowAccModal(false);
           }
         } else {
           // Gửi lệnh THÊM MỚI lên Supabase
-          const { data, error } = await supabase.from('accounts').insert([accData]).select();
+          const newAccData = { ...accData, id: crypto.randomUUID() };
+          const { data, error } = await supabase.from('accounts').insert([newAccData]).select();
 
           if (error) {
             showToast("Lỗi đăng bán: " + error.message, 'error');
-            setShowAccModal(true); // Mở lại nếu lỗi
           } else if (data && data.length > 0) {
             let newAcc = { ...data[0], tags: tagsString.split(',').map(t => t.trim()) };
             setAccountsDb([newAcc, ...accountsDb]);
             showToast("Đăng bán Nick thành công!");
+            setShowAccModal(false);
           }
         }
       } catch (err) {
         showToast("Lỗi hệ thống: " + err.message, 'error');
-        setShowAccModal(true);
       } finally {
         setIsGlobalProcessing(false);
+        setGlobalProgressText('');
       }
     };
 
@@ -4286,16 +4883,76 @@ const App = () => {
       setShowBoostingModal(false);
 
       try {
-        let finalImage = adminBoostingImage;
-        if (adminBoostingImage && adminBoostingImage.startsWith('data:image')) {
-          showToast("Đang tải ảnh lên Server ImgBB...", "info");
-          finalImage = await uploadToImgBB(adminBoostingImage);
+        let finalImage = "";
+        if (adminBoostingImage && adminBoostingImage.length > 0) {
+          const imagesArray = adminBoostingImage;
+          const uploadedImages = [];
+          for (let i = 0; i < imagesArray.length; i++) {
+            const img = imagesArray[i];
+            setGlobalProgressText(`Đang xử lý và tải ảnh lên... (${i + 1}/${imagesArray.length})`);
+            if (img.startsWith('data:image')) {
+              const url = await uploadToImgBB(img);
+              uploadedImages.push(url);
+            } else {
+              uploadedImages.push(img);
+            }
+          }
+          finalImage = uploadedImages.join(',');
         } else {
-          showToast("Đang xử lý dịch vụ...", "info");
+          setGlobalProgressText("Đang lưu dịch vụ...");
+        }
+
+        let finalGameAvatarUrl = "";
+        if (adminGameAvatar) {
+          if (adminGameAvatar.startsWith('data:image')) {
+            setGlobalProgressText("Đang tải lên Avatar Game...");
+            finalGameAvatarUrl = await uploadToImgBB(adminGameAvatar);
+          } else {
+            finalGameAvatarUrl = adminGameAvatar;
+          }
         }
 
         const type = e.target.boostType.value;
-        const validOptions = adminRankOptions.filter(opt => opt.rank.trim() !== '' && opt.price !== '').map(opt => ({ rank: opt.rank, price: parseInt(opt.price), comboPrice: parseInt(opt.comboPrice) || 0, inputType: opt.inputType || 'bac', maxPoints: parseInt(opt.maxPoints) || 0, tierCount: parseInt(opt.tierCount) || 1 }));
+        let validOptions = [];
+        // Hàm parse giá thông minh: hiểu '300k/200 điểm', '25k/100', '1500', '300000/200'
+        const parseSmartPrice = (priceStr) => {
+          if (!priceStr) return 0;
+          const str = priceStr.trim().toLowerCase();
+          // Format: "300k/200 điểm" hoặc "300k/200" → 300000/200 = 1500
+          const kMatch = str.match(/^(\d+)k\s*\/\s*(\d+)/);
+          if (kMatch) {
+            const total = parseInt(kMatch[1]) * 1000;
+            const pts = parseInt(kMatch[2]);
+            return pts > 0 ? Math.round(total / pts) : 0;
+          }
+          // Format: "300000/200" → 1500
+          const divMatch = str.match(/^(\d+)\s*\/\s*(\d+)/);
+          if (divMatch) {
+            const total = parseInt(divMatch[1]);
+            const pts = parseInt(divMatch[2]);
+            return pts > 0 ? Math.round(total / pts) : 0;
+          }
+          // Số thuần: "1500" → 1500
+          return parseInt(str) || 0;
+        };
+        if (adminConfigType === 'points_cumulative') {
+          validOptions = crossfireText.split('\n').filter(line => line.trim() !== '').map((line, idx) => {
+            const parts = line.split('|').map(s => s.trim());
+            let name = parts[0];
+            let points = 0;
+            let price = 0;
+            if (parts.length === 2) {
+              price = parseSmartPrice(parts[1]);
+              points = idx;
+            } else if (parts.length >= 3) {
+              points = parseInt(parts[1]) || 0;
+              price = parseSmartPrice(parts[2]);
+            }
+            return { rank: name, name: name, points: points, price: price };
+          });
+        } else {
+          validOptions = adminRankOptions.filter(opt => opt.rank.trim() !== '' && opt.price !== '').map(opt => ({ rank: opt.rank, price: parseInt(opt.price), comboPrice: parseInt(opt.comboPrice) || 0, inputType: opt.inputType || 'bac', maxPoints: parseInt(opt.maxPoints) || 0, basePoints: parseInt(opt.basePoints) || 0, tierCount: parseInt(opt.tierCount) || 1 }));
+        }
         const isMulti = type === 'rank' || (type === 'event' && isEventMultiPackage);
 
         const boostData = {
@@ -4309,7 +4966,7 @@ const App = () => {
           priceUnit: adminBoostingPriceUnit.trim() || '',
           rankOptions: isMulti ? validOptions : [],
           image: finalImage,
-          game: e.target.game?.value || '',
+          game: JSON.stringify({ name: e.target.game?.value || '', avatar: finalGameAvatarUrl, isFeatured: e.target.isFeatured?.checked || false, maxQuantityPerOrder: parseInt(e.target.maxQuantityPerOrder?.value) || 0 }),
           title: type === 'rank' ? (e.target.title?.value || '') : (e.target.eventName?.value || ''),
           desc: type === 'rank' ? (e.target.desc?.value || '') : (e.target.amount?.value || '')
         };
@@ -4334,22 +4991,87 @@ const App = () => {
         }
       } finally {
         setIsGlobalProcessing(false);
+        setGlobalProgressText('');
       }
     };
-    const handleBoostingImageUpload = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => setAdminBoostingImage(reader.result);
-        reader.readAsDataURL(file);
+    const handleBoostingImageUpload = async (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length > 0) {
+        // Tối ưu hóa: Nén ảnh chất lượng cao (WebP, Full HD, Tối đa 1MB)
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+          fileType: "image/webp",
+          initialQuality: 0.9
+        };
+        try {
+          const promises = files.map(file => new Promise(async (resolve) => {
+            try {
+              const compressedFile = await imageCompression(file, options);
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.readAsDataURL(compressedFile);
+            } catch (err) {
+              console.error("Lỗi nén ảnh, dùng ảnh gốc:", err);
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.readAsDataURL(file);
+            }
+          }));
+          const base64s = await Promise.all(promises);
+          setAdminBoostingImage(prev => [...(prev || []), ...base64s]);
+        } catch (error) {
+          console.error("Lỗi xử lý nén ảnh:", error);
+          showToast("Có lỗi xảy ra khi nén ảnh!", "error");
+        }
       }
     };
-    const handleWheelImageUpload = (e) => {
+    const handleGameAvatarUpload = async (e) => {
       const file = e.target.files[0];
       if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => setAdminWheelImage(reader.result);
-        reader.readAsDataURL(file);
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+          fileType: "image/webp",
+          initialQuality: 0.9
+        };
+        try {
+          const compressedFile = await imageCompression(file, options);
+          const reader = new FileReader();
+          reader.onloadend = () => setAdminGameAvatar(reader.result);
+          reader.readAsDataURL(compressedFile);
+        } catch (err) {
+          console.error("Lỗi nén ảnh Avatar Game:", err);
+          const reader = new FileReader();
+          reader.onloadend = () => setAdminGameAvatar(reader.result);
+          reader.readAsDataURL(file);
+        }
+      }
+    };
+    const handleWheelImageUpload = async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        // Tối ưu hóa: Nén ảnh chất lượng cao (WebP, Full HD, Tối đa 1MB)
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+          fileType: "image/webp",
+          initialQuality: 0.9
+        };
+        try {
+          const compressedFile = await imageCompression(file, options);
+          const reader = new FileReader();
+          reader.onloadend = () => setAdminWheelImage(reader.result);
+          reader.readAsDataURL(compressedFile);
+        } catch (err) {
+          console.error("Lỗi nén ảnh vòng quay:", err);
+          const reader = new FileReader();
+          reader.onloadend = () => setAdminWheelImage(reader.result);
+          reader.readAsDataURL(file);
+        }
       }
     };
 
@@ -4533,7 +5255,9 @@ const App = () => {
     }).sort((a, b) => a.timestamp - b.timestamp) : [];
 
     const totalUnreadAdmin = messagesDb.filter(m => {
-      if (m.receiverId !== currentUser?.id || m.isRead) return false;
+      if (m.receiverId !== currentUser?.id || m.isRead || m.senderId === currentUser?.id) return false;
+      const sender = usersDb.find(u => u.id === m.senderId);
+      if (!sender || sender.role === 'admin') return false;
       const clearedTime = parseInt(localStorage.getItem(`admin_cleared_chat_${m.senderId}`) || '0');
       return m.timestamp > clearedTime;
     }).length;
@@ -4542,12 +5266,13 @@ const App = () => {
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-20">
         {renderNavbar()}
         <main className="w-full max-w-[1500px] mx-auto px-4 lg:pr-28 pt-6 space-y-6">
-          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 pb-2">
             <h2 className="text-2xl font-black text-white flex items-center gap-2 whitespace-nowrap"><Settings className="text-rose-500" /> PANEL ADMIN</h2>
-            <div className="flex bg-[#151D2F] p-1.5 rounded-xl border border-slate-800 whitespace-nowrap shadow-lg">
-              {['users', 'accs', 'deposits', 'rentreqs', 'boosting', 'wheel', 'messages'].map(tab => {
-                const labels = { users: 'Người Dùng', accs: 'Kho Nick', deposits: 'Nạp Tiền', rentreqs: 'Thuê Nick', boosting: 'Cày Thuê', wheel: 'Vòng Quay', messages: 'Hộp Thư' };
-                return <button key={tab} onClick={() => setAdminTab(tab)} className={`px-3 md:px-4 py-2 text-xs md:text-sm font-bold rounded-lg transition-all relative ${adminTab === tab ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+            <div className="flex bg-[#151D2F] p-1 md:p-1.5 rounded-xl border border-slate-800 whitespace-nowrap shadow-lg overflow-x-auto scrollbar-hide w-full">
+              {['users', 'messages', 'accs', 'deposits', 'rentreqs', 'boosting', 'wheel'].map(tab => {
+                const labels = { users: 'Người Dùng', messages: 'Hộp Thư', accs: 'Kho Nick', deposits: 'Nạp Tiền', rentreqs: 'Thuê Nick', boosting: 'Cày Thuê', wheel: 'Vòng Quay' };
+                const isHiddenOnMobile = tab === 'accs' || tab === 'wheel';
+                return <button key={tab} onClick={() => setAdminTab(tab)} className={`flex-1 text-center px-1.5 md:px-4 py-1.5 md:py-2 text-[11px] md:text-sm font-bold rounded-lg transition-all relative ${isHiddenOnMobile ? 'hidden md:inline-block' : ''} ${adminTab === tab ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   {labels[tab]}
                   {tab === 'messages' && totalUnreadAdmin > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full animate-pulse">{totalUnreadAdmin}</span>}
                 </button>
@@ -4676,8 +5401,8 @@ const App = () => {
 
             {/* TAB HỘP THƯ TIN NHẮN */}
             {adminTab === 'messages' && (
-              <div className="flex flex-col md:flex-row h-[600px]">
-                <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-slate-800 bg-[#0B1120] flex flex-col">
+              <div className="flex flex-col md:flex-row h-[calc(100vh-200px)] md:h-[600px]">
+                <div className={`w-full md:w-1/3 border-b md:border-b-0 md:border-r border-slate-800 bg-[#0B1120] flex flex-col ${activeChatUser ? 'hidden md:flex' : 'flex'}`}>
                   <div className="p-4 border-b border-slate-800 font-bold text-white flex items-center gap-2 shrink-0">
                     <MessageCircle size={18} className="text-blue-500" /> Chat Khách Hàng
                   </div>
@@ -4706,10 +5431,19 @@ const App = () => {
                             setTimeout(() => chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
                           }} className={`p-4 border-b border-slate-800 cursor-pointer hover:bg-slate-800/50 transition-colors flex justify-between items-center ${activeChatUser?.id === u.id ? 'bg-blue-900/20 border-l-4 border-l-blue-500' : ''}`}>
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center text-slate-400"><User size={20} /></div>
+                              {u.avatar_url ? (
+                                <img src={u.avatar_url} alt="avatar" className="w-10 h-10 rounded-full object-cover border border-slate-700 shrink-0" />
+                              ) : (
+                                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'K')}&background=151D2F&color=fff`} alt="avatar" className="w-10 h-10 rounded-full object-cover border border-slate-700 shrink-0" />
+                              )}
                               <div>
                                 <p className="font-bold text-sm text-white">{u.name}</p>
-                                <p className="text-xs text-slate-500">{u.phone}</p>
+                                <p className="text-xs text-slate-500 flex items-center gap-1">
+                                  {u.phone}
+                                  <span className="text-[10px] opacity-50 px-1 border-l border-slate-600 ml-1">
+                                    {getActiveStatus(u.last_active).isOnline ? <span className="text-emerald-400">Online</span> : getActiveStatus(u.last_active).text}
+                                  </span>
+                                </p>
                               </div>
                             </div>
                             {unread > 0 && <span className="bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold">{unread}</span>}
@@ -4720,15 +5454,41 @@ const App = () => {
                   </div>
                 </div>
 
-                <div className="flex-1 flex flex-col bg-[#151D2F]">
+                <div className={`flex-1 flex flex-col bg-[#151D2F] ${activeChatUser ? 'fixed inset-0 z-[60] md:relative md:inset-auto md:z-auto' : 'hidden md:flex'}`}>
                   {activeChatUser ? (
                     <>
-                      <div className="p-4 border-b border-slate-800 bg-[#0B1120] flex items-center justify-between">
+                      <div className="p-3 md:p-4 border-b border-slate-800 bg-[#0B1120] flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-blue-500/20 text-blue-500 rounded-full flex items-center justify-center"><User size={20} /></div>
+                          <button onClick={() => setActiveChatUser(null)} className="md:hidden p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl mr-2 flex items-center gap-1 shadow transition-colors"><ArrowLeft size={18} /><span className="text-xs font-bold">Quay lại</span></button>
+                          {activeChatUser.avatar_url ? (
+                            <img src={activeChatUser.avatar_url} alt="avatar" className="w-10 h-10 rounded-full object-cover border border-slate-700 shrink-0" />
+                          ) : (
+                            <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(activeChatUser.name || 'K')}&background=151D2F&color=fff`} alt="avatar" className="w-10 h-10 rounded-full object-cover border border-slate-700 shrink-0" />
+                          )}
                           <div>
-                            <h3 className="font-bold text-white">{activeChatUser.name}</h3>
-                            <p className="text-xs text-slate-500">Đang hỗ trợ khách hàng</p>
+                            <h3
+                              className="font-bold text-blue-400 cursor-pointer hover:underline"
+                              onClick={() => {
+                                const foundUser = usersDb.find(u => u.id === activeChatUser.id);
+                                if (foundUser) {
+                                  setEditingUser(foundUser);
+                                  setShowUserModal(true);
+                                } else {
+                                  showToast("Không tìm thấy thông tin chi tiết khách hàng!", "error");
+                                }
+                              }}
+                            >
+                              {activeChatUser.name}
+                            </h3>
+                            {(() => {
+                              const status = getActiveStatus(activeChatUser.last_active);
+                              return (
+                                <p className={`text-xs flex items-center gap-1 ${status.isOnline ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full block ${status.isOnline ? 'bg-emerald-400' : 'bg-slate-500'}`}></span>
+                                  {status.isOnline ? 'Đang trực tuyến' : (status.text === 'Ngoại tuyến' ? 'Ngoại tuyến' : `Hoạt động: ${status.text}`)}
+                                </p>
+                              );
+                            })()}
                           </div>
                         </div>
                         <button onClick={() => handleDeleteChatAdmin(activeChatUser.id)} className="text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm">
@@ -4751,7 +5511,7 @@ const App = () => {
                       </div>
                       <div className="p-4 border-t border-slate-800 bg-[#0B1120]">
                         <form onSubmit={handleAdminSendMessage} className="flex gap-2">
-                          <input name="message" type="text" placeholder={`Trả lời ${activeChatUser.name}...`} className="flex-1 bg-[#151D2F] border border-slate-700 rounded-full px-4 py-3 text-sm text-white focus:outline-none focus:border-rose-500" autoComplete="off" />
+                          <input name="message" type="text" placeholder={`Trả lời ${activeChatUser.name}...`} className="flex-1 bg-[#151D2F] border border-slate-700 rounded-full px-3 md:px-4 py-2.5 md:py-3 text-sm text-white focus:outline-none focus:border-rose-500" autoComplete="off" />
                           <button type="submit" className="w-12 h-12 bg-rose-600 rounded-full flex items-center justify-center text-white hover:bg-rose-500 shrink-0 transition-colors"><Send size={18} /></button>
                         </form>
                       </div>
@@ -4769,21 +5529,28 @@ const App = () => {
             {/* TAB KHO ACC */}
             {adminTab === 'accs' && (
               <div className="p-6">
-                <button onClick={() => { setEditingAccount(null); setAdminCoverImage(null); setAdminDetailImages([]); setAdminRentOptions([{ time: '', price: '' }]); setShowAccModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18} /> Đăng bán Nick mới</button>
+                <button onClick={() => { setEditingAccount(null); setAdminCoverImage(null); setAdminDetailImages([]); setAdminRentOptions([{ time: '', price: '' }]); setAdminAccGameAvatar(null); setShowAccModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18} /> Đăng bán Nick mới</button>
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                   {accountsDb.map(acc => (
                     <div key={acc.id} className="bg-[#0B1120] p-4 rounded-xl border border-slate-800 flex gap-4 items-center group hover:border-blue-500/50 transition-colors">
                       <img src={acc.coverImage} className="w-28 h-20 object-cover rounded-lg shadow-md" />
                       <div className="flex-1">
                         <p className="font-bold text-white line-clamp-1 mb-1">{acc.title}</p>
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="text-[10px] bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded border border-rose-500/20">Mã: {acc.code}</span>
-                          <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded border border-blue-500/20">{acc.game}</span>
+                          <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">Kho: {acc.stock !== undefined ? acc.stock : 1}</span>
+                          <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded border border-blue-500/20 flex items-center gap-1">
+                            {getGameInfo(acc.game).avatar && <img src={getGameInfo(acc.game).avatar} className="w-3 h-3 rounded" alt="Game Avatar" />}
+                            {getGameInfo(acc.game).name}
+                          </span>
+                          {getGameInfo(acc.game).isFeatured && (
+                            <span className="text-[10px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded border border-amber-500/20 font-bold">🔥 Nổi Bật</span>
+                          )}
                         </div>
                         <p className="text-emerald-400 font-black text-sm">{new Intl.NumberFormat('vi-VN').format(acc.price)}đ</p>
                       </div>
                       <div className="flex flex-col gap-2">
-                        <button onClick={() => { setEditingAccount(acc); setAdminCoverImage(acc.coverImage); setAdminDetailImages(acc.detailImages || []); setAdminRentOptions(acc.rentOptions?.length > 0 ? acc.rentOptions : [{ time: '', price: '' }]); setShowAccModal(true); }} className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500 hover:text-white transition-colors" title="Chỉnh sửa"><Edit size={18} /></button>
+                        <button onClick={() => { setEditingAccount(acc); setAdminCoverImage(acc.coverImage); setAdminDetailImages(acc.detailImages || []); setAdminRentOptions(acc.rentOptions?.length > 0 ? acc.rentOptions : [{ time: '', price: '' }]); setAdminAccGameAvatar(getGameInfo(acc.game).avatar); setShowAccModal(true); }} className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500 hover:text-white transition-colors" title="Chỉnh sửa"><Edit size={18} /></button>
                         <button onClick={() => {
                           setConfirmDialog({
                             title: 'Xoá Nick', message: `Xoá nick mã ${acc.code}?`, onConfirm: async () => {
@@ -4876,7 +5643,23 @@ const App = () => {
                         {depositRequests.slice(0, visibleDepsAdmin).map(d => (
                           <tr key={d.id} className="hover:bg-slate-800/30">
                             <td className="p-4"><div className="text-slate-300 font-mono text-xs">{d.id}</div><div className="text-[10px] text-slate-500 mt-1">{new Date(d.created_at || parseInt(d.id)).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</div></td>
-                            <td className="p-4 text-blue-400 font-bold">{d.user} <span className="text-[10px] text-slate-500 font-normal ml-1">(ID: {d.userId})</span></td>
+                            <td className="p-4 text-blue-400 font-bold">
+                              <button
+                                onClick={() => {
+                                  const foundUser = usersDb.find(u => u.id === d.userId);
+                                  if (foundUser) {
+                                    setEditingUser(foundUser);
+                                    setShowUserModal(true);
+                                  } else {
+                                    showToast("Không tìm thấy thông tin chi tiết khách hàng!");
+                                  }
+                                }}
+                                className="hover:underline text-left font-bold"
+                              >
+                                {d.user}
+                              </button>
+                              <span className="text-[10px] text-slate-500 font-normal ml-1">(ID: {d.userId})</span>
+                            </td>
                             <td className="p-4">
                               <span className="text-emerald-400 font-black text-base block">{(d.type === 'card' || (d.details && d.details.toLowerCase().includes('thẻ')) || String(d.id).startsWith('CARD')) ? '💳 Thẻ cào: ' : '🏦 Chuyển khoản: '}{new Intl.NumberFormat('vi-VN').format(d.amount)}đ</span>
                               {d.bonusAmount > 0 && <span className="text-[10px] text-rose-400 font-bold block mt-0.5">Khuyến mãi +{new Intl.NumberFormat('vi-VN').format(d.bonusAmount)}đ (Mã: {d.voucherCode})</span>}
@@ -4922,7 +5705,7 @@ const App = () => {
 
             {/* TAB THUÊ NICK */}
             {adminTab === 'rentreqs' && (
-              <div className="p-6">
+              <div className="p-3 md:p-6">
                 <div className="flex items-center gap-2 mb-6 text-yellow-500 bg-yellow-500/10 p-3 rounded-lg border border-yellow-500/20 text-sm">
                   <AlertCircle size={18} /> Hướng dẫn: Mở app điều khiển trên máy tính, nhập ID App & Mật khẩu của khách để điều khiển máy khách và đăng nhập nick game.
                 </div>
@@ -4933,14 +5716,15 @@ const App = () => {
                   }}>
                     {rentRequests.slice(0, visibleRentsAdmin).map(r => {
                       const accObj = accountsDb.find(a => a.code === r.accCode);
-                      const isStillRented = accObj?.rentedUntil && accObj.rentedUntil > Date.now();
+                      const isStillRented = accObj?.rentedUntil && accObj.rentedUntil > Date.now() && rentRequests.find(req => req.accCode === r.accCode && req.status === 'Đã giao acc')?.id === r.id;
 
                       return (
-                        <div key={r.id} className="bg-[#0B1120] p-5 rounded-xl border border-slate-700 flex flex-col lg:flex-row gap-6 items-start lg:items-center relative overflow-hidden group">
+                        <div key={r.id} className="bg-[#0B1120] p-3 md:p-5 rounded-xl border border-slate-700 flex flex-col lg:flex-row gap-3 md:gap-6 items-start lg:items-center relative overflow-hidden group">
                           {r.status === 'Đã giao acc' && isStillRented && <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10">ĐANG THUÊ</div>}
+                          {r.status === 'Đã giao acc' && !isStillRented && <div className="absolute top-0 right-0 bg-slate-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10">ĐÃ HẾT HẠN</div>}
                           {r.status === 'Đã trả acc' && <div className="absolute top-0 right-0 bg-slate-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10">ĐÃ TRẢ ACC</div>}
                           {r.status === 'Từ chối' && <div className="absolute top-0 right-0 bg-rose-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10 shadow-md">ĐÃ TỪ CHỐI</div>}
-                          <div className="w-full lg:w-40 h-28 bg-slate-900 rounded-lg flex items-center justify-center overflow-hidden border border-slate-800 shrink-0 relative">
+                          <div className="w-full lg:w-40 h-24 md:h-28 bg-slate-900 rounded-lg flex items-center justify-center overflow-hidden border border-slate-800 shrink-0 relative">
                             {r.info?.kycMethod === 'vip' ? (
                               <div className="flex flex-col items-center text-yellow-500"><Sparkles size={28} className="mb-2" /><span className="font-black text-sm uppercase">Khách VIP</span><span className="text-[9px] text-slate-400 text-center">Miễn CCCD & Cọc</span></div>
                             ) : r.info?.kycMethod === 'khach_quen' ? (
@@ -4974,24 +5758,38 @@ const App = () => {
                             )}
                           </div>
                           <div className="flex-1 space-y-2 text-sm w-full">
-                            <div className="flex justify-between border-b border-slate-800 pb-2 w-full relative">
-                              <p>
+                            <div className="flex flex-col md:flex-row md:justify-between border-b border-slate-800 pb-2 w-full gap-1">
+                              <p className="text-xs md:text-sm">
                                 <span className="text-slate-400">Khách:</span>
-                                <span className="text-blue-400 font-bold text-base ml-1">{r.user}</span>
+                                <button
+                                  onClick={() => {
+                                    const foundUser = usersDb.find(u => u.id === r.userId);
+                                    if (foundUser) {
+                                      setEditingUser(foundUser);
+                                      setShowUserModal(true);
+                                    } else {
+                                      showToast("Không tìm thấy thông tin chi tiết khách hàng!");
+                                    }
+                                  }}
+                                  className="text-blue-400 font-bold text-sm md:text-base ml-1 hover:underline text-left"
+                                >
+                                  {r.user}
+                                </button>
                                 {r.info?.kycMethod === 'vip' && <span className="bg-yellow-500 text-[#0B1120] text-[10px] font-black px-1.5 py-0.5 rounded ml-2 shadow-[0_0_10px_rgba(250,204,21,0.5)]">VIP</span>}
+                                <span className="inline-flex md:hidden ml-2 bg-blue-600/20 px-2 py-0.5 rounded-full border border-blue-500/40 text-blue-400 font-black text-[10px] items-center gap-1"><Clock size={10} className="animate-pulse" /> {r.date}</span>
                               </p>
 
-                              {/* Ô THỜI GIAN HIỂN THỊ CHÍNH GIỮA */}
-                              <div className="absolute left-1/2 -translate-x-1/2 top-0 bg-blue-600/20 px-4 py-1 rounded-full border border-blue-500/40 shadow-sm whitespace-nowrap">
+                              {/* Ô THỜI GIAN HIỂN THỊ - ẨN TRÊN MOBILE (đã inline ở trên) */}
+                              <div className="hidden md:block bg-blue-600/20 px-4 py-1 rounded-full border border-blue-500/40 shadow-sm whitespace-nowrap self-center">
                                 <p className="text-blue-400 font-black text-xs uppercase tracking-widest flex items-center gap-2">
                                   <Clock size={14} className="animate-pulse" /> {r.date}
                                 </p>
                               </div>
 
-                              <p>
+                              <p className="text-xs md:text-sm">
                                 <span className="text-slate-400">SĐT:</span>
                                 <span className="font-bold ml-1">{r.info?.phone}</span>
-                                {r.info?.kycMethod === 'cccd' && <> | CCCD: {r.info?.cccdNumber}</>}
+                                {r.info?.kycMethod === 'cccd' && <><br className="md:hidden" /><span className="hidden md:inline"> | </span>CCCD: {r.info?.cccdNumber}</>}
                               </p>
                             </div>
                             <p>
@@ -5001,15 +5799,15 @@ const App = () => {
                               {/* DÒNG CHÈN THÊM NGÀY GIỜ THUÊ TẠI ĐÂY */}
 
                             </p>
-                            <div className="bg-blue-900/20 p-3 rounded-lg border border-blue-500/30 mt-3 flex items-center justify-between">
-                              <div>
-                                <p className="text-blue-400 font-bold text-xs mb-1 flex items-center gap-1"><Gamepad2 size={12} /> APP ĐIỀU KHIỂN CỦA KHÁCH:</p>
-                                <p className="text-base">ID App: <span className="text-white font-mono bg-black/30 px-2 py-0.5 rounded">{r.info?.awesunId}</span> <span className="mx-2 text-slate-600">|</span> Mật khẩu: <span className="text-white font-mono bg-black/30 px-2 py-0.5 rounded">{r.info?.awesunPass}</span></p>
+                            <div className="bg-blue-900/20 p-2.5 md:p-3 rounded-lg border border-blue-500/30 mt-2 md:mt-3 flex items-start md:items-center justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-blue-400 font-bold text-[10px] md:text-xs mb-1 flex items-center gap-1"><Gamepad2 size={12} /> APP ĐIỀU KHIỂN CỦA KHÁCH:</p>
+                                <p className="text-xs md:text-base break-all">ID App: <span className="text-white font-mono bg-black/30 px-1.5 md:px-2 py-0.5 rounded text-xs md:text-base">{r.info?.awesunId}</span> <span className="mx-1 md:mx-2 text-slate-600">|</span> Mật khẩu: <span className="text-white font-mono bg-black/30 px-1.5 md:px-2 py-0.5 rounded text-xs md:text-base">{r.info?.awesunPass}</span></p>
                               </div>
-                              <button onClick={() => copyToClipboard(`${r.info?.awesunId} ${r.info?.awesunPass}`)} className="p-2 bg-blue-500/20 rounded text-blue-400 hover:bg-blue-500 hover:text-white transition-colors" title="Copy cả ID App & Mật khẩu"><Copy size={16} /></button>
+                              <button onClick={() => copyToClipboard(`${r.info?.awesunId} ${r.info?.awesunPass}`)} className="p-2 bg-blue-500/20 rounded text-blue-400 hover:bg-blue-500 hover:text-white transition-colors shrink-0" title="Copy cả ID App & Mật khẩu"><Copy size={16} /></button>
                             </div>
                           </div>
-                          <div className="flex lg:flex-col gap-2 w-full lg:w-auto mt-4 lg:mt-0">
+                          <div className="flex flex-wrap lg:flex-col gap-2 w-full lg:w-auto mt-2 lg:mt-0">
                             {r.status === 'Chờ xử lý' && (
                               <button onClick={() => {
                                 setConfirmDialog({
@@ -5088,7 +5886,7 @@ const App = () => {
                                     showToast("Đã đánh dấu hoàn thành & Bắt đầu đếm ngược!");
                                   }
                                 });
-                              }} className="flex-1 bg-emerald-600 px-4 py-3 rounded-xl text-white text-sm font-bold shadow-lg shadow-emerald-600/20 hover:bg-emerald-500 transition-colors">Đã Đăng Nhập Xong</button>
+                              }} className="flex-1 bg-emerald-600 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-white text-xs md:text-sm font-bold shadow-lg shadow-emerald-600/20 hover:bg-emerald-500 transition-colors">Đã Đăng Nhập Xong</button>
                             )}
                             {r.status === 'Chờ xử lý' && (
                               <button onClick={() => {
@@ -5114,7 +5912,7 @@ const App = () => {
                                     }
 
                                     // 2. HOÀN TIỀN VỀ ĐÚNG TỪNG VÍ (Lấy Data sống từ Server chống lỗi kép)
-                                    const { data: targetUser } = await supabase.from('users').select('*').eq('id', r.userId).single();
+                                    const { data: targetUser } = await supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').eq('id', r.userId).single();
                                     if (targetUser) {
                                       const newBalance = targetUser.balance + refundFromMain;
                                       const newRentFund = (targetUser.rentFund || 0) + refundFromFund;
@@ -5176,7 +5974,7 @@ const App = () => {
                                     showToast("Đã từ chối & Hoàn tiền về đúng ví!");
                                   }
                                 });
-                              }} className="flex-1 bg-rose-600/20 px-4 py-3 rounded-xl text-rose-500 border border-rose-500/30 text-sm font-bold hover:bg-rose-500 hover:text-white transition-colors">Từ Chối Đơn</button>
+                              }} className="flex-1 bg-rose-600/20 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-rose-500 border border-rose-500/30 text-xs md:text-sm font-bold hover:bg-rose-500 hover:text-white transition-colors">Từ Chối Đơn</button>
                             )}
                             {/* NÚT XÁC MINH CCCD NHANH */}
                             {(r.info?.kycMethod === 'cccd' || r.info?.kycMethod === 'verified_cccd') && (() => {
@@ -5187,21 +5985,21 @@ const App = () => {
                                   if (error) return showToast("Lỗi: " + error.message, 'error');
                                   setUsersDb(usersDb.map(u => u.id === r.userId ? { ...u, is_cccd_verified: true } : u));
                                   showToast(`Đã đánh dấu CCCD hợp lệ cho ${r.user}!`);
-                                }} className="flex-1 bg-purple-600/20 px-4 py-3 rounded-xl text-purple-400 border border-purple-500/30 text-sm font-bold hover:bg-purple-500 hover:text-white transition-colors flex items-center justify-center gap-1.5">
+                                }} className="flex-1 bg-purple-600/20 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-purple-400 border border-purple-500/30 text-xs md:text-sm font-bold hover:bg-purple-500 hover:text-white transition-colors flex items-center justify-center gap-1.5">
                                   <ShieldCheck size={16} /> Xác minh CCCD
                                 </button>
                               ) : (
-                                <div className="flex-1 bg-emerald-500/10 px-4 py-3 rounded-xl text-emerald-400 border border-emerald-500/30 text-sm font-bold flex items-center justify-center gap-1.5 cursor-default">
+                                <div className="flex-1 bg-emerald-500/10 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-emerald-400 border border-emerald-500/30 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 cursor-default">
                                   <CheckCircle2 size={16} /> CCCD đã xác minh ✓
                                 </div>
                               );
                             })()}
                             {r.status === 'Đã giao acc' && isStillRented && (
-                              <button onClick={() => setEditRentModal({ req: r, acc: accObj })} className="flex-1 bg-blue-600 px-4 py-3 rounded-xl text-white text-sm font-bold hover:bg-blue-500 transition-colors flex justify-center items-center gap-1">
+                              <button onClick={() => setEditRentModal({ req: r, acc: accObj })} className="flex-1 bg-blue-600 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-white text-xs md:text-sm font-bold hover:bg-blue-500 transition-colors flex justify-center items-center gap-1">
                                 <Edit size={16} /> Sửa Thời Gian
                               </button>
                             )}
-                            <button onClick={() => setConfirmDialog({ title: 'Xoá yêu cầu', message: 'Xoá yêu cầu thuê này?', onConfirm: () => setRentRequests(rentRequests.filter(x => x.id !== r.id)) })} className="px-4 py-3 bg-rose-500/10 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-colors flex items-center justify-center"><Trash2 size={18} /></button>
+                            <button onClick={() => setConfirmDialog({ title: 'Xoá yêu cầu', message: 'Xoá yêu cầu thuê này?', onConfirm: () => setRentRequests(rentRequests.filter(x => x.id !== r.id)) })} className="px-3 md:px-4 py-2.5 md:py-3 bg-rose-500/10 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-colors flex items-center justify-center shrink-0"><Trash2 size={16} /></button>
                           </div>
                         </div>
                       )
@@ -5215,7 +6013,7 @@ const App = () => {
             {adminTab === 'boosting' && (
               <div className="p-6">
                 {/* CHÚ Ý LỆNH SET ẢNH VỀ NULL ĐỂ TRÁNH LỖI HIỂN THỊ ẢNH CŨ */}
-                <button onClick={() => { setEditingBoosting(null); setAdminBoostingImage(null); setAdminBoostType('rank'); setAdminRankOptions([{ rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }]); setIsEventMultiPackage(false); setAdminBoostingPriceUnit(''); setShowBoostingModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18} /> Thêm dịch vụ Cày Thuê</button>
+                <button onClick={() => { setEditingBoosting(null); setAdminBoostingImage([]); setAdminBoostType('rank'); setAdminRankOptions([{ rank: '', price: '', comboPrice: '', inputType: 'diem', maxPoints: '', basePoints: '', tierCount: 1 }]); setAdminGame(''); setAdminGameAvatar(null); setCrossfireText(''); setAdminConfigType('points_cumulative'); setIsEventMultiPackage(false); setAdminBoostingPriceUnit(''); setShowBoostingModal(true); }} className="mb-6 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18} /> Thêm dịch vụ Cày Thuê</button>
                 {/* Modal Admin Thêm Cày Thuê */}
                 {showBoostingModal && (
                   <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -5232,14 +6030,18 @@ const App = () => {
                             <div>
                               <label className="text-xs text-slate-400 font-bold">Ảnh mô tả dịch vụ (Tùy chọn)</label>
                               <div className="mt-1 border border-dashed border-slate-600 rounded-xl p-4 text-center hover:bg-slate-800/50 transition-colors relative group bg-[#0B1120]">
-                                <input type="file" accept="image/*" onChange={handleBoostingImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                                {adminBoostingImage ? (
-                                  <div className="relative z-20">
-                                    <img src={adminBoostingImage} className="mx-auto h-24 object-cover rounded-lg shadow-md w-full" alt="Preview" />
-                                    <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAdminBoostingImage(null); }} className="absolute top-2 right-2 bg-rose-500 hover:bg-rose-600 text-white p-1.5 rounded-full shadow-lg transition-colors z-30" title="Xóa ảnh này"><X size={14} /></button>
+                                <input type="file" accept="image/*" multiple onChange={handleBoostingImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                {adminBoostingImage && adminBoostingImage.length > 0 ? (
+                                  <div className="relative z-20 grid grid-cols-2 md:grid-cols-3 gap-2">
+                                    {adminBoostingImage.map((img, idx) => (
+                                      <div key={idx} className="relative">
+                                        <img src={img} className="mx-auto h-24 object-cover rounded-lg shadow-md w-full" alt="Preview" />
+                                        <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAdminBoostingImage(prev => prev.filter((_, i) => i !== idx)); }} className="absolute top-1 right-1 bg-rose-500 hover:bg-rose-600 text-white p-1 rounded-full shadow-lg transition-colors z-30" title="Xóa ảnh này"><X size={12} /></button>
+                                      </div>
+                                    ))}
                                   </div>
                                 ) : (
-                                  <div className="text-slate-500 flex flex-col items-center"><ImageIcon size={28} className="mb-2" /><span className="text-[10px] font-bold">Bấm để tải Ảnh lên</span></div>
+                                  <div className="text-slate-500 flex flex-col items-center"><ImageIcon size={28} className="mb-2" /><span className="text-[10px] font-bold">Bấm hoặc Kéo thả nhiều ảnh</span></div>
                                 )}
                               </div>
                             </div>
@@ -5256,9 +6058,15 @@ const App = () => {
                               {/* LUÔN HIỆN Ô TÊN GAME CHO CẢ 2 LOẠI */}
                               <div>
                                 <label className="text-xs text-slate-400 block mb-1">Tên Game</label>
-                                <input name="game" defaultValue={editingBoosting?.game && editingBoosting.game !== 'Cày Sự Kiện' ? editingBoosting.game : ''} placeholder="VD: Liên Quân, Tốc Chiến..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required />
+                                <input name="game" value={adminGame} onChange={(e) => setAdminGame(e.target.value)} placeholder="VD: Liên Quân, Tốc Chiến..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required />
                               </div>
                             </div>
+
+                            <label className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg cursor-pointer transition-colors hover:bg-amber-500/20 mt-2">
+                              <input type="checkbox" name="isFeatured" defaultChecked={getGameInfo(editingBoosting?.game).isFeatured || false} className="w-5 h-5 accent-amber-500 cursor-pointer" />
+                              <span className="text-sm font-bold text-amber-500">🔥 Dịch vụ Nổi Bật (Ưu tiên hiển thị sảnh trang chủ)</span>
+                            </label>
+
 
                             {/* Nếu chọn Cày Sự Kiện thì hiện thêm ô Tên Sự Kiện */}
                             {adminBoostType === 'event' && (
@@ -5275,18 +6083,24 @@ const App = () => {
                                   <span className="text-sm font-bold text-blue-400">Bật chia nhiều Gói nhỏ (Cày nhiều mốc)</span>
                                 </label>
                                 {!isEventMultiPackage && (
-                                  <label className="flex items-center gap-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg cursor-pointer transition-colors hover:bg-emerald-500/20 shadow-inner">
-                                    <input
-                                      type="checkbox"
-                                      name="allowQuantity"
-                                      defaultChecked={editingBoosting?.allow_quantity || false}
-                                      className="w-5 h-5 accent-emerald-500 cursor-pointer"
-                                    />
-                                    <div className="flex flex-col">
-                                      <span className="text-sm font-bold text-emerald-400">Cho phép khách điền số lượng</span>
-                                      <span className="text-[10px] text-slate-500">Tự động nhân giá với số lượng khách điền</span>
+                                  <div className="flex flex-col gap-2 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg transition-colors shadow-inner">
+                                    <label className="flex items-center gap-3 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        name="allowQuantity"
+                                        defaultChecked={editingBoosting?.allow_quantity || false}
+                                        className="w-5 h-5 accent-emerald-500 cursor-pointer"
+                                      />
+                                      <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-emerald-400">Cho phép khách điền số lượng</span>
+                                        <span className="text-[10px] text-slate-500">Tự động nhân giá với số lượng khách điền</span>
+                                      </div>
+                                    </label>
+                                    <div className="flex items-center justify-between gap-2 border-t border-emerald-500/20 pt-2">
+                                      <span className="text-[11px] font-bold text-slate-300">Giới hạn 1 lần mua:</span>
+                                      <input type="number" name="maxQuantityPerOrder" min="0" defaultValue={getGameInfo(editingBoosting?.game).maxQuantityPerOrder || 0} placeholder="0 = Không giới hạn" className="w-24 p-1.5 bg-[#0B1120] border border-emerald-500/50 rounded text-xs text-white font-bold outline-none focus:border-emerald-400 text-center" />
                                     </div>
-                                  </label>
+                                  </div>
                                 )}
                               </div>
                             )}
@@ -5312,49 +6126,21 @@ const App = () => {
                           <div className="space-y-4 mt-4 md:mt-0">
                             {(adminBoostType === 'rank' || (adminBoostType === 'event' && isEventMultiPackage)) ? (
                               <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30">
-                                <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
-                                  <label className="text-sm text-blue-400 font-bold flex items-center gap-2"><Target size={16} /> CÁC MỐC/GÓI HIỆN TẠI & GIÁ</label>
-                                  <button type="button" onClick={() => setAdminRankOptions([...adminRankOptions, { rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm mốc</button>
+                                <div className="flex justify-between items-center mb-3">
+                                  <label className="text-sm text-blue-400 font-bold flex items-center gap-2">
+                                    <Target size={16} /> CẤU HÌNH MỐC ĐIỂM (Cộng dồn)
+                                  </label>
                                 </div>
-                                <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
-                                  {adminRankOptions.map((opt, index) => (
-                                    <div key={index} className="bg-[#0B1120] p-3 rounded-lg border border-slate-700 space-y-2">
-                                      <div className="flex gap-2 items-center">
-                                        <input type="text" placeholder="Tên mốc (VD: Sao Băng V → Ngôi Sao V)" value={opt.rank} onChange={e => { const n = [...adminRankOptions]; n[index].rank = e.target.value; setAdminRankOptions(n) }} className="flex-1 p-2 bg-transparent outline-none text-sm text-white border-b border-slate-700 focus:border-blue-500" required />
-                                        <button type="button" onClick={() => setAdminRankOptions(adminRankOptions.filter((_, i) => i !== index))} className="w-8 text-slate-500 hover:text-rose-500 flex justify-center transition-colors"><X size={18} /></button>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-[10px] text-slate-500 font-bold shrink-0">LOẠI:</span>
-                                        <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'bac'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'bac' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Bậc</button>
-                                        <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'diem'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'diem' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Điểm</button>
-                                        {opt.inputType === 'bac' && (
-                                          <>
-                                            <div className="w-[1px] h-5 bg-slate-700"></div>
-                                            <span className="text-[10px] text-slate-500 font-bold shrink-0">SỐ BẬC:</span>
-                                            <input type="number" min="1" max="10" value={opt.tierCount || 1} onChange={e => { const n = [...adminRankOptions]; n[index].tierCount = Math.max(1, Math.min(10, parseInt(e.target.value) || 1)); setAdminRankOptions(n); }} className="w-14 p-1 bg-slate-900 rounded text-center text-xs text-blue-400 font-bold border border-blue-500/30 outline-none focus:border-blue-500" />
-                                          </>
-                                        )}
-                                      </div>
-                                      <div className="grid grid-cols-2 gap-2">
-                                        <div className={opt.inputType === 'bac' && (opt.tierCount || 1) <= 1 ? "col-span-2" : ""}>
-                                          <label className="text-[10px] text-slate-500 block">Giá bậc lẻ {opt.inputType === 'diem' ? '(đ/điểm)' : '(đ/bậc)'}</label>
-                                          <input type="number" placeholder="VD: 15000" value={opt.price} onChange={e => { const n = [...adminRankOptions]; n[index].price = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-white font-bold border border-slate-700 focus:border-blue-500" required />
-                                        </div>
-                                        {!(opt.inputType === 'bac' && (opt.tierCount || 1) <= 1) && (
-                                          <div>
-                                            <label className="text-[10px] text-slate-500 block">Giá combo (trọn gói)</label>
-                                            <input type="number" placeholder="VD: 70000" value={opt.comboPrice} onChange={e => { const n = [...adminRankOptions]; n[index].comboPrice = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-emerald-400 font-bold border border-slate-700 focus:border-emerald-500" required />
-                                          </div>
-                                        )}
-                                      </div>
-                                      {opt.inputType === 'diem' && (
-                                        <div>
-                                          <label className="text-[10px] text-yellow-400 block">Giới hạn điểm tối đa</label>
-                                          <input type="number" placeholder="VD: 300" value={opt.maxPoints} onChange={e => { const n = [...adminRankOptions]; n[index].maxPoints = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-yellow-400 font-bold border border-yellow-500/30 focus:border-yellow-500" required />
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
+                                <div className="space-y-2">
+                                  <p className="text-xs text-emerald-400 mb-2">Nhập danh sách theo định dạng: <span className="font-bold text-white">Tên Rank | Điểm mốc | Giá</span> (Mỗi rank 1 dòng)</p>
+                                  <p className="text-[10px] text-slate-500 mb-2">Cột giá hỗ trợ: <span className="text-cyan-400">300k/200 điểm</span> (tự tính 1500đ/điểm), <span className="text-cyan-400">25k/100</span> (tự tính 250đ/điểm), hoặc số thuần <span className="text-cyan-400">1500</span></p>
+                                  <textarea
+                                    value={crossfireText}
+                                    onChange={(e) => setCrossfireText(e.target.value)}
+                                    placeholder={`Ví dụ:\nVàng | 1800 | 25k/100 điểm\nBạch Kim | 2100 | 30k/100 điểm\nHuyền Thoại | 3300 | 300k/200 điểm\nThần Thoại | 3500 | 450k/200 điểm\nTruyền Kỳ | 3700 | 0`}
+                                    className="w-full h-[250px] p-3 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-mono text-sm outline-none focus:border-emerald-400"
+                                    required
+                                  ></textarea>
                                 </div>
                               </div>
                             ) : (
@@ -5380,13 +6166,34 @@ const App = () => {
                       <div key={req.id} className="p-4 bg-[#0B1120] border-b border-slate-800 text-sm flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <p className="font-bold text-white"><span className="text-blue-400">{req.user}</span> đặt gói: {req.boostingTitle} <span className="text-xs text-slate-500 font-normal">({req.date})</span></p>
+                            <p className="font-bold text-white">
+                              <span
+                                className="text-blue-400 cursor-pointer hover:underline"
+                                onClick={() => {
+                                  const foundUser = usersDb.find(u => u.name === req.user);
+                                  if (foundUser) {
+                                    setEditingUser(foundUser);
+                                    setShowUserModal(true);
+                                  } else {
+                                    showToast("Không tìm thấy thông tin chi tiết khách hàng!", "error");
+                                  }
+                                }}
+                              >
+                                {req.user}
+                              </span> đặt gói: {req.boostingTitle} <span className="text-xs text-slate-500 font-normal">({req.date})</span>
+                            </p>
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${req.status === 'Hoàn thành' ? 'bg-emerald-500/20 text-emerald-400' : req.status === 'Đang cày' ? 'bg-blue-500/20 text-blue-400' : req.status === 'Đã hủy' ? 'bg-rose-500/20 text-rose-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                               {req.status || 'Chờ xử lý'}
                             </span>
                           </div>
                           <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800">
-                            <p className="text-xs text-slate-400">Nền tảng: <span className="text-white font-bold">{req.info.loginMethod}</span> | TK: <span className="text-white font-mono">{req.info.username}</span> | MK: <span className="text-white font-mono">{req.info.password}</span></p>
+                            <p className="text-xs text-slate-400">
+                              {req.info.loginMethod === 'Không Cần' ? (
+                                <>Mã sự kiện / Link: <span className="text-white font-mono">{req.info.username}</span></>
+                              ) : (
+                                <>Nền tảng: <span className="text-white font-bold">{req.info.loginMethod}</span> | TK: <span className="text-white font-mono">{req.info.username}</span> | MK: <span className="text-white font-mono">{req.info.password}</span></>
+                              )}
+                            </p>
                             {req.info.note && <p className="text-xs text-yellow-500 mt-1 italic">Ghi chú: {req.info.note}</p>}
                           </div>
                         </div>
@@ -5503,32 +6310,47 @@ const App = () => {
                     <button onClick={() => { setAdminBoostingCategoryFilter('event'); setAdminBoostingGameFilter('Tất cả'); }} className={`flex-1 md:flex-none px-4 py-2 text-sm font-bold rounded-xl transition-all ${adminBoostingCategoryFilter === 'event' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-[#151D2F] text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'}`}>Cày Sự Kiện</button>
                   </div>
                   <div className="flex gap-2 overflow-x-auto max-w-full hide-scrollbar snap-x snap-mandatory">
-                    {['Tất cả', ...new Set(boostingDb.filter(b => (b.type || 'rank') === adminBoostingCategoryFilter).map(b => b.game))].map(game => (
+                    {['Tất cả', ...new Set(boostingDb.filter(b => (b.type || 'rank') === adminBoostingCategoryFilter).map(b => { try { return JSON.parse(b.game).name || b.game; } catch (e) { return b.game; } }))].map(game => (
                       <button key={game} onClick={() => setAdminBoostingGameFilter(game)} className={`px-3 py-1.5 whitespace-nowrap text-xs font-bold rounded-lg flex-shrink-0 transition-all border snap-start ${adminBoostingGameFilter === game ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>{game === 'Tất cả' ? 'Tất cả Game' : game}</button>
                     ))}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {boostingDb.filter(b => (b.type || 'rank') === adminBoostingCategoryFilter && (adminBoostingGameFilter === 'Tất cả' || b.game === adminBoostingGameFilter)).map(b => (
-                    <div key={b.id} className="bg-[#0B1120] p-4 rounded-xl border border-slate-700 flex flex-col group hover:border-blue-500/50 transition-colors">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded">{b.game}</span>
-                        <span className="text-rose-400 font-black text-lg">{new Intl.NumberFormat('vi-VN').format(b.price)}đ{b.priceUnit && <span className="text-slate-400 font-bold text-xs">/{b.priceUnit}</span>}</span>
+                  {boostingDb.filter(b => { const gn = (() => { try { return JSON.parse(b.game).name || b.game; } catch (e) { return b.game; } })(); return (b.type || 'rank') === adminBoostingCategoryFilter && (adminBoostingGameFilter === 'Tất cả' || gn === adminBoostingGameFilter); }).map(b => {
+                    const adminGN = (() => { try { return JSON.parse(b.game).name || b.game; } catch (e) { return b.game; } })();
+                    return (
+                      <div key={b.id} className="bg-[#0B1120] p-4 rounded-xl border border-slate-700 flex flex-col group hover:border-blue-500/50 transition-colors">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded">{adminGN}</span>
+                            {(() => {
+                              let isFeatured = false;
+                              try { isFeatured = JSON.parse(b.game).isFeatured; } catch (e) { }
+                              return isFeatured && <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">🔥 Nổi Bật</span>;
+                            })()}
+                          </div>
+                          <span className="text-rose-400 font-black text-lg">{new Intl.NumberFormat('vi-VN').format(b.price)}đ{b.priceUnit && <span className="text-slate-400 font-bold text-xs">/{b.priceUnit}</span>}</span>
+                        </div>
+                        <span className="text-white font-bold mb-2 line-clamp-2">{b.title}</span>
+                        <p className="text-xs text-slate-500 mb-4 flex-1 line-clamp-2">{b.desc}</p>
+                        <div className="flex gap-2 border-t border-slate-800 pt-3">
+                          <button onClick={() => {
+                            let gName = b.game || '';
+                            let gAvatar = null;
+                            try { const p = JSON.parse(b.game); gName = p.name || ''; gAvatar = p.avatar || null; } catch (e) { }
+                            setEditingBoosting(b); setAdminBoostingImage(b.image ? b.image.split(',') : []); setAdminBoostType(b.type || 'rank'); setAdminRankOptions(b.rankOptions?.length > 0 ? b.rankOptions.map(o => ({ rank: o.rank || '', price: o.price || '', comboPrice: o.comboPrice || '', inputType: 'diem', maxPoints: o.maxPoints || '', basePoints: o.basePoints || '', tierCount: o.tierCount || 1 })) : [{ rank: '', price: '', comboPrice: '', inputType: 'diem', maxPoints: '', basePoints: '', tierCount: 1 }]); setAdminGame(gName); setAdminGameAvatar(gAvatar); setCrossfireText(b.rankOptions?.map(opt => `${opt.name || opt.rank} | ${opt.points || 0} | ${opt.price || 0}`).join('\n') || ''); setAdminConfigType('points_cumulative'); setIsEventMultiPackage(b.type === 'event' && b.rankOptions?.length > 0); setAdminBoostingPriceUnit(b.priceUnit || ''); setShowBoostingModal(true);
+                          }} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Edit size={14} /> Sửa</button>
+                          <button onClick={() => setConfirmDialog({
+                            title: 'Xoá dịch vụ', message: 'Xoá dịch vụ cày thuê này?', onConfirm: async () => {
+                              await supabase.from('boosting').delete().eq('id', b.id);
+                              setBoostingDb(boostingDb.filter(x => x.id !== b.id));
+                              showToast("Đã xóa dịch vụ vĩnh viễn!");
+                            }
+                          })} className="flex-1 py-1.5 bg-rose-500/10 text-rose-400 rounded hover:bg-rose-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Trash2 size={14} /> Xoá</button>                        </div>
                       </div>
-                      <span className="text-white font-bold mb-2 line-clamp-2">{b.title}</span>
-                      <p className="text-xs text-slate-500 mb-4 flex-1 line-clamp-2">{b.desc}</p>
-                      <div className="flex gap-2 border-t border-slate-800 pt-3">
-                        <button onClick={() => { setEditingBoosting(b); setAdminBoostingImage(b.image || null); setAdminBoostType(b.type || 'rank'); setAdminRankOptions(b.rankOptions?.length > 0 ? b.rankOptions.map(o => ({ rank: o.rank || '', price: o.price || '', comboPrice: o.comboPrice || '', inputType: o.inputType || 'bac', maxPoints: o.maxPoints || '', tierCount: o.tierCount || 1 })) : [{ rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }]); setIsEventMultiPackage(b.type === 'event' && b.rankOptions?.length > 0); setAdminBoostingPriceUnit(b.priceUnit || ''); setShowBoostingModal(true); }} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Edit size={14} /> Sửa</button>
-                        <button onClick={() => setConfirmDialog({
-                          title: 'Xoá dịch vụ', message: 'Xoá dịch vụ cày thuê này?', onConfirm: async () => {
-                            await supabase.from('boosting').delete().eq('id', b.id);
-                            setBoostingDb(boostingDb.filter(x => x.id !== b.id));
-                            showToast("Đã xóa dịch vụ vĩnh viễn!");
-                          }
-                        })} className="flex-1 py-1.5 bg-rose-500/10 text-rose-400 rounded hover:bg-rose-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Trash2 size={14} /> Xoá</button>                        </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -5670,7 +6492,7 @@ const App = () => {
                     setApproveDepositModal(null);
 
                     // Lấy Data sống của khách từ Database trước khi cộng tiền nạp
-                    const { data: userToUpdate } = await supabase.from('users').select('*').eq('id', targetModal.userId).single();
+                    const { data: userToUpdate } = await supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').eq('id', targetModal.userId).single();
                     if (!userToUpdate) {
                       showToast("Lỗi: Không tìm thấy khách hàng!", "error");
                       return;
@@ -5698,6 +6520,20 @@ const App = () => {
 
                     // Cập nhật lại giao diện web
                     setDepositRequests(depositRequests.map(req => req.id === targetModal.id ? { ...req, status: 'Thành công' } : req));
+
+                    // GHI LỊCH SỬ GIAO DỊCH
+                    const newTx = {
+                      id: `TX_WEB_${Date.now()}`,
+                      user: userToUpdate.name || userToUpdate.phone || 'Khách Vô Danh',
+                      action: `Nạp tiền (Duyệt qua Web)`,
+                      amount: -Math.abs(finalAmount),
+                      date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
+                      status: 'Thành công',
+                      type: 'deposit_manual',
+                      accDetails: { balanceAfter: newBalance, fundAfter: userToUpdate.rentFund || 0 }
+                    };
+                    await supabase.from('transactions').insert([newTx]);
+                    setTransactionsDb(prev => [newTx, ...prev]);
 
                     const updatedUsers = usersDb.map(u =>
                       u.id === targetModal.userId ? { ...u, balance: newBalance, spins: newSpins } : u
@@ -5769,7 +6605,7 @@ const App = () => {
                       const currentReq = targetModal.req;
 
                       // 1. Lấy Data sống từ Database để tính toán số dư chính xác
-                      const { data: targetUser } = await supabase.from('users').select('*').eq('id', currentReq.userId).single();
+                      const { data: targetUser } = await supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').eq('id', currentReq.userId).single();
                       if (!targetUser) return showToast("Lỗi: Không tìm thấy data khách hàng để hoàn tiền!", "error");
 
                       const nowTime = Date.now();
@@ -5878,82 +6714,96 @@ const App = () => {
           {/* Modal User Edit */}
           {showUserModal && (
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-              <div className="bg-[#151D2F] border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-bold text-white flex items-center gap-2"><User className="text-blue-500" /> Sửa Thông Tin User</h3>
-                  <button onClick={() => setShowUserModal(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
+              <div className="bg-[#151D2F] border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
+                <div className="flex justify-between items-center mb-6 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2"><User className="text-blue-500" /> Thông tin khách hàng</h3>
+                    {editingUser && (
+                      <button type="button" onClick={() => { setShowUserModal(false); setActiveChatUser(editingUser); setAdminTab('messages'); setTimeout(() => chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }} className="px-2.5 py-1.5 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-lg flex items-center gap-1.5 text-xs font-bold transition-colors shadow-sm border border-emerald-500/30" title="Nhắn tin cho khách này">
+                        <MessageCircle size={14} /> Nhắn tin
+                      </button>
+                    )}
+                  </div>
+                  <button type="button" onClick={() => setShowUserModal(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
                 </div>
-                <form onSubmit={handleSaveUser} className="space-y-4">
-                  <div><label className="text-xs text-slate-400">Tên</label><input name="name" defaultValue={editingUser?.name} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white" required /></div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><label className="text-xs text-slate-400">Số ĐT</label><input name="phone" type="tel" pattern="[0-9]{10,11}" maxLength="11" onInput={enforceNumberInput} defaultValue={editingUser?.phone} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white" title="Nhập 10-11 số" required /></div>
-                    <div><label className="text-xs text-slate-400">Mật khẩu (Đã bảo mật)</label><input type="password" disabled value="********" className="w-full mt-1 p-3 bg-[#0B1120]/50 border border-slate-800 rounded-lg text-slate-500 cursor-not-allowed" title="Chuẩn bảo mật: Admin không thể xem hoặc sửa mật khẩu của khách" /></div>                  </div>
-                  <div><label className="text-xs text-slate-400">Email</label><input name="email" defaultValue={editingUser?.email} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white" required />
-                    {/* --- KHU VỰC HIỂN THỊ CCCD CỦA KHÁCH --- */}
-                    <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700 mt-4">
-                      <label className="block text-sm font-medium text-slate-400 mb-3"><ShieldCheck size={16} className="inline text-emerald-400 mb-1" /> Ảnh CCCD xác minh</label>
+                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 relative">
+                  <form onSubmit={handleSaveUser} className="space-y-4">
+                    <div><label className="text-xs text-slate-400">Tên</label><input name="name" defaultValue={editingUser?.name} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white" required /></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><label className="text-xs text-slate-400">Số ĐT</label><input name="phone" type="tel" pattern="[0-9]{10,11}" maxLength="11" onInput={enforceNumberInput} defaultValue={editingUser?.phone} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white" title="Nhập 10-11 số" required /></div>
+                      <div><label className="text-xs text-slate-400">Mật khẩu (Đã bảo mật)</label><input type="password" disabled value="********" className="w-full mt-1 p-3 bg-[#0B1120]/50 border border-slate-800 rounded-lg text-slate-500 cursor-not-allowed" title="Chuẩn bảo mật: Admin không thể xem hoặc sửa mật khẩu của khách" /></div>                  </div>
+                    <div><label className="text-xs text-slate-400">Email</label><input name="email" defaultValue={editingUser?.email} className="w-full mt-1 p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white" required />
+                      {/* --- KHU VỰC HIỂN THỊ CCCD CỦA KHÁCH --- */}
+                      <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700 mt-4">
+                        <label className="block text-sm font-medium text-slate-400 mb-3"><ShieldCheck size={16} className="inline text-emerald-400 mb-1" /> Ảnh CCCD xác minh</label>
 
-                      {editingUser?.cccd_image ? (
-                        <div className="flex flex-col items-center gap-4">
-                          <button
-                            type="button"
-                            onClick={() => setFullScreenImage(editingUser.cccd_image)}
-                            className="w-full py-3 bg-rose-600/20 text-rose-400 font-bold border border-rose-600/30 rounded hover:bg-rose-600/30 transition-colors flex items-center justify-center gap-2 shadow-inner"
-                          >
-                            <ImageIcon size={18} /> Xem ảnh CCCD gốc
-                          </button>
+                        {editingUser?.is_cccd_verified || editingUser?.cccd_number ? (
+                          <div className="flex flex-col items-center gap-4">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                showToast('Đang tải ảnh từ máy chủ...', 'info');
+                                const { data } = await supabase.from('users').select('cccd_image').eq('id', editingUser.id).single();
+                                if (data?.cccd_image) setFullScreenImage(data.cccd_image);
+                                else showToast('Khách hàng này chưa tải ảnh CCCD!', 'error');
+                              }}
+                              className="w-full py-3 bg-rose-600/20 text-rose-400 font-bold border border-rose-600/30 rounded hover:bg-rose-600/30 transition-colors flex items-center justify-center gap-2 shadow-inner"
+                            >
+                              <ImageIcon size={18} /> Xem ảnh CCCD gốc
+                            </button>
 
-                          {/* Nút tùy chọn để Admin đánh dấu đã duyệt */}
-                          <div className="flex items-center gap-3 mt-1 w-full p-3 bg-slate-900 rounded-lg border border-slate-700 shadow-inner">
-                            <input
-                              type="checkbox"
-                              name="is_cccd_verified"
-                              defaultChecked={editingUser.is_cccd_verified || false}
-                              className="w-5 h-5 rounded cursor-pointer accent-blue-500"
-                            />
-                            <div className="flex flex-col">
-                              <span className="text-sm text-slate-300 font-bold">Đánh dấu đã xác minh CCCD hợp lệ</span>
-                              <span className="text-[10px] text-slate-500">Khách sẽ không phải up ảnh ở các lần thuê sau.</span>
+                            {/* Nút tùy chọn để Admin đánh dấu đã duyệt */}
+                            <div className="flex items-center gap-3 mt-1 w-full p-3 bg-slate-900 rounded-lg border border-slate-700 shadow-inner">
+                              <input
+                                type="checkbox"
+                                name="is_cccd_verified"
+                                defaultChecked={editingUser.is_cccd_verified || false}
+                                className="w-5 h-5 rounded cursor-pointer accent-blue-500"
+                              />
+                              <div className="flex flex-col">
+                                <span className="text-sm text-slate-300 font-bold">Đánh dấu đã xác minh CCCD hợp lệ</span>
+                                <span className="text-[10px] text-slate-500">Khách sẽ không phải up ảnh ở các lần thuê sau.</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-6 border-2 border-dashed border-slate-700 bg-slate-900 rounded-lg">
-                          <p className="text-sm text-slate-500 italic">Người dùng này chưa cập nhật CCCD.</p>
-                        </div>
-                      )}
-                    </div></div>
-                  <div className="grid grid-cols-4 gap-2 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
-                    <div>
-                      <label className="text-[10px] text-emerald-400 font-bold block mb-1">Số Dư (VNĐ)</label>
-                      <input name="balance" type="number" defaultValue={editingUser?.balance} className="w-full p-2 bg-[#0B1120] border border-slate-600 rounded text-emerald-400 font-bold outline-none" required />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-rose-400 font-bold block mb-1">Lượt quay</label>
-                      <input name="spins" type="number" defaultValue={editingUser?.spins || 0} className="w-full p-2 bg-[#0B1120] border border-slate-600 rounded text-rose-400 font-bold outline-none" required />
-                    </div>
-                    {/* BẮT ĐẦU ĐOẠN CODE THÊM MỚI */}
-                    <div>
-                      <label className="text-[10px] text-yellow-400 font-bold block mb-1">Quỹ Thuê</label>
-                      <input name="rentFund" type="number" defaultValue={editingUser?.rentFund || 0} className="w-full p-2 bg-[#0B1120] border border-slate-600 rounded text-yellow-400 font-bold outline-none" required />
-                    </div>
-                    {/* KẾT THÚC ĐOẠN CODE THÊM MỚI */}
-                    <div>
-                      <label className="text-[10px] text-blue-400 font-bold block mb-1">Quyền</label>
-                      <select name="role" defaultValue={editingUser?.role} className="w-full p-2 bg-[#0B1120] border border-slate-600 rounded text-blue-400 font-bold outline-none">
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </div>
-                    {/* TÍCH CHỌN KHÁCH QUEN NẰM Ở ĐÂY */}
-                    <div className="col-span-4 mt-1 border-t border-slate-700 pt-2">
-                      <label className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg cursor-pointer hover:bg-emerald-500/20 transition-colors shadow-inner">
-                        <input type="checkbox" name="is_trusted" defaultChecked={editingUser?.is_trusted} className="w-5 h-5 accent-emerald-500 cursor-pointer" />
-                        <span className="text-sm font-bold text-emerald-400">Đánh dấu là Khách Quen (Miễn nạp cọc & CCCD)</span>
-                      </label>
-                    </div>
-                  </div>                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl mt-4">Lưu Thay Đổi</button>
-                </form>
+                        ) : (
+                          <div className="text-center py-6 border-2 border-dashed border-slate-700 bg-slate-900 rounded-lg">
+                            <p className="text-sm text-slate-500 italic">Người dùng này chưa cập nhật CCCD.</p>
+                          </div>
+                        )}
+                      </div></div>
+                    <div className="grid grid-cols-4 gap-2 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                      <div>
+                        <label className="text-[10px] text-emerald-400 font-bold block mb-1">Số Dư (VNĐ)</label>
+                        <input name="balance" type="number" defaultValue={editingUser?.balance} className="w-full p-2 bg-[#0B1120] border border-slate-600 rounded text-emerald-400 font-bold outline-none" required />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-rose-400 font-bold block mb-1">Lượt quay</label>
+                        <input name="spins" type="number" defaultValue={editingUser?.spins || 0} className="w-full p-2 bg-[#0B1120] border border-slate-600 rounded text-rose-400 font-bold outline-none" required />
+                      </div>
+                      {/* BẮT ĐẦU ĐOẠN CODE THÊM MỚI */}
+                      <div>
+                        <label className="text-[10px] text-yellow-400 font-bold block mb-1">Quỹ Thuê</label>
+                        <input name="rentFund" type="number" defaultValue={editingUser?.rentFund || 0} className="w-full p-2 bg-[#0B1120] border border-slate-600 rounded text-yellow-400 font-bold outline-none" required />
+                      </div>
+                      {/* KẾT THÚC ĐOẠN CODE THÊM MỚI */}
+                      <div>
+                        <label className="text-[10px] text-blue-400 font-bold block mb-1">Quyền</label>
+                        <select name="role" defaultValue={editingUser?.role} className="w-full p-2 bg-[#0B1120] border border-slate-600 rounded text-blue-400 font-bold outline-none">
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </div>
+                      {/* TÍCH CHỌN KHÁCH QUEN NẰM Ở ĐÂY */}
+                      <div className="col-span-4 mt-1 border-t border-slate-700 pt-2">
+                        <label className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg cursor-pointer hover:bg-emerald-500/20 transition-colors shadow-inner">
+                          <input type="checkbox" name="is_trusted" defaultChecked={editingUser?.is_trusted} className="w-5 h-5 accent-emerald-500 cursor-pointer" />
+                          <span className="text-sm font-bold text-emerald-400">Đánh dấu là Khách Quen (Miễn nạp cọc & CCCD)</span>
+                        </label>
+                      </div>
+                    </div>                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl mt-4 sticky bottom-0 z-10 shadow-[0_-10px_20px_rgba(15,23,42,0.8)]">Lưu Thay Đổi</button>
+                  </form>
+                </div>
               </div>
             </div>
           )}
@@ -5968,8 +6818,16 @@ const App = () => {
                 </div>
                 <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
                   <form onSubmit={handleSaveAccount} className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div><label className="text-xs text-slate-400 font-bold">Tên Game</label><input name="game" defaultValue={editingAccount?.game} placeholder="VD: Liên Quân, Valorant..." className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white" required /></div>
+                    <div><label className="text-xs text-slate-400 font-bold">Tên Game</label><input name="game" defaultValue={getGameInfo(editingAccount?.game).name} placeholder="VD: Liên Quân, Valorant..." className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white" required /></div>
+                    <div>
+                      <label className="text-xs text-slate-400 font-bold">Avatar Game (Không bắt buộc)</label>
+                      <div className="flex gap-2 items-center mt-1.5">
+                        {adminAccGameAvatar && <img src={adminAccGameAvatar} className="w-10 h-10 rounded shadow-md object-cover border border-slate-600 shrink-0" />}
+                        <input type="file" accept="image/*" onChange={handleAccGameAvatarUpload} className="w-full p-2 bg-[#0B1120] border border-slate-700 rounded-lg text-white text-xs outline-none focus:border-blue-500" />
+                      </div>
+                    </div>
                     <div><label className="text-xs text-slate-400 font-bold">Mã Nick</label><input name="code" defaultValue={editingAccount?.code} placeholder="VD: 12345" className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white" required /></div>
+                    <div><label className="text-xs text-slate-400 font-bold">Số lượng tồn kho</label><input name="stock" type="number" min="0" defaultValue={editingAccount?.stock !== undefined ? editingAccount.stock : 1} placeholder="VD: 1" className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-emerald-500 outline-none rounded-lg text-emerald-400 font-bold" required /></div>
 
                     {/* CHÈN THÊM Ô PHÂN LOẠI ACC (TIER) Ở ĐÂY */}
                     <div className="md:col-span-2">
@@ -5980,7 +6838,26 @@ const App = () => {
                         <option value="ULVIP">Tài khoản ULTRA VIP (Đỉnh cao)</option>
                       </select>
                     </div>
-                    <div className="md:col-span-2"><label className="text-xs text-slate-400 font-bold">Tiêu đề (Giật tít)</label><input name="title" defaultValue={editingAccount?.title} placeholder="Acc vip full tướng, trắng thông tin..." className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white" required /></div>
+                    <div className="md:col-span-2"><label className="text-xs text-slate-400 font-bold">Tiêu đề (Giật tít)</label><textarea name="title" defaultValue={editingAccount?.title} placeholder="Đột Kích Mã 02&#10;(Chuyên Zombie & C4)" rows="2" className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white resize-none" required></textarea></div>
+                    <div className="md:col-span-2 flex flex-col sm:flex-row gap-4">
+                      <label className="flex-1 flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg cursor-pointer transition-colors hover:bg-amber-500/20 shadow-inner">
+                        <input type="checkbox" name="isFeatured" defaultChecked={getGameInfo(editingAccount?.game).isFeatured || false} className="w-5 h-5 accent-amber-500 cursor-pointer" />
+                        <span className="text-sm font-bold text-amber-500">🔥 Dịch vụ Nổi Bật</span>
+                      </label>
+                      <div className="flex-1 flex flex-col gap-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg shadow-inner">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input type="checkbox" name="allowQuantity" defaultChecked={getGameInfo(editingAccount?.game).allowQuantity || false} className="w-5 h-5 accent-blue-500 cursor-pointer" />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold text-blue-400">Cho phép mua nhiều</span>
+                            <span className="text-[10px] text-slate-400">Khách tự điền số lượng mua</span>
+                          </div>
+                        </label>
+                        <div className="flex items-center justify-between gap-2 border-t border-blue-500/20 pt-2">
+                          <span className="text-[11px] font-bold text-slate-300">Giới hạn 1 lần mua:</span>
+                          <input type="number" name="maxQuantityPerOrder" min="0" defaultValue={getGameInfo(editingAccount?.game).maxQuantityPerOrder || 0} placeholder="0 = Tối đa Tồn Kho" className="w-24 p-1.5 bg-[#0B1120] border border-blue-500/50 rounded text-xs text-white font-bold outline-none focus:border-blue-400 text-center" />
+                        </div>
+                      </div>
+                    </div>
                     <div className="md:col-span-2"><label className="text-xs text-slate-400 font-bold">Tags nổi bật (Cách bằng dấu phẩy)</label><input name="tags" defaultValue={Array.isArray(editingAccount?.tags) ? editingAccount.tags.join(', ') : (editingAccount?.tags || '')} placeholder="VD: Rank Cao Thủ, Trắng TT, 120 Skin" className="w-full mt-1.5 p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-lg text-white" required /></div>
 
                     {/* UPLOAD ẢNH */}
@@ -6103,8 +6980,11 @@ const App = () => {
                     <div className="md:col-span-2"><label className="text-xs text-slate-400 font-bold block mb-1">Mô tả chi tiết</label><textarea name="desc" defaultValue={editingAccount?.description} placeholder="Viết vài dòng mô tả chi tiết về nick này để khách dễ chọn..." rows="4" className="w-full p-3 bg-[#0B1120] border border-slate-700 focus:border-blue-500 outline-none rounded-xl text-white resize-none" required></textarea></div>
 
                     <div className="md:col-span-2 flex gap-4 mt-6">
-                      <button type="button" onClick={() => setShowAccModal(false)} className="w-1/3 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl transition-colors">Hủy Bỏ</button>
-                      <button type="submit" className="w-2/3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-600/20 transition-colors flex items-center justify-center gap-2"><Save size={20} /> Hoàn Tất Lưu</button>
+                      <button type="button" onClick={() => setShowAccModal(false)} disabled={isGlobalProcessing} className={`w-1/3 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl transition-colors ${isGlobalProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}>Hủy Bỏ</button>
+                      <button type="submit" disabled={isGlobalProcessing} className={`w-2/3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-600/20 transition-colors flex items-center justify-center gap-2 ${isGlobalProcessing ? 'opacity-70 cursor-not-allowed' : ''}`}>
+                        {isGlobalProcessing ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                        {isGlobalProcessing ? 'Đang lưu dữ liệu...' : 'Hoàn Tất Lưu'}
+                      </button>
                     </div>
                   </form>
                 </div>
@@ -6256,20 +7136,24 @@ const App = () => {
                       <div>
                         <label className="text-xs text-slate-400 font-bold">Ảnh mô tả dịch vụ (Tùy chọn)</label>
                         <div className="mt-1 border border-dashed border-slate-600 rounded-xl p-4 text-center hover:bg-slate-800/50 transition-colors relative group bg-[#0B1120]">
-                          <input type="file" accept="image/*" onChange={handleBoostingImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                          {adminBoostingImage ? (
-                            <div className="relative z-20">
-                              <img src={adminBoostingImage} className="mx-auto h-24 object-cover rounded-lg shadow-md w-full" alt="Preview" />
-                              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAdminBoostingImage(null); }} className="absolute top-2 right-2 bg-rose-500 hover:bg-rose-600 text-white p-1.5 rounded-full shadow-lg transition-colors z-30" title="Xóa ảnh này"><X size={14} /></button>
+                          <input type="file" accept="image/*" multiple onChange={handleBoostingImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                          {adminBoostingImage && adminBoostingImage.length > 0 ? (
+                            <div className="relative z-20 grid grid-cols-2 md:grid-cols-3 gap-2">
+                              {adminBoostingImage.map((img, idx) => (
+                                <div key={idx} className="relative">
+                                  <img src={img} className="mx-auto h-24 object-cover rounded-lg shadow-md w-full" alt="Preview" />
+                                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAdminBoostingImage(prev => prev.filter((_, i) => i !== idx)); }} className="absolute top-1 right-1 bg-rose-500 hover:bg-rose-600 text-white p-1 rounded-full shadow-lg transition-colors z-30" title="Xóa ảnh này"><X size={12} /></button>
+                                </div>
+                              ))}
                             </div>
                           ) : (
-                            <div className="text-slate-500 flex flex-col items-center"><ImageIcon size={28} className="mb-2" /><span className="text-[10px] font-bold">Bấm để tải Ảnh lên</span></div>
+                            <div className="text-slate-500 flex flex-col items-center"><ImageIcon size={28} className="mb-2" /><span className="text-[10px] font-bold">Bấm hoặc Kéo thả nhiều ảnh</span></div>
                           )}
                         </div>
                       </div>
 
                       {/* CHỌN LOẠI CÀY VÀ TÊN GAME */}
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <label className="text-xs text-slate-400 block mb-1">Cày gì?</label>
                           <select name="boostType" value={adminBoostType} onChange={(e) => setAdminBoostType(e.target.value)} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
@@ -6280,9 +7164,22 @@ const App = () => {
                         {/* LUÔN HIỆN Ô TÊN GAME CHO CẢ 2 LOẠI */}
                         <div>
                           <label className="text-xs text-slate-400 block mb-1">Tên Game</label>
-                          <input name="game" defaultValue={editingBoosting?.game && editingBoosting.game !== 'Cày Sự Kiện' ? editingBoosting.game : ''} placeholder="VD: Liên Quân, Tốc Chiến..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required />
+                          <input name="game" value={adminGame} onChange={(e) => setAdminGame(e.target.value)} placeholder="VD: Liên Quân, Tốc Chiến..." className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500" required />
+                        </div>
+                        {/* ẢNH AVATAR GAME */}
+                        <div>
+                          <label className="text-xs text-slate-400 block mb-1">Avatar Game (Icon)</label>
+                          <div className="flex gap-2 items-center">
+                            {adminGameAvatar && <img src={adminGameAvatar} className="w-10 h-10 rounded shadow-md object-cover border border-slate-600 shrink-0" />}
+                            <input type="file" accept="image/*" onChange={handleGameAvatarUpload} className="w-full p-2 bg-[#0B1120] border border-slate-700 rounded-lg text-white text-xs outline-none focus:border-blue-500" />
+                          </div>
                         </div>
                       </div>
+
+                      <label className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg cursor-pointer transition-colors hover:bg-amber-500/20 mt-4 mb-2 shadow-inner">
+                        <input type="checkbox" name="isFeatured" defaultChecked={getGameInfo(editingBoosting?.game).isFeatured || false} className="w-5 h-5 accent-amber-500 cursor-pointer" />
+                        <span className="text-sm font-bold text-amber-500">🔥 Dịch vụ Nổi Bật (Ưu tiên hiển thị sảnh trang chủ)</span>
+                      </label>
 
                       {/* Nếu chọn Cày Sự Kiện thì hiện thêm ô Tên Sự Kiện */}
                       {adminBoostType === 'event' && (
@@ -6307,18 +7204,24 @@ const App = () => {
                             </div>
                           </label>
                           {!isEventMultiPackage && (
-                            <label className="flex items-center gap-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg cursor-pointer mb-4 transition-colors hover:bg-emerald-500/20 shadow-inner">
-                              <input
-                                type="checkbox"
-                                name="allowQuantity"
-                                defaultChecked={editingBoosting?.allow_quantity || false}
-                                className="w-5 h-5 accent-emerald-500 cursor-pointer"
-                              />
-                              <div className="flex flex-col">
-                                <span className="text-sm font-bold text-emerald-400">Cho phép khách điền số lượng</span>
-                                <span className="text-[10px] text-slate-500">Tự động nhân giá với số lượng khách điền</span>
+                            <div className="flex flex-col gap-2 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg mb-4 shadow-inner">
+                              <label className="flex items-center gap-3 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  name="allowQuantity"
+                                  defaultChecked={editingBoosting?.allow_quantity || false}
+                                  className="w-5 h-5 accent-emerald-500 cursor-pointer"
+                                />
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-bold text-emerald-400">Cho phép khách điền số lượng</span>
+                                  <span className="text-[10px] text-slate-500">Tự động nhân giá với số lượng khách điền</span>
+                                </div>
+                              </label>
+                              <div className="flex items-center justify-between gap-2 border-t border-emerald-500/20 pt-2">
+                                <span className="text-[11px] font-bold text-slate-300">Giới hạn 1 lần mua:</span>
+                                <input type="number" name="maxQuantityPerOrder" min="0" defaultValue={getGameInfo(editingBoosting?.game).maxQuantityPerOrder || 0} placeholder="0 = Không giới hạn" className="w-24 p-1.5 bg-[#0B1120] border border-emerald-500/50 rounded text-xs text-white font-bold outline-none focus:border-emerald-400 text-center" />
                               </div>
-                            </label>
+                            </div>
                           )}
                         </>
                       )}
@@ -6349,51 +7252,21 @@ const App = () => {
                             <input name="discountPercent" type="number" min="0" max="100" defaultValue={editingBoosting?.discountPercent || ''} placeholder="VD: 10 (Sẽ trừ thẳng 10% khi khách thanh toán)" className="w-full p-3 bg-[#0B1120] border border-rose-500/50 rounded-lg text-rose-400 font-bold outline-none focus:border-rose-400" />
                           </div>
                           <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/30">
-                            <div className="flex justify-between items-center mb-3 border-b border-blue-500/20 pb-2">
+                            <div className="flex justify-between items-center mb-3">
                               <label className="text-sm text-blue-400 font-bold flex items-center gap-2">
-                                <Target size={16} /> {adminBoostType === 'rank' ? 'CÁC MỐC RANK & GIÁ' : 'DANH SÁCH GÓI & GIÁ'}
+                                <Target size={16} /> CẤU HÌNH MỐC ĐIỂM (Cộng dồn)
                               </label>
-                              <button type="button" onClick={() => setAdminRankOptions([...adminRankOptions, { rank: '', price: '', comboPrice: '', inputType: 'bac', maxPoints: '', tierCount: 1 }])} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"><Plus size={14} /> Thêm mốc</button>
                             </div>
-                            <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
-                              {adminRankOptions.map((opt, index) => (
-                                <div key={index} className="bg-[#0B1120] p-3 rounded-lg border border-slate-700 space-y-2">
-                                  <div className="flex gap-2 items-center">
-                                    <input type="text" placeholder="Tên mốc (VD: Sao Băng V → Ngôi Sao V)" value={opt.rank} onChange={e => { const n = [...adminRankOptions]; n[index].rank = e.target.value; setAdminRankOptions(n) }} className="flex-1 p-2 bg-transparent outline-none text-sm text-white border-b border-slate-700 focus:border-blue-500" required />
-                                    <button type="button" onClick={() => setAdminRankOptions(adminRankOptions.filter((_, i) => i !== index))} className="w-8 text-slate-500 hover:text-rose-500 flex justify-center transition-colors"><X size={18} /></button>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[10px] text-slate-500 font-bold shrink-0">LOẠI:</span>
-                                    <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'bac'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'bac' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Bậc</button>
-                                    <button type="button" onClick={() => { const n = [...adminRankOptions]; n[index].inputType = 'diem'; setAdminRankOptions(n); }} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${opt.inputType === 'diem' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Điểm</button>
-                                    {opt.inputType === 'bac' && (
-                                      <>
-                                        <div className="w-[1px] h-5 bg-slate-700"></div>
-                                        <span className="text-[10px] text-slate-500 font-bold shrink-0">SỐ BẬC:</span>
-                                        <input type="number" min="1" max="10" value={opt.tierCount || 1} onChange={e => { const n = [...adminRankOptions]; n[index].tierCount = Math.max(1, Math.min(10, parseInt(e.target.value) || 1)); setAdminRankOptions(n); }} className="w-14 p-1 bg-slate-900 rounded text-center text-xs text-blue-400 font-bold border border-blue-500/30 outline-none focus:border-blue-500" />
-                                      </>
-                                    )}
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <div className={opt.inputType === 'bac' && (opt.tierCount || 1) <= 1 ? "col-span-2" : ""}>
-                                      <label className="text-[10px] text-slate-500 block">Giá bậc lẻ {opt.inputType === 'diem' ? '(đ/điểm)' : '(đ/bậc)'}</label>
-                                      <input type="number" placeholder="VD: 15000" value={opt.price} onChange={e => { const n = [...adminRankOptions]; n[index].price = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-white font-bold border border-slate-700 focus:border-blue-500" required />
-                                    </div>
-                                    {!(opt.inputType === 'bac' && (opt.tierCount || 1) <= 1) && (
-                                      <div>
-                                        <label className="text-[10px] text-slate-500 block">Giá combo (trọn gói)</label>
-                                        <input type="number" placeholder="VD: 70000" value={opt.comboPrice} onChange={e => { const n = [...adminRankOptions]; n[index].comboPrice = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-emerald-400 font-bold border border-slate-700 focus:border-emerald-500" required />
-                                      </div>
-                                    )}
-                                  </div>
-                                  {opt.inputType === 'diem' && (
-                                    <div>
-                                      <label className="text-[10px] text-yellow-400 block">Giới hạn điểm tối đa</label>
-                                      <input type="number" placeholder="VD: 300" value={opt.maxPoints} onChange={e => { const n = [...adminRankOptions]; n[index].maxPoints = e.target.value; setAdminRankOptions(n) }} className="w-full p-2 bg-slate-900 rounded outline-none text-sm text-yellow-400 font-bold border border-yellow-500/30 focus:border-yellow-500" required />
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
+                            <div className="space-y-2">
+                              <p className="text-xs text-emerald-400 mb-2">Nhập danh sách theo định dạng: <span className="font-bold text-white">Tên Rank | Điểm mốc | Giá</span> (Mỗi rank 1 dòng)</p>
+                              <p className="text-[10px] text-slate-500 mb-2">Cột giá hỗ trợ: <span className="text-cyan-400">300k/200 điểm</span> (tự tính 1500đ/điểm), <span className="text-cyan-400">25k/100</span> (tự tính 250đ/điểm), hoặc số thuần <span className="text-cyan-400">1500</span></p>
+                              <textarea
+                                value={crossfireText}
+                                onChange={(e) => setCrossfireText(e.target.value)}
+                                placeholder={`Ví dụ:\nVàng | 1800 | 25k/100 điểm\nBạch Kim | 2100 | 30k/100 điểm\nHuyền Thoại | 3300 | 300k/200 điểm\nThần Thoại | 3500 | 450k/200 điểm\nTruyền Kỳ | 3700 | 0`}
+                                className="w-full h-[250px] p-3 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-mono text-sm outline-none focus:border-emerald-400"
+                                required
+                              ></textarea>
                             </div>
                           </div>
                         </div>
@@ -6542,10 +7415,12 @@ const App = () => {
 
         {/* Global Toast Notification */}
         {toast && (
-          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] animate-fade-in-down">
-            <div className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md ${toast.type === 'error' ? 'bg-red-900/90 border-red-500/50 text-white' : 'bg-emerald-900/90 border-emerald-500/50 text-white'}`}>
-              {toast.type === 'error' ? <AlertCircle size={20} className="text-red-400" /> : <CheckCircle2 size={20} className="text-emerald-400" />}
-              <p className="font-bold text-sm whitespace-nowrap">{toast.message}</p>
+          <div onClick={() => setToast(null)} className="fixed inset-0 z-[110] flex items-center justify-center pointer-events-auto cursor-pointer p-4 transition-all duration-300">
+            <div className={`flex flex-col items-center justify-center gap-4 px-8 py-8 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] border backdrop-blur-xl max-w-sm w-full text-center transform scale-100 transition-transform active:scale-95 ${toast.type === 'error' ? 'bg-[#1a0f14]/95 border-red-500/40 text-white shadow-red-500/20' : 'bg-[#0f1a14]/95 border-emerald-500/40 text-white shadow-emerald-500/20'}`}>
+              <div className={`shrink-0 p-4 rounded-full ${toast.type === 'error' ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                {toast.type === 'error' ? <AlertCircle size={48} /> : <CheckCircle2 size={48} />}
+              </div>
+              <p className="font-bold text-lg leading-relaxed">{toast.message}</p>
             </div>
           </div>
         )}
@@ -6803,6 +7678,69 @@ const App = () => {
             </div>
           </div>
         )}
+
+        {/* Modal Mua Tài Khoản */}
+        {buyModalData && (
+          <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="bg-[#151D2F] border border-slate-700 w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl">
+              <div className="p-6 text-center">
+                <div className="w-16 h-16 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/30">
+                  <Gamepad2 size={30} className="text-blue-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Xác nhận Mua Đứt</h3>
+                <p className="text-sm text-slate-400 mb-4">Bạn đang mua nick <strong className="text-white">#{buyModalData.code}</strong></p>
+
+                <div className="bg-[#0B1120] p-4 rounded-xl border border-slate-800 mb-4 text-left">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-slate-400">Đơn giá:</span>
+                    <span className="text-sm font-bold text-emerald-400">{new Intl.NumberFormat('vi-VN').format(buyModalData.price)}đ</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-slate-400">Tồn kho hiện tại:</span>
+                    <span className="text-sm font-bold text-white">{buyModalData.stock !== undefined ? buyModalData.stock : 1}</span>
+                  </div>
+                  {getGameInfo(buyModalData.game).allowQuantity && (() => {
+                    const actualStock = buyModalData.stock !== undefined ? buyModalData.stock : 1;
+                    const gameInfo = getGameInfo(buyModalData.game);
+                    const maxLimit = (gameInfo.maxQuantityPerOrder > 0) ? Math.min(actualStock, gameInfo.maxQuantityPerOrder) : actualStock;
+                    return (
+                      <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between gap-3">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-white">Số lượng mua:</span>
+                          {gameInfo.maxQuantityPerOrder > 0 && <span className="text-[10px] text-slate-400">Tối đa {maxLimit} / lần</span>}
+                        </div>
+                        <input
+                          type="number"
+                          min="1"
+                          max={maxLimit}
+                          value={buyQuantity}
+                          onChange={(e) => {
+                            let val = parseInt(e.target.value) || 1;
+                            if (val > maxLimit) val = maxLimit;
+                            if (val < 1) val = 1;
+                            setBuyQuantity(val);
+                          }}
+                          className="w-20 p-2 bg-[#151D2F] border border-slate-700 rounded-lg text-white font-bold text-center outline-none focus:border-blue-500"
+                        />
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className="flex justify-between items-center bg-emerald-500/10 p-3 rounded-lg border border-emerald-500/20">
+                  <span className="text-sm font-bold text-emerald-400">Tổng thanh toán:</span>
+                  <span className="text-lg font-black text-emerald-400">{new Intl.NumberFormat('vi-VN').format(buyModalData.price * buyQuantity)}đ</span>
+                </div>
+              </div>
+              <div className="flex border-t border-slate-800 bg-[#0B1120]">
+                <button onClick={() => setBuyModalData(null)} disabled={isGlobalProcessing} className="flex-1 p-4 font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">Hủy</button>
+                <div className="w-[1px] bg-slate-800"></div>
+                <button disabled={isGlobalProcessing} onClick={() => executeBuyAccount(buyModalData, buyQuantity)} className="flex-1 p-4 font-bold text-blue-500 hover:bg-blue-600 hover:text-white transition-colors">{isGlobalProcessing ? 'Đang xử lý...' : 'Thanh Toán'}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Global Confirm Dialog */}
         {confirmDialog && (
           <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
@@ -6861,177 +7799,252 @@ const App = () => {
           const isCurrentlyRented = viewingAcc.rentedUntil && viewingAcc.rentedUntil > Date.now();
 
           return (
-            <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
-              <div className="bg-[#151D2F] border border-slate-700 w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row my-auto max-h-[90vh]">
+            <>
+              {/* Nút quay lại lơ lửng trên di động theo sát việc cuộn - Nằm ngoài lớp backdrop-filter để không bị ảnh hưởng bởi cuộn */}
+              <button
+                onClick={() => setViewingAcc(null)}
+                className="fixed top-4 left-4 z-[90] md:hidden bg-slate-900/95 hover:bg-slate-800 text-white font-bold px-4 py-2.5 rounded-full border border-slate-700 shadow-[0_0_20px_rgba(0,0,0,0.8)] flex items-center gap-1.5 transition-all"
+              >
+                <ArrowLeft size={16} /> Quay lại
+              </button>
 
-                <div className="w-full md:w-1/2 bg-[#0B1120] p-4 flex flex-col gap-2 overflow-y-auto custom-scrollbar">
-                  <div
-                    className="relative w-full shrink-0 rounded-xl overflow-hidden border border-slate-800 bg-black cursor-zoom-in group"
-                    onClick={() => setFullScreenImage(viewingAllImages[selectedImageIndex])}
-                  >
-                    <img src={viewingAllImages[selectedImageIndex]} className="w-full h-auto block" alt="Main View" />
-                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                      <div className="bg-black/60 p-3 rounded-full text-white flex items-center gap-2"><ZoomIn size={24} /></div>
+              <div className="fixed inset-0 z-40 flex items-start md:items-center justify-center p-2 md:p-4 bg-black/95 backdrop-blur-md overflow-y-auto">
+                <div className="bg-[#151D2F] border border-slate-700 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col md:flex-row mt-2 mb-28 md:my-auto md:max-h-[90vh] overflow-visible md:overflow-hidden">
+
+                  <div className="w-full md:w-1/2 bg-[#0B1120] p-3 md:p-4 flex flex-col gap-2 md:overflow-y-auto md:custom-scrollbar">
+                    <div
+                      className="relative w-full shrink-0 rounded-xl overflow-hidden border border-slate-800 bg-black cursor-zoom-in group"
+                      onClick={() => setFullScreenImage(viewingAllImages[selectedImageIndex])}
+                    >
+                      <img src={viewingAllImages[selectedImageIndex]} className="w-full h-auto block" alt="Main View" />
+                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <div className="bg-black/60 p-3 rounded-full text-white flex items-center gap-2"><ZoomIn size={24} /></div>
+                      </div>
                     </div>
+                    {viewingAllImages.length > 1 && (
+                      <div className="flex gap-2 overflow-x-auto custom-scrollbar py-2 shrink-0">
+                        {viewingAllImages.map((img, idx) => (
+                          <button key={idx} onClick={() => setSelectedImageIndex(idx)} className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-all ${selectedImageIndex === idx ? 'border-blue-500' : 'border-transparent opacity-50 hover:opacity-100'}`}>
+                            <img src={img} className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {/* === GÓI THUÊ TRẢI NGHIỆM CHUYỂN SANG CỘT TRÁI === */}
+                    {viewingAcc.rentOptions && viewingAcc.rentOptions.length > 0 && (
+                      <div className="pt-3 mt-1 border-t border-slate-800">
+                        <div className="relative overflow-hidden bg-gradient-to-r from-emerald-600/20 via-teal-500/25 to-emerald-600/20 border border-emerald-500/40 rounded-xl p-5 mb-4 shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-fade-in text-center">
+                          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgxNiwxODUsMTI5LDAuMSkiLz48L3N2Zz4=')] opacity-50"></div>
+                          <p className="relative text-emerald-400 font-black text-base md:text-lg leading-relaxed uppercase tracking-wider">🎁 Tất cả gói thuê mua từ 2H đều được bảo lưu giờ dư khi chơi không hết</p>
+                          <p className="relative text-emerald-300/60 text-xs mt-2 font-medium tracking-wide">Ngừng thuê bất cứ lúc nào — Giờ dư sẽ được lưu lại cho lần sau!</p>
+                        </div>
+                        {currentUser && (currentUser.rentFund || 0) > 0 && (
+                          <div className="bg-gradient-to-r from-yellow-500/10 to-amber-600/10 border border-yellow-500/30 p-4 rounded-xl mb-4 shadow-inner">
+                            <div className="flex justify-between items-center mb-1">
+                              <p className="text-xs text-yellow-500 font-bold flex items-center gap-1.5"><Clock size={16} /> QUỸ THUÊ BẢO LƯU</p>
+                              <p className="text-xl font-black text-yellow-400">{new Intl.NumberFormat('vi-VN').format(currentUser.rentFund || 0)}đ</p>
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-1">Khi thuê nick, hệ thống sẽ ưu tiên dùng tiền từ Quỹ này để thanh toán trước.</p>
+                          </div>
+                        )}
+                        <p className="text-xs text-slate-500 font-bold mb-2 uppercase flex items-center gap-1"><Clock size={12} /> Các gói thuê trải nghiệm</p>
+                        {isCurrentlyRented && <div className="text-xs text-yellow-500 mb-3 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">Nick đang được thuê bởi khách khác, tạm thời không thể thuê. Bạn vẫn có thể mua đứt ngay lập tức.</div>}
+                        {isCurrentlyRented && currentUser?.id === viewingAcc.currentRenterId && (
+                          <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-xl mb-3 shadow-[0_0_15px_rgba(225,29,72,0.1)]">
+                            <div className="flex items-center gap-2 text-rose-500 mb-2">
+                              <Clock size={16} className="animate-pulse" />
+                              <span className="font-bold text-xs uppercase">Bạn đang trong phiên thuê</span>
+                            </div>
+
+                            {(() => {
+                              const activeReqLeft = rentRequests.find(r => r.accCode === viewingAcc.code && r.status === 'Đã giao acc');
+                              const isComboLeft = activeReqLeft && (activeReqLeft.time.toLowerCase().includes('combo đêm') || activeReqLeft.time.toLowerCase().includes('combo ngày'));
+
+                              return isComboLeft ? (
+                                <p className="text-[10px] text-slate-400 italic">Gói Combo không hỗ trợ ngừng thuê. Acc sẽ hết hạn tự động.</p>
+                              ) : (
+                                <button onClick={async () => {
+                                  const activeReq = rentRequests.find(r => r.accCode === viewingAcc.code && r.status === 'Đã giao acc');
+                                  if (!activeReq) return showToast('Không tìm thấy phiên thuê đang hoạt động!', 'error');
+                                  setConfirmDialog({
+                                    title: 'Ngừng thuê nick', message: `Bạn muốn ngừng thuê nick ${viewingAcc.code}? Thời gian thuê dư sẽ được quy đổi thành tiền vào Quỹ thuê.`, onConfirm: async () => {
+                                      setIsGlobalProcessing(true);
+                                      try {
+                                        const { data: currentReq } = await supabase.from('rent_requests').select('*').eq('id', activeReq.id).single();
+                                        const { data: acc } = await supabase.from('accounts').select('*').eq('id', viewingAcc.id).single();
+                                        if (!currentReq || currentReq.status !== 'Đã giao acc' || !acc || acc.currentRenterId !== currentUser.id) {
+                                          return showToast('Phiên thuê không hợp lệ hoặc đã kết thúc!', 'error');
+                                        }
+
+                                        const timeStr = currentReq.time.toLowerCase();
+                                        const match = timeStr.match(/(\d+)\s*giờ/);
+                                        const totalHours = match ? parseInt(match[1]) : 0;
+
+                                        const rentStartTime = new Date(currentReq.created_at).getTime();
+                                        const diffHours = (Date.now() - rentStartTime) / (1000 * 60 * 60);
+                                        const usedHours = Math.ceil(diffHours);
+
+                                        const deducted = Math.max(2, usedHours); // Khấu trừ tối thiểu 2h
+                                        let savedHours = totalHours - deducted;
+                                        if (savedHours < 0) savedHours = 0;
+
+                                        const refundAmount = currentReq.info?.depositAmount || 0;
+                                        const selectedOption = acc.rentOptions?.find(opt => opt.time === currentReq.time);
+                                        const paidPrice = selectedOption ? selectedOption.price : (acc.rentPricePerHour * totalHours);
+                                        const effectiveHourlyRate = totalHours > 0 ? (paidPrice / totalHours) : 0;
+                                        const savedMoney = Math.floor(savedHours * effectiveHourlyRate);
+
+                                        await supabase.from('accounts').update({ rentedUntil: null, rentStartedAt: null, currentRenterId: null }).eq('id', acc.id);
+                                        await supabase.from('rent_requests').update({ status: 'Đã trả acc' }).eq('id', currentReq.id);
+
+                                        const { data: liveUser } = await supabase.from('users').select('balance, rentFund').eq('id', currentUser.id).single();
+                                        const newFund = (liveUser?.rentFund || 0) + savedMoney;
+                                        const newBalance = (liveUser?.balance || 0) + refundAmount;
+                                        await supabase.from('users').update({ rentFund: newFund, balance: newBalance }).eq('id', currentUser.id);
+
+                                        const newTxs = [];
+                                        if (refundAmount > 0) {
+                                          newTxs.push({ id: `TX${Date.now()}1`, user: currentUser.name, action: `Hoàn cọc nick ${acc.code}`, amount: refundAmount, date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), status: 'Thành công', type: 'deposit_refund' });
+                                        }
+                                        if (savedMoney > 0) {
+                                          newTxs.push({ id: `TX${Date.now()}2`, user: currentUser.name, action: `Quy đổi ${savedHours.toFixed(1)}h dư (Nick ${acc.code}) vào Quỹ Thuê`, amount: savedMoney, date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'), status: 'Thành công', type: 'fund_add' });
+                                        }
+                                        if (newTxs.length > 0) {
+                                          await supabase.from('transactions').insert(newTxs);
+                                        }
+
+                                        showToast(`Đã ngừng thuê! ${savedMoney > 0 ? `Được hoàn ${new Intl.NumberFormat('vi-VN').format(savedMoney)}đ vào Quỹ Thuê.` : ''}`);
+                                        const u = { ...currentUser, balance: newBalance, rentFund: newFund };
+                                        setCurrentUser(u);
+                                        localStorage.setItem('shop_cached_user', JSON.stringify(u));
+                                        setViewingAcc(null);
+                                      } catch (err) {
+                                        showToast('Lỗi: ' + err.message, 'error');
+                                      } finally {
+                                        setIsGlobalProcessing(false);
+                                      }
+                                    }
+                                  });
+                                }} className="w-full bg-rose-600 hover:bg-rose-500 text-white py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-colors"><RotateCcw size={14} /> Ngừng Thuê Ngay</button>
+                              );
+                            })()}
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
+                          {viewingAcc.rentOptions.map((opt, idx) => {
+                            const activePrice = viewingAcc.rentDiscountPercent > 0
+                              ? opt.price - Math.floor(opt.price * (viewingAcc.rentDiscountPercent / 100))
+                              : opt.price;
+
+                            return (
+                              <button
+                                key={idx}
+                                disabled={isCurrentlyRented}
+                                onClick={() => initiateRent(viewingAcc, { ...opt, price: activePrice, originalPrice: opt.price })}
+                                className={`p-4 rounded-xl border transition-all flex flex-col items-center justify-center text-center gap-1 animate-fade-in shadow-inner w-full ${isCurrentlyRented ? 'border-slate-800 bg-slate-900/50 opacity-50 cursor-not-allowed' : 'border-slate-800 bg-[#0B1120] hover:border-blue-500 hover:bg-blue-900/20 cursor-pointer'}`}
+                              >
+                                <div className="flex flex-col items-center gap-1.5 w-full mb-1">
+                                  <p className="font-black text-xl text-white">Thuê {opt.time}</p>
+                                  {opt.bonusTime && (
+                                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 whitespace-nowrap font-bold shadow-sm">
+                                      + Tặng {opt.bonusTime}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center justify-center gap-1.5 text-blue-400 mt-2 border-t border-slate-800 w-full pt-3 relative">
+                                  {viewingAcc.rentDiscountPercent > 0 && (
+                                    <div className="absolute top-0 right-2 bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-lg transform -translate-y-1/2">
+                                      -{viewingAcc.rentDiscountPercent}%
+                                    </div>
+                                  )}
+                                  <Wallet size={16} className="text-blue-500" />
+                                  <div className="flex flex-col items-start leading-tight">
+                                    {viewingAcc.rentDiscountPercent > 0 && (
+                                      <p className="text-[10px] text-slate-500 line-through -mb-0.5">{new Intl.NumberFormat('vi-VN').format(opt.price)}đ</p>
+                                    )}
+                                    <p className="font-black text-lg">
+                                      {new Intl.NumberFormat('vi-VN').format(activePrice)}
+                                      <span className="text-xs ml-0.5">đ</span>
+                                    </p>
+                                  </div>
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {viewingAllImages.length > 1 && (
-                    <div className="flex gap-2 overflow-x-auto custom-scrollbar py-2 shrink-0">
-                      {viewingAllImages.map((img, idx) => (
-                        <button key={idx} onClick={() => setSelectedImageIndex(idx)} className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-all ${selectedImageIndex === idx ? 'border-blue-500' : 'border-transparent opacity-50 hover:opacity-100'}`}>
-                          <img src={img} className="w-full h-full object-cover" />
-                        </button>
+
+                  <div className="w-full md:w-1/2 p-4 md:p-6 pb-4 md:pb-6 flex flex-col md:overflow-y-auto md:custom-scrollbar">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <div className="flex gap-2 items-center mb-2">
+                          <span className="bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded">Mã: {viewingAcc.code}</span>
+                          <span className="bg-emerald-600 text-white text-xs font-bold px-2 py-1 rounded">Kho: {viewingAcc.stock !== undefined ? viewingAcc.stock : 1}</span>
+                          <span className={`text-xs font-bold px-2 py-1 rounded border flex items-center gap-1 ${viewingAcc.tagColor}`}>
+                            {getGameInfo(viewingAcc.game).avatar && <img src={getGameInfo(viewingAcc.game).avatar} className="w-4 h-4 rounded" alt="Game Avatar" />}
+                            {getGameInfo(viewingAcc.game).name}
+                          </span>
+
+                          {/* HIỂN THỊ TAG ĐẲNG CẤP MỚI TẠI ĐÂY */}
+                          <span className={`text-xs font-black px-2 py-1 rounded shadow-md uppercase ${viewingAcc.tier === 'ULVIP' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : viewingAcc.tier === 'SVIP' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-[#0B1120]' : 'bg-blue-600 text-white'}`}>
+                            {viewingAcc.tier || 'VIP'}
+                          </span>
+                        </div>
+                        <h2 className="text-lg md:text-xl font-bold text-white leading-snug whitespace-pre-line">{viewingAcc.title}</h2>
+                      </div>
+                      <button onClick={() => setViewingAcc(null)} className="hidden md:block p-2 bg-[#0B1120] rounded-full text-slate-400 hover:text-white transition-colors border border-slate-800"><X size={20} /></button>
+                    </div>
+
+                    {/* SỐ DƯ VÍ - HIỂN THỊ NGAY TRÊN ĐẦU */}
+                    {currentUser && (
+                      <div className="flex items-center justify-between bg-[#0B1120] border border-emerald-500/30 rounded-xl px-4 py-3 mb-4 shadow-inner">
+                        <div className="flex items-center gap-2">
+                          <Wallet size={18} className="text-emerald-500" />
+                          <span className="text-sm text-slate-400 font-bold">Số dư ví của bạn:</span>
+                        </div>
+                        <span className="text-emerald-400 font-black text-lg">{new Intl.NumberFormat('vi-VN').format(currentUser.balance)}đ</span>
+                      </div>
+                    )}
+
+                    <p className="text-sm text-slate-400 mb-6 bg-[#0B1120] p-4 rounded-xl border border-slate-800 leading-relaxed whitespace-pre-wrap">{viewingAcc.description}</p>
+
+                    <div className="grid grid-cols-2 gap-2 md:gap-3 mb-6 md:mb-8">
+                      {viewingAcc.tags.map((tag, i) => (
+                        <div key={i} className="bg-[#0B1120] border border-slate-800 p-2 md:p-2.5 rounded-lg text-xs md:text-sm text-slate-300 font-medium flex items-center gap-1.5 md:gap-2">
+                          <CheckCircle2 size={14} className="text-blue-500 shrink-0" /> <span className="line-clamp-1">{tag}</span>
+                        </div>
                       ))}
                     </div>
-                  )}
-                  {/* === GÓI THUÊ TRẢI NGHIỆM CHUYỂN SANG CỘT TRÁI === */}
-                  {viewingAcc.rentOptions && viewingAcc.rentOptions.length > 0 && (
-                    <div className="pt-3 mt-1 border-t border-slate-800">
-                      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-600/20 via-teal-500/25 to-emerald-600/20 border border-emerald-500/40 rounded-xl p-5 mb-4 shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-fade-in text-center">
-                        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgxNiwxODUsMTI5LDAuMSkiLz48L3N2Zz4=')] opacity-50"></div>
-                        <p className="relative text-emerald-400 font-black text-base md:text-lg leading-relaxed uppercase tracking-wider">🎁 Tất cả gói thuê mua từ 2H đều được bảo lưu giờ dư khi chơi không hết</p>
-                        <p className="relative text-emerald-300/60 text-xs mt-2 font-medium tracking-wide">Ngừng thuê bất cứ lúc nào — Giờ dư sẽ được lưu lại cho lần sau!</p>
-                      </div>
-                      {currentUser && (currentUser.rentFund || 0) > 0 && (
-                        <div className="bg-gradient-to-r from-yellow-500/10 to-amber-600/10 border border-yellow-500/30 p-4 rounded-xl mb-4 shadow-inner">
-                          <div className="flex justify-between items-center mb-1">
-                            <p className="text-xs text-yellow-500 font-bold flex items-center gap-1.5"><Clock size={16} /> QUỸ THUÊ BẢO LƯU</p>
-                            <p className="text-xl font-black text-yellow-400">{new Intl.NumberFormat('vi-VN').format(currentUser.rentFund || 0)}đ</p>
-                          </div>
-                          <p className="text-[10px] text-slate-400 mt-1">Khi thuê nick, hệ thống sẽ ưu tiên dùng tiền từ Quỹ này để thanh toán trước.</p>
+
+
+
+                    <div className="hidden md:block mt-auto space-y-3">
+
+                      <button onClick={() => handleBuyAccount(viewingAcc)} className="w-full bg-rose-600 hover:bg-rose-700 text-white p-4 rounded-xl flex items-center justify-between transition-colors shadow-lg hover:-translate-y-1">
+                        <div className="text-left">
+                          <p className="font-bold text-lg">Mua Đứt Tài Khoản</p>
+                          <p className="text-xs text-rose-200">Giao acc ngay, có thông tin TK/MK</p>
                         </div>
-                      )}
-                      <p className="text-xs text-slate-500 font-bold mb-2 uppercase flex items-center gap-1"><Clock size={12} /> Các gói thuê trải nghiệm</p>
-                      {isCurrentlyRented && <div className="text-xs text-yellow-500 mb-3 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">Nick đang được thuê bởi khách khác, tạm thời không thể thuê. Bạn vẫn có thể mua đứt ngay lập tức.</div>}
-                      {isCurrentlyRented && currentUser?.id === viewingAcc.currentRenterId && (
-                        <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-xl mb-3 shadow-[0_0_15px_rgba(225,29,72,0.1)]">
-                          <div className="flex items-center gap-2 text-rose-500 mb-2">
-                            <Clock size={16} className="animate-pulse" />
-                            <span className="font-bold text-xs uppercase">Bạn đang trong phiên thuê</span>
-                          </div>
-
-                          {(() => {
-                            const activeReqLeft = rentRequests.find(r => r.accCode === viewingAcc.code && r.status === 'Đã giao acc');
-                            const isComboLeft = activeReqLeft && (activeReqLeft.time.toLowerCase().includes('combo đêm') || activeReqLeft.time.toLowerCase().includes('combo ngày'));
-
-                            return isComboLeft ? (
-                              <p className="text-[10px] text-slate-400 italic">Gói Combo không hỗ trợ ngừng thuê. Acc sẽ hết hạn tự động.</p>
-                            ) : (
-                              <button onClick={async () => {
-                                const activeReq = rentRequests.find(r => r.accCode === viewingAcc.code && r.status === 'Đã giao acc');
-                                if (!activeReq) return showToast('Không tìm thấy phiên thuê đang hoạt động!', 'error');
-                                setConfirmDialog({
-                                  title: 'Ngừng thuê nick', message: `Bạn muốn ngừng thuê nick ${viewingAcc.code}? Thời gian thuê dư sẽ được lưu lại.`, onConfirm: async () => {
-                                    const { data, error } = await supabase.rpc('stop_rent', { p_request_id: activeReq.id, p_user_id: currentUser.id });
-                                    if (error) return showToast(error.message, 'error');
-                                    showToast(data.message || 'Đã ngừng thuê!');
-                                    if (data.new_balance !== undefined) { const u = { ...currentUser, balance: data.new_balance, rentFund: data.new_fund }; setCurrentUser(u); localStorage.setItem('shop_cached_user', JSON.stringify(u)); }
-                                    setViewingAcc(null);
-                                  }
-                                });
-                              }} className="w-full bg-rose-600 hover:bg-rose-500 text-white py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-colors"><RotateCcw size={14} /> Ngừng Thuê Ngay</button>
-                            );
-                          })()}
-                        </div>
-                      )}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {viewingAcc.rentOptions.map((opt, idx) => {
-                          const activePrice = viewingAcc.rentDiscountPercent > 0
-                            ? opt.price - Math.floor(opt.price * (viewingAcc.rentDiscountPercent / 100))
-                            : opt.price;
-
-                          return (
-                            <button
-                              key={idx}
-                              disabled={isCurrentlyRented}
-                              onClick={() => initiateRent(viewingAcc, { ...opt, price: activePrice, originalPrice: opt.price })}
-                              className={`p-4 rounded-xl border transition-all flex flex-col items-center justify-center text-center gap-1 animate-fade-in shadow-inner w-full ${isCurrentlyRented ? 'border-slate-800 bg-slate-900/50 opacity-50 cursor-not-allowed' : 'border-slate-800 bg-[#0B1120] hover:border-blue-500 hover:bg-blue-900/20 cursor-pointer'}`}
-                            >
-                              <div className="flex flex-col items-center gap-1.5 w-full mb-1">
-                                <p className="font-black text-xl text-white">Thuê {opt.time}</p>
-                                {opt.bonusTime && (
-                                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 whitespace-nowrap font-bold shadow-sm">
-                                    + Tặng {opt.bonusTime}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center justify-center gap-1.5 text-blue-400 mt-2 border-t border-slate-800 w-full pt-3 relative">
-                                {viewingAcc.rentDiscountPercent > 0 && (
-                                  <div className="absolute top-0 right-2 bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-lg transform -translate-y-1/2">
-                                    -{viewingAcc.rentDiscountPercent}%
-                                  </div>
-                                )}
-                                <Wallet size={16} className="text-blue-500" />
-                                <div className="flex flex-col items-start leading-tight">
-                                  {viewingAcc.rentDiscountPercent > 0 && (
-                                    <p className="text-[10px] text-slate-500 line-through -mb-0.5">{new Intl.NumberFormat('vi-VN').format(opt.price)}đ</p>
-                                  )}
-                                  <p className="font-black text-lg">
-                                    {new Intl.NumberFormat('vi-VN').format(activePrice)}
-                                    <span className="text-xs ml-0.5">đ</span>
-                                  </p>
-                                </div>
-                              </div>
-                            </button>
-                          )
-                        })}
-                      </div>
+                        <span className="text-xl md:text-2xl font-black">{new Intl.NumberFormat('vi-VN').format(viewingAcc.price)}đ</span>
+                      </button>
                     </div>
-                  )}
-                </div>
-
-                <div className="w-full md:w-1/2 p-6 flex flex-col overflow-y-auto custom-scrollbar">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <div className="flex gap-2 items-center mb-2">
-                        <span className="bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded">Mã: {viewingAcc.code}</span>
-                        <span className={`text-xs font-bold px-2 py-1 rounded border ${viewingAcc.tagColor}`}>{viewingAcc.game}</span>
-
-                        {/* HIỂN THỊ TAG ĐẲNG CẤP MỚI TẠI ĐÂY */}
-                        <span className={`text-xs font-black px-2 py-1 rounded shadow-md uppercase ${viewingAcc.tier === 'ULVIP' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : viewingAcc.tier === 'SVIP' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-[#0B1120]' : 'bg-blue-600 text-white'}`}>
-                          {viewingAcc.tier || 'VIP'}
-                        </span>
-                      </div>
-                      <h2 className="text-xl font-bold text-white leading-snug">{viewingAcc.title}</h2>
-                    </div>
-                    <button onClick={() => setViewingAcc(null)} className="p-2 bg-[#0B1120] rounded-full text-slate-400 hover:text-white transition-colors border border-slate-800"><X size={20} /></button>
                   </div>
 
-                  {/* SỐ DƯ VÍ - HIỂN THỊ NGAY TRÊN ĐẦU */}
-                  {currentUser && (
-                    <div className="flex items-center justify-between bg-[#0B1120] border border-emerald-500/30 rounded-xl px-4 py-3 mb-4 shadow-inner">
-                      <div className="flex items-center gap-2">
-                        <Wallet size={18} className="text-emerald-500" />
-                        <span className="text-sm text-slate-400 font-bold">Số dư ví của bạn:</span>
-                      </div>
-                      <span className="text-emerald-400 font-black text-lg">{new Intl.NumberFormat('vi-VN').format(currentUser.balance)}đ</span>
-                    </div>
-                  )}
-
-                  <p className="text-sm text-slate-400 mb-6 bg-[#0B1120] p-4 rounded-xl border border-slate-800 leading-relaxed">{viewingAcc.description}</p>
-
-                  <div className="grid grid-cols-2 gap-3 mb-8">
-                    {viewingAcc.tags.map((tag, i) => (
-                      <div key={i} className="bg-[#0B1120] border border-slate-800 p-2.5 rounded-lg text-sm text-slate-300 font-medium flex items-center gap-2">
-                        <CheckCircle2 size={14} className="text-blue-500 shrink-0" /> <span className="line-clamp-1">{tag}</span>
-                      </div>
-                    ))}
-                  </div>
-
-
-
-                  <div className="mt-auto space-y-3">
-
-                    <button onClick={() => handleBuyAccount(viewingAcc)} className="w-full bg-rose-600 hover:bg-rose-700 text-white p-4 rounded-xl flex items-center justify-between transition-colors shadow-lg hover:-translate-y-1">
+                  {/* Nút Mua Đứt Tự Động Dock Vào Cuối Content (Dùng Sticky) */}
+                  <div className="md:hidden sticky bottom-[76px] w-full p-3 z-40 bg-[#151D2F] border-t border-slate-800 rounded-b-2xl shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
+                    <button onClick={() => handleBuyAccount(viewingAcc)} className="w-full bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white p-3.5 rounded-2xl flex items-center justify-between transition-all shadow-[0_8px_30px_rgba(225,29,72,0.4)] border border-rose-500/50">
                       <div className="text-left">
-                        <p className="font-bold text-lg">Mua Đứt Tài Khoản</p>
-                        <p className="text-xs text-rose-200">Giao acc ngay, có thông tin TK/MK</p>
+                        <p className="font-bold text-base uppercase tracking-wide">Mua Đứt Ngay</p>
+                        <p className="text-[10px] text-rose-200">Giao ngay, có TK/MK</p>
                       </div>
-                      <span className="text-2xl font-black">{new Intl.NumberFormat('vi-VN').format(viewingAcc.price)}đ</span>
+                      <span className="text-lg font-black">{new Intl.NumberFormat('vi-VN').format(viewingAcc.price)}đ</span>
                     </button>
                   </div>
                 </div>
               </div>
-            </div>
+            </>
           );
         })()}
         {/* MODAL QUY ĐỊNH THUÊ NICK TỪ ADMIN */}
@@ -7114,6 +8127,7 @@ const App = () => {
 
                 <form onSubmit={(e) => {
                   e.preventDefault();
+                  if (!currentUser.is_email_verified) return showToast("Vui lòng vào mục Cá nhân để xác thực Email trước khi thanh toán!", "error");
                   if (isProcessingAction) return;
                   isProcessingAction = true;
 
@@ -7415,7 +8429,7 @@ const App = () => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 mb-3">
-                      <div><input name="awesunId" placeholder="ID App" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white font-mono outline-none" required /></div>
+                      <div><input name="awesunId" placeholder="ID App (9 số)" pattern="[0-9]{9}" maxLength="9" onInput={enforceNumberInput} title="Vui lòng nhập đúng 9 số" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white font-mono outline-none" required /></div>
                       <div><input name="awesunPass" placeholder="Mật khẩu" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white font-mono outline-none" required /></div>
                       <div className="col-span-2"><input name="phone" type="tel" pattern="[0-9]{10,11}" maxLength="11" onInput={enforceNumberInput} placeholder="SĐT liên hệ (10-11 số)" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white outline-none" required /></div>
                     </div>
@@ -7446,6 +8460,8 @@ const App = () => {
                   const perUnitPrice = currentOption?.price || boostingModalData.price;
                   const comboPrice = currentOption?.comboPrice || 0;
                   const maxPoints = currentOption?.maxPoints || 0;
+                  const basePoints = currentOption?.basePoints || 0;
+                  const absoluteMaxPoints = basePoints > 0 ? basePoints + maxPoints : maxPoints;
                   const optTierCount = currentOption?.tierCount || 1;
                   // Generate dynamic tier list: e.g. tierCount=3 → ['III','II','I'], tierCount=1 → ['I']
                   const tierList = Array.from({ length: optTierCount }, (_, i) => toRoman(optTierCount - i));
@@ -7465,7 +8481,24 @@ const App = () => {
                   // Validate điểm nhập
                   let pointsError = '';
 
-                  if (hasOptions && currentOption) {
+                  const isPointBased = boostingModalData.rankOptions && boostingModalData.rankOptions.length > 0 && boostingModalData.rankOptions[0].points !== undefined;
+                  const isRankCumulative = isPointBased && (boostingModalData.rankOptions.some(opt => /\b(I|II|III|IV|V|VI|VII|VIII|IX|X)\b/.test(opt.name)) || boostingModalData.rankOptions.every((opt, i) => opt.points === i));
+                  if (isPointBased) {
+                    const currentPts = parseInt(boostCurrentPoints);
+                    const targetPts = parseInt(boostTargetPoints);
+                    if (!isNaN(currentPts) && !isNaN(targetPts) && boostCurrentPoints !== '' && boostTargetPoints !== '') {
+                      if (currentPts >= targetPts) {
+                        pointsError = isRankCumulative ? 'Rank mục tiêu phải cao hơn rank hiện tại!' : 'Điểm mục tiêu phải lớn hơn điểm hiện tại!';
+                        activePrice = 0;
+                      } else {
+                        activePrice = calculateBoostPrice(currentPts, targetPts, boostingModalData.rankOptions);
+                        if (activePrice === 0) pointsError = 'Lỗi tính toán điểm!';
+                        priceLabel = `(${getRankByPoints(currentPts, boostingModalData.rankOptions)} lên ${getRankByPoints(targetPts, boostingModalData.rankOptions)})`;
+                      }
+                    } else {
+                      activePrice = 0;
+                    }
+                  } else if (hasOptions && currentOption) {
                     if (optionInputType === 'bac') {
                       if (optTierCount <= 1) {
                         activePrice = perUnitPrice;
@@ -7483,16 +8516,16 @@ const App = () => {
                         }
                       }
                     } else {
-                      // ĐIỂM: target (từ title) - điểm hiện tại × đơn giá
+                      // ĐIỂM: Tính giá dựa trên basePoints + maxPoints
                       const currentPts = parseInt(boostCurrentPoints) || 0;
-                      const targetPts = titleTargetPoints || maxPoints || 0;
+                      const targetPts = titleTargetPoints || absoluteMaxPoints || 0;
+                      const lowerBound = basePoints > 0 ? basePoints : (optionMinPoints > 0 ? optionMinPoints : 0);
                       if (currentPts > 0 && targetPts > 0) {
-                        // Kiểm tra giới hạn dưới (từ tên option)
-                        if (optionMinPoints > 0 && currentPts < optionMinPoints) {
-                          pointsError = `Không được thấp hơn ${new Intl.NumberFormat('vi-VN').format(optionMinPoints)} điểm`;
+                        if (lowerBound > 0 && currentPts < lowerBound) {
+                          pointsError = `Điểm phải từ ${new Intl.NumberFormat('vi-VN').format(lowerBound)} trở lên (khởi đầu rank này)`;
                           activePrice = 0;
-                        } else if (currentPts > targetPts) {
-                          pointsError = `Không được cao hơn ${new Intl.NumberFormat('vi-VN').format(targetPts)} điểm`;
+                        } else if (currentPts >= targetPts) {
+                          pointsError = `Bạn đã vượt mốc ${new Intl.NumberFormat('vi-VN').format(targetPts)} điểm, hãy chọn gói cao hơn!`;
                           activePrice = 0;
                         } else {
                           const pointsNeeded = Math.max(0, targetPts - currentPts);
@@ -7523,97 +8556,210 @@ const App = () => {
                         <p className="text-sm text-slate-300">Dịch vụ: <strong className="text-white">{boostingModalData.title}</strong></p>
 
                         {/* --- KHU VỰC NHẬP SỐ LƯỢNG --- */}
-                        {boostingModalData.allow_quantity && !hasOptions && (
-                          <div className="mt-3">
-                            <label className="text-xs text-emerald-400 font-bold block mb-1">Số lượng mua</label>
-                            <input
-                              type="number"
-                              min="1"
-                              value={boostQuantity}
-                              onChange={(e) => {
-                                let val = parseInt(e.target.value) || 1;
-                                setBoostQuantity(Math.max(1, val));
-                              }}
-                              className="w-full p-2.5 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-bold outline-none shadow-inner"
-                            />
-                          </div>
-                        )}
+                        {boostingModalData.allow_quantity && !hasOptions && (() => {
+                          const gameInfo = getGameInfo(boostingModalData.game);
+                          const maxLimit = gameInfo.maxQuantityPerOrder || 0;
+                          return (
+                            <div className="mt-3">
+                              <div className="flex justify-between items-end mb-1">
+                                <label className="text-xs text-emerald-400 font-bold">Số lượng mua</label>
+                                {maxLimit > 0 && <span className="text-[10px] text-slate-400">Tối đa {maxLimit} / lần</span>}
+                              </div>
+                              <input
+                                type="number"
+                                min="1"
+                                max={maxLimit > 0 ? maxLimit : undefined}
+                                value={boostQuantity}
+                                onChange={(e) => {
+                                  let val = parseInt(e.target.value) || 1;
+                                  if (maxLimit > 0 && val > maxLimit) val = maxLimit;
+                                  setBoostQuantity(Math.max(1, val));
+                                }}
+                                className="w-full p-2.5 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-bold outline-none shadow-inner"
+                              />
+                            </div>
+                          );
+                        })()}
 
-                        {hasOptions && (
-                          <div className="mt-3">
-                            <label className="text-xs text-blue-400 font-bold block mb-1">Rank hiện tại của bạn:</label>
-                            <select
-                              value={selectedBoostRank}
-                              onChange={(e) => { const idx = parseInt(e.target.value); setSelectedBoostRank(idx); const opt = boostingModalData.rankOptions[idx]; setBoostSubTier(opt?.inputType === 'bac' && (opt?.tierCount || 1) > 1 ? toRoman(opt?.tierCount || 1) : ''); setBoostCurrentPoints(''); }}
-                              className="w-full p-2.5 bg-[#0B1120] border border-blue-500/50 rounded-lg text-white outline-none font-bold text-sm cursor-pointer shadow-inner"
-                            >
-                              {boostingModalData.rankOptions.map((opt, idx) => (
-                                <option key={idx} value={idx}>{opt.rank}</option>
-                              ))}
-                            </select>
+                        {isRankCumulative ? (
+                          <div className="mt-3 space-y-4">
+                            <div>
+                              <label className="text-xs text-blue-400 font-bold block mb-1.5">Rank hiện tại của bạn</label>
+                              <select
+                                value={boostCurrentPoints}
+                                onChange={(e) => {
+                                  setBoostCurrentPoints(e.target.value);
+                                  if (boostTargetPoints !== '' && parseInt(boostTargetPoints) <= parseInt(e.target.value)) {
+                                    setBoostTargetPoints('');
+                                  }
+                                }}
+                                className="w-full p-2.5 bg-[#0B1120] border border-blue-500/50 rounded-lg text-blue-400 font-bold outline-none shadow-inner text-sm cursor-pointer"
+                              >
+                                <option value="">-- Chọn rank hiện tại --</option>
+                                {boostingModalData.rankOptions.slice(0, -1).map((opt, idx) => (
+                                  <option key={idx} value={opt.points}>{opt.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="text-xs text-rose-400 font-bold block mb-1.5">Rank mong muốn</label>
+                              <select
+                                value={boostTargetPoints}
+                                onChange={(e) => setBoostTargetPoints(e.target.value)}
+                                disabled={boostCurrentPoints === ''}
+                                className="w-full p-2.5 bg-[#0B1120] border border-rose-500/50 rounded-lg text-rose-400 font-bold outline-none shadow-inner text-sm cursor-pointer disabled:opacity-50"
+                              >
+                                <option value="">-- Chọn rank mong muốn --</option>
+                                {boostingModalData.rankOptions.map((opt, idx) => {
+                                  if (boostCurrentPoints !== '' && opt.points <= parseInt(boostCurrentPoints)) return null;
+                                  return <option key={idx} value={opt.points}>{opt.name}</option>;
+                                })}
+                              </select>
+                            </div>
+                            {pointsError && (
+                              <p className="text-[11px] text-rose-400 font-bold flex items-center gap-1"><AlertCircle size={12} /> {pointsError}</p>
+                            )}
                           </div>
-                        )}
-
-                        {/* --- KHU VỰC NHẬP BẬC HOẶC ĐIỂM --- */}
-                        {hasOptions && currentOption && (
-                          <div className="mt-3">
-                            {optionInputType === 'bac' ? (
-                              optTierCount > 1 ? (
-                                <div>
-                                  <label className="text-xs text-slate-400 font-bold block mb-1">Đang ở bậc nào?</label>
-                                  <div className="flex gap-1.5 flex-wrap">
-                                    {tierList.map(tier => (
-                                      <button
-                                        key={tier}
-                                        type="button"
-                                        onClick={() => setBoostSubTier(tier)}
-                                        className={`flex-1 min-w-[40px] py-2 rounded-lg text-xs font-black transition-all border ${boostSubTier === tier
-                                          ? (tier === toRoman(optTierCount) ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/30' : 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/30')
-                                          : 'bg-[#0B1120] text-slate-400 border-slate-700 hover:border-slate-500'}`}
-                                      >
-                                        {tier}
-                                      </button>
-                                    ))}
-                                  </div>
-                                  {boostSubTier === toRoman(optTierCount) && (
-                                    <p className="text-[10px] text-emerald-400 mt-1.5 flex items-center gap-1">
-                                      <Sparkles size={12} /> Bậc {toRoman(optTierCount)} → Áp dụng giá trọn gói (combo)
-                                    </p>
-                                  )}
-                                  {boostSubTier && boostSubTier !== toRoman(optTierCount) && (
-                                    <p className="text-[10px] text-blue-400 mt-1.5">
-                                      Bậc {boostSubTier} → Cần cày {({ 'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7, 'VIII': 8, 'IX': 9, 'X': 10 })[boostSubTier] || '?'} bậc, tính giá bậc lẻ
-                                    </p>
-                                  )}
-                                </div>
-                              ) : null
-                            ) : (
+                        ) : isPointBased ? (
+                          <div className="mt-3 space-y-4">
+                            <div>
+                              <label className="text-xs text-blue-400 font-bold block mb-1.5">Điểm hiện tại của bạn</label>
+                              <input
+                                type="number" min="0" value={boostCurrentPoints}
+                                onChange={(e) => {
+                                  let val = parseInt(e.target.value) || 0;
+                                  setBoostCurrentPoints(val > 0 ? val.toString() : '');
+                                }}
+                                placeholder="Nhập số điểm hiện tại của bạn..."
+                                className="w-full p-2.5 bg-[#0B1120] border border-blue-500/50 rounded-lg text-blue-400 font-bold outline-none shadow-inner text-sm"
+                              />
+                              {boostCurrentPoints && parseInt(boostCurrentPoints) > 0 && (
+                                <p className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1">
+                                  <Target size={12} className="text-emerald-400" /> Hệ thống nhận diện: <span className="text-emerald-400 font-bold">{getRankByPoints(parseInt(boostCurrentPoints), boostingModalData.rankOptions)}</span>
+                                </p>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className="text-xs text-emerald-400 font-bold block mb-1.5">Điểm hiện tại của bạn</label>
+                                <label className="text-xs text-rose-400 font-bold block mb-1.5">Điểm muốn đạt</label>
                                 <input
-                                  type="number"
-                                  min="0"
-                                  value={boostCurrentPoints}
+                                  type="number" min="0" value={boostTargetPoints}
                                   onChange={(e) => {
                                     let val = parseInt(e.target.value) || 0;
-                                    setBoostCurrentPoints(val > 0 ? val.toString() : '');
+                                    setBoostTargetPoints(val > 0 ? val.toString() : '');
+                                    setBoostTargetRank(getRankByPoints(val, boostingModalData.rankOptions));
                                   }}
-                                  placeholder="Nhập số điểm bạn đang có..."
-                                  className={`w-full p-2.5 bg-[#0B1120] border rounded-lg font-bold outline-none shadow-inner text-sm ${pointsError ? 'border-rose-500 text-rose-400' : 'border-emerald-500/50 text-emerald-400 focus:border-emerald-400'}`}
+                                  placeholder="Nhập số điểm muốn đạt..."
+                                  className="w-full p-2.5 bg-[#0B1120] border border-rose-500/50 rounded-lg text-rose-400 font-bold outline-none shadow-inner text-sm"
                                 />
-                                {pointsError && (
-                                  <p className="text-[10px] text-rose-400 mt-1.5 flex items-center gap-1 font-bold">
-                                    <AlertCircle size={12} /> {pointsError}
-                                  </p>
-                                )}
-                                {!pointsError && (!boostCurrentPoints || parseInt(boostCurrentPoints) === 0) && (
-                                  <p className="text-[10px] text-yellow-400 mt-1.5 flex items-center gap-1">
-                                    <AlertCircle size={12} /> Vui lòng nhập điểm hiện tại để tính phí
-                                  </p>
+                              </div>
+                              <div>
+                                <label className="text-xs text-rose-400 font-bold block mb-1.5">Hoặc Rank muốn đạt</label>
+                                <select
+                                  value={boostTargetRank}
+                                  onChange={(e) => {
+                                    const rankName = e.target.value;
+                                    setBoostTargetRank(rankName);
+                                    const matchedTier = boostingModalData.rankOptions.find(t => t.name === rankName || t.rank === rankName);
+                                    if (matchedTier) setBoostTargetPoints(matchedTier.points.toString());
+                                  }}
+                                  className="w-full p-2.5 bg-[#0B1120] border border-rose-500/50 rounded-lg text-rose-400 font-bold outline-none shadow-inner text-sm"
+                                >
+                                  <option value="">Chọn Rank</option>
+                                  {boostingModalData.rankOptions && boostingModalData.rankOptions.map(tier => (
+                                    <option key={tier.name || tier.rank} value={tier.name || tier.rank}>{(tier.name || tier.rank)} ({tier.points})</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                            {pointsError && (
+                              <p className="text-[11px] text-rose-400 font-bold flex items-center gap-1"><AlertCircle size={12} /> {pointsError}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            {hasOptions && (
+                              <div className="mt-3">
+                                <label className="text-xs text-blue-400 font-bold block mb-1">Rank hiện tại của bạn:</label>
+                                <select
+                                  value={selectedBoostRank}
+                                  onChange={(e) => { const idx = parseInt(e.target.value); setSelectedBoostRank(idx); const opt = boostingModalData.rankOptions[idx]; setBoostSubTier(opt?.inputType === 'bac' && (opt?.tierCount || 1) > 1 ? toRoman(opt?.tierCount || 1) : ''); setBoostCurrentPoints(''); }}
+                                  className="w-full p-2.5 bg-[#0B1120] border border-blue-500/50 rounded-lg text-white outline-none font-bold text-sm cursor-pointer shadow-inner"
+                                >
+                                  {boostingModalData.rankOptions && boostingModalData.rankOptions.map((opt, idx) => (
+                                    <option key={idx} value={idx}>{opt.rank}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
+
+                            {/* --- KHU VỰC NHẬP BẬC HOẶC ĐIỂM --- */}
+                            {hasOptions && currentOption && (
+                              <div className="mt-3">
+                                {optionInputType === 'bac' ? (
+                                  optTierCount > 1 ? (
+                                    <div>
+                                      <label className="text-xs text-slate-400 font-bold block mb-1">Đang ở bậc nào?</label>
+                                      <div className="flex gap-1.5 flex-wrap">
+                                        {tierList.map(tier => (
+                                          <button
+                                            key={tier}
+                                            type="button"
+                                            onClick={() => setBoostSubTier(tier)}
+                                            className={`flex-1 min-w-[40px] py-2 rounded-lg text-xs font-black transition-all border ${boostSubTier === tier
+                                              ? (tier === toRoman(optTierCount) ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/30' : 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/30')
+                                              : 'bg-[#0B1120] text-slate-400 border-slate-700 hover:border-slate-500'}`}
+                                          >
+                                            {tier}
+                                          </button>
+                                        ))}
+                                      </div>
+                                      {boostSubTier === toRoman(optTierCount) && (
+                                        <p className="text-[10px] text-emerald-400 mt-1.5 flex items-center gap-1">
+                                          <Sparkles size={12} /> Bậc {toRoman(optTierCount)} → Áp dụng giá trọn gói (combo)
+                                        </p>
+                                      )}
+                                      {boostSubTier && boostSubTier !== toRoman(optTierCount) && (
+                                        <p className="text-[10px] text-blue-400 mt-1.5">
+                                          Bậc {boostSubTier} → Cần cày {({ 'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7, 'VIII': 8, 'IX': 9, 'X': 10 })[boostSubTier] || '?'} bậc, tính giá bậc lẻ
+                                        </p>
+                                      )}
+                                    </div>
+                                  ) : null
+                                ) : (
+                                  <div>
+                                    <label className="text-xs text-emerald-400 font-bold block mb-1.5">Điểm hiện tại của bạn</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={boostCurrentPoints}
+                                      onChange={(e) => {
+                                        let val = parseInt(e.target.value) || 0;
+                                        setBoostCurrentPoints(val > 0 ? val.toString() : '');
+                                      }}
+                                      placeholder={basePoints > 0 ? `Từ ${new Intl.NumberFormat('vi-VN').format(basePoints)} đến ${new Intl.NumberFormat('vi-VN').format(absoluteMaxPoints)}` : 'Nhập số điểm bạn đang có...'}
+                                      className={`w-full p-2.5 bg-[#0B1120] border rounded-lg font-bold outline-none shadow-inner text-sm ${pointsError ? 'border-rose-500 text-rose-400' : 'border-emerald-500/50 text-emerald-400 focus:border-emerald-400'}`}
+                                    />
+                                    {pointsError && (
+                                      <p className="text-[10px] text-rose-400 mt-1.5 flex items-center gap-1 font-bold">
+                                        <AlertCircle size={12} /> {pointsError}
+                                      </p>
+                                    )}
+                                    {!pointsError && boostCurrentPoints && parseInt(boostCurrentPoints) > 0 && absoluteMaxPoints > 0 && (
+                                      <p className="text-[10px] text-emerald-400 mt-1.5 flex items-center gap-1">
+                                        <Target size={12} /> Còn <span className="font-bold text-white mx-0.5">{new Intl.NumberFormat('vi-VN').format(Math.max(0, absoluteMaxPoints - (parseInt(boostCurrentPoints) || 0)))}</span> điểm cần cày → Đích: <span className="font-bold text-yellow-400 ml-0.5">{new Intl.NumberFormat('vi-VN').format(absoluteMaxPoints)}</span>
+                                      </p>
+                                    )}
+                                    {!pointsError && (!boostCurrentPoints || parseInt(boostCurrentPoints) === 0) && (
+                                      <p className="text-[10px] text-yellow-400 mt-1.5 flex items-center gap-1">
+                                        <AlertCircle size={12} /> Vui lòng nhập điểm hiện tại để tính phí {absoluteMaxPoints > 0 && <span className="text-slate-500">(Đích tối đa: {new Intl.NumberFormat('vi-VN').format(absoluteMaxPoints)} điểm)</span>}
+                                      </p>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             )}
-                          </div>
+                          </>
                         )}
 
                         <div className="mt-3 border-t border-blue-500/20 pt-3">
@@ -7624,6 +8770,7 @@ const App = () => {
 
                       <form onSubmit={async (e) => {
                         e.preventDefault();
+                        if (!currentUser.is_email_verified) return showToast("Vui lòng vào mục Cá nhân để xác thực Email trước khi thanh toán!", "error");
                         if (isGlobalProcessing) return;
                         if (activePrice <= 0) { showToast('Phí thanh toán không hợp lệ (0đ). Vui lòng kiểm tra lại thông tin điểm hoặc bậc.', 'error'); return; }
                         setIsGlobalProcessing(true);
@@ -7647,7 +8794,19 @@ const App = () => {
 
                           let packageTitle = targetModal.title;
                           const targetPts = titleTargetPoints || maxPoints || 0;
-                          if (hasOptions && currentOption) {
+                          if (isRankCumulative) {
+                            const cPts = parseInt(boostCurrentPoints);
+                            const tPts = parseInt(boostTargetPoints);
+                            if (!isNaN(cPts) && !isNaN(tPts)) {
+                              const fromRank = getRankByPoints(cPts, boostingModalData.rankOptions);
+                              const toRank = getRankByPoints(tPts, boostingModalData.rankOptions);
+                              packageTitle = `${targetModal.title} [${fromRank} -> ${toRank}]`;
+                            }
+                          } else if (isPointBased) {
+                            const cPts = parseInt(boostCurrentPoints) || 0;
+                            const tPts = parseInt(boostTargetPoints) || 0;
+                            packageTitle = `${targetModal.title} [${cPts} điểm -> ${tPts} điểm]`;
+                          } else if (hasOptions && currentOption) {
                             const rankDetail = optionInputType === 'bac'
                               ? `Bậc ${boostSubTier}${boostSubTier === 'V' ? ' (Combo)' : ''}`
                               : (boostCurrentPoints && parseInt(boostCurrentPoints) > 0
@@ -7655,7 +8814,7 @@ const App = () => {
                                 : 'Combo');
                             packageTitle = `${targetModal.title} [${rankDetail}]`;
                           }
-                          
+
                           if (targetModal.allow_quantity && boostQuantity > 1) {
                             packageTitle += ` (x${boostQuantity})`;
                           }
@@ -7720,7 +8879,7 @@ const App = () => {
                           {boostingModalData.type === 'event' && boostingModalData.require_login === false ? (
                             <div>
                               <label className="text-xs font-bold text-emerald-400 block mb-1">Nhập Mã Sự Kiện / Link Liên Kết</label>
-                              <input name="eventCode" type="text" placeholder="VD: SGH-123456..." className="w-full p-3 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-mono outline-none focus:border-emerald-400 shadow-inner" required />
+                              <input name="eventCode" type="text" placeholder="Nhập mã sự kiện hoặc link liên kết..." className="w-full p-3 bg-[#0B1120] border border-emerald-500/50 rounded-lg text-emerald-400 font-mono outline-none focus:border-emerald-400 shadow-inner" required />
                             </div>
                           ) : (
                             <>
@@ -7729,7 +8888,8 @@ const App = () => {
                                 <select name="loginMethod" className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-lg text-white outline-none focus:border-blue-500">
                                   <option value="Garena">Garena</option>
                                   <option value="Facebook">Facebook</option>
-                                  <option value="Riot Games">Riot Games</option>
+                                  <option value="Zing">Zing</option>
+                                  <option value="Icloud">Icloud</option>
                                   <option value="Google">Google (Cần hỗ trợ mã)</option>
                                   <option value="Khác">Khác</option>
                                 </select>
@@ -7839,20 +8999,42 @@ const App = () => {
           </div>
         )}
 
+        {/* --- GLOBAL PROCESSING OVERLAY (HIỆN TIẾN ĐỘ TẢI ẢNH) --- */}
+        {isGlobalProcessing && globalProgressText && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
+            <div className="bg-[#0B1120] border border-blue-500/30 p-8 rounded-2xl flex flex-col items-center gap-5 shadow-[0_0_50px_rgba(37,99,235,0.2)] max-w-sm w-full mx-4 text-center">
+              <div className="relative">
+                <div className="absolute inset-0 bg-blue-500 rounded-full blur-md opacity-30 animate-pulse"></div>
+                <RefreshCw size={48} className="text-blue-500 animate-spin relative z-10" />
+              </div>
+              <div>
+                <p className="text-white font-bold text-lg mb-1">{globalProgressText}</p>
+                <p className="text-xs text-slate-400">Vui lòng không đóng cửa sổ trong lúc này</p>
+              </div>
+              <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-2 relative">
+                <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 to-emerald-400 animate-pulse w-full"></div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* --- COMPONENT LIÊN HỆ GÓC DƯỚI --- */}
-        <FloatingContact
-          currentUser={currentUser}
-          unreadCount={unreadCount}
-          onOpenInbox={() => {
-            if (currentUser?.role === 'admin') {
-              setCurrentView('admin');
-              setAdminTab('messages');
-            } else {
-              setCurrentView('security');
-              setProfileTab('inbox');
-            }
-          }}
-        />
+        {currentView !== 'admin' && (
+          <FloatingContact
+            currentUser={currentUser}
+            unreadCount={unreadCount}
+            isAdminOnline={usersDb.some(u => u.role === 'admin' && getActiveStatus(u.last_active).isOnline)}
+            onOpenInbox={() => {
+              if (currentUser?.role === 'admin') {
+                setCurrentView('admin');
+                setAdminTab('messages');
+              } else {
+                setCurrentView('security');
+                setProfileTab('inbox');
+              }
+            }}
+          />
+        )}
 
         {/* --- DÀN LOA VÒNG QUAY SIÊU ĐƠN GIẢN CHỐNG LỖI --- */}
         <audio id="spinSound" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3" preload="auto" loop></audio>

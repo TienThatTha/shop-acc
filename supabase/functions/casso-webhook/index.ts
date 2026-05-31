@@ -60,8 +60,8 @@ serve(async (req) => {
         await supabaseAdmin.from('transactions').insert([{
           id: `TX_AUTO_${Date.now()}`,
           user: user.name || user.phone || 'Khách Vô Danh',
-          action: `Nạp tự động qua TPBank`,
-          amount: amount,
+          action: `Nạp tự động qua ngân hàng`,
+          amount: -Math.abs(amount),
           date: dateStr,
           status: 'Thành công',
           type: 'deposit_auto',

@@ -9,4 +9,38 @@
       display: none !important;
     }
   }
+
+  /* Ẩn thanh cuộn nhưng vẫn cuộn được */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* === MOBILE RESPONSIVE OVERHAUL === */
+@media (max-width: 767px) {
+  /* Fix admin rent request buttons to grid nicely on small screens */
+  .flex-wrap > button,
+  .flex-wrap > div,
+  .flex-wrap > a {
+    min-width: 0;
+  }
+
+  /* Fix for admin panel container padding */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+  }
+
+  /* Ensure modals don't overflow viewport */
+  .fixed.inset-0 {
+    padding: 8px !important;
+  }
+
+  /* Fix the account detail modal close button positioning */
+  .fixed.inset-0 > div > div > button {
+    flex-shrink: 0;
+  }
 }

@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
 
         const phoneStr = userData?.phone || 'Không rõ';
 
-        const messageText = `🔔 <b>CÓ LỆNH NẠP MỚI</b>\n\n👤 Khách hàng: ${reqData.user}\n📱 SĐT: ${phoneStr}\n💰 Số tiền báo: <b>${reqData.amount.toLocaleString('vi-VN')}đ</b>\n🏦 Ngân hàng: TPBank`;
+        const messageText = `🔔 <b>CÓ LỆNH NẠP MỚI</b>\n\n👤 Khách hàng: ${reqData.user}\n📱 SĐT: ${phoneStr}\n💰 Số tiền báo: <b>${reqData.amount.toLocaleString('vi-VN')}đ</b>\n🏦 Thanh toán tự động`;
 
         const inlineKeyboard = {
           inline_keyboard: [[
@@ -207,10 +207,25 @@ Deno.serve(async (req) => {
           await supabaseAdmin.from('deposit_requests').update({ status: 'Thành công' }).eq('id', requestId);
           
           // 2. Cộng tiền cho User
-          const { data: userTarget } = await supabaseAdmin.from('users').select('*').eq('id', reqData.userId).single();
+          const { data: userTarget, error: userError } = await supabaseAdmin.from('users').select('*').eq('id', reqData.userId).single();
+          if (userError || !userTarget) {
+            throw new Error(userError?.message || "Không tìm thấy thông tin khách hàng!");
+          }
+          
           if (userTarget) {
               const newBalance = userTarget.balance + reqData.amount;
-              await supabaseAdmin.from('users').update({ balance: newBalance }).eq('id', userTarget.id);
+              const bonusSpins = Math.floor(reqData.amount / 20000);
+              const newSpins = (userTarget.spins || 0) + bonusSpins;
+
+              // Chỉ cập nhật balance và spins (Quỹ rentFund giữ nguyên không thay đổi khi nạp ví chính)
+              const { error: updateError } = await supabaseAdmin.from('users').update({ 
+                balance: newBalance,
+                spins: newSpins
+              }).eq('id', userTarget.id);
+
+              if (updateError) {
+                throw updateError;
+              }
 
               // Xử lý múi giờ Việt Nam
               const now = new Date();
@@ -221,7 +236,7 @@ Deno.serve(async (req) => {
                 id: `TX_BOT_${Date.now()}`,
                 user: userTarget.name || userTarget.phone || 'Khách Vô Danh',
                 action: `Nạp tiền (Duyệt nhanh qua Telegram)`,
-                amount: reqData.amount,
+                amount: -Math.abs(reqData.amount),
                 date: dateStr,
                 status: 'Thành công',
                 type: 'deposit_manual',

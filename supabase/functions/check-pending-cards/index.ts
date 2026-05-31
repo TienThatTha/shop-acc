@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
-import { encodeHex } from "https://deno.land/std@0.168.0/encoding/hex.ts";
 
 const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -40,7 +39,8 @@ serve(async () => {
       const signString = `${partnerKey}${partnerId}${command}${requestId}`
       const messageBuffer = new TextEncoder().encode(signString);
       const hashBuffer = await crypto.subtle.digest("MD5", messageBuffer);
-      const sign = encodeHex(hashBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const sign = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
       const response = await fetch('https://doithecao.com/api/card-auto', {
         method: 'POST',
@@ -63,9 +63,9 @@ serve(async () => {
 
         if (result.status === 1 || result.status === 2) {
           finalStatus = 'Thành công'
-          addedAmount = Math.floor(result.amount * 0.8)
+          addedAmount = Math.floor(result.value * 0.8)
           if (result.status === 2) {
-            note = `(Sai mệnh giá) Nhận thực tế: ${result.amount}đ. ` + note
+            note = `(Sai mệnh giá) Nhận thực tế: ${result.value}đ. ` + note
           }
         }
 
@@ -74,7 +74,7 @@ serve(async () => {
           .from('deposit_requests')
           .update({ 
             status: finalStatus, 
-            amount: result.amount || req.amount,
+            amount: (result.status === 1 || result.status === 2) ? result.value : req.amount,
             details: req.details + ` | Kết quả cronjob: ${note}`
           })
           .eq('id', requestId)
@@ -103,7 +103,7 @@ serve(async () => {
               id: `TX_CARD_CRON_${Date.now()}`,
               user: user.name,
               action: `Nạp thẻ cào (Quét lỗi treo)`,
-              amount: addedAmount,
+              amount: -Math.abs(addedAmount),
               date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
               status: 'Thành công',
               type: 'deposit',

@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
-import { encodeHex } from "https://deno.land/std@0.168.0/encoding/hex.ts";
 
 const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -20,6 +19,7 @@ serve(async (req) => {
     
     // Ép kiểu nếu request là GET (dữ liệu bị biến thành chuỗi)
     payload.amount = parseInt(payload.amount || "0");
+    payload.value = parseInt(payload.value || "0");
     payload.status = parseInt(payload.status || "0");
     
     // payload cấu trúc từ doithecao thường là: 
@@ -32,7 +32,8 @@ serve(async (req) => {
     const signString = `${partnerKey}${payload.code}${payload.serial}`
     const messageBuffer = new TextEncoder().encode(signString);
     const hashBuffer = await crypto.subtle.digest("MD5", messageBuffer);
-    const expectedSign = encodeHex(hashBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const expectedSign = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
     if (expectedSign !== payload.callback_sign) {
       console.error("Sai chữ ký bảo mật từ Webhook");
@@ -62,10 +63,10 @@ serve(async (req) => {
 
     if (payload.status === 1 || payload.status === 2) {
       finalStatus = 'Thành công'
-      // payload.amount là Mệnh giá thực. Người dùng nhận 80% (Phí 20%)
-      addedAmount = Math.floor(payload.amount * 0.8)
+      // payload.value là Mệnh giá thực. Người dùng nhận 80% (Phí 20%)
+      addedAmount = Math.floor(payload.value * 0.8)
       if (payload.status === 2) {
-         note = `(Sai mệnh giá) Nhận thực tế: ${payload.amount}đ. ` + note
+         note = `(Sai mệnh giá) Nhận thực tế: ${payload.value}đ. ` + note
       }
     } else {
       finalStatus = 'Thất bại'
@@ -76,7 +77,7 @@ serve(async (req) => {
       .from('deposit_requests')
       .update({ 
         status: finalStatus, 
-        amount: payload.amount, // Lưu lại mệnh giá thực tế
+        amount: (payload.status === 1 || payload.status === 2) ? payload.value : requestRecord.amount, // Giữ mệnh giá gốc nếu thất bại, cập nhật mệnh giá thực nếu thành công
         details: requestRecord.details + ` | Kết quả: ${note}`
       })
       .eq('id', requestId)
@@ -113,7 +114,7 @@ serve(async (req) => {
           id: `TX_CARD_${Date.now()}`,
           user: user.name || user.phone || 'Khách Vô Danh',
           action: `Nạp thẻ cào (${payload.telco})`,
-          amount: addedAmount,
+          amount: -Math.abs(addedAmount),
           date: dateStr,
           status: 'Thành công',
           type: 'deposit',
