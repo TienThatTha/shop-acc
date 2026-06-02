@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website Đang Bảo Trì</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #0B1120;
+            color: #ffffff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            text-align: center;
+        }
+        .container {
+            background: rgba(30, 41, 59, 0.5);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            max-width: 500px;
+            width: 90%;
+        }
+        img.logo {
+            max-width: 250px;
+            margin-bottom: 30px;
+            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.2));
+            animation: float 6s ease-in-out infinite;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        p {
+            color: #94a3b8;
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="Logo.png" alt="Logo" class="logo" onerror="this.src='https://via.placeholder.com/250x80?text=LOGO'">
+        <h1>HỆ THỐNG ĐANG BẢO TRÌ</h1>
+        <p>Website đang được nâng cấp để mang lại trải nghiệm tốt hơn.<br>Vui lòng quay lại sau ít phút nhé!</p>
+        <div class="spinner"></div>
+    </div>
+</body>
+</html>

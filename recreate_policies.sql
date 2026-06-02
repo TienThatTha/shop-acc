@@ -23,6 +23,7 @@ CREATE POLICY "Public Select Accounts" ON public."accounts" FOR SELECT TO public
 CREATE POLICY "Auth Boosting Req" ON public."boosting_requests" FOR ALL TO public USING ((auth.role() = 'authenticated'::text));
 CREATE POLICY "Auth Rent" ON public."rent_requests" FOR ALL TO public USING ((auth.role() = 'authenticated'::text));
 CREATE POLICY "Auth Users Table" ON public."users" FOR ALL TO public USING ((auth.role() = 'authenticated'::text));
+CREATE POLICY "Enable insert for all users" ON public."users" FOR INSERT TO public WITH CHECK (true);
 CREATE POLICY "Enable read access for all users" ON public."users" FOR SELECT TO public USING (true);
 CREATE POLICY "Auth Manage Wheel" ON public."wheel_items" FOR ALL TO public USING ((auth.role() = 'authenticated'::text));
 CREATE POLICY "Public Select Wheel" ON public."wheel_items" FOR SELECT TO public USING (true);

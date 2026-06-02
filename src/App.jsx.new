@@ -270,7 +270,7 @@ const App = () => {
   });
 
   useEffect(() => {
-    localStorage.setItem('shop_current_view', currentView);
+    try { localStorage.setItem('', ); } catch(e){console.warn('Storage full')}
     setViewingAcc(null); // Tự động đóng modal xem chi tiết nick khi chuyển tab/trang khác
   }, [currentView]);
   // Lấy data tạm từ RAM lên ngay lập tức lúc F5 để web không bị trống
@@ -339,7 +339,7 @@ const App = () => {
   const [vouchersDb, setVouchersDb] = useState([]);
   const [adminSearchUser, setAdminSearchUser] = useState('');
   const [historyTab, setHistoryTab] = useState(() => localStorage.getItem('shop_history_tab') || 'buy'); // Quản lý Tab đang mở
-  useEffect(() => { localStorage.setItem('shop_history_tab', historyTab); }, [historyTab]);
+  useEffect(() => { try { localStorage.setItem('', ); } catch(e){console.warn('Storage full')} }, [historyTab]);
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(5); // Số lượng hiển thị mỗi lần cuộn
   const [visibleUsersCount, setVisibleUsersCount] = useState(8); // Ban đầu chỉ hiện 10 user
   const [visibleDepsClient, setVisibleDepsClient] = useState(5); // Nạp tiền (Khách)
@@ -391,7 +391,7 @@ const App = () => {
   const [expandedTx, setExpandedTx] = useState(null);
 
   const [adminTab, setAdminTab] = useState(() => localStorage.getItem('shop_admin_tab') || 'users');
-  useEffect(() => { localStorage.setItem('shop_admin_tab', adminTab); }, [adminTab]);
+  useEffect(() => { try { localStorage.setItem('', ); } catch(e){console.warn('Storage full')} }, [adminTab]);
   const [adminWheelType, setAdminWheelType] = useState('money');
   const [showAccModal, setShowAccModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
@@ -531,19 +531,19 @@ const App = () => {
             };
           });
           setAccountsDb(fixedAccounts);
-          localStorage.setItem('shop_accounts_db', JSON.stringify(fixedAccounts));
+          try { localStorage.setItem('shop_accounts_db', JSON.stringify(fixedAccounts));
         }
         if (boostRes.data) {
           setBoostingDb(boostRes.data);
-          localStorage.setItem('shop_boosting_db', JSON.stringify(boostRes.data));
+          try { localStorage.setItem('shop_boosting_db', JSON.stringify(boostRes.data));
         }
         if (wheelRes.data) {
           const moneyItems = wheelRes.data.filter(w => w.wheel_type === 'money');
           const spinItems = wheelRes.data.filter(w => w.wheel_type === 'spin');
           setWheelItemsMoneyDb(moneyItems);
           setWheelItemsSpinDb(spinItems);
-          try { localStorage.setItem('shop_wheel_money', JSON.stringify(moneyItems)); } catch (e) { }
-          try { localStorage.setItem('shop_wheel_spin', JSON.stringify(spinItems)); } catch (e) { }
+          try { try { localStorage.setItem('shop_wheel_money', JSON.stringify(moneyItems)); } catch (e) { }
+          try { try { localStorage.setItem('shop_wheel_spin', JSON.stringify(spinItems)); } catch (e) { }
         }
         if (voucherRes.data) setVouchersDb(voucherRes.data);
         if (boostReqRes.data) {
@@ -563,7 +563,7 @@ const App = () => {
         }
         if (commentsRes && commentsRes.data) {
           setCommentsDb(commentsRes.data);
-          localStorage.setItem('shop_comments_db', JSON.stringify(commentsRes.data));
+          try { localStorage.setItem('shop_comments_db', JSON.stringify(commentsRes.data));
         }
       });
 
@@ -586,7 +586,7 @@ const App = () => {
 
           if (user && !user.is_locked) {
             setCurrentUser(user);
-            localStorage.setItem('shop_cached_user', JSON.stringify(user));
+            try { localStorage.setItem('shop_cached_user', JSON.stringify(user));
 
             // GIẢI QUYẾT LỖI MẤT QUYỀN ADMIN (Chữ Hoa/Thường)
             const role = (user.role || 'user').toLowerCase();
@@ -602,10 +602,10 @@ const App = () => {
                 supabase.from('boosting_requests').select('*').order('created_at', { ascending: false }).limit(200)
               ]);
 
-              if (usersRes.data) { setUsersDb(usersRes.data); try { localStorage.setItem('shop_users_db', JSON.stringify(usersRes.data)); } catch (e) { } }
-              if (txRes.data) { setTransactionsDb(txRes.data); try { localStorage.setItem('shop_tx_db', JSON.stringify(txRes.data)); } catch (e) { } }
-              if (depRes.data) { setDepositRequests(depRes.data); try { localStorage.setItem('shop_dep_db', JSON.stringify(depRes.data)); } catch (e) { } }
-              if (msgRes.data) { setMessagesDb(msgRes.data); try { localStorage.setItem('shop_msg_db', JSON.stringify(msgRes.data)); } catch (e) { } }
+              if (usersRes.data) { setUsersDb(usersRes.data); try { try { localStorage.setItem('shop_users_db', JSON.stringify(usersRes.data)); } catch (e) { } }
+              if (txRes.data) { setTransactionsDb(txRes.data); try { try { localStorage.setItem('shop_tx_db', JSON.stringify(txRes.data)); } catch (e) { } }
+              if (depRes.data) { setDepositRequests(depRes.data); try { try { localStorage.setItem('shop_dep_db', JSON.stringify(depRes.data)); } catch (e) { } }
+              if (msgRes.data) { setMessagesDb(msgRes.data); try { try { localStorage.setItem('shop_msg_db', JSON.stringify(msgRes.data)); } catch (e) { } }
               if (boostReqRes.data) {
                 const fixedBoostReqs = boostReqRes.data.map(r => {
                   let parsedInfo = r.info;
@@ -620,7 +620,7 @@ const App = () => {
                   };
                 });
                 setBoostingRequests(fixedBoostReqs);
-                try { localStorage.setItem('shop_boost_db', JSON.stringify(fixedBoostReqs)); } catch (e) { }
+                try { try { localStorage.setItem('shop_boost_db', JSON.stringify(fixedBoostReqs)); } catch (e) { }
               }
               if (rentRes.data) {
                 const fixedRentReqs = rentRes.data.map(r => ({
@@ -629,7 +629,7 @@ const App = () => {
                   userId: r.userId || r.userid || ''
                 }));
                 setRentRequests(fixedRentReqs);
-                try { localStorage.setItem('shop_rent_db', JSON.stringify(fixedRentReqs)); } catch (e) { }
+                try { localStorage.setItem('shop_rent_db', JSON.stringify(fixedRentReqs));
               }
             } else {
               // QUYỀN KHÁCH: CHỈ TẢI CỦA KHÁCH
@@ -642,10 +642,10 @@ const App = () => {
                 supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').eq('role', 'admin').limit(1).maybeSingle()
               ]);
 
-              if (myTx.data) { setTransactionsDb(myTx.data); try { localStorage.setItem('shop_tx_db', JSON.stringify(myTx.data)); } catch (e) { } }
-              if (myDep.data) { setDepositRequests(myDep.data); try { localStorage.setItem('shop_dep_db', JSON.stringify(myDep.data)); } catch (e) { } }
-              if (myMsg.data) { setMessagesDb(myMsg.data); try { localStorage.setItem('shop_msg_db', JSON.stringify(myMsg.data)); } catch (e) { } }
-              if (adminRes.data) { setUsersDb([adminRes.data]); try { localStorage.setItem('shop_users_db', JSON.stringify([adminRes.data])); } catch (e) { } }
+              if (myTx.data) { setTransactionsDb(myTx.data); try { localStorage.setItem('shop_tx_db', JSON.stringify(myTx.data)); }
+              if (myDep.data) { setDepositRequests(myDep.data); try { localStorage.setItem('shop_dep_db', JSON.stringify(myDep.data)); }
+              if (myMsg.data) { setMessagesDb(myMsg.data); try { localStorage.setItem('shop_msg_db', JSON.stringify(myMsg.data)); }
+              if (adminRes.data) { setUsersDb([adminRes.data]); try { localStorage.setItem('shop_users_db', JSON.stringify([adminRes.data])); }
               if (myRent.data) {
                 const fixedRentReqs = myRent.data.map(r => ({
                   ...r,
@@ -653,7 +653,7 @@ const App = () => {
                   userId: r.userId || r.userid || ''
                 }));
                 setRentRequests(fixedRentReqs);
-                try { localStorage.setItem('shop_rent_db', JSON.stringify(fixedRentReqs)); } catch (e) { }
+                try { localStorage.setItem('shop_rent_db', JSON.stringify(fixedRentReqs));
               }
               // Lọc và hiển thị Cày Thuê cho khách
               if (myBoostReq.data) {
@@ -670,7 +670,7 @@ const App = () => {
                   };
                 });
                 setBoostingRequests(fixedBoostReqs);
-                try { localStorage.setItem('shop_boost_db', JSON.stringify(fixedBoostReqs)); } catch (e) { }
+                try { localStorage.setItem('shop_boost_db', JSON.stringify(fixedBoostReqs));
               }
             }
           }
@@ -904,7 +904,7 @@ const App = () => {
         // (Giải quyết bug: Duyệt qua Telegram nhưng khách phải F5 mới thấy số dư mới)
         if (payload.new.id === me?.id) {
           setCurrentUser(payload.new);
-          localStorage.setItem('shop_cached_user', JSON.stringify(payload.new));
+          try { localStorage.setItem('shop_cached_user', JSON.stringify(payload.new));
         }
       })
       .subscribe();
@@ -1228,7 +1228,7 @@ const App = () => {
           const { error } = await supabase.from('users').update({ avatar_url: imgUrl }).eq('id', currentUser.id);
           if (error) throw error;
           setCurrentUser({ ...currentUser, avatar_url: imgUrl });
-          localStorage.setItem('shop_cached_user', JSON.stringify({ ...currentUser, avatar_url: imgUrl }));
+          try { localStorage.setItem('shop_cached_user', JSON.stringify({ ...currentUser, avatar_url: imgUrl }));
           showToast("Đã cập nhật ảnh đại diện!");
         } catch (err) {
           console.error(err);
@@ -1307,7 +1307,7 @@ const App = () => {
       if (error) throw error;
       const updatedUser = { ...currentUser, avatar_url: null };
       setCurrentUser(updatedUser);
-      localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+      try { localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
       showToast("Đã gỡ ảnh đại diện!");
     } catch (err) {
       console.error(err);
@@ -1390,7 +1390,7 @@ const App = () => {
           return showToast("Tài khoản của bạn đã bị khóa!", 'error');
         }
         setCurrentUser(userData);
-        localStorage.setItem('shop_cached_user', JSON.stringify(userData));
+        try { localStorage.setItem('shop_cached_user', JSON.stringify(userData));
 
         // XÚC DỮ LIỆU ADMIN NGAY KHI ĐĂNG NHẬP ĐỂ KHÔNG BỊ TRỐNG PANEL
         const role = (userData.role || 'user').toLowerCase();
@@ -1403,9 +1403,9 @@ const App = () => {
             supabase.from('messages').select('*').order('timestamp', { ascending: true }).limit(500),
             supabase.from('boosting_requests').select('*').order('created_at', { ascending: false }).limit(200)
           ]);
-          if (usersRes.data) { setUsersDb(usersRes.data); try { localStorage.setItem('shop_users_db', JSON.stringify(usersRes.data)); } catch (e) { } }
-          if (txRes.data) { setTransactionsDb(txRes.data); try { localStorage.setItem('shop_tx_db', JSON.stringify(txRes.data)); } catch (e) { } }
-          if (depRes.data) { setDepositRequests(depRes.data); try { localStorage.setItem('shop_dep_db', JSON.stringify(depRes.data)); } catch (e) { } }
+          if (usersRes.data) { setUsersDb(usersRes.data); try { try { localStorage.setItem('shop_users_db', JSON.stringify(usersRes.data)); } catch (e) { } }
+          if (txRes.data) { setTransactionsDb(txRes.data); try { try { localStorage.setItem('shop_tx_db', JSON.stringify(txRes.data)); } catch (e) { } }
+          if (depRes.data) { setDepositRequests(depRes.data); try { try { localStorage.setItem('shop_dep_db', JSON.stringify(depRes.data)); } catch (e) { } }
           if (rentRes.data) {
             // Nhớ lọc chữ hoa/thường cho bảng Thuê Nick
             const fixedRentReqs = rentRes.data.map(r => ({
@@ -1414,9 +1414,9 @@ const App = () => {
               userId: r.userId || r.userid || ''
             }));
             setRentRequests(fixedRentReqs);
-            try { localStorage.setItem('shop_rent_db', JSON.stringify(fixedRentReqs)); } catch (e) { }
+            try { try { localStorage.setItem('shop_rent_db', JSON.stringify(fixedRentReqs)); } catch (e) { }
           }
-          if (msgRes.data) { setMessagesDb(msgRes.data); try { localStorage.setItem('shop_msg_db', JSON.stringify(msgRes.data)); } catch (e) { } }
+          if (msgRes.data) { setMessagesDb(msgRes.data); try { try { localStorage.setItem('shop_msg_db', JSON.stringify(msgRes.data)); } catch (e) { } }
           if (boostReqRes.data) {
             const fixedBoostReqs = boostReqRes.data.map(r => ({
               ...r,
@@ -1424,7 +1424,7 @@ const App = () => {
               boostingId: r.boostingId || r.boostingid || ''
             }));
             setBoostingRequests(fixedBoostReqs);
-            try { localStorage.setItem('shop_boost_db', JSON.stringify(fixedBoostReqs)); } catch (e) { }
+            try { try { localStorage.setItem('shop_boost_db', JSON.stringify(fixedBoostReqs)); } catch (e) { }
           }
         }
 
@@ -1615,7 +1615,7 @@ const App = () => {
       const newBalance = currentUser.balance - (acc.price * quantity);
       const updatedUser = { ...currentUser, balance: newBalance };
       setCurrentUser(updatedUser);
-      localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+      try { localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
 
       // Cập nhật stock ở client
       setAccountsDb(accountsDb.map(a => {
@@ -1692,7 +1692,7 @@ const App = () => {
     await supabase.from('users').update({ is_email_verified: true }).eq('id', currentUser.id);
     const updatedUser = { ...currentUser, is_email_verified: true };
     setCurrentUser(updatedUser);
-    localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+    try { localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
     setShowOtpModal(false);
     setOtpCode('');
     showToast("Xác thực Email thành công!", 'success');
@@ -1801,7 +1801,7 @@ const App = () => {
         // 7. Cập nhật giao diện Web
         const updatedUser = { ...currentUser, rentFund: newFund, balance: newBalance };
         setCurrentUser(updatedUser);
-        localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+        try { localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
         setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
         setAccountsDb(accountsDb.map(a => a.id === acc.id ? { ...a, rentedUntil: null, currentRenterId: null } : a));
         setViewingAcc(null);
@@ -1843,7 +1843,7 @@ const App = () => {
 
         setUsersDb(usersDb.map(u => u.id === userObj.id ? updatedUser : u));
         if (currentUser?.id === userObj.id) setCurrentUser(updatedUser);
-        localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+        try { localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
 
         setTransactionsDb(transactionsDb.map(t => t.id === tx.id ? { ...t, status: 'Đã hoàn tác' } : t));
 
@@ -2950,7 +2950,7 @@ const App = () => {
         ...(newEmail !== currentUser.email ? { is_email_verified: false } : {})
       };
       setCurrentUser(updatedUser);
-      localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+      try { localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
       setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u));
     };
 
@@ -3212,7 +3212,7 @@ const App = () => {
                           // 5. Cập nhật giao diện
                           const updatedSender = { ...currentUser, balance: liveSender.balance - totalDeduct };
                           setCurrentUser(updatedSender);
-                          localStorage.setItem('shop_cached_user', JSON.stringify(updatedSender));
+                          try { localStorage.setItem('shop_cached_user', JSON.stringify(updatedSender));
                           setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedSender : u.id === receiver.id ? { ...u, balance: liveReceiver.balance + amount } : u));
 
                           formEl.reset();
@@ -4377,7 +4377,7 @@ const App = () => {
           rentFund: data.new_fund
         };
         setCurrentUser(updatedUser);
-        localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+        try { localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
         setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
 
         // Kéo 2 dòng lịch sử mới nhất (Vé quay & Trúng thưởng) để hiển thị bên phải
@@ -5245,7 +5245,7 @@ const App = () => {
         title: 'Ẩn lịch sử chat',
         message: 'Bạn có chắc muốn dọn dẹp khung chat với khách hàng này không? (Khách hàng vẫn sẽ thấy tin nhắn bình thường)',
         onConfirm: () => {
-          localStorage.setItem(`admin_cleared_chat_${userId}`, Date.now().toString());
+          try { localStorage.setItem(`admin_cleared_chat_${userId}`, Date.now().toString());
           setActiveChatUser(null);
           showToast("Đã dọn dẹp lịch sử chat thành công!", "success");
         }
@@ -5610,7 +5610,7 @@ const App = () => {
                       bonusSpins: parseInt(e.target.bonusSpins.value)
                     };
                     setDepositBonusConfig(newConfig);
-                    localStorage.setItem('shop_deposit_config', JSON.stringify(newConfig));
+                    try { localStorage.setItem('shop_deposit_config', JSON.stringify(newConfig));
                     supabase.from('site_config').upsert({ id: 'deposit_bonus', value: newConfig }).then(() => {
                       showToast("Lưu cài đặt khuyến mãi nạp thành công!");
                     }).catch(e => {
@@ -6398,7 +6398,7 @@ const App = () => {
                       spinCost: parseInt(e.target.spinCost.value)
                     };
                     setWheelConfig(newConfig);
-                    localStorage.setItem('shop_wheel_config', JSON.stringify(newConfig)); // Ghi vào bộ nhớ trình duyệt để chống F5
+                    try { localStorage.setItem('shop_wheel_config', JSON.stringify(newConfig)); // Ghi vào bộ nhớ trình duyệt để chống F5
                     showToast("Lưu cài đặt vòng quay thành công!");
                   }} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                     <div>
@@ -7947,7 +7947,7 @@ const App = () => {
                                         showToast(`Đã ngừng thuê! ${savedMoney > 0 ? `Được hoàn ${new Intl.NumberFormat('vi-VN').format(savedMoney)}đ vào Quỹ Thuê.` : ''}`);
                                         const u = { ...currentUser, balance: newBalance, rentFund: newFund };
                                         setCurrentUser(u);
-                                        localStorage.setItem('shop_cached_user', JSON.stringify(u));
+                                        try { localStorage.setItem('shop_cached_user', JSON.stringify(u));
                                         setViewingAcc(null);
                                       } catch (err) {
                                         showToast('Lỗi: ' + err.message, 'error');
@@ -8306,7 +8306,7 @@ const App = () => {
                       if (rentData) {
                         const updatedUser = { ...currentUser, balance: newBalance, rentFund: newFund };
                         setCurrentUser(updatedUser);
-                        localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+                        try { localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
 
                         setRentRequests([rentData[0], ...rentRequests]);
                         setTransactionsDb(prev => [...txs, ...prev]);
@@ -8882,7 +8882,7 @@ const App = () => {
                             boostingTitle: packageTitle,
                             date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN'),
                             status: 'Chờ xử lý',
-                            info: JSON.stringify({ loginMethod, username, password, note, amount: activePrice, quantity: targetModal.allow_quantity ? boostQuantity : 1 })
+                            info: { loginMethod, username, password, note, amount: activePrice, quantity: targetModal.allow_quantity ? boostQuantity : 1 }
                           };
 
                           const { error: insertErr } = await supabase.from('boosting_requests').insert([dbPayload]);
@@ -8891,13 +8891,10 @@ const App = () => {
                             return;
                           }
 
-                          const newBoostReq = { 
-                            ...dbPayload,
-                            info: { loginMethod, username, password, note, amount: activePrice, quantity: targetModal.allow_quantity ? boostQuantity : 1 }
-                          };
+                          const newBoostReq = { ...dbPayload };
                           const updatedUser = { ...currentUser, balance: newBalance };
                           setCurrentUser(updatedUser);
-                          localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+                          try { localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
                           setUsersDb(usersDb.map(u => u.id === currentUser?.id ? updatedUser : u));
 
                           setTransactionsDb([newTx, ...transactionsDb]);
