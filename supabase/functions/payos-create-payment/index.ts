@@ -55,7 +55,8 @@ serve(async (req) => {
       voucherCode: voucherCode || null,
       details: voucherCode ? `Chờ thanh toán (Voucher: ${voucherCode})` : 'Chờ thanh toán tự động',
       status: 'Chờ duyệt',
-      type: 'banking'
+      type: 'banking',
+      created_at: new Date().toISOString()
     }]);
 
     return new Response(JSON.stringify({ 

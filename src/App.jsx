@@ -12,6 +12,23 @@ import {
 import { supabase } from './supabaseClient';
 import emailjs from '@emailjs/browser';
 
+const getRecordTime = (item) => {
+  if (item.created_at) return new Date(item.created_at).getTime();
+  if (item.date) {
+    const dStr = item.date;
+    let d = 0;
+    const p1 = dStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    const p2 = dStr.match(/(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+    if (p1 && p2) d = new Date(`${p1[3]}-${p1[2].padStart(2,'0')}-${p1[1].padStart(2,'0')}T${p2[1].padStart(2,'0')}:${p2[2].padStart(2,'0')}:${p2[3].padStart(2,'0')}`).getTime();
+    if (d > 0 && !isNaN(d)) return d;
+  }
+  if (item.id) {
+    const num = parseInt(String(item.id).replace(/\D/g, ''));
+    if (!isNaN(num) && num > 1000000000000) return num;
+  }
+  return 0;
+};
+
 const getRankByPoints = (points, rankTiers = []) => {
   if (!rankTiers || rankTiers.length === 0) return 'Chưa xếp hạng';
   if (points == null || points < rankTiers[0].points) return 'Chưa xếp hạng';
@@ -3836,7 +3853,7 @@ const App = () => {
                           <span className="text-[10px] text-red-400 block mt-0.5 leading-tight">{getCustomerFriendlyError(d.details)}</span>
                         )}
                         <span className="text-[10px] text-slate-500 block mt-0.5">
-                          {new Date(d.created_at || parseInt(d.id)).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}
+                          {new Date(getRecordTime(d) || Date.now()).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}
                         </span>
                       </div>
                       <div className="flex flex-col gap-1 items-end whitespace-nowrap">
@@ -3912,7 +3929,7 @@ const App = () => {
       { id: 'transfer', name: 'Chuyển Tiền', icon: <ArrowLeftRight size={16} />, data: historyTransfer }
     ];
 
-    const currentData = tabs.find(t => t.id === historyTab)?.data || [];
+    const currentData = [...(tabs.find(t => t.id === historyTab)?.data || [])].sort((a, b) => getRecordTime(b) - getRecordTime(a));
     const visibleData = currentData.slice(0, visibleHistoryCount); // Chỉ cắt lấy số lượng đang hiển thị
 
     return (
@@ -5671,9 +5688,9 @@ const App = () => {
                     <table className="w-full text-left text-sm min-w-[600px]">
                       <thead className="bg-[#0B1120] text-slate-400 text-xs uppercase"><tr><th className="p-4">Mã GD / Ngày</th><th className="p-4">Khách hàng</th><th className="p-4">Số tiền duyệt</th><th className="p-4 text-center">Hành động</th></tr></thead>
                       <tbody className="divide-y divide-slate-800">
-                        {depositRequests.slice(0, visibleDepsAdmin).map(d => (
+                        {[...depositRequests].sort((a, b) => getRecordTime(b) - getRecordTime(a)).slice(0, visibleDepsAdmin).map(d => (
                           <tr key={d.id} className="hover:bg-slate-800/30">
-                            <td className="p-4"><div className="text-slate-300 font-mono text-xs">{d.id}</div><div className="text-[10px] text-slate-500 mt-1">{new Date(d.created_at || parseInt(d.id)).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</div></td>
+                            <td className="p-4"><div className="text-slate-300 font-mono text-xs">{d.id}</div><div className="text-[10px] text-slate-500 mt-1">{new Date(getRecordTime(d) || Date.now()).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</div></td>
                             <td className="p-4 text-blue-400 font-bold">
                               <button
                                 onClick={() => {
@@ -5745,7 +5762,7 @@ const App = () => {
                     const { scrollTop, scrollHeight, clientHeight } = e.target;
                     if (scrollTop + clientHeight >= scrollHeight - 20) setVisibleRentsAdmin(prev => prev + 5);
                   }}>
-                    {rentRequests.slice(0, visibleRentsAdmin).map(r => {
+                    {[...rentRequests].sort((a, b) => getRecordTime(b) - getRecordTime(a)).slice(0, visibleRentsAdmin).map(r => {
                       const accObj = accountsDb.find(a => a.code === r.accCode);
                       const isStillRented = accObj?.rentedUntil && accObj.rentedUntil > Date.now() && rentRequests.find(req => req.accCode === r.accCode && req.status === 'Đã giao acc')?.id === r.id;
 
@@ -6475,7 +6492,7 @@ const App = () => {
                           <tr><th className="p-4">Thời gian</th><th className="p-4">Khách hàng</th><th className="p-4">Phần thưởng trúng</th><th className="p-4 text-right">Giá trị quy đổi</th></tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800">
-                          {transactionsDb.filter(t => t.type === 'spin_win').slice(0, visibleSpinsAdmin).map((tx, idx) => (
+                          {[...transactionsDb].filter(t => t.type === 'spin_win').sort((a, b) => getRecordTime(b) - getRecordTime(a)).slice(0, visibleSpinsAdmin).map((tx, idx) => (
                             <tr key={idx} className="hover:bg-slate-800/50 transition-colors">
                               <td className="p-4 text-xs text-slate-400 font-mono">{tx.date}</td>
                               <td className="p-4 font-bold text-blue-400">{tx.user}</td>
