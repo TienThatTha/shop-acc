@@ -4462,7 +4462,7 @@ const App = () => {
                   <div className="absolute right-0 top-0 bottom-0 w-12 md:w-16 bg-gradient-to-l from-[#0B1120] to-transparent z-10 pointer-events-none"></div>
                   <div className="flex whitespace-nowrap animate-marquee w-max group-hover:pause">
                     {recentWinners.map((tx, idx) => {
-                      const timeOnly = tx.date.split(' ').pop();
+                      const dateTime = tx.date;
 
                       // Dùng Regex "tận diệt" mọi chữ dư thừa (Cả lịch sử cũ và mới)
                       const cleanPrizeName = tx.action
@@ -4474,14 +4474,14 @@ const App = () => {
                       return (
                         <span key={idx} className="text-white text-xs md:text-sm mx-6 flex items-center gap-2">
                           <Sparkles size={14} className="text-yellow-400 animate-pulse" />
-                          <span className="text-slate-400">[{timeOnly}]</span>
+                          <span className="text-slate-400">[{dateTime}]</span>
                           <span className="font-bold text-blue-400">{tx.user}</span> vừa trúng phần thưởng
                           <span className="font-black text-rose-400">{cleanPrizeName}</span>
                         </span>
                       )
                     })}
                     {recentWinners.map((tx, idx) => {
-                      const timeOnly = tx.date.split(' ').pop();
+                      const dateTime = tx.date;
                       const cleanPrizeName = tx.action
                         .replace(/Trúng phần thưởng:/gi, '')
                         .replace(/Trúng thưởng:/gi, '')
@@ -4491,7 +4491,7 @@ const App = () => {
                       return (
                         <span key={`dup-${idx}`} className="text-white text-xs md:text-sm mx-6 flex items-center gap-2">
                           <Sparkles size={14} className="text-yellow-400 animate-pulse" />
-                          <span className="text-slate-400">[{timeOnly}]</span>
+                          <span className="text-slate-400">[{dateTime}]</span>
                           <span className="font-bold text-blue-400">{tx.user}</span> vừa trúng phần thưởng
                           <span className="font-black text-rose-400">{cleanPrizeName}</span>
                         </span>
