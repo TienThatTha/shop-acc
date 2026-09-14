@@ -7,7 +7,7 @@ import {
   History, Target, Gift, Save, Upload, Plus, Unlock, QrCode,
   Download, Copy, Check, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ZoomIn,
   Sparkles, TrendingUp, Users, Ticket, Settings2, MessageCircle, Send, Eye, EyeOff,
-  ArrowLeftRight, RotateCcw, MoreVertical, AlertTriangle, ArrowLeft, Loader2
+  ArrowLeftRight, RotateCcw, MoreVertical, AlertTriangle, ArrowLeft, Loader2, Swords, Crown, Zap, Shield, Gem
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import emailjs from '@emailjs/browser';
@@ -42,6 +42,142 @@ const getRankByPoints = (points, rankTiers = []) => {
   }
   return currentRank;
 };
+
+
+const BOSS_GAME_PACKAGES = [
+  {
+    id: 'pack_1',
+    name: 'Gói 1: Tân Thủ Khởi Đầu',
+    price: 20000,
+    badge: 'Tân Thủ',
+    badgeColor: 'from-emerald-500 to-teal-500',
+    coins: 200,
+    royalChests: 2,
+    attacks: 2000,
+    extraDesc: '200 Xu + 2 Rương Hoàng Kim + 2.000 Lượt Đánh',
+    image: '/game-assets/royal_chest.png',
+    items: []
+  },
+  {
+    id: 'pack_2',
+    name: 'Gói 2: Dũng Sĩ Chiến Trường',
+    price: 50000,
+    badge: 'Phổ Biến',
+    badgeColor: 'from-blue-500 to-cyan-500',
+    coins: 500,
+    royalChests: 5,
+    attacks: 5000,
+    extraDesc: '500 Xu + 5 Rương Hoàng Kim + 5.000 Lượt Đánh',
+    image: '/game-assets/royal_chest.png',
+    items: []
+  },
+  {
+    id: 'pack_3',
+    name: 'Gói 3: Chiến Tướng Oai Vệ',
+    price: 100000,
+    badge: 'Bán Chạy',
+    badgeColor: 'from-indigo-500 to-purple-500',
+    coins: 1000,
+    royalChests: 10,
+    attacks: 10000,
+    extraDesc: '1.000 Xu + 10 Rương Hoàng Kim + 10.000 Lượt Đánh',
+    image: '/game-assets/royal_chest.png',
+    items: []
+  },
+  {
+    id: 'pack_4',
+    name: 'Gói 4: Thần Tướng Trảm Yêu',
+    price: 200000,
+    badge: 'Siêu Cấp',
+    badgeColor: 'from-purple-500 to-pink-500',
+    coins: 2000,
+    royalChests: 20,
+    attacks: 20000,
+    extraDesc: '2.000 Xu + 20 Rương Hoàng Kim + 20.000 Lượt Đánh',
+    image: '/game-assets/royal_chest.png',
+    items: []
+  },
+  {
+    id: 'pack_5',
+    name: 'Gói 5: Đại Hiệp Xuất Chúng',
+    price: 500000,
+    badge: 'Khuyến Mãi +20%',
+    badgeColor: 'from-amber-500 to-orange-500',
+    coins: 6000,
+    royalChests: 60,
+    attacks: 60000,
+    extraDesc: '6.000 Xu + 60 Rương Hoàng Kim + 60.000 Lượt Đánh (KM +20%)',
+    image: '/game-assets/item_tinh_the.png',
+    items: []
+  },
+  {
+    id: 'pack_6',
+    name: 'Gói 6: Ma Vương Diệt Thế',
+    price: 1000000,
+    badge: 'Khuyến Mãi +30%',
+    badgeColor: 'from-rose-500 to-red-600',
+    coins: 13000,
+    royalChests: 130,
+    attacks: 130000,
+    extraDesc: '13.000 Xu + 130 Rương Hoàng Kim + 130.000 Lượt Đánh (KM +30%)',
+    image: '/game-assets/item_tinh_the.png',
+    items: []
+  },
+  {
+    id: 'pack_7',
+    name: 'Gói 7: Cổ Đại Tôn Giả',
+    price: 1500000,
+    badge: 'KM +35% & Nhẫn 5⭐',
+    badgeColor: 'from-emerald-400 to-green-600 shadow-[0_0_15px_rgba(16,185,129,0.4)]',
+    coins: 20000,
+    royalChests: 200,
+    attacks: 200000,
+    extraDesc: '20.000 Xu + 200 Rương HK + 200.000 Lượt + 💥 1x Nhẫn Cổ Đại 5⭐',
+    image: '/game-assets/ring_codai.png',
+    items: [
+      {
+        id: 'ring_chaos',
+        name: 'Nhẫn Thần Long Chaos',
+        category: 'ring',
+        tier: 'Cổ Đại',
+        stars: 5,
+        base_dmg_percent: 80,
+        skill_pct: 40.0,
+        color: '#00ffaa',
+        image: 'ring_codai.png',
+        sub_stats: ['⚡ +25% Sát Thương Long Tộc'],
+        quantity: 1
+      }
+    ]
+  },
+  {
+    id: 'pack_8',
+    name: 'Gói 8: Thượng Cổ Chí Tôn',
+    price: 2500000,
+    badge: '👑 VIP +50% & Nhẫn 1⭐',
+    badgeColor: 'from-yellow-400 via-amber-500 to-red-600 shadow-[0_0_20px_rgba(234,179,8,0.6)] animate-pulse',
+    coins: 37500,
+    royalChests: 375,
+    attacks: 375000,
+    extraDesc: '37.500 Xu + 375 Rương HK + 375.000 Lượt + 🌌 1x Nhẫn Thượng Cổ 1⭐',
+    image: '/game-assets/ring_thuongco.png',
+    items: [
+      {
+        id: 'ring_prim',
+        name: 'Bát Hoang Thần Giới Vô Cực',
+        category: 'ring',
+        tier: 'Thượng Cổ',
+        stars: 1,
+        base_dmg_percent: 150,
+        skill_pct: 50.0,
+        color: '#ff0055',
+        image: 'ring_thuongco.png',
+        sub_stats: ['🌌 +50% Sát Thương Vô Cực', '👑 +35% Lực Chiến CP Tổng'],
+        quantity: 1
+      }
+    ]
+  }
+];
 
 const calculateBoostPrice = (currentPoints, targetPoints, rankTiers = []) => {
   if (!rankTiers || rankTiers.length === 0) return 0;
@@ -274,6 +410,21 @@ const App = () => {
       console.error("Lỗi gửi mail nạp tiền cho khách:", error);
     }
   };
+
+  
+  // --- STATE CHO GAME MỘNG THIÊN HUYỄN ---
+  const [bossTargetId, setBossTargetId] = useState(() => localStorage.getItem('shop_boss_target_id') || '');
+  const [bossPlayerSummary, setBossPlayerSummary] = useState(null);
+  const [isCheckingBossPlayer, setIsCheckingBossPlayer] = useState(false);
+  const [selectedBossPackage, setSelectedBossPackage] = useState(null);
+  const [isBuyingBossPackage, setIsBuyingBossPackage] = useState(false);
+  const [bossSuccessModal, setBossSuccessModal] = useState(null);
+
+  useEffect(() => {
+    if (bossTargetId) {
+      localStorage.setItem('shop_boss_target_id', bossTargetId);
+    }
+  }, [bossTargetId]);
 
   const [usersDb, setUsersDb] = useState(() => { try { const saved = localStorage.getItem('shop_users_db'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; } });
   const [visitorCount, setVisitorCount] = useState(0);
@@ -1929,6 +2080,7 @@ const App = () => {
             {[
               { name: 'Trang Chủ', view: 'dashboard', auth: false, icon: <Gamepad2 size={20} /> },
               { name: 'Nạp Tiền VNĐ', view: 'naptien', auth: true, icon: <Wallet size={20} /> },
+              { name: '⚔️ Nạp Game Mộng Thiên Huyễn', view: 'bossgame', auth: true, icon: <Swords size={20} /> },
               { name: 'Dịch Vụ Cày Thuê', view: 'caythue', auth: false, icon: <Target size={20} /> },
               { name: 'Vòng Quay May Mắn', view: 'vongquay', auth: false, icon: <Gift size={20} /> },
               { name: 'Lịch Sử Giao Dịch', view: 'lichsu', auth: true, icon: <History size={20} /> },
@@ -1978,6 +2130,7 @@ const App = () => {
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#151D2F]/95 backdrop-blur-lg border-t border-slate-800 z-[45] flex justify-around items-center h-[68px] pb-safe shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
         {[
           { id: 'dashboard', name: 'Trang chủ', icon: <Gamepad2 size={22} />, auth: false },
+          { id: 'bossgame', name: 'Nạp Game', icon: <Swords size={22} />, auth: true },
           { id: 'caythue', name: 'Cày thuê', icon: <Target size={22} />, auth: false },
           { id: 'naptien', name: 'Nạp tiền', icon: <Wallet size={22} />, auth: true },
           { id: 'vongquay', name: 'Vòng quay', icon: <Gift size={22} />, auth: false },
@@ -2029,6 +2182,7 @@ const App = () => {
             {[
               { name: 'Mua Nick', view: 'dashboard', auth: false },
               { name: 'Nạp Tiền', view: 'naptien', auth: true },
+              { name: '⚔️ Nạp Game Mộng Thiên Huyễn', view: 'bossgame', auth: true },
               { name: 'Cày Thuê', view: 'caythue', auth: false },
               { name: 'Vòng Quay', view: 'vongquay', auth: false },
               { name: 'Lịch Sử', view: 'lichsu', auth: true }
@@ -2560,6 +2714,177 @@ const App = () => {
     );
   };
 
+  
+  // --- HÀM TRA CỨU NGƯỜI CHƠI GAME BOSS MỘNG THIÊN HUYỄN ---
+  const handleCheckBossPlayer = async (targetIdInput) => {
+    const rawId = (targetIdInput !== undefined ? targetIdInput : bossTargetId).trim();
+    if (!rawId) {
+      showToast("Vui lòng nhập ID TikTok, Discord ID hoặc Tên In-game!", "error");
+      return;
+    }
+    setIsCheckingBossPlayer(true);
+    try {
+      let checked = false;
+      try {
+        const res = await fetch(`http://localhost:8000/api/web/player-info?user_id=${encodeURIComponent(rawId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setBossPlayerSummary(data);
+          checked = true;
+          if (data.exists) {
+            showToast(`Đã tìm thấy người chơi: ${data.nickname} (Lv.${data.level} - ${new Intl.NumberFormat('vi-VN').format(data.cp)} CP)!`);
+          } else {
+            showToast("Tài khoản chưa có trên Live, hệ thống sẽ tự động tạo mới khi nạp!", "info");
+          }
+        }
+      } catch (e) {}
+
+      if (!checked) {
+        setBossPlayerSummary({
+          exists: true,
+          user_id: rawId.replace(/^@/, ''),
+          nickname: rawId,
+          level: 'Auto',
+          cp: 'Auto',
+          bonus_attacks: 'Tự động đồng bộ',
+          avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(rawId)}`
+        });
+        showToast("Đã ghi nhận ID game! Bạn có thể chọn gói để nạp ngay.");
+      }
+    } finally {
+      setIsCheckingBossPlayer(false);
+    }
+  };
+
+  // --- HÀM THANH TOÁN MUA GÓI NẠP GAME BOSS MỘNG THIÊN HUYỄN ---
+  const executeBuyBossPackage = async (pkg) => {
+    if (!currentUser) return requireAuth('login');
+    if (!bossTargetId.trim()) {
+      showToast("Vui lòng nhập ID TikTok hoặc Discord nhận quà trước!", "error");
+      return;
+    }
+    if ((currentUser.balance || 0) < pkg.price) {
+      showToast(`Số dư ví không đủ! Cần thêm ${new Intl.NumberFormat('vi-VN').format(pkg.price - (currentUser.balance || 0))}đ. Vui lòng nạp tiền vào ví.`, "error");
+      return;
+    }
+    if (isBuyingBossPackage) return;
+    setIsBuyingBossPackage(true);
+
+    const orderId = `BG_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const dateStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN');
+    const targetUid = bossTargetId.trim().replace(/^@/, '');
+
+    const orderDetails = {
+      order_id: orderId,
+      user_id: targetUid,
+      nickname: bossPlayerSummary?.nickname || bossTargetId.trim(),
+      package_id: pkg.id,
+      package_name: pkg.name,
+      price: pkg.price,
+      rewards: {
+        attacks: pkg.attacks || 0,
+        royal_chests: pkg.royalChests || 0,
+        boss_chests: 0,
+        coins: pkg.coins || 0,
+        has_x2_rate: Boolean(pkg.hasX2Rate),
+        items: pkg.items || []
+      },
+      web_user: currentUser.name || currentUser.id
+    };
+
+    const txPayload = {
+      id: orderId,
+      user: currentUser.name,
+      action: `Nạp ${pkg.name} [${bossTargetId.trim()}]`,
+      amount: pkg.price,
+      date: dateStr,
+      status: 'Đã hoàn tất',
+      type: 'boss_game_topup',
+      isSpinCost: false,
+      accDetails: orderDetails
+    };
+
+    try {
+      // 1. Trừ tiền ví web qua RPC hoặc update bảng users
+      let spendSuccess = false;
+      try {
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc('rpc_client_spend', {
+          p_amount: pkg.price,
+          p_fund_amount: 0,
+          p_tx_data: txPayload
+        });
+        if (!rpcErr && rpcRes?.success) {
+          spendSuccess = true;
+        }
+      } catch (e) {}
+
+      if (!spendSuccess) {
+        const newBal = (currentUser.balance || 0) - pkg.price;
+        const { error: updErr } = await supabase.from('users').update({ balance: newBal }).eq('id', currentUser.id);
+        if (updErr) throw updErr;
+        await supabase.from('transactions').insert([txPayload]);
+        spendSuccess = true;
+      }
+
+      // 2. Lưu đơn hàng vào Supabase (game_orders hoặc deposit_requests)
+      try {
+        const { error: insErr } = await supabase.from('game_orders').insert([{
+          id: orderId,
+          user_id: targetUid,
+          nickname: bossPlayerSummary?.nickname || bossTargetId.trim(),
+          web_user: currentUser.name,
+          package_id: pkg.id,
+          package_name: pkg.name,
+          price: pkg.price,
+          rewards: orderDetails.rewards,
+          status: 'pending'
+        }]);
+        if (insErr) {
+          await supabase.from('deposit_requests').insert([{
+            id: orderId,
+            user: currentUser.name,
+            userId: currentUser.id,
+            amount: pkg.price,
+            status: 'pending',
+            date: dateStr,
+            type: 'boss_game_topup',
+            details: JSON.stringify(orderDetails)
+          }]);
+        }
+      } catch (e) {}
+
+      // 3. Gọi trực tiếp Webhook tới bot game nếu bot đang chạy ở port 8000
+      try {
+        await fetch('http://localhost:8000/api/web/topup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-API-Key': 'tiengaming_boss_secret_2026' },
+          body: JSON.stringify(orderDetails)
+        });
+      } catch (e) {}
+
+      // 4. Cập nhật state client
+      const updatedUser = { ...currentUser, balance: (currentUser.balance || 0) - pkg.price };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+      setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
+      setTransactionsDb([txPayload, ...transactionsDb]);
+
+      setSelectedBossPackage(null);
+      setBossSuccessModal({
+        pkg,
+        targetId: bossTargetId.trim(),
+        orderId
+      });
+      showToast(`Nạp ${pkg.name} thành công! Vật phẩm đang được chuyển tự động vào game.`);
+      sendAdminAlert('NẠP GAME BOSS MỘNG THIÊN HUYỄN', `Khách ${currentUser.name} vừa nạp ${pkg.name} (${new Intl.NumberFormat('vi-VN').format(pkg.price)}đ) cho ID: ${bossTargetId.trim()}`);
+
+    } catch (err) {
+      showToast("Lỗi khi thanh toán: " + (err.message || err), "error");
+    } finally {
+      setIsBuyingBossPackage(false);
+    }
+  };
+
   const renderDashboardScreen = () => {
     // Chỉ lấy những tài khoản chưa bị đánh dấu Đã Bán
     const availableAccounts = accountsDb.filter(acc => !acc.is_sold && (acc.stock === undefined || acc.stock > 0));
@@ -2607,6 +2932,12 @@ const App = () => {
                       >
                         💳 HỖ TRỢ NẠP THẺ CÀO TỰ ĐỘNG
                       </div>
+                      <div
+                        onClick={() => { requireAuth('bossgame'); setCurrentView('bossgame'); }}
+                        className="inline-block px-4 py-1 bg-gradient-to-r from-amber-500/30 to-rose-500/30 text-amber-300 font-extrabold text-xs rounded-full border border-amber-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(245,158,11,0.5)] cursor-pointer hover:scale-105 transition-all animate-pulse"
+                      >
+                        ⚔️ NẠP GAME MỘNG THIÊN HUYỄN (TỰ ĐỘNG)
+                      </div>
                     </div>
                     <h2 className="text-4xl md:text-5xl font-black text-white mb-4 uppercase leading-tight drop-shadow-lg">
                       TRẢI NGHIỆM GAMING <br className="hidden md:block" />
@@ -2632,7 +2963,7 @@ const App = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        window.open('https://www.dropbox.com/scl/fo/9eai63w3bbs5rpi3csjdi/AD-0_7AgHSULdoN2bmuKXIc?rlkey=x14ooep1r2vma2a6mz57n3r0l&st=lheu321c&dl=1', '_blank');
+                        window.open('https://down.aweray.com/awesun/windows/Aweray_Remote_2.0.0.45399_x64.exe', '_blank');
                         setAwesunGuideType('outside');
                       }}
                       className="w-full bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border border-blue-500/30 shadow-sm relative z-10"
@@ -3913,6 +4244,7 @@ const App = () => {
     const myTransactions = transactionsDb.filter(t => t.user === currentUser?.name);
 
     const historyBuy = myTransactions.filter(t => t.type === 'buy_acc' && !t.action.includes('Cày thuê') && !t.action.includes('cày thuê'));
+    const historyBossGame = myTransactions.filter(t => t.type === 'boss_game_topup');
     const historyRent = myTransactions.filter(t => t.type?.includes('rent') || t.type?.includes('fund') || t.type === 'deposit_refund' || t.action?.toLowerCase().includes('thuê nick') || t.action?.toLowerCase().includes('quy đổi') || t.action?.toLowerCase().includes('hoàn cọc'));
     const historySpin = myTransactions.filter(t => t.type === 'spin_win' && t.amount !== 0 && !t.isSpinCost);
     const historyBoost = boostingRequests.filter(r => r.user === currentUser?.name);
@@ -3922,6 +4254,7 @@ const App = () => {
     // Cấu hình các Tab
     const tabs = [
       { id: 'buy', name: 'Mua Acc', icon: <Gamepad2 size={16} />, data: historyBuy },
+      { id: 'bossgame', name: 'Nạp Game Boss', icon: <Swords size={16} />, data: historyBossGame },
       { id: 'rent', name: 'Thuê Acc', icon: <Clock size={16} />, data: historyRent },
       { id: 'spin', name: 'Vòng Quay', icon: <Gift size={16} />, data: historySpin },
       { id: 'boost', name: 'Cày Thuê', icon: <Target size={16} />, data: historyBoost },
@@ -3968,7 +4301,39 @@ const App = () => {
             ) : (
               <div className="flex flex-col">
                 {/* 1. RENDER LỊCH SỬ MUA ACC (CÓ TÍNH NĂNG MỞ RỘNG XEM PASS) */}
-                {historyTab === 'buy' && visibleData.map(tx => (
+                {historyTab === 'bossgame' && visibleData.map(tx => {
+                const details = tx.accDetails || {};
+                return (
+                  <div key={tx.id} className="bg-[#1A233A] border border-slate-700/60 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-amber-500/40 transition-colors text-left">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                        <Swords size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-white font-bold">{tx.action}</h4>
+                        <p className="text-xs text-slate-400">{tx.date} • Mã đơn: <span className="font-mono text-slate-300">{tx.id}</span></p>
+                        {details.rewards && (
+                          <p className="text-xs text-amber-400 font-semibold mt-1">
+                            Quà: {details.rewards.attacks ? `+${new Intl.NumberFormat('vi-VN').format(details.rewards.attacks)} lượt` : ''}
+                            {details.rewards.royal_chests ? ` • +${details.rewards.royal_chests} Rương HK` : ''}
+                            {details.rewards.coins ? ` • +${new Intl.NumberFormat('vi-VN').format(details.rewards.coins)} Xu` : ''}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-rose-400 font-black text-base">-{new Intl.NumberFormat('vi-VN').format(tx.amount)}đ</span>
+                      <div className="mt-1">
+                        <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          {tx.status || 'Thành công'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {historyTab === 'buy' && visibleData.map(tx => (
                   <div key={tx.id} className="border-b border-slate-800 flex flex-col">
                     <div
                       className="p-4 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors cursor-pointer"
@@ -4725,7 +5090,397 @@ const App = () => {
     );
   };
 
-  const renderAdminScreen = () => {
+
+  // =============================================================================
+  // MÀN HÌNH NẠP GAME MỘNG THIÊN HUYỄN (ĐẠI CHIẾN BOSS)
+  // =============================================================================
+  const renderBossGameScreen = () => {
+    return (
+      <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-16">
+        {renderNavbar()}
+
+        <main className="w-full max-w-7xl mx-auto px-4 lg:px-6 pt-6">
+          {/* BANNER ĐỈNH CAO */}
+          <div className="relative rounded-3xl overflow-hidden border border-amber-500/30 bg-gradient-to-br from-[#151D2F] via-[#1A233A] to-[#0F172A] p-6 md:p-10 mb-8 shadow-[0_0_40px_rgba(245,158,11,0.15)] text-center">
+            <div className="absolute -top-24 -left-24 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-purple-500/20 border border-amber-400/40 text-amber-300 font-black text-xs uppercase tracking-wider mb-4 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+              <Sparkles size={14} className="animate-spin text-yellow-400" /> KÊNH NẠP TỰ ĐỘNG REALTIME 24/7
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-white mb-3">
+              ⚔️ NẠP GAME <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-rose-400 to-purple-400">MỘNG THIÊN HUYỄN</span>
+            </h1>
+            <p className="text-slate-300 max-w-3xl mx-auto text-sm md:text-base leading-relaxed mb-6">
+              Hệ thống tự động chuyển thẳng <strong className="text-amber-400">Lượt Đánh, Rương Hoàng Kim, Xu Nâng Cấp & Trang Bị Thần Binh</strong> vào tài khoản game của bạn ngay khi bấm Mua. Loa Livestream sẽ tự động đọc tên cảm ơn và hiệu ứng nạp VIP sẽ phát sáng rực rỡ!
+            </p>
+
+            {/* KHUNG NHẬP ID NGƯỜI CHƠI & TRA CỨU */}
+            <div className="max-w-2xl mx-auto bg-[#0B1120]/90 border border-slate-700/80 rounded-2xl p-4 md:p-6 shadow-2xl backdrop-blur-md">
+              <label className="block text-left text-xs md:text-sm font-bold text-slate-300 mb-2 uppercase tracking-wide flex items-center justify-between">
+                <span>🎯 Nhập ID TikTok / Discord hoặc Tên In-game nhận quà:</span>
+                {bossPlayerSummary && (
+                  <span className="text-emerald-400 text-xs font-bold flex items-center gap-1">
+                    <CheckCircle2 size={14} /> Đã kết nối ID
+                  </span>
+                )}
+              </label>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="text"
+                    value={bossTargetId}
+                    onChange={(e) => {
+                      setBossTargetId(e.target.value);
+                      setBossPlayerSummary(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCheckBossPlayer();
+                    }}
+                    placeholder="Ví dụ: ugnlus hoặc @kyone2408 hoặc ID Discord"
+                    className="w-full pl-10 pr-4 py-3 bg-[#151D2F] border border-slate-700 rounded-xl text-white font-bold text-sm focus:outline-none focus:border-amber-500 transition-colors shadow-inner"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCheckBossPlayer()}
+                  disabled={isCheckingBossPlayer}
+                  className="px-6 py-3 bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-600 hover:to-rose-700 text-white font-black text-sm rounded-xl transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:scale-105 flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
+                >
+                  {isCheckingBossPlayer ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                  <span>Kiểm Tra ID</span>
+                </button>
+              </div>
+
+              {/* CARD XEM TRƯỚC THÔNG TIN NGƯỜI CHƠI */}
+              {bossPlayerSummary && (
+                <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-slate-900/90 to-[#151D2F] border border-amber-500/40 text-left animate-fade-in flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={bossPlayerSummary.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(bossPlayerSummary.user_id)}`}
+                      alt="Avatar"
+                      className="w-14 h-14 rounded-full border-2 border-amber-400 object-cover shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                    />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-white font-black text-base">{bossPlayerSummary.nickname}</h4>
+                        {bossPlayerSummary.level && (
+                          <span className="px-2 py-0.5 rounded-full bg-blue-600/30 text-blue-400 border border-blue-500/40 text-[10px] font-bold">
+                            Cấp {bossPlayerSummary.level}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 font-mono mt-0.5">ID: @{bossPlayerSummary.user_id}</p>
+                      {bossPlayerSummary.cp && bossPlayerSummary.cp !== 'Auto' && (
+                        <p className="text-xs text-amber-400 font-bold mt-1">
+                          ⚔️ Lực Chiến: <span className="text-white">{new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.cp)} CP</span>
+                          {bossPlayerSummary.bonus_attacks > 0 && ` • ${new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.bonus_attacks)} Lượt`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="w-full sm:w-auto text-right flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
+                    <span className="text-[11px] font-bold text-emerald-400 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30">
+                      ✓ Sẵn sàng nhận quà
+                    </span>
+                    <span className="text-[10px] text-slate-400 mt-1 hidden sm:block">Tự động nạp vào tài khoản này</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* TIÊU ĐỀ DANH SÁCH GÓI NẠP */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-2xl font-black uppercase text-white flex items-center gap-2">
+                <Crown className="text-amber-400" size={24} /> BẢNG GÓI NẠP MỘNG THIÊN HUYỄN
+              </h2>
+              <p className="text-slate-400 text-xs md:text-sm">Chọn gói quà phù hợp để tăng cường sức mạnh, chém boss nhận rương báu khủng!</p>
+            </div>
+            {currentUser && (
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#151D2F] border border-emerald-500/30 text-xs font-bold text-slate-300">
+                <span>Số dư ví của bạn:</span>
+                <span className="text-emerald-400 font-black text-sm">{new Intl.NumberFormat('vi-VN').format(currentUser.balance || 0)}đ</span>
+              </div>
+            )}
+          </div>
+
+          {/* GRID 8 GÓI NẠP */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {BOSS_GAME_PACKAGES.map((pkg) => {
+              const isAffordable = currentUser ? (currentUser.balance || 0) >= pkg.price : false;
+              const hasRing = pkg.items && pkg.items.length > 0;
+
+              return (
+                <div
+                  key={pkg.id}
+                  className={`relative rounded-2xl bg-[#151D2F] border transition-all duration-300 flex flex-col justify-between overflow-hidden group hover:-translate-y-1.5 ${
+                    hasRing
+                      ? 'border-amber-500/50 shadow-[0_0_25px_rgba(245,158,11,0.2)] hover:shadow-[0_0_35px_rgba(245,158,11,0.4)]'
+                      : 'border-slate-800 hover:border-slate-600 shadow-xl'
+                  }`}
+                >
+                  {/* BADGE KHUYẾN MÃI / LOẠI GÓI */}
+                  <div className="absolute top-3 right-3 z-10">
+                    <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full text-white bg-gradient-to-r ${pkg.badgeColor} shadow-md`}>
+                      {pkg.badge}
+                    </span>
+                  </div>
+
+                  <div className="p-5 text-left flex-1 flex flex-col">
+                    {/* HÌNH ẢNH VẬT PHẨM ĐẠI DIỆN */}
+                    <div className="w-full h-36 flex items-center justify-center relative my-2">
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-amber-500/5 to-transparent rounded-full blur-xl pointer-events-none"></div>
+                      <img
+                        src={pkg.image}
+                        alt={pkg.name}
+                        className="max-h-32 max-w-[85%] object-contain group-hover:scale-110 transition-transform duration-500 drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)]"
+                      />
+                    </div>
+
+                    {/* TÊN GÓI & GIÁ */}
+                    <h3 className="text-base font-black text-white mb-1 group-hover:text-amber-400 transition-colors">
+                      {pkg.name}
+                    </h3>
+                    <div className="mb-4">
+                      <span className="text-2xl font-black text-emerald-400">
+                        {new Intl.NumberFormat('vi-VN').format(pkg.price)}
+                        <span className="text-xs font-bold ml-1 text-emerald-500">VNĐ</span>
+                      </span>
+                    </div>
+
+                    {/* CHI TIẾT CÁC PHẦN QUÀ */}
+                    <div className="space-y-2 py-3 border-t border-slate-800/80 text-xs flex-1">
+                      <div className="flex items-center gap-2 text-slate-300 font-semibold">
+                        <Swords size={15} className="text-rose-400 shrink-0" />
+                        <span>+{new Intl.NumberFormat('vi-VN').format(pkg.attacks)} Lượt Đánh Boss</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-300 font-semibold">
+                        <Crown size={15} className="text-yellow-400 shrink-0" />
+                        <span>+{pkg.royalChests} Rương Hoàng Kim VIP</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-300 font-semibold">
+                        <Zap size={15} className="text-cyan-400 shrink-0" />
+                        <span>+{new Intl.NumberFormat('vi-VN').format(pkg.coins)} Xu Nâng Cấp</span>
+                      </div>
+                      {hasRing && (
+                        <div className="flex items-start gap-2 text-amber-300 font-black pt-1 border-t border-amber-500/20">
+                          <Sparkles size={15} className="text-yellow-400 shrink-0 mt-0.5 animate-bounce" />
+                          <span>Tặng: {pkg.items[0].name} ({pkg.items[0].stars}⭐)</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* NÚT MUA GÓI */}
+                  <div className="p-4 pt-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!currentUser) return requireAuth('login');
+                        if (!bossTargetId.trim()) {
+                          showToast("Vui lòng nhập ID TikTok hoặc Discord nhận quà ở khung trên!", "error");
+                          return;
+                        }
+                        setSelectedBossPackage(pkg);
+                      }}
+                      className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg ${
+                        hasRing
+                          ? 'bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:from-amber-600 hover:to-purple-700 text-white shadow-amber-500/20'
+                          : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20'
+                      }`}
+                    >
+                      <Zap size={14} />
+                      <span>Nạp Ngay Bằng Ví</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* QUY TRÌNH & LƯU Ý */}
+          <div className="mt-12 bg-[#151D2F] border border-slate-800 rounded-2xl p-6 text-left">
+            <h4 className="text-sm font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <ShieldCheck size={18} /> Quy Trình Nạp & Bảo Đảm Tự Động:
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-400">
+              <div className="p-3 bg-[#0B1120] rounded-xl border border-slate-800">
+                <p className="font-bold text-white mb-1">1. Nhập Đúng ID</p>
+                <p>Điền chính xác ID TikTok (ví dụ: <code className="text-amber-400 font-mono">ugnlus</code>) hoặc Discord ID để quà vào đúng nhân vật.</p>
+              </div>
+              <div className="p-3 bg-[#0B1120] rounded-xl border border-slate-800">
+                <p className="font-bold text-white mb-1">2. Trừ Tiền & Chuyển Quà</p>
+                <p>Hệ thống trừ trực tiếp số dư ví web, bot game tự động cộng Lượt đánh, Rương và Trang bị trong 1 giây.</p>
+              </div>
+              <div className="p-3 bg-[#0B1120] rounded-xl border border-slate-800">
+                <p className="font-bold text-white mb-1">3. Đọc Loa Trên Livestream</p>
+                <p>Kênh livestream sẽ tự động phát âm thanh Ting Ting và đọc to câu cảm ơn vinh danh bạn trước toàn thể phòng live!</p>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        {/* MODAL XÁC NHẬN THANH TOÁN GÓI */}
+        {selectedBossPackage && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-[#151D2F] border border-slate-700 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl animate-scale-up text-left">
+              <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-[#1A233A]">
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <Swords size={18} className="text-amber-400" /> Xác Nhận Mua Gói Nạp
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setSelectedBossPackage(null)}
+                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {/* Thông tin người nhận */}
+                <div className="p-3.5 rounded-xl bg-[#0B1120] border border-slate-800">
+                  <span className="text-xs text-slate-400 block mb-1">Tài khoản nhận quà trong game:</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white font-black text-sm">@{bossTargetId.trim().replace(/^@/, '')}</span>
+                    <span className="text-emerald-400 text-xs font-bold">✓ Tự động duyệt</span>
+                  </div>
+                </div>
+
+                {/* Thông tin gói */}
+                <div className="p-3.5 rounded-xl bg-[#0B1120] border border-slate-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-amber-400 font-bold text-sm">{selectedBossPackage.name}</span>
+                    <span className="text-emerald-400 font-black text-sm">
+                      {new Intl.NumberFormat('vi-VN').format(selectedBossPackage.price)}đ
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-300 space-y-1">
+                    <p>• +{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.attacks)} Lượt Đánh Boss</p>
+                    <p>• +{selectedBossPackage.royalChests} Rương Hoàng Kim</p>
+                    <p>• +{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.coins)} Xu Nâng Cấp</p>
+                    {selectedBossPackage.items && selectedBossPackage.items.length > 0 && (
+                      <p className="text-amber-300 font-bold">• 💥 Tặng kèm: {selectedBossPackage.items[0].name} ({selectedBossPackage.items[0].stars}⭐)</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Kiểm tra số dư */}
+                <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs space-y-1.5">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Số dư hiện tại của bạn:</span>
+                    <span className="font-bold text-white">{new Intl.NumberFormat('vi-VN').format(currentUser?.balance || 0)}đ</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Số tiền cần thanh toán:</span>
+                    <span className="font-bold text-rose-400">-{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.price)}đ</span>
+                  </div>
+                  <div className="border-t border-slate-800 pt-1.5 flex justify-between font-bold">
+                    <span>Số dư còn lại:</span>
+                    <span className={(currentUser?.balance || 0) >= selectedBossPackage.price ? 'text-emerald-400' : 'text-rose-400'}>
+                      {new Intl.NumberFormat('vi-VN').format((currentUser?.balance || 0) - selectedBossPackage.price)}đ
+                    </span>
+                  </div>
+                </div>
+
+                {(currentUser?.balance || 0) < selectedBossPackage.price && (
+                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-400 flex items-center justify-between">
+                    <span>Số dư không đủ để thanh toán!</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedBossPackage(null);
+                        setCurrentView('naptien');
+                      }}
+                      className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg"
+                    >
+                      Nạp Tiền Ngay
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-5 border-t border-slate-800 bg-[#1A233A] flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedBossPackage(null)}
+                  className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-colors"
+                >
+                  Hủy Bỏ
+                </button>
+                <button
+                  type="button"
+                  disabled={isBuyingBossPackage || (currentUser?.balance || 0) < selectedBossPackage.price}
+                  onClick={() => executeBuyBossPackage(selectedBossPackage)}
+                  className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-black uppercase rounded-xl transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isBuyingBossPackage ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                  <span>Xác Nhận Thanh Toán</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL NẠP THÀNH CÔNG RỰC RỠ */}
+        {bossSuccessModal && (
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-lg z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-[#151D2F] border-2 border-amber-500/60 w-full max-w-md rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(245,158,11,0.3)] animate-scale-up text-center p-6 sm:p-8">
+              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white shadow-[0_0_30px_rgba(245,158,11,0.6)] mb-4 animate-bounce">
+                <Sparkles size={36} />
+              </div>
+
+              <h3 className="text-2xl font-black uppercase text-white mb-2">
+                🎉 NẠP GÓI THÀNH CÔNG!
+              </h3>
+              <p className="text-amber-400 font-extrabold text-sm mb-4">
+                {bossSuccessModal.pkg.name} ({new Intl.NumberFormat('vi-VN').format(bossSuccessModal.pkg.price)}đ)
+              </p>
+
+              <div className="bg-[#0B1120] p-4 rounded-2xl border border-slate-800 text-xs text-slate-300 space-y-1.5 mb-6 text-left">
+                <p className="text-slate-400">ID Người nhận: <strong className="text-white">@{bossSuccessModal.targetId}</strong></p>
+                <p className="text-slate-400">Mã giao dịch: <strong className="text-amber-400 font-mono">{bossSuccessModal.orderId}</strong></p>
+                <div className="border-t border-slate-800 pt-2 text-emerald-400 font-bold">
+                  ✓ Vật phẩm đã được chuyển trực tiếp vào tài khoản trong game. Loa livestream đang phát thông báo vinh danh bạn!
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBossSuccessModal(null);
+                    setHistoryTab('bossgame');
+                    setCurrentView('lichsu');
+                  }}
+                  className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-colors"
+                >
+                  Xem Lịch Sử
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBossSuccessModal(null)}
+                  className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-600 hover:to-rose-700 text-white text-xs font-black uppercase rounded-xl transition-all shadow-lg"
+                >
+                  Tiếp Tục Nạp
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {renderFooter()}
+      </div>
+    );
+  };
+
+    const renderAdminScreen = () => {
     if (currentUser?.role !== 'admin') {
       return (
         <div className="min-h-screen bg-[#0B1120] flex flex-col items-center justify-center text-slate-300">
@@ -7415,6 +8170,7 @@ const App = () => {
         {currentView === 'lichsu' && renderLichsuScreen()}
         {currentView === 'caythue' && renderCayThueScreen()}
         {currentView === 'vongquay' && renderVongQuay()}
+        {currentView === 'bossgame' && renderBossGameScreen()}
         {currentView === 'vip_info' && (
           <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-20">
             {renderNavbar()}
@@ -7487,36 +8243,12 @@ const App = () => {
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-6">
-                  {/* CỘT TRÁI: Bước 1-3 */}
+                  {/* CỘT TRÁI: Bước 1 */}
                   <div className="flex-1 space-y-5">
                     <div className="flex gap-4 items-start">
                       <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20 mt-1">1</span>
                       <div className="w-full">
-                        <p className="leading-relaxed uppercase font-bold mb-3 text-white">BẤM TỔ HỢP PHÍM <strong className="text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(250,204,21,0.2)] whitespace-nowrap">CTRL + J</strong> TRÊN TRÌNH DUYỆT WEB CỦA BẠN VÀ ẤN THEO HÌNH BÊN DƯỚI</p>
-                        <div className="relative cursor-pointer group" onClick={() => setFullScreenImage('/Motep.png')}>
-                          <img src="/Motep.png" alt="Mở tệp" className="w-full rounded-lg border-2 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
-                            <span className="bg-black/70 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5"><ZoomIn size={14} /> Bấm để phóng to</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-4 items-start">
-                      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20 mt-1">2</span>
-                      <div className="w-full">
-                        <p className="leading-relaxed uppercase font-bold mb-3 text-white">ẤN CHUỘT PHẢI GIẢI NÉN FILE SHOPTIENGAMING.COM VỪA TẢI</p>
-                        <div className="relative cursor-pointer group" onClick={() => setFullScreenImage('/giainen.png')}>
-                          <img src="/giainen.png" alt="Giải nén file" className="w-full rounded-lg border-2 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
-                            <span className="bg-black/70 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5"><ZoomIn size={14} /> Bấm để phóng to</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-4 items-start">
-                      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20 mt-1">3</span>
-                      <div className="w-full">
-                        <p className="leading-relaxed uppercase font-bold mb-3 text-white">MỞ FILE APP ĐIỀU KHIỂN VỪA MỚI ĐƯỢC GIẢI NÉN RA.</p>
+                        <p className="leading-relaxed uppercase font-bold mb-3 text-white">BẤM TỔ HỢP PHÍM <strong className="text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(250,204,21,0.2)] whitespace-nowrap">CTRL + J</strong> TRÊN TRÌNH DUYỆT WEB CỦA BẠN VÀ MỞ CÁI APP NHƯ HÌNH BÊN DƯỚI</p>
                         <img src="/appdieukhien.png" alt="App điều khiển" className="w-24 rounded-2xl border border-slate-600 shadow-lg" />
                       </div>
                     </div>
@@ -7525,10 +8257,10 @@ const App = () => {
                   {/* ĐƯỜNG CHIA CỘT (chỉ desktop) */}
                   <div className="hidden md:block w-[1px] bg-slate-700/50 self-stretch shrink-0"></div>
 
-                  {/* CỘT PHẢI: Bước 4-5 */}
+                  {/* CỘT PHẢI: Bước 2-3 */}
                   <div className="flex-1 space-y-5">
                     <div className="flex gap-4 items-start">
-                      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20 mt-1">4</span>
+                      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.4)] border border-white/20 mt-1">2</span>
                       <div className="w-full">
                         <p className="leading-relaxed uppercase font-bold mb-3 text-white">BẤM <strong className="text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(250,204,21,0.2)]">INSTALL NOW</strong> HOẶC CÀI ĐẶT NGAY NHƯ HÌNH</p>
                         <div className="relative cursor-pointer group" onClick={() => setFullScreenImage('/installnow.png')}>
@@ -7541,7 +8273,7 @@ const App = () => {
                     </div>
                     <div className="flex gap-4 items-start relative">
                       <div className="absolute -inset-1 bg-gradient-to-r from-rose-500/20 to-orange-500/20 rounded-2xl blur-md -z-10 animate-pulse"></div>
-                      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_15px_rgba(244,63,94,0.5)] border border-white/20 mt-1">5</span>
+                      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-black shrink-0 shadow-[0_0_15px_rgba(244,63,94,0.5)] border border-white/20 mt-1">3</span>
                       <div className="w-full bg-[#1A233A] border-2 border-rose-500/40 p-4 rounded-xl shadow-[0_0_20px_rgba(244,63,94,0.15)]">
                         <p className="text-white mb-3 uppercase font-bold">CHỤP HOẶC GHI RA <strong className="text-rose-400 font-black text-xl bg-rose-500/10 px-2 py-0.5 rounded whitespace-nowrap">2 CÁI ID VÀ MẬT KHẨU</strong> CỦA APP NHƯ HÌNH BÊN DƯỚI:</p>
                         <img src="/guide-hoptodesk.png" alt="Hướng dẫn HopToDesk" className="w-full rounded-lg border border-rose-500/30 shadow-lg" />
@@ -8446,7 +9178,7 @@ const App = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          window.open('https://www.dropbox.com/scl/fo/9eai63w3bbs5rpi3csjdi/AD-0_7AgHSULdoN2bmuKXIc?rlkey=x14ooep1r2vma2a6mz57n3r0l&st=lheu321c&dl=1', '_blank');
+                          window.open('https://down.aweray.com/awesun/windows/Aweray_Remote_2.0.0.45399_x64.exe', '_blank');
                           setAwesunGuideType('inside');
                         }}
                         className="bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 border border-blue-500/30 shadow-sm"
@@ -8467,7 +9199,7 @@ const App = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          window.open('https://www.dropbox.com/scl/fo/9eai63w3bbs5rpi3csjdi/AD-0_7AgHSULdoN2bmuKXIc?rlkey=x14ooep1r2vma2a6mz57n3r0l&st=lheu321c&dl=1', '_blank');
+                          window.open('https://down.aweray.com/awesun/windows/Aweray_Remote_2.0.0.45399_x64.exe', '_blank');
                           setAwesunGuideType('inside');
                         }}
                         className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-sm relative z-10"
