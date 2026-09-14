@@ -2751,32 +2751,67 @@ const App = () => {
     }
     setIsCheckingBossPlayer(true);
     try {
-      let checked = false;
-      try {
-        const res = await fetch(`http://localhost:8000/api/web/player-info?user_id=${encodeURIComponent(rawId)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setBossPlayerSummary(data);
-          checked = true;
-          if (data.exists) {
-            showToast(`Đã tìm thấy người chơi: ${data.nickname} (Lv.${data.level} - ${new Intl.NumberFormat('vi-VN').format(data.cp)} CP)!`);
-          } else {
-            showToast("Tài khoản chưa có trên Live, hệ thống sẽ tự động tạo mới khi nạp!", "info");
-          }
-        }
-      } catch (e) {}
+      const cleanId = rawId.replace(/^@/, '').trim().toLowerCase();
+      let foundPlayer = null;
 
-      if (!checked) {
+      // 1. Tra cứu trực tiếp từ Supabase Cloud (24/7, hoạt động mọi lúc kể cả khi tắt máy tính/tắt game)
+      try {
+        const { data: dbPlayer } = await supabase
+          .from('game_players')
+          .select('*')
+          .or(`user_id.ilike.${cleanId},nickname.ilike.${cleanId}`)
+          .maybeSingle();
+
+        if (dbPlayer) {
+          foundPlayer = {
+            exists: true,
+            user_id: dbPlayer.user_id,
+            nickname: dbPlayer.nickname || dbPlayer.user_id,
+            level: dbPlayer.level || 1,
+            cp: dbPlayer.cp || 0,
+            bonus_attacks: dbPlayer.bonus_attacks || 0,
+            royal_chests: dbPlayer.royal_chests || 0,
+            boss_chests: dbPlayer.boss_chests || 0,
+            avatar_url: dbPlayer.avatar_url,
+            weapon: dbPlayer.weapon,
+            armor: dbPlayer.armor,
+            pet: dbPlayer.pet,
+            ring: dbPlayer.ring,
+            necklace: dbPlayer.necklace
+          };
+        }
+      } catch (err) {
+        console.log("Supabase player lookup:", err);
+      }
+
+      // 2. Fallback: Nếu Supabase chưa có, thử kết nối API local (khi đang mở game trên máy)
+      if (!foundPlayer) {
+        try {
+          const res = await fetch(`http://localhost:8000/api/web/player-info?user_id=${encodeURIComponent(cleanId)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.exists) {
+              foundPlayer = data;
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (foundPlayer) {
+        setBossPlayerSummary(foundPlayer);
+        showToast(`Đã tìm thấy: ${foundPlayer.nickname} (Cấp ${foundPlayer.level} - ${new Intl.NumberFormat('vi-VN').format(foundPlayer.cp)} CP)!`);
+      } else {
+        // Tài khoản mới chưa có trên hệ thống
         setBossPlayerSummary({
-          exists: true,
-          user_id: rawId.replace(/^@/, ''),
+          exists: false,
+          user_id: cleanId,
           nickname: rawId,
-          level: 'Auto',
+          level: 'Mới',
           cp: 'Auto',
-          bonus_attacks: 'Tự động đồng bộ',
-          avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(rawId)}`
+          bonus_attacks: 0,
+          avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanId)}`
         });
-        showToast("Đã ghi nhận ID game! Bạn có thể chọn gói để nạp ngay.");
+        showToast("Tài khoản chưa có trên Live. Hệ thống sẽ tự động tạo acc và chuyển quà khi nạp!", "info");
       }
     } finally {
       setIsCheckingBossPlayer(false);
@@ -5171,10 +5206,19 @@ const App = () => {
                       </div>
                       <p className="text-xs text-slate-400 font-mono mt-0.5">ID: @{bossPlayerSummary.user_id}</p>
                       {bossPlayerSummary.cp && bossPlayerSummary.cp !== 'Auto' && (
-                        <p className="text-xs text-amber-400 font-bold mt-1">
-                          ⚔️ Lực Chiến: <span className="text-white">{new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.cp)} CP</span>
-                          {bossPlayerSummary.bonus_attacks > 0 && ` • ${new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.bonus_attacks)} Lượt`}
-                        </p>
+                        <div className="text-xs text-amber-400 font-bold mt-1 space-y-0.5">
+                          <p>
+                            ⚔️ Lực Chiến: <span className="text-white">{new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.cp)} CP</span>
+                            {bossPlayerSummary.bonus_attacks > 0 && (
+                              <span className="text-emerald-400 ml-1.5">• 💥 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.bonus_attacks)} Lượt</span>
+                            )}
+                          </p>
+                          {(bossPlayerSummary.weapon || bossPlayerSummary.ring) && (
+                            <p className="text-[11px] text-slate-400 font-normal truncate max-w-sm sm:max-w-md">
+                              🗡️ {bossPlayerSummary.weapon || 'Chưa trang bị'} {bossPlayerSummary.ring ? `• 💍 ${bossPlayerSummary.ring}` : ''}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
