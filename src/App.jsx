@@ -415,6 +415,9 @@ const App = () => {
   // --- STATE CHO GAME MỘNG THIÊN HUYỄN ---
   const [bossTargetId, setBossTargetId] = useState(() => localStorage.getItem('shop_boss_target_id') || '');
   const [bossPlayerSummary, setBossPlayerSummary] = useState(null);
+  const [bossPlayerNotFound, setBossPlayerNotFound] = useState(false);
+  const [bossNotFoundQuery, setBossNotFoundQuery] = useState('');
+  const [showBossProfileModal, setShowBossProfileModal] = useState(false);
   const [isCheckingBossPlayer, setIsCheckingBossPlayer] = useState(false);
   const [selectedBossPackage, setSelectedBossPackage] = useState(null);
   const [isBuyingBossPackage, setIsBuyingBossPackage] = useState(false);
@@ -2766,6 +2769,7 @@ const App = () => {
     try {
       const cleanId = rawId.replace(/^@/, '').trim().toLowerCase();
       let foundPlayer = null;
+      setBossPlayerNotFound(false);
 
       // 1. Tra cứu trực tiếp từ Supabase Cloud (24/7, hoạt động mọi lúc kể cả khi tắt máy tính/tắt game)
       try {
@@ -2776,6 +2780,13 @@ const App = () => {
           .maybeSingle();
 
         if (dbPlayer) {
+          let wp = null, ar = null, nk = null, rg = null, pt = null;
+          try { wp = dbPlayer.weapon ? (typeof dbPlayer.weapon === 'string' ? JSON.parse(dbPlayer.weapon) : dbPlayer.weapon) : null; } catch (e) { wp = { name: dbPlayer.weapon }; }
+          try { ar = dbPlayer.armor ? (typeof dbPlayer.armor === 'string' ? JSON.parse(dbPlayer.armor) : dbPlayer.armor) : null; } catch (e) { ar = { name: dbPlayer.armor }; }
+          try { nk = dbPlayer.necklace ? (typeof dbPlayer.necklace === 'string' ? JSON.parse(dbPlayer.necklace) : dbPlayer.necklace) : null; } catch (e) { nk = { name: dbPlayer.necklace }; }
+          try { rg = dbPlayer.ring ? (typeof dbPlayer.ring === 'string' ? JSON.parse(dbPlayer.ring) : dbPlayer.ring) : null; } catch (e) { rg = { name: dbPlayer.ring }; }
+          try { pt = dbPlayer.pet ? (typeof dbPlayer.pet === 'string' ? JSON.parse(dbPlayer.pet) : dbPlayer.pet) : null; } catch (e) { pt = { name: dbPlayer.pet }; }
+
           foundPlayer = {
             exists: true,
             user_id: dbPlayer.user_id,
@@ -2786,11 +2797,16 @@ const App = () => {
             royal_chests: dbPlayer.royal_chests || 0,
             boss_chests: dbPlayer.boss_chests || 0,
             avatar_url: dbPlayer.avatar_url,
-            weapon: dbPlayer.weapon,
-            armor: dbPlayer.armor,
-            pet: dbPlayer.pet,
-            ring: dbPlayer.ring,
-            necklace: dbPlayer.necklace
+            weapon: wp,
+            armor: ar,
+            pet: pt,
+            ring: rg,
+            necklace: nk,
+            exp: wp?.player_exp || 0,
+            bonus_coins: wp?.player_coins || 0,
+            total_dmg: wp?.total_dmg || 0,
+            has_x2_rate: wp?.has_x2_rate || false,
+            platform: wp?.platform || 'tiktok'
           };
         }
       } catch (err) {
@@ -2798,22 +2814,17 @@ const App = () => {
       }
 
       // 2. Tra cứu hoàn tất qua Supabase Cloud
-
       if (foundPlayer) {
         setBossPlayerSummary(foundPlayer);
+        setBossPlayerNotFound(false);
+        setBossNotFoundQuery('');
         showToast(`Đã tìm thấy: ${foundPlayer.nickname} (Cấp ${foundPlayer.level} - ${new Intl.NumberFormat('vi-VN').format(foundPlayer.cp)} CP)!`);
       } else {
-        // Tài khoản mới chưa có trên hệ thống
-        setBossPlayerSummary({
-          exists: false,
-          user_id: cleanId,
-          nickname: rawId,
-          level: 'Mới',
-          cp: 'Auto',
-          bonus_attacks: 0,
-          avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanId)}`
-        });
-        showToast("Tài khoản chưa có trên Live. Hệ thống sẽ tự động tạo acc và chuyển quà khi nạp!", "info");
+        // KHÔNG TÌM THẤY: Báo rõ không có dữ liệu, tuyệt đối không lấy đại đại
+        setBossPlayerSummary(null);
+        setBossPlayerNotFound(true);
+        setBossNotFoundQuery(rawId);
+        showToast(`Không tìm thấy dữ liệu người chơi "${rawId}"! Vui lòng kiểm tra lại ID.`, "error");
       }
     } finally {
       setIsCheckingBossPlayer(false);
@@ -2825,6 +2836,10 @@ const App = () => {
     if (!currentUser) return requireAuth('login');
     if (!bossTargetId.trim()) {
       showToast("Vui lòng nhập ID TikTok hoặc Discord nhận quà trước!", "error");
+      return;
+    }
+    if (!bossPlayerSummary || !bossPlayerSummary.exists) {
+      showToast("Vui lòng bấm 'Kiểm Tra ID' và chọn đúng người chơi có thật trong game trước khi nạp!", "error");
       return;
     }
     if ((currentUser.balance || 0) < pkg.price) {
@@ -5117,6 +5132,35 @@ const App = () => {
   };
 
 
+  // Helpers cho Modal Profile & Trang bị Mộng Thiên Huyễn
+  const getBossTierStyle = (tierStr) => {
+    const t = (tierStr || '').toLowerCase();
+    if (t.includes('thượng cổ')) return { color: '#ff00ff', border: '#ff00ff', bg: 'rgba(255, 0, 255, 0.15)', label: 'THƯỢNG CỔ' };
+    if (t.includes('cổ đại')) return { color: '#00ffaa', border: '#00ffaa', bg: 'rgba(0, 255, 170, 0.15)', label: 'CỔ ĐẠI' };
+    if (t.includes('tối thượng')) return { color: '#ff3366', border: '#ff3366', bg: 'rgba(255, 51, 102, 0.15)', label: 'TỐI THƯỢNG' };
+    if (t.includes('thần thoại')) return { color: '#ffaa00', border: '#ffaa00', bg: 'rgba(255, 170, 0, 0.15)', label: 'THẦN THOẠI' };
+    if (t.includes('huyền thoại')) return { color: '#ffcc00', border: '#ffcc00', bg: 'rgba(255, 204, 0, 0.15)', label: 'HUYỀN THOẠI' };
+    if (t.includes('sử thi') || t.includes('epic')) return { color: '#a855f7', border: '#a855f7', bg: 'rgba(168, 85, 247, 0.15)', label: 'SỬ THI' };
+    if (t.includes('hiếm') || t.includes('rare')) return { color: '#38bdf8', border: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', label: 'HIẾM' };
+    return { color: '#94a3b8', border: '#475569', bg: 'rgba(148, 163, 184, 0.15)', label: 'THƯỜNG' };
+  };
+
+  const getBossItemAsset = (name, category) => {
+    const n = (name || '').toLowerCase();
+    if (category === 'weapon') {
+      if (n.includes('bá vương') || n.includes('thượng cổ')) return '/game-assets/weapon_ba_vuong.png';
+      return '/game-assets/weapon_tram_ma.png';
+    }
+    if (category === 'armor') return '/game-assets/armor_long_vuong.png';
+    if (category === 'ring') {
+      if (n.includes('thượng cổ') || n.includes('bát hoang')) return '/game-assets/ring_thuongco.png';
+      if (n.includes('cổ đại') || n.includes('chaos')) return '/game-assets/ring_codai.png';
+      return '/game-assets/ring_toithuong.png';
+    }
+    if (category === 'pet') return '/game-assets/pet_rong_chaos.png';
+    return null;
+  };
+
   // =============================================================================
   // MÀN HÌNH NẠP GAME MỘNG THIÊN HUYỄN (ĐẠI CHIẾN BOSS)
   // =============================================================================
@@ -5162,6 +5206,7 @@ const App = () => {
                     onChange={(e) => {
                       setBossTargetId(e.target.value);
                       setBossPlayerSummary(null);
+                      setBossPlayerNotFound(false);
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleCheckBossPlayer();
@@ -5181,18 +5226,26 @@ const App = () => {
                 </button>
               </div>
 
-              {/* CARD XEM TRƯỚC THÔNG TIN NGƯỜI CHƠI */}
+              {/* CARD XEM TRƯỚC THÔNG TIN NGƯỜI CHƠI THẬT */}
               {bossPlayerSummary && (
                 <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-slate-900/90 to-[#151D2F] border border-amber-500/40 text-left animate-fade-in flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <img
                       src={bossPlayerSummary.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(bossPlayerSummary.user_id)}`}
                       alt="Avatar"
-                      className="w-14 h-14 rounded-full border-2 border-amber-400 object-cover shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                      onClick={() => setShowBossProfileModal(true)}
+                      className="w-14 h-14 rounded-full border-2 border-amber-400 object-cover shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.5)] cursor-pointer hover:scale-105 transition-transform"
+                      title="👉 Bấm để xem chi tiết Profile & Trang bị"
                     />
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="text-white font-black text-base">{bossPlayerSummary.nickname}</h4>
+                        <h4
+                          onClick={() => setShowBossProfileModal(true)}
+                          className="text-white font-black text-base hover:text-amber-400 cursor-pointer transition-colors"
+                          title="👉 Bấm để xem chi tiết Profile & Trang bị"
+                        >
+                          {bossPlayerSummary.nickname}
+                        </h4>
                         {bossPlayerSummary.level && (
                           <span className="px-2 py-0.5 rounded-full bg-blue-600/30 text-blue-400 border border-blue-500/40 text-[10px] font-bold">
                             Cấp {bossPlayerSummary.level}
@@ -5210,7 +5263,7 @@ const App = () => {
                           </p>
                           {(bossPlayerSummary.weapon || bossPlayerSummary.ring) && (
                             <p className="text-[11px] text-slate-400 font-normal truncate max-w-sm sm:max-w-md">
-                              🗡️ {bossPlayerSummary.weapon || 'Chưa trang bị'} {bossPlayerSummary.ring ? `• 💍 ${bossPlayerSummary.ring}` : ''}
+                              🗡️ {typeof bossPlayerSummary.weapon === 'object' ? bossPlayerSummary.weapon?.name : (bossPlayerSummary.weapon || 'Chưa trang bị')} {bossPlayerSummary.ring ? `• 💍 ${typeof bossPlayerSummary.ring === 'object' ? bossPlayerSummary.ring?.name : bossPlayerSummary.ring}` : ''}
                             </p>
                           )}
                         </div>
@@ -5218,11 +5271,35 @@ const App = () => {
                     </div>
                   </div>
 
-                  <div className="w-full sm:w-auto text-right flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
-                    <span className="text-[11px] font-bold text-emerald-400 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="w-full sm:w-auto text-right flex sm:flex-col items-center sm:items-end justify-between gap-2 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setShowBossProfileModal(true)}
+                      className="px-3.5 py-1.5 bg-gradient-to-r from-cyan-600/30 to-blue-600/30 hover:from-cyan-600/50 hover:to-blue-600/50 text-cyan-300 border border-cyan-500/50 rounded-xl text-xs font-bold transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] flex items-center gap-1.5 hover:scale-105 active:scale-95 cursor-pointer"
+                    >
+                      <Eye size={14} />
+                      <span>Xem Profile & Đồ</span>
+                    </button>
+                    <span className="text-[10px] text-emerald-400 font-bold hidden sm:block">
                       ✓ Sẵn sàng nhận quà
                     </span>
-                    <span className="text-[10px] text-slate-400 mt-1 hidden sm:block">Tự động nạp vào tài khoản này</span>
+                  </div>
+                </div>
+              )}
+
+              {/* CARD BÁO KHÔNG CÓ DỮ LIỆU KHI TRA KHÔNG RA */}
+              {bossPlayerNotFound && (
+                <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-rose-950/40 via-red-900/30 to-slate-900/90 border border-rose-500/50 text-left animate-fade-in flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
+                    <AlertCircle size={22} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-rose-400 font-bold text-sm flex items-center gap-1.5">
+                      Không có dữ liệu người chơi!
+                    </h4>
+                    <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                      Không tìm thấy tài khoản cho <span className="text-amber-400 font-mono font-bold">"{bossNotFoundQuery}"</span> trong hệ thống game Mộng Thiên Huyễn. Vui lòng kiểm tra lại chính xác ID TikTok / Discord hoặc Tên In-game.
+                    </p>
                   </div>
                 </div>
               )}
@@ -5547,6 +5624,329 @@ const App = () => {
             </div>
           </div>
         )}
+
+        {/* MODAL PROFILE & TRANG BỊ NGƯỜI CHƠI (GIỐNG DASHBOARD ADMIN) */}
+        {showBossProfileModal && bossPlayerSummary && (() => {
+          const p = bossPlayerSummary;
+          const lvl = Number(p.level || 1);
+          const exp = Number(p.exp || 0);
+          const expNeeded = Math.floor(500 * Math.pow(2, Math.max(0, lvl - 1)));
+          const expPct = Math.min(100, Math.max(0, (exp / Math.max(1, expNeeded)) * 100));
+
+          // Tính toán All DMG
+          const baseUserDmg = 100 + (lvl * 25);
+          let wpDmg = 0;
+          if (p.weapon) {
+            const wpBase = Number(p.weapon.base_dmg || 0);
+            const wpPlus = Number(p.weapon.plus || 0);
+            const wpStars = Math.max(1, Math.min(5, Number(p.weapon.stars || 1)));
+            wpDmg = Math.round(wpBase * (1.0 + wpPlus * 0.25) * Math.pow(2, wpStars - 1));
+          }
+          let arDmg = 0;
+          if (p.armor) {
+            const arBase = Number(p.armor.base_dmg || 0);
+            const arPlus = Number(p.armor.plus || 0);
+            const arStars = Math.max(1, Math.min(5, Number(p.armor.stars || 1)));
+            arDmg = Math.round(arBase * (1.0 + arPlus * 0.25) * Math.pow(2, arStars - 1));
+          }
+          let petDmg = 0;
+          if (p.pet) {
+            const pBase = Number(p.pet.bonus_dmg || 0);
+            const pStars = Math.max(1, Math.min(5, Number(p.pet.stars || 1)));
+            petDmg = Math.round(pBase * Math.pow(2, pStars - 1));
+          }
+          let baseTotalDmg = baseUserDmg + wpDmg + arDmg + petDmg;
+          let nkPct = 0;
+          if (p.necklace) {
+            const bPct = Number(p.necklace.dmg_percent || 0);
+            const uPct = Math.max(Number(p.necklace.plus || 0), Math.round(bPct * (p.necklace.plus || 0) * 0.20));
+            const nStars = Math.max(1, Math.min(5, Number(p.necklace.stars || 1)));
+            nkPct = (bPct + uPct) * Math.pow(2, nStars - 1);
+          }
+          let ringDmgPct = 0;
+          if (p.ring) {
+            const rBase = Number(p.ring.base_dmg_percent || 0);
+            const rS = Math.max(1, Math.min(5, Number(p.ring.stars || 1)));
+            ringDmgPct = Math.round(rBase * Math.pow(3, rS - 1));
+          }
+          const allAttack = Math.round(baseTotalDmg * (1.0 + (nkPct / 100.0)) * (1.0 + (ringDmgPct / 100.0)));
+
+          const renderEquipSlot = (item, category, defaultIcon, defaultTitle) => {
+            if (!item || !item.name) {
+              return (
+                <div className="bg-[#0F172A]/70 border border-dashed border-slate-700/80 rounded-2xl p-3 flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-slate-800/50 border border-dashed border-slate-600 flex items-center justify-center text-xl shrink-0 text-slate-500">
+                    {defaultIcon}
+                  </div>
+                  <div>
+                    <div className="text-slate-400 text-xs font-bold">{defaultTitle}</div>
+                    <div className="text-slate-600 text-[11px] italic">Chưa trang bị</div>
+                  </div>
+                </div>
+              );
+            }
+
+            const tier = getBossTierStyle(item.tier);
+            const imgUrl = getBossItemAsset(item.name, category);
+            const plusText = (item.plus && item.plus > 0) ? ` +${item.plus}` : '';
+            const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
+            const stars = '⭐'.repeat(starsCount);
+
+            return (
+              <div
+                className="rounded-2xl p-3 flex gap-3 relative transition-all duration-200"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(20, 28, 48, 0.9))',
+                  border: `1.5px solid ${tier.border}`,
+                  boxShadow: `0 4px 15px rgba(0,0,0,0.4)`
+                }}
+              >
+                <div
+                  className="w-13 h-13 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center relative shrink-0 overflow-hidden"
+                  style={{
+                    border: `2px solid ${tier.color}`,
+                    background: '#060913',
+                    boxShadow: `0 0 12px ${tier.border}`
+                  }}
+                >
+                  {imgUrl ? (
+                    <img
+                      src={imgUrl}
+                      alt={item.name}
+                      className="w-10 h-10 sm:w-11 sm:h-11 object-contain"
+                      style={{ filter: `drop-shadow(0 0 6px ${tier.color})` }}
+                    />
+                  ) : (
+                    <span className="text-2xl">{defaultIcon}</span>
+                  )}
+                  <div className="absolute bottom-0.5 left-0 right-0 text-center text-[8px] tracking-tighter drop-shadow-md">
+                    {stars}
+                  </div>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-extrabold text-xs truncate max-w-[170px] sm:max-w-[210px]" style={{ color: tier.color }} title={item.name}>
+                      {item.name}{plusText}
+                    </span>
+                    <span
+                      className="text-[9px] font-black px-1.5 py-0.2 rounded border"
+                      style={{ color: tier.color, background: tier.bg, borderColor: tier.border }}
+                    >
+                      {tier.label}
+                    </span>
+                    {category === 'pet' && item.level && (
+                      <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-emerald-600 text-white shadow-sm">
+                        Lv.{item.level}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Stats row */}
+                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap text-[10px]">
+                    {(category === 'weapon' || category === 'armor') && (
+                      <>
+                        <span className="font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded">
+                          {Number(item.base_dmg || 0).toLocaleString()} DMG
+                        </span>
+                        {item.plus > 0 && (
+                          <span className="font-bold text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-1.5 py-0.5 rounded">
+                            +{Math.round(Number(item.base_dmg || 0) * item.plus * 0.25).toLocaleString()} Cường Hóa
+                          </span>
+                        )}
+                      </>
+                    )}
+                    {category === 'necklace' && (
+                      <span className="font-bold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.5 rounded">
+                        +{Number(item.dmg_percent || 0)}% DMG
+                      </span>
+                    )}
+                    {category === 'ring' && (
+                      <span className="font-bold text-purple-400 bg-purple-400/10 border border-purple-400/30 px-1.5 py-0.5 rounded">
+                        +{Number(item.base_dmg_percent || 0)}% DMG {item.skill_pct ? `• ⚡ ${item.skill_pct}% HP` : ''}
+                      </span>
+                    )}
+                    {category === 'pet' && (
+                      <span className="font-bold text-rose-400 bg-rose-400/10 border border-rose-400/30 px-1.5 py-0.5 rounded">
+                        +{Number(item.bonus_dmg || 0).toLocaleString()} DMG
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Sub-stats */}
+                  {Array.isArray(item.sub_stats) && item.sub_stats.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {item.sub_stats.slice(0, 3).map((sub, sIdx) => (
+                        <span
+                          key={sIdx}
+                          className="text-[9px] font-bold text-slate-300 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded whitespace-nowrap"
+                        >
+                          ✨ {sub}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          };
+
+          return (
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+              onClick={(e) => { if (e.target === e.currentTarget) setShowBossProfileModal(false); }}
+            >
+              <div className="bg-gradient-to-br from-[#0d1326] via-[#0b101d] to-[#060913] border-2 border-cyan-400 rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-[0_0_50px_rgba(0,229,255,0.35)] p-5 sm:p-6 flex flex-col relative text-white animate-zoom-in overflow-hidden">
+                {/* Header */}
+                <div className="flex justify-between items-start border-b border-cyan-500/20 pb-4 mb-4 shrink-0">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <img
+                      src={p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id)}`}
+                      alt="Avatar"
+                      className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-[2.5px] border-yellow-400 shadow-[0_0_16px_rgba(255,215,0,0.7)] object-cover bg-slate-900 shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-lg sm:text-xl text-white tracking-wide truncate max-w-[200px] sm:max-w-[280px]">
+                          {p.nickname}
+                        </span>
+                        <span className="text-[10px] font-black text-yellow-400 bg-yellow-400/15 border border-yellow-400/40 rounded px-2 py-0.5">
+                          ⚔️ Chiến Thần
+                        </span>
+                      </div>
+                      <div className="text-xs text-cyan-400 font-mono mt-0.5 truncate">
+                        @{p.user_id}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded bg-gradient-to-r from-rose-600 to-red-600 text-white">
+                          TikTok Live [TT]
+                        </span>
+                        {p.has_x2_rate && (
+                          <span className="text-[9px] font-black px-2 py-0.5 rounded bg-gradient-to-r from-yellow-400 to-amber-500 text-black shadow-[0_0_8px_rgba(255,215,0,0.6)]">
+                            👑 x2 TỈ LỆ VIP
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowBossProfileModal(false)}
+                    className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-rose-600 text-slate-400 hover:text-white flex items-center justify-center transition-colors border border-slate-700 shrink-0 cursor-pointer"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Scrollable Content */}
+                <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-3.5 flex-1">
+                  {/* Level & EXP Bar */}
+                  <div className="bg-[#0B101B]/80 border border-slate-800 rounded-xl p-3">
+                    <div className="flex justify-between items-center mb-1.5 text-xs">
+                      <span className="font-extrabold text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 px-2 py-0.5 rounded">
+                        Cấp {lvl}
+                      </span>
+                      <span className="font-bold text-slate-400 font-mono text-[11px]">
+                        {exp.toLocaleString()} / {expNeeded.toLocaleString()} EXP ({expPct.toFixed(1)}%)
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px_#00e5ff] transition-all duration-500"
+                        style={{ width: `${expPct}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Fiery CP Box */}
+                  <div className="bg-gradient-to-r from-orange-600/20 via-amber-500/20 to-orange-600/10 border border-orange-500/80 rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-[0_0_20px_rgba(255,100,0,0.25)]">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl animate-bounce">🔥</span>
+                      <div>
+                        <div className="text-[10px] font-black text-amber-400 uppercase tracking-wider">Lực Chiến (CP)</div>
+                        <div className="text-xl sm:text-2xl font-black text-white drop-shadow-[0_0_10px_rgba(255,69,0,0.8)] font-sans">
+                          {Number(p.cp || 0).toLocaleString()} CP
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-300 bg-black/40 px-2.5 py-1 rounded-lg border border-white/10">
+                      Bảng Xếp Hạng Server
+                    </span>
+                  </div>
+
+                  {/* Mini Stats Grid */}
+                  <div>
+                    <div className="text-xs font-black text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      📊 Chỉ Số Chiến Đấu & Tài Nguyên
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">⚔️ Sát Thương (DMG)</div>
+                        <div className="text-sm font-black text-emerald-400 mt-0.5">
+                          {allAttack > 0 ? allAttack.toLocaleString() : '0'} DMG
+                        </div>
+                      </div>
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">⚡ Lượt Đánh Khả Dụng</div>
+                        <div className="text-sm font-black text-cyan-400 mt-0.5">
+                          {Number(p.bonus_attacks || 0).toLocaleString()} Lượt
+                        </div>
+                      </div>
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">🪙 Xu Nâng Cấp</div>
+                        <div className="text-sm font-black text-amber-400 mt-0.5">
+                          {Number(p.bonus_coins || 0).toLocaleString()} Xu
+                        </div>
+                      </div>
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">👑 Rương Hoàng Kim</div>
+                        <div className="text-sm font-black text-yellow-400 mt-0.5">
+                          {Number(p.royal_chests || 0).toLocaleString()} Rương
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Equipment Section (5 Slots) */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-black text-slate-300 uppercase tracking-wider">
+                        🛡️ Trang Bị & Thần Binh Đang Mặc (5 Ô)
+                      </span>
+                      <span className="text-[10.5px] text-slate-500 italic hidden sm:inline">
+                        Chi tiết sao, cường hóa, nhẫn & thuộc tính phụ
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {renderEquipSlot(p.weapon, 'weapon', '⚔️', 'Vũ Khí')}
+                      {renderEquipSlot(p.armor, 'armor', '🛡️', 'Áo Giáp')}
+                      {renderEquipSlot(p.necklace, 'necklace', '📿', 'Dây Chuyền')}
+                      {renderEquipSlot(p.ring, 'ring', '💍', 'Nhẫn Thần Binh')}
+                      <div className="sm:col-span-2">
+                        {renderEquipSlot(p.pet, 'pet', '🐾', 'Linh Thú')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Action */}
+                <div className="border-t border-slate-800 pt-3 mt-3 flex justify-between items-center shrink-0">
+                  <span className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
+                    <CheckCircle2 size={13} /> Tài khoản hợp lệ & sẵn sàng nhận quà
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowBossProfileModal(false)}
+                    className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {renderFooter()}
       </div>
