@@ -536,6 +536,17 @@ const App = () => {
   const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState(() => { try { const saved = localStorage.getItem('shop_wheel_money'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; } });
   const [wheelItemsSpinDb, setWheelItemsSpinDb] = useState(() => { try { const saved = localStorage.getItem('shop_wheel_spin'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; } });
 
+  // Tự động kiểm tra xem Vòng Quay có phần thưởng khả dụng nào không
+  const hasActiveWheelRewards = useMemo(() => {
+    const allItems = [...(wheelItemsMoneyDb || []), ...(wheelItemsSpinDb || [])];
+    return allItems.length > 0 && allItems.some(item => item && (item.quantity === undefined || item.quantity === null || item.quantity > 0));
+  }, [wheelItemsMoneyDb, wheelItemsSpinDb]);
+
+  useEffect(() => {
+    if (currentView === 'vongquay' && !hasActiveWheelRewards) {
+      setCurrentView('dashboard');
+    }
+  }, [currentView, hasActiveWheelRewards]);
 
   // --- LIFTED STATES TỪ CÁC TAB ĐỂ TRÁNH MẤT FOCUS KHI COMPONENT RENDER LẠI ---
   const [profileTab, setProfileTab] = useState('info');
@@ -632,14 +643,14 @@ const App = () => {
 
   // 1. Kích hoạt bảng Trang Chủ (Sảnh chính)
   useEffect(() => {
-    if (currentView === 'dashboard' && !dismissNotice) {
+    if (currentView === 'dashboard' && !dismissNotice && hasActiveWheelRewards) {
       // Đợi 0.3s cho web load xong giao diện rồi mới nảy bảng lên (Tránh bị React nuốt lệnh)
       const timer = setTimeout(() => setShowSpinNotice(true), 300);
       return () => clearTimeout(timer);
     } else {
       setShowSpinNotice(false); // Chuyển sang tab khác là tự động dọn dẹp (tắt bảng)
     }
-  }, [currentView, dismissNotice]);
+  }, [currentView, dismissNotice, hasActiveWheelRewards]);
 
   // 2. Kích hoạt bảng Vòng Quay
   useEffect(() => {
@@ -2082,7 +2093,7 @@ const App = () => {
               { name: 'Nạp Tiền VNĐ', view: 'naptien', auth: true, icon: <Wallet size={20} /> },
               { name: '⚔️ Nạp Game Mộng Thiên Huyễn', view: 'bossgame', auth: true, icon: <Swords size={20} /> },
               { name: 'Dịch Vụ Cày Thuê', view: 'caythue', auth: false, icon: <Target size={20} /> },
-              { name: 'Vòng Quay May Mắn', view: 'vongquay', auth: false, icon: <Gift size={20} /> },
+              ...(hasActiveWheelRewards ? [{ name: 'Vòng Quay May Mắn', view: 'vongquay', auth: false, icon: <Gift size={20} /> }] : []),
               { name: 'Lịch Sử Giao Dịch', view: 'lichsu', auth: true, icon: <History size={20} /> },
               ...(currentUser?.role === 'admin' ? [{ name: 'Panel Quản Trị Hệ Thống', view: 'admin', auth: true, icon: <Settings size={20} />, adminOnly: true }] : [])
             ].map((item, idx) => (
@@ -2133,7 +2144,7 @@ const App = () => {
           { id: 'bossgame', name: 'Nạp Game', icon: <Swords size={22} />, auth: true },
           { id: 'caythue', name: 'Cày thuê', icon: <Target size={22} />, auth: false },
           { id: 'naptien', name: 'Nạp tiền', icon: <Wallet size={22} />, auth: true },
-          { id: 'vongquay', name: 'Vòng quay', icon: <Gift size={22} />, auth: false },
+          ...(hasActiveWheelRewards ? [{ id: 'vongquay', name: 'Vòng quay', icon: <Gift size={22} />, auth: false }] : []),
           { id: 'security', name: 'Cá nhân', icon: <User size={22} />, auth: true }
         ].map(item => {
           const isActive = currentView === item.id;
@@ -2194,7 +2205,7 @@ const App = () => {
                 auth: true
               },
               { name: 'Cày Thuê', view: 'caythue', auth: false },
-              { name: 'Vòng Quay', view: 'vongquay', auth: false },
+              ...(hasActiveWheelRewards ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false }] : []),
               { name: 'Lịch Sử', view: 'lichsu', auth: true }
             ].map((item, idx) => (
               <button
@@ -2238,16 +2249,18 @@ const App = () => {
                   </div>
 
                   {/* Lượt quay */}
-                  <div
-                    onClick={() => setCurrentView('vongquay')}
-                    className="flex items-center gap-1.5 sm:gap-2 bg-rose-500/10 border border-rose-500/30 hover:border-rose-500/60 rounded-xl px-2.5 sm:px-3.5 py-1.5 sm:py-2 transition-all shadow-[0_0_15px_rgba(244,63,94,0.05)] cursor-pointer shrink-0"
-                    title="Lượt quay"
-                  >
-                    <Ticket className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 shrink-0" />
-                    <span className="text-rose-400 font-extrabold text-[12px] sm:text-[15px] whitespace-nowrap">
-                      {currentUser.spins || 0}<span className="text-[10px] sm:text-xs ml-0.5 font-bold"> Lượt</span>
-                    </span>
-                  </div>
+                  {hasActiveWheelRewards && (
+                    <div
+                      onClick={() => setCurrentView('vongquay')}
+                      className="flex items-center gap-1.5 sm:gap-2 bg-rose-500/10 border border-rose-500/30 hover:border-rose-500/60 rounded-xl px-2.5 sm:px-3.5 py-1.5 sm:py-2 transition-all shadow-[0_0_15px_rgba(244,63,94,0.05)] cursor-pointer shrink-0"
+                      title="Lượt quay"
+                    >
+                      <Ticket className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 shrink-0" />
+                      <span className="text-rose-400 font-extrabold text-[12px] sm:text-[15px] whitespace-nowrap">
+                        {currentUser.spins || 0}<span className="text-[10px] sm:text-xs ml-0.5 font-bold"> Lượt</span>
+                      </span>
+                    </div>
+                  )}
                 </div>
                 {/* Nút cá nhân ẩn bớt trên màn hình cực nhỏ vì đã có bottom nav */}
                 <div className="relative hidden sm:block">
@@ -2784,18 +2797,7 @@ const App = () => {
         console.log("Supabase player lookup:", err);
       }
 
-      // 2. Fallback: Nếu Supabase chưa có, thử kết nối API local (khi đang mở game trên máy)
-      if (!foundPlayer) {
-        try {
-          const res = await fetch(`http://localhost:8000/api/web/player-info?user_id=${encodeURIComponent(cleanId)}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.exists) {
-              foundPlayer = data;
-            }
-          }
-        } catch (e) {}
-      }
+      // 2. Tra cứu hoàn tất qua Supabase Cloud
 
       if (foundPlayer) {
         setBossPlayerSummary(foundPlayer);
@@ -2915,14 +2917,7 @@ const App = () => {
         }
       } catch (e) {}
 
-      // 3. Gọi trực tiếp Webhook tới bot game nếu bot đang chạy ở port 8000
-      try {
-        await fetch('http://localhost:8000/api/web/topup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-API-Key': 'tiengaming_boss_secret_2026' },
-          body: JSON.stringify(orderDetails)
-        });
-      } catch (e) {}
+      // 3. Đơn nạp tự động lưu vào Supabase Cloud (game_orders), máy chủ game sẽ tự động đọc và duyệt realtime
 
       // 4. Cập nhật state client
       const updatedUser = { ...currentUser, balance: (currentUser.balance || 0) - pkg.price };
