@@ -5228,54 +5228,53 @@ const App = () => {
 
               {/* CARD XEM TRƯỚC THÔNG TIN NGƯỜI CHƠI THẬT */}
               {bossPlayerSummary && (
-                <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-slate-900/90 to-[#151D2F] border border-amber-500/40 text-left animate-fade-in flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
+                <div className="mt-4 p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-slate-900/90 to-[#151D2F] border border-amber-500/40 text-left animate-fade-in flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 w-full overflow-hidden box-border">
+                  <div className="flex items-center gap-3 min-w-0 w-full flex-1 overflow-hidden">
                     <img
                       src={bossPlayerSummary.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(bossPlayerSummary.user_id)}`}
                       alt="Avatar"
                       onClick={() => setShowBossProfileModal(true)}
-                      className="w-14 h-14 rounded-full border-2 border-amber-400 object-cover shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.5)] cursor-pointer hover:scale-105 transition-transform"
+                      className="w-13 h-13 sm:w-14 sm:h-14 rounded-full border-2 border-amber-400 object-cover shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.5)] cursor-pointer hover:scale-105 transition-transform"
                       title="👉 Bấm để xem chi tiết Profile & Trang bị"
                     />
-                    <div>
-                      <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
                         <h4
                           onClick={() => setShowBossProfileModal(true)}
-                          className="text-white font-black text-base hover:text-amber-400 cursor-pointer transition-colors"
+                          className="text-white font-black text-sm sm:text-base hover:text-amber-400 cursor-pointer transition-colors truncate max-w-[170px] sm:max-w-xs"
                           title="👉 Bấm để xem chi tiết Profile & Trang bị"
                         >
                           {bossPlayerSummary.nickname}
                         </h4>
                         {bossPlayerSummary.level && (
-                          <span className="px-2 py-0.5 rounded-full bg-blue-600/30 text-blue-400 border border-blue-500/40 text-[10px] font-bold">
+                          <span className="px-2 py-0.5 rounded-full bg-blue-600/30 text-blue-400 border border-blue-500/40 text-[10px] font-bold shrink-0">
                             Cấp {bossPlayerSummary.level}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 font-mono mt-0.5">ID: @{bossPlayerSummary.user_id}</p>
+                      <p className="text-xs text-slate-400 font-mono mt-0.5 truncate">ID: @{bossPlayerSummary.user_id}</p>
                       {bossPlayerSummary.cp && bossPlayerSummary.cp !== 'Auto' && (
-                        <div className="text-xs text-amber-400 font-bold mt-1 space-y-0.5">
-                          <p>
-                            ⚔️ Lực Chiến: <span className="text-white">{new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.cp)} CP</span>
+                        <div className="text-xs text-amber-400 font-bold mt-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+                            <span className="whitespace-nowrap">
+                              ⚔️ Lực Chiến: <span className="text-white">{new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.cp)} CP</span>
+                            </span>
                             {bossPlayerSummary.bonus_attacks > 0 && (
-                              <span className="text-emerald-400 ml-1.5">• 💥 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.bonus_attacks)} Lượt</span>
+                              <span className="text-emerald-400 whitespace-nowrap">
+                                💥 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.bonus_attacks)} Lượt
+                              </span>
                             )}
-                          </p>
-                          {(bossPlayerSummary.weapon || bossPlayerSummary.ring) && (
-                            <p className="text-[11px] text-slate-400 font-normal truncate max-w-sm sm:max-w-md">
-                              🗡️ {typeof bossPlayerSummary.weapon === 'object' ? bossPlayerSummary.weapon?.name : (bossPlayerSummary.weapon || 'Chưa trang bị')} {bossPlayerSummary.ring ? `• 💍 ${typeof bossPlayerSummary.ring === 'object' ? bossPlayerSummary.ring?.name : bossPlayerSummary.ring}` : ''}
-                            </p>
-                          )}
+                          </div>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="w-full sm:w-auto text-right flex sm:flex-col items-center sm:items-end justify-between gap-2 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
+                  <div className="w-full sm:w-auto text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 border-t sm:border-t-0 pt-2.5 sm:pt-0 border-slate-800/80 shrink-0">
                     <button
                       type="button"
                       onClick={() => setShowBossProfileModal(true)}
-                      className="px-3.5 py-1.5 bg-gradient-to-r from-cyan-600/30 to-blue-600/30 hover:from-cyan-600/50 hover:to-blue-600/50 text-cyan-300 border border-cyan-500/50 rounded-xl text-xs font-bold transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] flex items-center gap-1.5 hover:scale-105 active:scale-95 cursor-pointer"
+                      className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 bg-gradient-to-r from-cyan-600/30 to-blue-600/30 hover:from-cyan-600/50 hover:to-blue-600/50 text-cyan-300 border border-cyan-500/50 rounded-xl text-xs font-bold transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] flex items-center justify-center gap-1.5 hover:scale-105 active:scale-95 cursor-pointer"
                     >
                       <Eye size={14} />
                       <span>Xem Profile & Đồ</span>
@@ -5774,18 +5773,35 @@ const App = () => {
                   </div>
 
                   {/* Sub-stats */}
-                  {Array.isArray(item.sub_stats) && item.sub_stats.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {item.sub_stats.slice(0, 3).map((sub, sIdx) => (
-                        <span
-                          key={sIdx}
-                          className="text-[9px] font-bold text-slate-300 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded whitespace-nowrap"
-                        >
-                          ✨ {sub}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  {(() => {
+                    const allSubs = Array.from(new Set([
+                      ...(Array.isArray(item.sub_stats) ? item.sub_stats : []),
+                      ...(Array.isArray(item.star_sub_stats) ? item.star_sub_stats : [])
+                    ].filter(Boolean)));
+                    if (allSubs.length === 0) return null;
+                    return (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {allSubs.slice(0, 3).map((sub, sIdx) => {
+                          let cleanSub = String(sub).trim();
+                          // Nếu có icon lặp như "✨ ⚡" hoặc "✨ ✨", giữ lại 1 icon duy nhất tương ứng với thuộc tính
+                          if (cleanSub.startsWith('✨ ') && cleanSub.length > 3) {
+                            const rest = cleanSub.slice(2).trim();
+                            if (/^[\p{Extended_Pictographic}\u2600-\u27bf]/u.test(rest)) {
+                              cleanSub = rest;
+                            }
+                          }
+                          return (
+                            <span
+                              key={sIdx}
+                              className="text-[9px] font-bold text-slate-300 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded whitespace-nowrap"
+                            >
+                              {cleanSub}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             );
