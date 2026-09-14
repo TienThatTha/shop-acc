@@ -2991,19 +2991,19 @@ const App = () => {
                         setCurrentView('bossgame');
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
-                      className="bg-[#151D2F] h-full border border-amber-500/40 hover:border-amber-400 rounded-2xl transition-all shadow-xl hover:shadow-[0_0_25px_rgba(245,158,11,0.25)] group flex flex-col relative mt-5 hover:-translate-y-1 cursor-pointer overflow-hidden"
+                      className="bg-[#151D2F] h-full border border-slate-800 hover:border-blue-500/50 rounded-2xl transition-all shadow-xl group flex flex-col relative mt-5 hover:-translate-y-1 cursor-pointer"
                     >
-                      {/* BADGE GAME NHÔ LÊN TRÊN THẺ */}
+                      {/* BADGE GAME NHÔ LÊN TRÊN THẺ (GIỐNG HỆT CÁC THẺ GAME KHÁC) */}
                       <div className="flex justify-center -mt-5 relative z-30">
-                        <div className="flex items-center gap-1.5 md:gap-2 bg-gradient-to-r from-amber-600 to-yellow-600 border border-amber-300/40 rounded-full pl-1 md:pl-1.5 pr-3 md:pr-4 py-1 shadow-xl shadow-amber-500/20">
-                          <img src="/mongthienhuyen.jpg" alt="Mộng Thiên Huyễn" className="w-7 h-7 md:w-9 md:h-9 rounded-full object-cover shrink-0 ring-2 ring-yellow-300" />
-                          <span className="text-[11px] md:text-xs font-black text-amber-100 whitespace-nowrap">Mộng Thiên Huyễn</span>
+                        <div className="flex items-center gap-2 bg-gradient-to-r from-[#1a2744] to-[#1e2d4a] border border-blue-500/30 rounded-full pl-1 pr-4 py-1 shadow-xl shadow-blue-500/10">
+                          <img src="/mongthienhuyen.jpg" alt="Mộng Thiên Huyễn" className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover shrink-0 ring-2 ring-blue-400/50" />
+                          <span className="text-xs md:text-sm font-black text-blue-300 whitespace-nowrap">Mộng Thiên Huyễn</span>
                         </div>
                       </div>
 
                       <div className="flex-1 flex flex-col relative overflow-hidden rounded-xl">
                         {/* RIBBON HOT TỰ ĐỘNG */}
-                        <div className="absolute top-3 md:top-6 -right-12 md:-right-10 w-36 md:w-40 text-center transform rotate-45 bg-gradient-to-r from-amber-500 via-rose-500 to-amber-500 text-white font-black text-[8px] md:text-[11px] py-0.5 md:py-1 shadow-lg z-30 border-y border-white/20 uppercase tracking-widest pointer-events-none mt-4">
+                        <div className="absolute top-3 md:top-6 -right-12 md:-right-10 w-36 md:w-40 text-center transform rotate-45 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 text-white font-black text-[8px] md:text-[11px] py-0.5 md:py-1 shadow-lg z-30 border-y border-white/20 uppercase tracking-widest pointer-events-none mt-4">
                           TỰ ĐỘNG 24/7
                         </div>
 
@@ -3015,29 +3015,22 @@ const App = () => {
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-[#151D2F] via-transparent to-transparent opacity-60"></div>
-                          <div className="absolute bottom-2 left-2 z-10">
-                            <span className="text-[9px] md:text-[10px] font-bold text-amber-300 bg-black/80 px-2 py-0.5 rounded border border-amber-500/40 backdrop-blur-sm">
-                              ⚡ 8 Gói Quà VIP
+                          <div className="absolute bottom-1.5 left-1.5 z-20 pointer-events-none">
+                            <span className="text-[9px] md:text-[10px] font-black px-2.5 py-1 rounded-md uppercase w-fit bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-[0_2px_10px_rgba(0,0,0,0.8)] border border-amber-300/50 backdrop-blur-md">
+                              🔥 DỊCH VỤ NỔI BẬT
                             </span>
                           </div>
                         </div>
 
-                        <div className="p-2.5 md:p-4 flex-1 flex flex-col relative z-10 bg-[#151D2F]">
-                          <h4 className="text-xs md:text-base font-black text-white text-center mb-1 group-hover:text-amber-400 transition-colors leading-tight px-1 line-clamp-2">
+                        <div className="p-2 md:p-4 flex-1 flex flex-col relative z-10 bg-[#151D2F]">
+                          <h4 className="text-sm md:text-base font-black text-white text-center mb-1 group-hover:text-blue-400 transition-colors leading-tight px-1 line-clamp-2">
                             ⚔️ Nạp Game Mộng Thiên Huyễn (Tự Động)
                           </h4>
-                          <p className="text-[10px] md:text-xs text-slate-400 mb-2 whitespace-pre-wrap text-center px-1 line-clamp-2">
+                          <p className="text-[10px] md:text-xs text-slate-400 mb-2 flex-grow whitespace-pre-wrap text-center px-1 line-clamp-2">
                             Nạp Xu Game, Rương Hoàng Kim, Lượt Đánh Boss & Nhẫn Thần Binh. Tự động chuyển quà vào acc ngay sau 1 giây!
                           </p>
 
-                          <div className="border-t border-slate-800 pt-2 md:pt-3 flex flex-col gap-2 flex-1 mt-auto">
-                            <div className="flex flex-col items-center py-0.5">
-                              <p className="text-[9px] md:text-[10px] tracking-wider text-slate-500 font-bold mb-0.5 uppercase">GIÁ CHỈ TỪ</p>
-                              <p className="text-base md:text-2xl font-black text-emerald-400">
-                                20.000<span className="text-xs md:text-sm font-bold ml-1 text-emerald-500">VNĐ</span>
-                              </p>
-                            </div>
-
+                          <div className="border-t border-slate-800 pt-2 md:pt-4 mt-auto w-full">
                             <button
                               type="button"
                               onClick={(e) => {
@@ -3046,11 +3039,9 @@ const App = () => {
                                 setCurrentView('bossgame');
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                               }}
-                              className="w-full py-1.5 md:py-2.5 rounded-xl text-[11px] md:text-sm font-black text-white uppercase tracking-wider bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:from-amber-600 hover:to-purple-700 transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-1.5"
+                              className="w-full py-1.5 md:py-2.5 rounded-lg text-[10px] md:text-sm font-bold flex items-center justify-center gap-1 transition-colors bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"
                             >
-                              <Zap size={14} />
-                              <span>Nạp Ngay</span>
-                              <ArrowRight size={14} />
+                              Nạp Ngay
                             </button>
                           </div>
                         </div>
