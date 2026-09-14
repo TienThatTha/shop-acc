@@ -2890,6 +2890,7 @@ const App = () => {
     const availableAccounts = accountsDb.filter(acc => !acc.is_sold && (acc.stock === undefined || acc.stock > 0));
 
     const uniqueGamesMap = new Map();
+    uniqueGamesMap.set('Mộng Thiên Huyễn', '/mongthienhuyen.jpg');
     availableAccounts.forEach(acc => {
       const info = getGameInfo(acc.game);
       if (!uniqueGamesMap.has(info.name)) uniqueGamesMap.set(info.name, info.avatar);
@@ -2908,14 +2909,8 @@ const App = () => {
     return (
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-20">
         {renderNavbar()}
-        <main className="w-full mx-auto px-4 lg:px-6 2xl:px-12 pt-6">
-          <div className="flex flex-col xl:flex-row gap-6 justify-center">
-
-            {/* CỘT TRÁI: KHOẢNG TRỐNG CÂN BẰNG BỐ CỤC */}
-            <div className="hidden 3xl:block w-[250px] shrink-0 pointer-events-none"></div>
-
-            {/* CỘT GIỮA: HERO BANNER & TẤT CẢ TÀI KHOẢN */}
-            <div className="flex-1 w-full max-w-[1300px] space-y-8">
+        <main className="w-full max-w-7xl mx-auto px-4 lg:px-6 2xl:px-8 pt-6">
+          <div className="w-full space-y-8">
               <section className="relative rounded-2xl border border-slate-800 overflow-hidden shadow-2xl min-h-[350px] flex items-center bg-[#0f172a]">
                 <div className="absolute inset-0 z-0">
                   <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=2000&h=800" alt="Gaming Banner" className="w-full h-full object-cover opacity-30 mix-blend-luminosity" />
@@ -2950,26 +2945,6 @@ const App = () => {
                       <input type="text" placeholder="Tìm tên game, mã ID, tướng, skin..." className="w-full pl-12 pr-12 py-4 bg-[#0B1120]/80 backdrop-blur-md border border-slate-700 rounded-xl text-sm md:text-base text-white focus:outline-none focus:border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.1)] transition-all" />
                       <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors shadow-lg flex items-center justify-center"><ArrowRight size={20} /></button>
                     </div>
-                  </div>
-
-                  <div className="hidden lg:flex flex-col justify-center bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-5 rounded-2xl shadow-xl hover:border-blue-500/50 transition-all group w-full lg:w-64 relative overflow-hidden">
-                    <div className="absolute -top-6 -right-6 p-4 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
-                      <Download size={120} />
-                    </div>
-                    <h3 className="text-white font-bold text-lg mb-2 relative z-10 flex items-center gap-2">
-                      <Gamepad2 className="text-blue-500" size={20} /> Tải App Điều Khiển
-                    </h3>
-                    <p className="text-xs text-slate-400 mb-4 relative z-10">Tải phần mềm điều khiển xa để chuẩn bị sẵn sàng trước khi thuê tài khoản game.</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        window.open('https://down.aweray.com/awesun/windows/Aweray_Remote_2.0.0.45399_x64.exe', '_blank');
-                        setAwesunGuideType('outside');
-                      }}
-                      className="w-full bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border border-blue-500/30 shadow-sm relative z-10"
-                    >
-                      <Download size={16} /> Tải xuống ngay
-                    </button>
                   </div>
 
                   <div className="hidden lg:flex flex-col gap-5 w-72">
@@ -3008,6 +2983,81 @@ const App = () => {
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-2.5 md:gap-x-5 gap-y-8 md:gap-y-10">
+                  {/* THẺ DỊCH VỤ NẠP GAME MỘNG THIÊN HUYỄN (TỰ ĐỘNG) */}
+                  {(activeTab === 'Tất cả' || activeTab === 'Mộng Thiên Huyễn') && (
+                    <div
+                      onClick={() => {
+                        requireAuth('bossgame');
+                        setCurrentView('bossgame');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="bg-[#151D2F] h-full border border-amber-500/40 hover:border-amber-400 rounded-2xl transition-all shadow-xl hover:shadow-[0_0_25px_rgba(245,158,11,0.25)] group flex flex-col relative mt-5 hover:-translate-y-1 cursor-pointer overflow-hidden"
+                    >
+                      {/* BADGE GAME NHÔ LÊN TRÊN THẺ */}
+                      <div className="flex justify-center -mt-5 relative z-30">
+                        <div className="flex items-center gap-1.5 md:gap-2 bg-gradient-to-r from-amber-600 to-yellow-600 border border-amber-300/40 rounded-full pl-1 md:pl-1.5 pr-3 md:pr-4 py-1 shadow-xl shadow-amber-500/20">
+                          <img src="/mongthienhuyen.jpg" alt="Mộng Thiên Huyễn" className="w-7 h-7 md:w-9 md:h-9 rounded-full object-cover shrink-0 ring-2 ring-yellow-300" />
+                          <span className="text-[11px] md:text-xs font-black text-amber-100 whitespace-nowrap">Mộng Thiên Huyễn</span>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 flex flex-col relative overflow-hidden rounded-xl">
+                        {/* RIBBON HOT TỰ ĐỘNG */}
+                        <div className="absolute top-3 md:top-6 -right-12 md:-right-10 w-36 md:w-40 text-center transform rotate-45 bg-gradient-to-r from-amber-500 via-rose-500 to-amber-500 text-white font-black text-[8px] md:text-[11px] py-0.5 md:py-1 shadow-lg z-30 border-y border-white/20 uppercase tracking-widest pointer-events-none mt-4">
+                          TỰ ĐỘNG 24/7
+                        </div>
+
+                        {/* HÌNH ẢNH DỊCH VỤ */}
+                        <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-900">
+                          <img
+                            src="/mongthienhuyen.jpg"
+                            alt="Nạp Game Mộng Thiên Huyễn"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#151D2F] via-transparent to-transparent opacity-60"></div>
+                          <div className="absolute bottom-2 left-2 z-10">
+                            <span className="text-[9px] md:text-[10px] font-bold text-amber-300 bg-black/80 px-2 py-0.5 rounded border border-amber-500/40 backdrop-blur-sm">
+                              ⚡ 8 Gói Quà VIP
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="p-2.5 md:p-4 flex-1 flex flex-col relative z-10 bg-[#151D2F]">
+                          <h4 className="text-xs md:text-base font-black text-white text-center mb-1 group-hover:text-amber-400 transition-colors leading-tight px-1 line-clamp-2">
+                            ⚔️ Nạp Game Mộng Thiên Huyễn (Tự Động)
+                          </h4>
+                          <p className="text-[10px] md:text-xs text-slate-400 mb-2 whitespace-pre-wrap text-center px-1 line-clamp-2">
+                            Nạp Xu Game, Rương Hoàng Kim, Lượt Đánh Boss & Nhẫn Thần Binh. Tự động chuyển quà vào acc ngay sau 1 giây!
+                          </p>
+
+                          <div className="border-t border-slate-800 pt-2 md:pt-3 flex flex-col gap-2 flex-1 mt-auto">
+                            <div className="flex flex-col items-center py-0.5">
+                              <p className="text-[9px] md:text-[10px] tracking-wider text-slate-500 font-bold mb-0.5 uppercase">GIÁ CHỈ TỪ</p>
+                              <p className="text-base md:text-2xl font-black text-emerald-400">
+                                20.000<span className="text-xs md:text-sm font-bold ml-1 text-emerald-500">VNĐ</span>
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                requireAuth('bossgame');
+                                setCurrentView('bossgame');
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              className="w-full py-1.5 md:py-2.5 rounded-xl text-[11px] md:text-sm font-black text-white uppercase tracking-wider bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:from-amber-600 hover:to-purple-700 transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-1.5"
+                            >
+                              <Zap size={14} />
+                              <span>Nạp Ngay</span>
+                              <ArrowRight size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {mixedItems.map((item, index) => {
                     if (!item.code) return renderBoostingCard(item, index);
                     const acc = item;
@@ -3162,78 +3212,6 @@ const App = () => {
                   })}
                 </div>
               </section>
-            </div>
-
-            {/* CỘT PHẢI: KHUNG HỎI ĐÁP / BÌNH LUẬN */}
-            <div className="hidden xl:block w-[350px] 2xl:w-[400px] shrink-0 relative">
-              <div className="bg-[#151D2F] rounded-xl border border-slate-800 shadow-xl overflow-hidden flex flex-col h-[600px] xl:h-[800px] xl:sticky xl:top-24">
-                <div className="p-4 bg-gradient-to-r from-blue-600/20 to-rose-600/20 border-b border-slate-700 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <MessageCircle className="text-blue-400" />
-                    <h3 className="font-bold text-white uppercase tracking-wider text-sm">Hỏi đáp & Bình luận</h3>
-                  </div>
-                  {currentUser?.role === 'admin' && (
-                    <button onClick={() => setShowReportedCommentsModal(true)} className="text-slate-400 hover:text-white transition-colors relative">
-                      <Settings size={18} />
-                      {commentsDb.filter(c => c.reported_by?.length > 0).length > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-rose-500 w-2.5 h-2.5 rounded-full animate-pulse"></span>
-                      )}
-                    </button>
-                  )}
-                </div>
-
-                {/* Danh sách bình luận */}
-                <div className="flex-1 p-4 overflow-y-auto space-y-4 custom-scrollbar">
-                  {commentsDb.filter(c => !c.parent_id).length === 0 ? (
-                    <p className="text-center text-slate-500 text-sm mt-10">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
-                  ) : (
-                    commentsDb.filter(c => !c.parent_id).map(comment => renderComment(comment, false))
-                  )}
-                </div>
-
-                {/* Form nhập bình luận */}
-                <div className="p-4 border-t border-slate-700 bg-[#0B1120]/50 backdrop-blur-md">
-                  {currentUser ? (
-                    <form onSubmit={handlePostComment} className="flex flex-col gap-2 relative group">
-                      <div className="relative">
-                        <img src={currentUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name || 'K')}&background=151D2F&color=fff`} alt="avatar" className="w-9 h-9 rounded-full object-cover border border-slate-700 absolute left-1 top-1 z-10 shadow-sm" />
-                        <textarea
-                          ref={commentTextareaRef}
-                          rows={1}
-                          value={commentInput}
-                          onChange={(e) => {
-                            setCommentInput(e.target.value);
-                            e.target.style.height = 'auto';
-                            e.target.style.height = `${e.target.scrollHeight}px`;
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              if (commentInput.trim()) {
-                                handlePostComment(e);
-                              }
-                            }
-                          }}
-                          placeholder="Nhập bình luận của bạn..."
-                          className="w-full bg-[#151D2F] border border-slate-700 rounded-[21px] py-2.5 pl-12 pr-12 text-sm text-white focus:outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all resize-none overflow-y-auto custom-scrollbar"
-                          style={{ minHeight: '44px', maxHeight: '150px' }}
-                        />
-                        <button type="submit" disabled={!commentInput.trim()} className="absolute right-1 bottom-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-md">
-                          <Send size={14} className="ml-0.5" />
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <div className="text-center py-2 bg-[#151D2F] rounded-lg border border-slate-800">
-                      <p className="text-xs text-slate-400 mb-2">Đăng nhập để tham gia thảo luận</p>
-                      <button onClick={() => setCurrentView('login')} className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-1.5 rounded-lg text-sm font-bold transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_20px_rgba(37,99,235,0.5)]">
-                        Đăng nhập ngay
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
           </div>
         </main>
 
@@ -5239,8 +5217,24 @@ const App = () => {
                       <img
                         src={pkg.image}
                         alt={pkg.name}
-                        className="max-h-32 max-w-[85%] object-contain group-hover:scale-110 transition-transform duration-500 drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)]"
+                        className={`max-w-[85%] object-contain group-hover:scale-110 transition-transform duration-500 drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)] ${
+                          hasRing ? 'max-h-28 pb-1' : 'max-h-32'
+                        }`}
                       />
+
+                      {/* SỐ SAO VÀ SỐ LƯỢNG x1 BÊN DƯỚI CHÂN NHẪN (GÓI 7 & 8) */}
+                      {hasRing && (
+                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-slate-950/90 backdrop-blur-md border border-amber-400/60 shadow-[0_0_12px_rgba(245,158,11,0.4)] z-20 whitespace-nowrap">
+                          <div className="flex items-center gap-0.5 text-yellow-400 text-xs">
+                            {Array.from({ length: pkg.items[0].stars || 1 }).map((_, i) => (
+                              <span key={i} className="drop-shadow-[0_0_4px_rgba(250,204,21,0.8)]">⭐</span>
+                            ))}
+                          </div>
+                          <span className="text-[11px] font-black text-amber-300 bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-400/40 leading-none">
+                            x1
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* TÊN GÓI & GIÁ */}
@@ -5283,7 +5277,7 @@ const App = () => {
                       {hasRing && (
                         <div className="flex items-start gap-2 text-amber-300 font-black pt-2 border-t border-amber-500/30 px-1">
                           <Sparkles size={15} className="text-yellow-400 shrink-0 mt-0.5" />
-                          <span>Tặng: {pkg.items[0].name} ({pkg.items[0].stars}⭐)</span>
+                          <span>Tặng: x1 {pkg.items[0].name} ({pkg.items[0].stars}⭐)</span>
                         </div>
                       )}
                     </div>
@@ -5381,7 +5375,7 @@ const App = () => {
                     <p>• +{selectedBossPackage.royalChests} Rương Hoàng Kim VIP</p>
                     <p>• +{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.attacks)} Lượt Đánh Boss</p>
                     {selectedBossPackage.items && selectedBossPackage.items.length > 0 && (
-                      <p className="text-amber-300 font-bold">• 💥 Tặng kèm: {selectedBossPackage.items[0].name} ({selectedBossPackage.items[0].stars}⭐)</p>
+                      <p className="text-amber-300 font-bold">• 💥 Tặng kèm: x1 {selectedBossPackage.items[0].name} ({selectedBossPackage.items[0].stars}⭐)</p>
                     )}
                   </div>
                 </div>
