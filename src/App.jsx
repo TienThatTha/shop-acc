@@ -2167,9 +2167,9 @@ const App = () => {
           <Clock size={16} className="animate-bounce shrink-0" />
           <span className="relative z-10 tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-rose-400">Giờ hoạt động: 8h00 - 23h00. Ngoài khung giờ này quý khách vui lòng kiên nhẫn chờ đợi, xin cảm ơn!</span>
         </div>
-        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden text-slate-300 hover:text-white p-2 -ml-2 bg-slate-800/50 rounded-lg transition-colors"><Menu size={24} /></button>
+        <div className="w-full max-w-[1550px] mx-auto px-3 sm:px-6 h-20 flex items-center justify-between gap-2 xl:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden text-slate-300 hover:text-white p-2 -ml-2 bg-slate-800/50 rounded-lg transition-colors"><Menu size={24} /></button>
             <div onClick={() => setCurrentView('dashboard')}>
               <CustomLogo className="hidden sm:flex" />
               <div className="sm:hidden cursor-pointer">
@@ -2178,48 +2178,75 @@ const App = () => {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1 xl:gap-2 shrink-0">
             {[
               { name: 'Mua Nick', view: 'dashboard', auth: false },
               { name: 'Nạp Tiền', view: 'naptien', auth: true },
-              { name: '⚔️ Nạp Game Mộng Thiên Huyễn', view: 'bossgame', auth: true },
+              {
+                name: (
+                  <span className="flex items-center gap-1">
+                    <span>⚔️</span>
+                    <span className="hidden xl:inline">Nạp Game</span>
+                    <span>Mộng Thiên Huyễn</span>
+                  </span>
+                ),
+                view: 'bossgame',
+                auth: true
+              },
               { name: 'Cày Thuê', view: 'caythue', auth: false },
               { name: 'Vòng Quay', view: 'vongquay', auth: false },
               { name: 'Lịch Sử', view: 'lichsu', auth: true }
             ].map((item, idx) => (
-              <button key={idx} onClick={() => item.auth ? requireAuth(item.view) : setCurrentView(item.view)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${currentView === item.view ? 'bg-blue-600/10 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+              <button
+                key={idx}
+                onClick={() => item.auth ? requireAuth(item.view) : setCurrentView(item.view)}
+                className={`px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-lg text-xs xl:text-sm font-semibold whitespace-nowrap transition-colors shrink-0 ${
+                  currentView === item.view ? 'bg-blue-600/15 text-blue-400 border border-blue-500/30 shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
                 {item.name}
               </button>
             ))}
             {currentUser?.role === 'admin' && (
-              <button onClick={() => setCurrentView('admin')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1 relative ${currentView === 'admin' ? 'bg-rose-600 text-white' : 'text-rose-400 bg-rose-500/10 hover:bg-rose-500/20'}`}>
-                <Settings size={16} /> Admin
+              <button
+                onClick={() => setCurrentView('admin')}
+                className={`px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-lg text-xs xl:text-sm font-semibold whitespace-nowrap transition-colors flex items-center gap-1 relative shrink-0 ${
+                  currentView === 'admin' ? 'bg-rose-600 text-white' : 'text-rose-400 bg-rose-500/10 hover:bg-rose-500/20'
+                }`}
+              >
+                <Settings size={15} /> Admin
                 {unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full animate-pulse">{unreadCount}</span>}
               </button>
             )}
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {currentUser ? (
               <>
-                {/* --- KHU VỰC HIỂN THỊ SỐ DƯ ĐÃ CHỈNH RESPONSIVE (GIỮ NGUYÊN CHỮ) --- */}
-                <div className="flex items-center gap-1.5 sm:gap-2.5 max-w-full">
+                {/* --- KHU VỰC HIỂN THỊ SỐ DƯ (ĐÃ BỎ QUỸ GIỜ BẢO LƯU 0Đ) --- */}
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                   {/* Số Dư Ví */}
-                  <div className="flex items-center gap-1.5 sm:gap-2.5 bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/60 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 transition-all shadow-[0_0_15px_rgba(16,185,129,0.05)] cursor-pointer" title="Số dư">
+                  <div
+                    onClick={() => { requireAuth('naptien'); setCurrentView('naptien'); }}
+                    className="flex items-center gap-1.5 sm:gap-2 bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/60 rounded-xl px-2.5 sm:px-3.5 py-1.5 sm:py-2 transition-all shadow-[0_0_15px_rgba(16,185,129,0.05)] cursor-pointer shrink-0"
+                    title="Số dư ví"
+                  >
                     <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0" />
-                    <span className="text-emerald-400 font-extrabold text-[12px] sm:text-[16px] whitespace-nowrap">{new Intl.NumberFormat('vi-VN').format(currentUser.balance)}<span className="text-[10px] sm:text-sm ml-0.5 font-bold">đ</span></span>
-                  </div>
-
-                  {/* Quỹ bảo lưu */}
-                  <div className="flex items-center gap-1.5 sm:gap-2.5 bg-yellow-500/10 border border-yellow-500/30 hover:border-yellow-500/60 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 transition-all shadow-[0_0_15px_rgba(234,179,8,0.05)] cursor-pointer" title="Quỹ tiền thuê bảo lưu">
-                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 shrink-0" />
-                    <span className="text-yellow-400 font-extrabold text-[12px] sm:text-[16px] whitespace-nowrap">{new Intl.NumberFormat('vi-VN').format(currentUser.rentFund || 0)}<span className="text-[10px] sm:text-sm ml-0.5 font-bold">đ</span></span>
+                    <span className="text-emerald-400 font-extrabold text-[12px] sm:text-[15px] whitespace-nowrap">
+                      {new Intl.NumberFormat('vi-VN').format(currentUser.balance)}<span className="text-[10px] sm:text-xs ml-0.5 font-bold">đ</span>
+                    </span>
                   </div>
 
                   {/* Lượt quay */}
-                  <div className="flex items-center gap-1.5 sm:gap-2.5 bg-rose-500/10 border border-rose-500/30 hover:border-rose-500/60 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 transition-all shadow-[0_0_15px_rgba(244,63,94,0.05)] cursor-pointer" title="Lượt quay">
+                  <div
+                    onClick={() => setCurrentView('vongquay')}
+                    className="flex items-center gap-1.5 sm:gap-2 bg-rose-500/10 border border-rose-500/30 hover:border-rose-500/60 rounded-xl px-2.5 sm:px-3.5 py-1.5 sm:py-2 transition-all shadow-[0_0_15px_rgba(244,63,94,0.05)] cursor-pointer shrink-0"
+                    title="Lượt quay"
+                  >
                     <Ticket className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 shrink-0" />
-                    <span className="text-rose-400 font-extrabold text-[12px] sm:text-[16px] whitespace-nowrap">{currentUser.spins || 0}<span className="text-[10px] sm:text-sm ml-0.5 font-bold"> Lượt</span></span>
+                    <span className="text-rose-400 font-extrabold text-[12px] sm:text-[15px] whitespace-nowrap">
+                      {currentUser.spins || 0}<span className="text-[10px] sm:text-xs ml-0.5 font-bold"> Lượt</span>
+                    </span>
                   </div>
                 </div>
                 {/* Nút cá nhân ẩn bớt trên màn hình cực nhỏ vì đã có bottom nav */}
