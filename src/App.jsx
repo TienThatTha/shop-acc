@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import imageCompression from 'browser-image-compression';
 import {
   User, Lock, Phone, Mail, ShieldCheck, ArrowRight, CheckCircle2,
