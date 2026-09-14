@@ -5222,18 +5222,25 @@ const App = () => {
                         }`}
                       />
 
-                      {/* SỐ SAO VÀ SỐ LƯỢNG x1 BÊN DƯỚI CHÂN NHẪN (GÓI 7 & 8) */}
+                      {/* SỐ SAO BÊN DƯỚI CHÂN NHẪN & SỐ LƯỢNG x1 Ở GÓC NGOÀI (GÓI 7 & 8) */}
                       {hasRing && (
-                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-slate-950/90 backdrop-blur-md border border-amber-400/60 shadow-[0_0_12px_rgba(245,158,11,0.4)] z-20 whitespace-nowrap">
-                          <div className="flex items-center gap-0.5 text-yellow-400 text-xs">
-                            {Array.from({ length: pkg.items[0].stars || 1 }).map((_, i) => (
-                              <span key={i} className="drop-shadow-[0_0_4px_rgba(250,204,21,0.8)]">⭐</span>
-                            ))}
+                        <>
+                          {/* SỐ SAO BÊN DƯỚI CHÂN NHẪN */}
+                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center px-2.5 py-0.5 rounded-full bg-slate-950/90 backdrop-blur-md border border-amber-400/60 shadow-[0_0_12px_rgba(245,158,11,0.4)] z-20 whitespace-nowrap">
+                            <div className="flex items-center gap-0.5 text-yellow-400 text-xs">
+                              {Array.from({ length: pkg.items[0].stars || 1 }).map((_, i) => (
+                                <span key={i} className="drop-shadow-[0_0_4px_rgba(250,204,21,0.8)]">⭐</span>
+                              ))}
+                            </div>
                           </div>
-                          <span className="text-[11px] font-black text-amber-300 bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-400/40 leading-none">
-                            x1
-                          </span>
-                        </div>
+
+                          {/* SỐ LƯỢNG x1 NẰM Ở GÓC NGOÀI (GÓC DƯỚI BÊN PHẢI CỦA KHUNG ẢNH) */}
+                          <div className="absolute bottom-0 right-1 px-2 py-0.5 rounded-lg bg-slate-950/95 backdrop-blur-md border border-amber-400/60 shadow-[0_0_10px_rgba(0,0,0,0.8)] z-20">
+                            <span className="text-xs font-black text-amber-300 tracking-wider drop-shadow">
+                              x1
+                            </span>
+                          </div>
+                        </>
                       )}
                     </div>
 
