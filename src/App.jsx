@@ -5693,15 +5693,16 @@ const App = () => {
 
             return (
               <div
-                className="rounded-2xl p-3 flex gap-3 relative transition-all duration-200"
+                className="rounded-2xl p-3 sm:p-3.5 flex items-start gap-3 sm:gap-3.5 relative transition-all duration-200"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(20, 28, 48, 0.9))',
+                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(20, 28, 48, 0.92))',
                   border: `1.5px solid ${tier.border}`,
                   boxShadow: `0 4px 15px rgba(0,0,0,0.4)`
                 }}
               >
+                {/* Thumbnail vuông chuẩn tỉ lệ, không bị kéo dãn trên mobile */}
                 <div
-                  className="w-13 h-13 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center relative shrink-0 overflow-hidden"
+                  className="w-14 h-14 sm:w-16 sm:h-16 aspect-square rounded-xl flex items-center justify-center relative shrink-0 self-start overflow-hidden shadow-inner"
                   style={{
                     border: `2px solid ${tier.color}`,
                     background: '#060913',
@@ -5712,30 +5713,30 @@ const App = () => {
                     <img
                       src={imgUrl}
                       alt={item.name}
-                      className="w-10 h-10 sm:w-11 sm:h-11 object-contain"
+                      className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
                       style={{ filter: `drop-shadow(0 0 6px ${tier.color})` }}
                     />
                   ) : (
                     <span className="text-2xl">{defaultIcon}</span>
                   )}
-                  <div className="absolute bottom-0.5 left-0 right-0 text-center text-[8px] tracking-tighter drop-shadow-md">
+                  <div className="absolute bottom-0.5 left-0 right-0 text-center text-[9px] text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
                     {stars}
                   </div>
                 </div>
 
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 flex flex-col justify-start">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-extrabold text-xs truncate max-w-[170px] sm:max-w-[210px]" style={{ color: tier.color }} title={item.name}>
+                    <span className="font-extrabold text-xs sm:text-sm leading-snug" style={{ color: tier.color }} title={item.name}>
                       {item.name}{plusText}
                     </span>
                     <span
-                      className="text-[9px] font-black px-1.5 py-0.2 rounded border"
+                      className="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase shrink-0"
                       style={{ color: tier.color, background: tier.bg, borderColor: tier.border }}
                     >
                       {tier.label}
                     </span>
                     {category === 'pet' && item.level && (
-                      <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-emerald-600 text-white shadow-sm">
+                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-600 text-white shadow-sm shrink-0">
                         Lv.{item.level}
                       </span>
                     )}
@@ -5910,7 +5911,7 @@ const App = () => {
                         </div>
                       </div>
                       <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">🪙 Xu Nâng Cấp</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">🪙 Xu</div>
                         <div className="text-sm font-black text-amber-400 mt-0.5">
                           {Number(p.bonus_coins || 0).toLocaleString()} Xu
                         </div>
