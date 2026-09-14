@@ -5210,26 +5210,6 @@ const App = () => {
             )}
           </div>
 
-          {/* BANNER GIẢI THÍCH GIÁ TRỊ CỦA XU */}
-          <div className="mb-6 p-4 md:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-600/15 border-2 border-amber-400/50 shadow-[0_0_25px_rgba(245,158,11,0.15)] flex flex-col sm:flex-row items-start sm:items-center gap-4 text-left">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-slate-950 font-black shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.5)]">
-              <Gem size={26} className="text-white drop-shadow-md animate-pulse" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="text-xs uppercase font-black px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 shadow-sm">
-                  ĐẶC BIỆT QUAN TRỌNG
-                </span>
-                <span className="text-sm md:text-base font-black text-amber-300">
-                  🪙 XU LÀ TIỀN TỆ QUÝ GIÁ NHẤT TRONG GAME!
-                </span>
-              </div>
-              <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
-                Xu <strong>không chỉ là điểm thường</strong> mà là <strong className="text-amber-400">loại tiền tệ tối thượng</strong> dùng để mua sắm trực tiếp các món đồ cực hiếm: <strong>Vũ Khí Thần Binh, Áo Giáp Long Vương, Pet Thần Rồng Chaos, Dây Chuyền & Nhẫn Thượng Cổ</strong> trong Cửa Hàng (Shop)!
-              </p>
-            </div>
-          </div>
-
           {/* GRID 8 GÓI NẠP */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {BOSS_GAME_PACKAGES.map((pkg) => {
@@ -5267,44 +5247,42 @@ const App = () => {
                     <h3 className="text-base font-black text-white mb-1 group-hover:text-amber-400 transition-colors">
                       {pkg.name}
                     </h3>
-                    <div className="mb-4">
+                    <div className="mb-3">
                       <span className="text-2xl font-black text-emerald-400">
                         {new Intl.NumberFormat('vi-VN').format(pkg.price)}
                         <span className="text-xs font-bold ml-1 text-emerald-500">VNĐ</span>
                       </span>
                     </div>
 
-                    {/* KHỐI XU GAME NỔI BẬT NHẤT - TIỀN TỆ ĐÁNG GIÁ MUA MỌI THỨ */}
-                    <div className="my-2.5 p-2.5 rounded-xl bg-gradient-to-r from-amber-500/25 via-yellow-500/20 to-amber-600/25 border-2 border-amber-400/80 shadow-[0_0_18px_rgba(245,158,11,0.35)] flex items-center justify-between gap-2 animate-pulse-slow">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-amber-400/30 border border-amber-300 flex items-center justify-center text-amber-300 shrink-0 shadow-[0_0_8px_rgba(245,158,11,0.6)]">
-                          <Gem size={18} className="text-yellow-300 animate-spin" />
+                    {/* CHI TIẾT CÁC PHẦN QUÀ NHẬN ĐƯỢC */}
+                    <div className="space-y-2.5 py-3 border-t border-slate-800 text-xs flex-1">
+                      {/* DÒNG XU NỔI BẬT NHẤT */}
+                      <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-amber-500/15 border border-amber-400/40 text-left shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl shrink-0 leading-none">🪙</span>
+                          <div>
+                            <span className="text-[9px] uppercase font-bold text-amber-300/80 block leading-tight tracking-wider">TIỀN TỆ MUA ĐỒ SHOP</span>
+                            <span className="text-base font-black text-amber-300 drop-shadow">
+                              +{new Intl.NumberFormat('vi-VN').format(pkg.coins)} XU GAME
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-left">
-                          <span className="text-[9px] uppercase font-black tracking-wider text-amber-300 block leading-tight">TIỀN TỆ QUÝ GIÁ NHẤT</span>
-                          <span className="text-base font-black text-white drop-shadow-[0_0_10px_rgba(245,158,11,0.9)]">
-                            +{new Intl.NumberFormat('vi-VN').format(pkg.coins)} <span className="text-amber-300 font-black">XU GAME</span>
-                          </span>
-                        </div>
+                        <span className="text-[9px] font-bold text-amber-200 bg-amber-500/30 px-2 py-0.5 rounded-md border border-amber-400/30 whitespace-nowrap">
+                          VIP
+                        </span>
                       </div>
-                      <span className="text-[8px] font-black uppercase text-amber-100 bg-amber-500/50 px-2 py-0.5 rounded-full border border-amber-300/60 whitespace-nowrap shadow-sm">
-                        Mua Đồ Shop
-                      </span>
-                    </div>
 
-                    {/* CÁC PHẦN QUÀ ĐI KÈM */}
-                    <div className="space-y-2 py-2 border-t border-slate-800/80 text-xs flex-1">
-                      <div className="flex items-center gap-2 text-slate-300 font-semibold">
+                      <div className="flex items-center gap-2 text-slate-200 font-semibold px-1">
                         <Crown size={15} className="text-yellow-400 shrink-0" />
                         <span>+{pkg.royalChests} Rương Hoàng Kim VIP</span>
                       </div>
-                      <div className="flex items-center gap-2 text-slate-300 font-semibold">
+                      <div className="flex items-center gap-2 text-slate-200 font-semibold px-1">
                         <Swords size={15} className="text-rose-400 shrink-0" />
                         <span>+{new Intl.NumberFormat('vi-VN').format(pkg.attacks)} Lượt Đánh Boss</span>
                       </div>
                       {hasRing && (
-                        <div className="flex items-start gap-2 text-amber-300 font-black pt-1.5 border-t border-amber-500/30">
-                          <Sparkles size={15} className="text-yellow-400 shrink-0 mt-0.5 animate-bounce" />
+                        <div className="flex items-start gap-2 text-amber-300 font-black pt-2 border-t border-amber-500/30 px-1">
+                          <Sparkles size={15} className="text-yellow-400 shrink-0 mt-0.5" />
                           <span>Tặng: {pkg.items[0].name} ({pkg.items[0].stars}⭐)</span>
                         </div>
                       )}
@@ -5396,9 +5374,9 @@ const App = () => {
                     </span>
                   </div>
                   <div className="text-xs text-slate-300 space-y-1.5">
-                    <p className="text-amber-300 font-black text-sm pb-1 border-b border-amber-500/20 flex items-center gap-1.5">
-                      <Gem size={16} className="text-yellow-400" />
-                      <span>+{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.coins)} Xu Game (Tiền Tệ Quý Mua Đồ Shop VIP)</span>
+                    <p className="text-amber-300 font-black text-sm pb-1 border-b border-amber-500/20 flex items-center gap-2">
+                      <span className="text-base leading-none">🪙</span>
+                      <span>+{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.coins)} Xu Game (Tiền Tệ Quý Mua Đồ Shop)</span>
                     </p>
                     <p>• +{selectedBossPackage.royalChests} Rương Hoàng Kim VIP</p>
                     <p>• +{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.attacks)} Lượt Đánh Boss</p>
