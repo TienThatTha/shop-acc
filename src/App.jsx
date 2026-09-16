@@ -3350,7 +3350,25 @@ const App = () => {
   // --- HÀM LẤY DỮ LIỆU SÀN ĐẤU GIÁ (AUCTION MARKET) ---
   const fetchAuctionMarketData = async () => {
     try {
-      const { data, error } = await supabase
+      // 1. Đọc từ game_players (__auction_market__) - luôn được backend đồng bộ trực tiếp 24/7
+      const { data: playerMarket } = await supabase
+        .from('game_players')
+        .select('weapon')
+        .eq('user_id', '__auction_market__')
+        .maybeSingle();
+
+      if (playerMarket && playerMarket.weapon) {
+        try {
+          const parsed = typeof playerMarket.weapon === 'string' ? JSON.parse(playerMarket.weapon) : playerMarket.weapon;
+          if (parsed && Array.isArray(parsed.active_listings)) {
+            setAuctionMarketData(parsed);
+            return;
+          }
+        } catch (e) { }
+      }
+
+      // 2. Dự phòng đọc từ site_config
+      const { data } = await supabase
         .from('site_config')
         .select('*')
         .eq('id', 'game_auction_market')
