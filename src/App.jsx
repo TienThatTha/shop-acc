@@ -19,7 +19,7 @@ const getRecordTime = (item) => {
     let d = 0;
     const p1 = dStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     const p2 = dStr.match(/(\d{1,2}):(\d{1,2}):(\d{1,2})/);
-    if (p1 && p2) d = new Date(`${p1[3]}-${p1[2].padStart(2,'0')}-${p1[1].padStart(2,'0')}T${p2[1].padStart(2,'0')}:${p2[2].padStart(2,'0')}:${p2[3].padStart(2,'0')}`).getTime();
+    if (p1 && p2) d = new Date(`${p1[3]}-${p1[2].padStart(2, '0')}-${p1[1].padStart(2, '0')}T${p2[1].padStart(2, '0')}:${p2[2].padStart(2, '0')}:${p2[3].padStart(2, '0')}`).getTime();
     if (d > 0 && !isNaN(d)) return d;
   }
   if (item.id) {
@@ -411,7 +411,7 @@ const App = () => {
     }
   };
 
-  
+
   // --- STATE CHO GAME MỘNG THIÊN HUYỄN & LIÊN KẾT TÀI KHOẢN ---
   const [bossTargetId, setBossTargetId] = useState('');
   const [bossPlayerSummary, setBossPlayerSummary] = useState(null);
@@ -806,8 +806,30 @@ const App = () => {
           const { data: user } = await supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').eq('id', session.user.id).single();
 
           if (user && !user.is_locked) {
-            setCurrentUser(user);
-            localStorage.setItem('shop_cached_user', JSON.stringify(user));
+            // Tra cứu linked_game_id từ game_orders (OTP đã completed) hoặc localStorage
+            let linkedGameId = localStorage.getItem(`shop_linked_game_id_${user.id}`) || null;
+            if (!linkedGameId) {
+              try {
+                const { data: completedOtp } = await supabase
+                  .from('game_orders')
+                  .select('result, user_id')
+                  .eq('package_id', 'account_link_otp')
+                  .eq('status', 'completed')
+                  .or(`web_user.eq."${user.name || user.id}",rewards->>web_user_id.eq."${user.id}"`)
+                  .order('completed_at', { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                if (completedOtp?.result?.game_user_id) {
+                  linkedGameId = completedOtp.result.game_user_id;
+                  localStorage.setItem(`shop_linked_game_id_${user.id}`, linkedGameId);
+                }
+              } catch (e) {
+                console.log("OTP link lookup:", e);
+              }
+            }
+            const enrichedUser = linkedGameId ? { ...user, linked_game_id: linkedGameId } : user;
+            setCurrentUser(enrichedUser);
+            localStorage.setItem('shop_cached_user', JSON.stringify(enrichedUser));
 
             // GIẢI QUYẾT LỖI MẤT QUYỀN ADMIN (Chữ Hoa/Thường)
             const role = (user.role || 'user').toLowerCase();
@@ -2317,9 +2339,8 @@ const App = () => {
                     setCurrentView(item.view);
                   }
                 }}
-                className={`px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-lg text-xs xl:text-sm font-semibold whitespace-nowrap transition-colors shrink-0 ${
-                  currentView === item.view ? 'bg-blue-600/15 text-blue-400 border border-blue-500/30 shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
+                className={`px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-lg text-xs xl:text-sm font-semibold whitespace-nowrap transition-colors shrink-0 ${currentView === item.view ? 'bg-blue-600/15 text-blue-400 border border-blue-500/30 shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
               >
                 {item.name}
               </button>
@@ -2327,9 +2348,8 @@ const App = () => {
             {currentUser?.role === 'admin' && (
               <button
                 onClick={() => setCurrentView('admin')}
-                className={`px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-lg text-xs xl:text-sm font-semibold whitespace-nowrap transition-colors flex items-center gap-1 relative shrink-0 ${
-                  currentView === 'admin' ? 'bg-rose-600 text-white' : 'text-rose-400 bg-rose-500/10 hover:bg-rose-500/20'
-                }`}
+                className={`px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-lg text-xs xl:text-sm font-semibold whitespace-nowrap transition-colors flex items-center gap-1 relative shrink-0 ${currentView === 'admin' ? 'bg-rose-600 text-white' : 'text-rose-400 bg-rose-500/10 hover:bg-rose-500/20'
+                  }`}
               >
                 <Settings size={15} /> Admin
                 {unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full animate-pulse">{unreadCount}</span>}
@@ -2948,7 +2968,7 @@ const App = () => {
     );
   };
 
-  
+
   // --- HÀM TRA CỨU NGƯỜI CHƠI GAME BOSS MỘNG THIÊN HUYỄN ---
   const handleCheckBossPlayer = async (targetIdInput) => {
     const rawId = (targetIdInput !== undefined ? targetIdInput : bossTargetId).trim();
@@ -3032,10 +3052,10 @@ const App = () => {
     try {
       localStorage.removeItem('shop_linked_game_player');
       localStorage.removeItem('shop_boss_target_id');
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
-  // Chỉ tải thông tin nhân vật game nếu người dùng hiện tại đã liên kết chính thức qua OTP
+  // Tự động đồng bộ và duy trì thông tin nhân vật game của tài khoản đã liên kết
   useEffect(() => {
     if (!currentUser) {
       setBossPlayerSummary(null);
@@ -3047,13 +3067,44 @@ const App = () => {
       setBossTargetId(userLinkedId);
       handleCheckBossPlayer(userLinkedId);
     } else {
-      setBossPlayerSummary(null);
-      setBossTargetId('');
+      // Phục hồi liên kết từ Supabase game_orders nếu localStorage bị mất hoặc đổi thiết bị
+      let isSubscribed = true;
+      (async () => {
+        try {
+          const { data: pastOrders } = await supabase
+            .from('game_orders')
+            .select('result, user_id, web_user, rewards')
+            .eq('package_id', 'account_link_otp')
+            .eq('status', 'completed')
+            .or(`web_user.eq."${currentUser.name || currentUser.id}",rewards->>web_user_id.eq."${currentUser.id}"`)
+            .order('completed_at', { ascending: false })
+            .limit(1);
+
+          if (isSubscribed && pastOrders && pastOrders.length > 0) {
+            const ord = pastOrders[0];
+            const uid = ord.result?.game_user_id || ord.user_id;
+            if (uid) {
+              localStorage.setItem(`shop_linked_game_id_${currentUser.id}`, uid);
+              setCurrentUser(prev => prev ? ({ ...prev, linked_game_id: uid }) : prev);
+              setBossTargetId(uid);
+              handleCheckBossPlayer(uid);
+              return;
+            }
+          }
+        } catch (err) {
+          console.log("Lỗi phục hồi liên kết OTP:", err);
+        }
+        if (isSubscribed) {
+          setBossPlayerSummary(null);
+          setBossTargetId('');
+        }
+      })();
+      return () => { isSubscribed = false; };
     }
   }, [currentUser?.id, currentView]);
 
 
-  // --- HÀM TẠO MÃ OTP LIÊN KẾT TÀI KHOẢN ---
+  // --- HÀM TẠO MÃ OTP LIÊN KẾT TÀI KHOẢN (REALTIME + POLLING + TAB FOCUS) ---
   const handleGenerateLinkOtp = async () => {
     if (!currentUser) return requireAuth('login');
     setIsGeneratingOtp(true);
@@ -3088,8 +3139,98 @@ const App = () => {
       setShowLinkOtpModal(true);
       showToast("Đã tạo mã OTP (hiệu lực 2 phút)! Hãy bình luận trên Live TikTok hoặc chat Discord để liên kết.", "success");
 
-      // Polling kiểm tra trạng thái OTP hoàn tất
-      const pollInterval = setInterval(async () => {
+      // Xử lý khi hoàn tất liên kết (Đóng modal ngay lập tức, cập nhật giao diện không có độ trễ)
+      let isCompletedHandled = false;
+      let pollInterval = null;
+      let realtimeChannel = null;
+
+      const onOtpSuccess = (completedOrder) => {
+        if (isCompletedHandled) return;
+        isCompletedHandled = true;
+
+        if (pollInterval) clearInterval(pollInterval);
+        if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+        window.removeEventListener('focus', handleTabFocus);
+
+        setIsWaitingOtp(false);
+        setShowLinkOtpModal(false);
+
+        const res = completedOrder.result || {};
+        const linkedUid = res.game_user_id || completedOrder.user_id;
+
+        if (currentUser?.id) {
+          localStorage.setItem(`shop_linked_game_id_${currentUser.id}`, linkedUid);
+        }
+        setCurrentUser(prev => prev ? ({ ...prev, linked_game_id: linkedUid }) : prev);
+        setBossTargetId(linkedUid);
+
+        // Hiển thị ngay profile nhân vật tạm thời để UI cập nhật tức thì 100% không bị treo
+        setBossPlayerSummary({
+          exists: true,
+          user_id: linkedUid,
+          nickname: res.game_nickname || linkedUid,
+          level: res.level || 1,
+          cp: res.cp || 0,
+          bonus_attacks: 0,
+          royal_chests: 0,
+          boss_chests: 0,
+          avatar_url: res.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(linkedUid)}`,
+          weapon: null,
+          armor: null,
+          pet: null,
+          ring: null,
+          necklace: null,
+          exp: 0,
+          bonus_coins: 0,
+          total_dmg: 0,
+          has_x2_rate: false,
+          platform: res.platform || 'discord',
+          inventory: []
+        });
+
+        showToast(`🎉 Liên kết thành công với nhân vật ${res.game_nickname || linkedUid}!`, "success");
+
+        // Đồng thời tải đầy đủ trang bị & chỉ số từ game_players ở background
+        handleCheckBossPlayer(linkedUid);
+      };
+
+      // 1. Kiểm tra ngay khi người dùng chuyển tab quay lại trình duyệt từ Discord/TikTok
+      const handleTabFocus = async () => {
+        if (isCompletedHandled) return;
+        try {
+          const { data: orderNow } = await supabase
+            .from('game_orders')
+            .select('*')
+            .eq('id', orderId)
+            .maybeSingle();
+          if (orderNow && orderNow.status === 'completed') {
+            onOtpSuccess(orderNow);
+          }
+        } catch (e) { }
+      };
+      window.addEventListener('focus', handleTabFocus);
+
+      // 2. Kênh Realtime Supabase: Bắt sự kiện UPDATE tức thì (50ms)
+      try {
+        realtimeChannel = supabase
+          .channel(`otp_order_${orderId}`)
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'game_orders', filter: `id=eq.${orderId}` },
+            (payload) => {
+              if (payload.new && payload.new.status === 'completed') {
+                onOtpSuccess(payload.new);
+              }
+            }
+          )
+          .subscribe();
+      } catch (e) {
+        console.log("Realtime subscription error:", e);
+      }
+
+      // 3. Polling dự phòng mỗi 1.5s (chạy trong 5 phút đề phòng chuyển app)
+      pollInterval = setInterval(async () => {
+        if (isCompletedHandled) return;
         try {
           const { data: checkOrder } = await supabase
             .from('game_orders')
@@ -3098,27 +3239,18 @@ const App = () => {
             .maybeSingle();
 
           if (checkOrder && checkOrder.status === 'completed') {
-            clearInterval(pollInterval);
-            setIsWaitingOtp(false);
-            const res = checkOrder.result || {};
-            const linkedUid = res.game_user_id || checkOrder.user_id;
-
-            if (currentUser?.id) {
-              localStorage.setItem(`shop_linked_game_id_${currentUser.id}`, linkedUid);
-            }
-            setCurrentUser(prev => prev ? ({ ...prev, linked_game_id: linkedUid }) : prev);
-            setBossTargetId(linkedUid);
-
-            await handleCheckBossPlayer(linkedUid);
-            setShowLinkOtpModal(false);
-            showToast(`🎉 Liên kết thành công với nhân vật ${res.game_nickname || linkedUid}!`, "success");
+            onOtpSuccess(checkOrder);
           }
         } catch (e) {
           console.error("Lỗi poll OTP:", e);
         }
-      }, 2000);
+      }, 1500);
 
-      setTimeout(() => clearInterval(pollInterval), 2 * 60 * 1000);
+      setTimeout(() => {
+        if (pollInterval) clearInterval(pollInterval);
+        if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+        window.removeEventListener('focus', handleTabFocus);
+      }, 5 * 60 * 1000);
 
     } catch (err) {
       console.error("Lỗi tạo mã OTP:", err);
@@ -3401,7 +3533,7 @@ const App = () => {
         if (!rpcErr && rpcRes?.success) {
           spendSuccess = true;
         }
-      } catch (e) {}
+      } catch (e) { }
 
       if (!spendSuccess) {
         const newBal = (currentUser.balance || 0) - pkg.price;
@@ -3436,7 +3568,7 @@ const App = () => {
             details: JSON.stringify(orderDetails)
           }]);
         }
-      } catch (e) {}
+      } catch (e) { }
 
       // 3. Đơn nạp tự động lưu vào Supabase Cloud (game_orders), máy chủ game sẽ tự động đọc và duyệt realtime
 
@@ -3489,319 +3621,319 @@ const App = () => {
         {renderNavbar()}
         <main className="w-full max-w-7xl mx-auto px-4 lg:px-6 2xl:px-8 pt-6">
           <div className="w-full space-y-8">
-              <section className="relative rounded-2xl border border-slate-800 overflow-hidden shadow-2xl min-h-[350px] flex items-center bg-[#0f172a]">
-                <div className="absolute inset-0 z-0">
-                  <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=2000&h=800" alt="Gaming Banner" className="w-full h-full object-cover opacity-30 mix-blend-luminosity" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#0B1120] via-[#0B1120]/90 to-transparent"></div>
-                </div>
+            <section className="relative rounded-2xl border border-slate-800 overflow-hidden shadow-2xl min-h-[350px] flex items-center bg-[#0f172a]">
+              <div className="absolute inset-0 z-0">
+                <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=2000&h=800" alt="Gaming Banner" className="w-full h-full object-cover opacity-30 mix-blend-luminosity" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#0B1120] via-[#0B1120]/90 to-transparent"></div>
+              </div>
 
-                <div className="relative z-10 w-full p-6 md:p-10 flex flex-col lg:flex-row items-center justify-between gap-8">
-                  <div className="flex-1 text-left">
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      <div className="inline-block px-4 py-1 bg-rose-500/20 text-rose-400 font-bold text-xs rounded-full border border-rose-500/30 backdrop-blur-sm shadow-[0_0_10px_rgba(225,29,72,0.3)]">🔥 UY TÍN - TỐC ĐỘ - BẢO MẬT</div>
-                      <div
-                        onClick={() => { requireAuth('naptien'); setDepositMethod('card'); }}
-                        className="inline-block px-4 py-1 bg-emerald-500/20 text-emerald-400 font-bold text-xs rounded-full border border-emerald-500/30 backdrop-blur-sm shadow-[0_0_10px_rgba(16,185,129,0.3)] cursor-pointer hover:bg-emerald-500/30 transition-colors"
-                      >
-                        💳 HỖ TRỢ NẠP THẺ CÀO TỰ ĐỘNG
-                      </div>
-                      <div
-                        onClick={() => { requireAuth('bossgame'); setCurrentView('bossgame'); }}
-                        className="inline-block px-4 py-1 bg-gradient-to-r from-amber-500/30 to-rose-500/30 text-amber-300 font-extrabold text-xs rounded-full border border-amber-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(245,158,11,0.5)] cursor-pointer hover:scale-105 transition-all animate-pulse"
-                      >
-                        ⚔️ NẠP GAME MỘNG THIÊN HUYỄN (TỰ ĐỘNG)
-                      </div>
-                      <div
-                        onClick={() => {
-                          requireAuth('bossgame');
-                          setCurrentView('bossgame');
-                          fetchAuctionMarketData();
-                          setShowAuctionModal(true);
-                        }}
-                        className="inline-block px-4 py-1 bg-gradient-to-r from-orange-500/30 to-amber-500/30 text-orange-300 font-extrabold text-xs rounded-full border border-orange-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(249,115,22,0.5)] cursor-pointer hover:scale-105 transition-all"
-                      >
-                        🏛️ SÀN ĐẤU GIÁ (CHỢ XU 20%)
-                      </div>
-                      <div
-                        onClick={() => {
-                          requireAuth('bossgame');
-                          setCurrentView('bossgame');
-                          if (!bossPlayerSummary) handleGenerateLinkOtp(); else setShowBagModal(true);
-                        }}
-                        className="inline-block px-4 py-1 bg-gradient-to-r from-purple-500/30 to-indigo-500/30 text-purple-300 font-extrabold text-xs rounded-full border border-purple-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(168,85,247,0.5)] cursor-pointer hover:scale-105 transition-all"
-                      >
-                        {bossPlayerSummary ? '🎒 TÚI ĐỒ & QUẢN LÝ TRANG BỊ' : '🔗 LIÊN KẾT TÀI KHOẢN GAME (OTP)'}
-                      </div>
+              <div className="relative z-10 w-full p-6 md:p-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+                <div className="flex-1 text-left">
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <div className="inline-block px-4 py-1 bg-rose-500/20 text-rose-400 font-bold text-xs rounded-full border border-rose-500/30 backdrop-blur-sm shadow-[0_0_10px_rgba(225,29,72,0.3)]">🔥 UY TÍN - TỐC ĐỘ - BẢO MẬT</div>
+                    <div
+                      onClick={() => { requireAuth('naptien'); setDepositMethod('card'); }}
+                      className="inline-block px-4 py-1 bg-emerald-500/20 text-emerald-400 font-bold text-xs rounded-full border border-emerald-500/30 backdrop-blur-sm shadow-[0_0_10px_rgba(16,185,129,0.3)] cursor-pointer hover:bg-emerald-500/30 transition-colors"
+                    >
+                      💳 HỖ TRỢ NẠP THẺ CÀO TỰ ĐỘNG
                     </div>
-                    <h2 className="text-4xl md:text-5xl font-black text-white mb-4 uppercase leading-tight drop-shadow-lg">
-                      TRẢI NGHIỆM GAMING <br className="hidden md:block" />
-                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-rose-400">ĐỈNH CAO NHẤT</span>
-                    </h2>
-                    <p className="text-slate-300 mb-8 max-w-xl text-sm md:text-base leading-relaxed">Hệ thống Shop Tiến Gaming uy tín chất lượng số 1 Việt Nam. Hàng ngàn tài khoản VIP cho thuê và mua bán với giá cực sinh viên. Mua ngay nhận tài khoản trong 1 giây, bảo hành 1 đổi 1 nếu sai thông tin.</p>
-
-                    <div className="relative max-w-xl w-full group">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-                      <input type="text" placeholder="Tìm tên game, mã ID, tướng, skin..." className="w-full pl-12 pr-12 py-4 bg-[#0B1120]/80 backdrop-blur-md border border-slate-700 rounded-xl text-sm md:text-base text-white focus:outline-none focus:border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.1)] transition-all" />
-                      <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors shadow-lg flex items-center justify-center"><ArrowRight size={20} /></button>
+                    <div
+                      onClick={() => { requireAuth('bossgame'); setCurrentView('bossgame'); }}
+                      className="inline-block px-4 py-1 bg-gradient-to-r from-amber-500/30 to-rose-500/30 text-amber-300 font-extrabold text-xs rounded-full border border-amber-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(245,158,11,0.5)] cursor-pointer hover:scale-105 transition-all animate-pulse"
+                    >
+                      ⚔️ NẠP GAME MỘNG THIÊN HUYỄN (TỰ ĐỘNG)
                     </div>
-                  </div>
-
-                  <div className="hidden lg:flex flex-col gap-5 w-72">
-                    <div className="bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-4 rounded-xl flex items-center gap-4 shadow-xl transform transition-transform hover:scale-105 hover:border-emerald-500/50 cursor-default">
-                      <div className="bg-emerald-500/20 p-3 rounded-full text-emerald-400"><ShieldCheck size={28} /></div>
-                      <div><p className="text-white font-bold text-lg">Uy tín 100%</p><p className="text-xs text-slate-400">Bảo hành trọn đời</p></div>
-                    </div>
-                    <div className="bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-4 rounded-xl flex items-center gap-4 shadow-xl transform transition-transform hover:scale-105 hover:border-blue-500/50 cursor-default">
-                      <div className="bg-blue-500/20 p-3 rounded-full text-blue-400"><RefreshCw size={28} /></div>
-                      <div><p className="text-white font-bold text-lg">Giao dịch tự động</p><p className="text-xs text-slate-400">Nhận acc sau 1 giây</p></div>
-                    </div>
-                    <div className="bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-4 rounded-xl flex items-center gap-4 shadow-xl transform transition-transform hover:scale-105 hover:border-rose-500/50 cursor-default">
-                      <div className="bg-rose-500/20 p-3 rounded-full text-rose-400"><Target size={28} /></div>
-                      <div><p className="text-white font-bold text-lg">Cày thuê VIP</p><p className="text-xs text-slate-400">Nhanh chóng, an toàn</p></div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-
-
-              <section>
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                  <div className="flex items-center gap-2">
-                    <Flame className="text-rose-500 animate-pulse" />
-                    <h3 className="text-xl font-bold text-white uppercase">{activeTab === 'Tất cả' ? 'Tất cả sản phẩm' : `Tài khoản ${activeTab}`}</h3>
-                  </div>
-                  <div className="flex gap-2 overflow-x-auto w-full sm:w-auto pb-2 scrollbar-hide">
-                    {gameTabs.map(tab => (
-                      <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors border flex items-center gap-1.5 ${activeTab === tab ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>
-                        {tab !== 'Tất cả' && uniqueGamesMap.get(tab) && <img src={uniqueGamesMap.get(tab)} className="w-4 h-4 rounded" alt="" />}
-                        {tab}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-2.5 md:gap-x-5 gap-y-8 md:gap-y-10">
-                  {/* THẺ DỊCH VỤ NẠP GAME MỘNG THIÊN HUYỄN (TỰ ĐỘNG) */}
-                  {(activeTab === 'Tất cả' || activeTab === 'Mộng Thiên Huyễn') && (
                     <div
                       onClick={() => {
                         requireAuth('bossgame');
                         setCurrentView('bossgame');
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        fetchAuctionMarketData();
+                        setShowAuctionModal(true);
                       }}
-                      className="bg-[#151D2F] h-full border border-slate-800 hover:border-blue-500/50 rounded-2xl transition-all shadow-xl group flex flex-col relative mt-5 hover:-translate-y-1 cursor-pointer"
+                      className="inline-block px-4 py-1 bg-gradient-to-r from-orange-500/30 to-amber-500/30 text-orange-300 font-extrabold text-xs rounded-full border border-orange-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(249,115,22,0.5)] cursor-pointer hover:scale-105 transition-all"
                     >
-                      {/* BADGE GAME NHÔ LÊN TRÊN THẺ (GIỐNG HỆT CÁC THẺ GAME KHÁC) */}
+                      🏛️ SÀN ĐẤU GIÁ (CHỢ XU 20%)
+                    </div>
+                    <div
+                      onClick={() => {
+                        requireAuth('bossgame');
+                        setCurrentView('bossgame');
+                        if (!bossPlayerSummary) handleGenerateLinkOtp(); else setShowBagModal(true);
+                      }}
+                      className="inline-block px-4 py-1 bg-gradient-to-r from-purple-500/30 to-indigo-500/30 text-purple-300 font-extrabold text-xs rounded-full border border-purple-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(168,85,247,0.5)] cursor-pointer hover:scale-105 transition-all"
+                    >
+                      {bossPlayerSummary ? '🎒 TÚI ĐỒ & QUẢN LÝ TRANG BỊ' : '🔗 LIÊN KẾT TÀI KHOẢN GAME (OTP)'}
+                    </div>
+                  </div>
+                  <h2 className="text-4xl md:text-5xl font-black text-white mb-4 uppercase leading-tight drop-shadow-lg">
+                    TRẢI NGHIỆM GAMING <br className="hidden md:block" />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-rose-400">ĐỈNH CAO NHẤT</span>
+                  </h2>
+                  <p className="text-slate-300 mb-8 max-w-xl text-sm md:text-base leading-relaxed">Hệ thống Shop Tiến Gaming uy tín chất lượng số 1 Việt Nam. Hàng ngàn tài khoản VIP cho thuê và mua bán với giá cực sinh viên. Mua ngay nhận tài khoản trong 1 giây, bảo hành 1 đổi 1 nếu sai thông tin.</p>
+
+                  <div className="relative max-w-xl w-full group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                    <input type="text" placeholder="Tìm tên game, mã ID, tướng, skin..." className="w-full pl-12 pr-12 py-4 bg-[#0B1120]/80 backdrop-blur-md border border-slate-700 rounded-xl text-sm md:text-base text-white focus:outline-none focus:border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.1)] transition-all" />
+                    <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors shadow-lg flex items-center justify-center"><ArrowRight size={20} /></button>
+                  </div>
+                </div>
+
+                <div className="hidden lg:flex flex-col gap-5 w-72">
+                  <div className="bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-4 rounded-xl flex items-center gap-4 shadow-xl transform transition-transform hover:scale-105 hover:border-emerald-500/50 cursor-default">
+                    <div className="bg-emerald-500/20 p-3 rounded-full text-emerald-400"><ShieldCheck size={28} /></div>
+                    <div><p className="text-white font-bold text-lg">Uy tín 100%</p><p className="text-xs text-slate-400">Bảo hành trọn đời</p></div>
+                  </div>
+                  <div className="bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-4 rounded-xl flex items-center gap-4 shadow-xl transform transition-transform hover:scale-105 hover:border-blue-500/50 cursor-default">
+                    <div className="bg-blue-500/20 p-3 rounded-full text-blue-400"><RefreshCw size={28} /></div>
+                    <div><p className="text-white font-bold text-lg">Giao dịch tự động</p><p className="text-xs text-slate-400">Nhận acc sau 1 giây</p></div>
+                  </div>
+                  <div className="bg-[#151D2F]/80 backdrop-blur-md border border-slate-700 p-4 rounded-xl flex items-center gap-4 shadow-xl transform transition-transform hover:scale-105 hover:border-rose-500/50 cursor-default">
+                    <div className="bg-rose-500/20 p-3 rounded-full text-rose-400"><Target size={28} /></div>
+                    <div><p className="text-white font-bold text-lg">Cày thuê VIP</p><p className="text-xs text-slate-400">Nhanh chóng, an toàn</p></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+
+
+            <section>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div className="flex items-center gap-2">
+                  <Flame className="text-rose-500 animate-pulse" />
+                  <h3 className="text-xl font-bold text-white uppercase">{activeTab === 'Tất cả' ? 'Tất cả sản phẩm' : `Tài khoản ${activeTab}`}</h3>
+                </div>
+                <div className="flex gap-2 overflow-x-auto w-full sm:w-auto pb-2 scrollbar-hide">
+                  {gameTabs.map(tab => (
+                    <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors border flex items-center gap-1.5 ${activeTab === tab ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>
+                      {tab !== 'Tất cả' && uniqueGamesMap.get(tab) && <img src={uniqueGamesMap.get(tab)} className="w-4 h-4 rounded" alt="" />}
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-2.5 md:gap-x-5 gap-y-8 md:gap-y-10">
+                {/* THẺ DỊCH VỤ NẠP GAME MỘNG THIÊN HUYỄN (TỰ ĐỘNG) */}
+                {(activeTab === 'Tất cả' || activeTab === 'Mộng Thiên Huyễn') && (
+                  <div
+                    onClick={() => {
+                      requireAuth('bossgame');
+                      setCurrentView('bossgame');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="bg-[#151D2F] h-full border border-slate-800 hover:border-blue-500/50 rounded-2xl transition-all shadow-xl group flex flex-col relative mt-5 hover:-translate-y-1 cursor-pointer"
+                  >
+                    {/* BADGE GAME NHÔ LÊN TRÊN THẺ (GIỐNG HỆT CÁC THẺ GAME KHÁC) */}
+                    <div className="flex justify-center -mt-5 relative z-30">
+                      <div className="flex items-center gap-2 bg-gradient-to-r from-[#1a2744] to-[#1e2d4a] border border-blue-500/30 rounded-full pl-1 pr-4 py-1 shadow-xl shadow-blue-500/10">
+                        <img src="/mongthienhuyen.jpg" alt="Mộng Thiên Huyễn" className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover shrink-0 ring-2 ring-blue-400/50" />
+                        <span className="text-xs md:text-sm font-black text-blue-300 whitespace-nowrap">Mộng Thiên Huyễn</span>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 flex flex-col relative overflow-hidden rounded-xl">
+                      {/* RIBBON HOT TỰ ĐỘNG */}
+                      <div className="absolute top-3 md:top-6 -right-12 md:-right-10 w-36 md:w-40 text-center transform rotate-45 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 text-white font-black text-[8px] md:text-[11px] py-0.5 md:py-1 shadow-lg z-30 border-y border-white/20 uppercase tracking-widest pointer-events-none mt-4">
+                        TỰ ĐỘNG 24/7
+                      </div>
+
+                      {/* HÌNH ẢNH DỊCH VỤ */}
+                      <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-900">
+                        <img
+                          src="/mongthienhuyen.jpg"
+                          alt="Nạp Game Mộng Thiên Huyễn"
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#151D2F] via-transparent to-transparent opacity-60"></div>
+                        <div className="absolute bottom-1.5 left-1.5 z-20 pointer-events-none">
+                          <span className="text-[9px] md:text-[10px] font-black px-2.5 py-1 rounded-md uppercase w-fit bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-[0_2px_10px_rgba(0,0,0,0.8)] border border-amber-300/50 backdrop-blur-md">
+                            🔥 DỊCH VỤ NỔI BẬT
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-2 md:p-4 flex-1 flex flex-col relative z-10 bg-[#151D2F]">
+                        <h4 className="text-sm md:text-base font-black text-white text-center mb-1 group-hover:text-blue-400 transition-colors leading-tight px-1 line-clamp-2">
+                          ⚔️ Nạp Game Mộng Thiên Huyễn (Tự Động)
+                        </h4>
+                        <p className="text-[10px] md:text-xs text-slate-400 mb-2 flex-grow whitespace-pre-wrap text-center px-1 line-clamp-2">
+                          Nạp Xu Game, Rương Hoàng Kim, Lượt Đánh Boss & Nhẫn Thần Binh. Tự động chuyển quà vào acc ngay sau 1 giây!
+                        </p>
+
+                        <div className="border-t border-slate-800 pt-2 md:pt-4 mt-auto w-full">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              requireAuth('bossgame');
+                              setCurrentView('bossgame');
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="w-full py-1.5 md:py-2.5 rounded-lg text-[10px] md:text-sm font-bold flex items-center justify-center gap-1 transition-colors bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"
+                          >
+                            Nạp Ngay
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {mixedItems.map((item, index) => {
+                  if (!item.code) return renderBoostingCard(item, index);
+                  const acc = item;
+                  const isRented = acc.rentedUntil && acc.rentedUntil > now;
+                  let timeStr = "";
+                  if (isRented) {
+                    const diff = acc.rentedUntil - now;
+
+                    // NẾU THỜI GIAN ĐÃ HẾT (CHẠM MỐC 0 HOẶC ÂM)
+                    if (diff <= 0) {
+                      timeStr = "00:00:00";
+
+                      // CHỈ GỬI MAIL 1 LẦN DUY NHẤT (Kiểm tra xem đã gửi mail chưa, tránh bị gửi liên tục mỗi giây)
+                      if (!acc.is_timeout_alerted && acc.currentRenterId) {
+                        // Gọi hàm gửi Mail thông báo cho Admin
+                        sendAdminAlert(
+                          'HẾT GIỜ THUÊ NICK',
+                          `Nick mã #${acc.code} đã hết thời gian thuê. Vui lòng vào kiểm tra và thu hồi tài khoản.`
+                        );
+
+                        // Cập nhật trạng thái để đánh dấu là "đã gửi mail", tránh bị lặp
+                        acc.is_timeout_alerted = true;
+                      }
+                    }
+                    // NẾU VẪN CÒN THỜI GIAN THÌ ĐẾM NGƯỢC BÌNH THƯỜNG
+                    else {
+                      const h = Math.floor(diff / 3600000);
+                      const m = Math.floor((diff % 3600000) / 60000);
+                      const s = Math.floor((diff % 60000) / 1000);
+                      timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                    }
+                  }
+
+                  return (
+                    <div key={acc.id} className="bg-[#151D2F] h-full rounded-xl border border-slate-800 hover:border-blue-500/50 transition-all flex flex-col group shadow-lg hover:-translate-y-1 relative mt-5">
+                      {/* --- BADGE GAME (NHÔ LÊN TRÊN THẺ) --- */}
                       <div className="flex justify-center -mt-5 relative z-30">
-                        <div className="flex items-center gap-2 bg-gradient-to-r from-[#1a2744] to-[#1e2d4a] border border-blue-500/30 rounded-full pl-1 pr-4 py-1 shadow-xl shadow-blue-500/10">
-                          <img src="/mongthienhuyen.jpg" alt="Mộng Thiên Huyễn" className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover shrink-0 ring-2 ring-blue-400/50" />
-                          <span className="text-xs md:text-sm font-black text-blue-300 whitespace-nowrap">Mộng Thiên Huyễn</span>
+                        <div className="flex items-center gap-2 bg-gradient-to-r from-[#1a2744] to-[#1e2d4a] border border-blue-500/30 rounded-full pl-1.5 pr-4 md:pr-5 py-1 shadow-xl shadow-blue-500/10">
+                          {getGameInfo(acc.game).avatar ? <img src={getGameInfo(acc.game).avatar} alt={getGameInfo(acc.game).name} className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover shrink-0 ring-2 ring-blue-400/50" /> : <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-blue-500/20 ring-2 ring-blue-400/50 flex items-center justify-center shrink-0"><Gamepad2 size={16} className="text-blue-400" /></div>}
+                          <span className="text-xs md:text-sm font-black text-blue-300 whitespace-nowrap">{getGameInfo(acc.game).name}</span>
                         </div>
                       </div>
 
                       <div className="flex-1 flex flex-col relative overflow-hidden rounded-xl">
-                        {/* RIBBON HOT TỰ ĐỘNG */}
-                        <div className="absolute top-3 md:top-6 -right-12 md:-right-10 w-36 md:w-40 text-center transform rotate-45 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 text-white font-black text-[8px] md:text-[11px] py-0.5 md:py-1 shadow-lg z-30 border-y border-white/20 uppercase tracking-widest pointer-events-none mt-4">
-                          TỰ ĐỘNG 24/7
-                        </div>
-
-                        {/* HÌNH ẢNH DỊCH VỤ */}
-                        <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-900">
+                        {(() => {
+                          const buyDiscount = acc.oldPrice && acc.oldPrice > acc.price ? Math.round(((acc.oldPrice - acc.price) / acc.oldPrice) * 100) : 0;
+                          const rentDiscount = acc.oldRentPrice && acc.oldRentPrice > acc.rentPricePerHour ? Math.round(((acc.oldRentPrice - acc.rentPricePerHour) / acc.oldRentPrice) * 100) : 0;
+                          const packageRentDiscount = acc.rentDiscountPercent || 0;
+                          const maxDiscount = Math.max(buyDiscount, rentDiscount, packageRentDiscount);
+                          return maxDiscount > 0 ? (
+                            <div className="absolute top-3 md:top-6 -right-12 md:-right-10 w-36 md:w-40 text-center transform rotate-45 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 text-white font-black text-[8px] md:text-[11px] py-0.5 md:py-1 shadow-lg z-30 border-y border-white/20 uppercase tracking-widest pointer-events-none mt-4">
+                              GIẢM {maxDiscount}%
+                            </div>
+                          ) : null;
+                        })()}
+                        <div className="relative h-24 sm:h-32 md:h-44 w-full bg-slate-900 cursor-pointer overflow-hidden mt-1 md:mt-2" onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}>
                           <img
-                            src="/mongthienhuyen.jpg"
-                            alt="Nạp Game Mộng Thiên Huyễn"
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            src={acc.coverImage}
+                            loading={index < 8 ? "eager" : "lazy"}
+                            fetchPriority={index < 4 ? "high" : "auto"}
+                            decoding="async"
+                            alt={getGameInfo(acc.game).name}
+                            className={`w-full h-full object-cover transition-all duration-500 ${isRented ? 'opacity-50 grayscale hover:grayscale-0' : 'opacity-80 group-hover:opacity-100 group-hover:scale-110'}`}
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#151D2F] via-transparent to-transparent opacity-60"></div>
-                          <div className="absolute bottom-1.5 left-1.5 z-20 pointer-events-none">
-                            <span className="text-[9px] md:text-[10px] font-black px-2.5 py-1 rounded-md uppercase w-fit bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-[0_2px_10px_rgba(0,0,0,0.8)] border border-amber-300/50 backdrop-blur-md">
-                              🔥 DỊCH VỤ NỔI BẬT
+                          <div className="absolute top-1.5 left-1.5 flex flex-col items-start gap-1 z-20">
+                            <div className="bg-rose-600 text-white text-[9px] md:text-xs font-bold px-1.5 md:px-2.5 py-0.5 md:py-1 rounded shadow-lg backdrop-blur-md bg-opacity-90 w-fit">Mã: {acc.code}</div>
+                            <div className="flex gap-1">
+                              <span className={`text-[8px] md:text-[10px] font-black px-1.5 md:px-2.5 py-0.5 md:py-1 rounded shadow-lg uppercase w-fit ${acc.tier === 'ULVIP' ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white' : acc.tier === 'SVIP' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-[#0B1120]' : 'bg-blue-600 text-white'}`}>
+                                {acc.tier || 'VIP'}
+                              </span>
+                            </div>
+                          </div>
+                          {isRented && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-[2px] z-20 hover:backdrop-blur-0 transition-all pointer-events-none">
+                              <span className="text-white font-black text-[9px] md:text-xs tracking-wider bg-black/80 px-1.5 md:px-3 py-0.5 md:py-1 rounded-full mb-1 border border-yellow-500/50">ĐANG THUÊ</span>
+                              <span className="text-yellow-400 font-mono font-bold text-xs md:text-sm tracking-widest drop-shadow-md">{timeStr}</span>
+                            </div>
+                          )}
+
+                          {getGameInfo(acc.game).isFeatured && (
+                            <div className="absolute bottom-1.5 left-1.5 z-20 pointer-events-none">
+                              <span className="text-[9px] md:text-[10px] font-black px-2.5 py-1 rounded-md uppercase w-fit bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-[0_2px_10px_rgba(0,0,0,0.8)] border border-amber-300/50 backdrop-blur-md">
+                                🔥 DỊCH VỤ NỔI BẬT
+                              </span>
+                            </div>
+                          )}
+
+                        </div>
+                        <div className="p-2 md:p-4 flex-1 flex flex-col relative z-10 bg-[#151D2F]">
+                          <h4 className="text-sm md:text-base font-black text-white text-center mb-1 line-clamp-2 cursor-pointer hover:text-blue-400 leading-tight px-1 whitespace-pre-line" title={acc.title} onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}>{acc.title}</h4>
+                          <div className="flex justify-center w-full mb-3 md:mb-4">
+                            <span className="w-fit px-4 md:px-6 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors text-emerald-400 text-xs md:text-sm font-bold py-1 md:py-1.5 rounded-lg border border-emerald-500/30 text-center tracking-wide">
+                              Kho: {acc.stock !== undefined ? acc.stock : 1}
                             </span>
                           </div>
-                        </div>
+                          <div className="border-t border-slate-800 pt-2 md:pt-4 flex flex-col gap-2 md:gap-3 flex-1">
+                            <div className={`flex flex-col sm:flex-row gap-1.5 ${acc.rentPricePerHour > 0 ? 'justify-between items-start sm:items-center' : 'justify-center items-center text-center'}`}>
+                              <div className={acc.rentPricePerHour > 0 ? '' : 'flex flex-col items-center py-1.5'}>
+                                <p className={`${acc.rentPricePerHour > 0 ? 'text-[8px] md:text-[10px]' : 'text-[10px] md:text-xs tracking-wider'} text-slate-500 font-bold mb-0.5 uppercase`}>MUA ĐỨT</p>
+                                {acc.oldPrice && acc.oldPrice > acc.price && (
+                                  <p className={`${acc.rentPricePerHour > 0 ? 'text-[10px] md:text-xs' : 'text-xs md:text-sm'} font-bold text-slate-500 line-through mb-0.5`}>{new Intl.NumberFormat('vi-VN').format(acc.oldPrice)}đ</p>
+                                )}
+                                <p className={`${acc.rentPricePerHour > 0 ? 'text-sm md:text-lg' : 'text-lg md:text-2xl mt-0.5'} font-black text-rose-500`}>{new Intl.NumberFormat('vi-VN').format(acc.price)}<span className={`${acc.rentPricePerHour > 0 ? 'text-[9px] md:text-xs' : 'text-xs md:text-sm'} opacity-70 ml-0.5`}>đ</span></p>
+                              </div>
 
-                        <div className="p-2 md:p-4 flex-1 flex flex-col relative z-10 bg-[#151D2F]">
-                          <h4 className="text-sm md:text-base font-black text-white text-center mb-1 group-hover:text-blue-400 transition-colors leading-tight px-1 line-clamp-2">
-                            ⚔️ Nạp Game Mộng Thiên Huyễn (Tự Động)
-                          </h4>
-                          <p className="text-[10px] md:text-xs text-slate-400 mb-2 flex-grow whitespace-pre-wrap text-center px-1 line-clamp-2">
-                            Nạp Xu Game, Rương Hoàng Kim, Lượt Đánh Boss & Nhẫn Thần Binh. Tự động chuyển quà vào acc ngay sau 1 giây!
-                          </p>
+                              {acc.rentPricePerHour > 0 && (
+                                <div className="text-left sm:text-right sm:border-l sm:border-slate-700 sm:pl-3 w-full sm:w-auto">
+                                  <p className="text-[8px] md:text-[10px] text-slate-500 font-bold mb-0.5 uppercase">THUÊ / GIỜ</p>
+                                  {acc.oldRentPrice && acc.oldRentPrice > acc.rentPricePerHour && (
+                                    <p className="text-[10px] md:text-xs font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(acc.oldRentPrice)}đ</p>
+                                  )}
+                                  <p className="text-sm md:text-lg font-black text-blue-400">{new Intl.NumberFormat('vi-VN').format(acc.rentPricePerHour)}<span className="text-[9px] md:text-xs opacity-70 ml-0.5">đ</span></p>
+                                </div>
+                              )}
+                            </div>
 
-                          <div className="border-t border-slate-800 pt-2 md:pt-4 mt-auto w-full">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                requireAuth('bossgame');
-                                setCurrentView('bossgame');
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                              }}
-                              className="w-full py-1.5 md:py-2.5 rounded-lg text-[10px] md:text-sm font-bold flex items-center justify-center gap-1 transition-colors bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"
-                            >
-                              Nạp Ngay
-                            </button>
+                            <div className="mt-auto w-full pt-1 md:pt-2">
+                              {/* XỬ LÝ NÚT NGOÀI MẶT TIỀN: Phân biệt Chủ Thuê, Khách Vãng Lai và Gói Combo */}
+                              {isRented && currentUser?.id === acc.currentRenterId ? (
+                                (() => {
+                                  // Dò xem khách đang thuê gói gì
+                                  const activeReq = rentRequests.find(r => r.accCode === acc.code && r.status === 'Đã giao acc');
+                                  const isCombo = activeReq && (activeReq.time.toLowerCase().includes('combo đêm') || activeReq.time.toLowerCase().includes('combo ngày'));
+
+                                  return isCombo ? (
+                                    <button disabled className="w-full py-1.5 md:py-2.5 rounded-lg text-[10px] md:text-sm font-bold flex items-center justify-center gap-1 md:gap-2 bg-slate-700 text-slate-400 cursor-not-allowed shadow-inner border border-slate-600">
+                                      ĐANG THUÊ COMBO
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleStopRent(acc); }}
+                                      className="w-full py-1.5 md:py-2.5 rounded-lg text-[10px] md:text-sm font-bold flex items-center justify-center gap-1 md:gap-2 transition-colors bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/20 active:scale-95"
+                                    >
+                                      <Clock size={12} className="animate-pulse" /> NGỪNG THUÊ
+                                    </button>
+                                  );
+                                })()
+                              ) : (
+                                <button
+                                  onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}
+                                  className={`w-full py-1.5 md:py-2.5 rounded-lg text-[10px] md:text-sm font-bold flex items-center justify-center gap-1 transition-colors ${isRented ? 'bg-slate-800 text-yellow-500 border border-slate-700 hover:bg-slate-700' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'}`}
+                                >
+                                  {isRented ? 'ĐANG THUÊ' : <>CHI TIẾT <ArrowRight size={12} /></>}
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  )}
-
-                  {mixedItems.map((item, index) => {
-                    if (!item.code) return renderBoostingCard(item, index);
-                    const acc = item;
-                    const isRented = acc.rentedUntil && acc.rentedUntil > now;
-                    let timeStr = "";
-                    if (isRented) {
-                      const diff = acc.rentedUntil - now;
-
-                      // NẾU THỜI GIAN ĐÃ HẾT (CHẠM MỐC 0 HOẶC ÂM)
-                      if (diff <= 0) {
-                        timeStr = "00:00:00";
-
-                        // CHỈ GỬI MAIL 1 LẦN DUY NHẤT (Kiểm tra xem đã gửi mail chưa, tránh bị gửi liên tục mỗi giây)
-                        if (!acc.is_timeout_alerted && acc.currentRenterId) {
-                          // Gọi hàm gửi Mail thông báo cho Admin
-                          sendAdminAlert(
-                            'HẾT GIỜ THUÊ NICK',
-                            `Nick mã #${acc.code} đã hết thời gian thuê. Vui lòng vào kiểm tra và thu hồi tài khoản.`
-                          );
-
-                          // Cập nhật trạng thái để đánh dấu là "đã gửi mail", tránh bị lặp
-                          acc.is_timeout_alerted = true;
-                        }
-                      }
-                      // NẾU VẪN CÒN THỜI GIAN THÌ ĐẾM NGƯỢC BÌNH THƯỜNG
-                      else {
-                        const h = Math.floor(diff / 3600000);
-                        const m = Math.floor((diff % 3600000) / 60000);
-                        const s = Math.floor((diff % 60000) / 1000);
-                        timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-                      }
-                    }
-
-                    return (
-                      <div key={acc.id} className="bg-[#151D2F] h-full rounded-xl border border-slate-800 hover:border-blue-500/50 transition-all flex flex-col group shadow-lg hover:-translate-y-1 relative mt-5">
-                        {/* --- BADGE GAME (NHÔ LÊN TRÊN THẺ) --- */}
-                        <div className="flex justify-center -mt-5 relative z-30">
-                          <div className="flex items-center gap-2 bg-gradient-to-r from-[#1a2744] to-[#1e2d4a] border border-blue-500/30 rounded-full pl-1.5 pr-4 md:pr-5 py-1 shadow-xl shadow-blue-500/10">
-                            {getGameInfo(acc.game).avatar ? <img src={getGameInfo(acc.game).avatar} alt={getGameInfo(acc.game).name} className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover shrink-0 ring-2 ring-blue-400/50" /> : <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-blue-500/20 ring-2 ring-blue-400/50 flex items-center justify-center shrink-0"><Gamepad2 size={16} className="text-blue-400" /></div>}
-                            <span className="text-xs md:text-sm font-black text-blue-300 whitespace-nowrap">{getGameInfo(acc.game).name}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex-1 flex flex-col relative overflow-hidden rounded-xl">
-                          {(() => {
-                            const buyDiscount = acc.oldPrice && acc.oldPrice > acc.price ? Math.round(((acc.oldPrice - acc.price) / acc.oldPrice) * 100) : 0;
-                            const rentDiscount = acc.oldRentPrice && acc.oldRentPrice > acc.rentPricePerHour ? Math.round(((acc.oldRentPrice - acc.rentPricePerHour) / acc.oldRentPrice) * 100) : 0;
-                            const packageRentDiscount = acc.rentDiscountPercent || 0;
-                            const maxDiscount = Math.max(buyDiscount, rentDiscount, packageRentDiscount);
-                            return maxDiscount > 0 ? (
-                              <div className="absolute top-3 md:top-6 -right-12 md:-right-10 w-36 md:w-40 text-center transform rotate-45 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 text-white font-black text-[8px] md:text-[11px] py-0.5 md:py-1 shadow-lg z-30 border-y border-white/20 uppercase tracking-widest pointer-events-none mt-4">
-                                GIẢM {maxDiscount}%
-                              </div>
-                            ) : null;
-                          })()}
-                          <div className="relative h-24 sm:h-32 md:h-44 w-full bg-slate-900 cursor-pointer overflow-hidden mt-1 md:mt-2" onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}>
-                            <img
-                              src={acc.coverImage}
-                              loading={index < 8 ? "eager" : "lazy"}
-                              fetchPriority={index < 4 ? "high" : "auto"}
-                              decoding="async"
-                              alt={getGameInfo(acc.game).name}
-                              className={`w-full h-full object-cover transition-all duration-500 ${isRented ? 'opacity-50 grayscale hover:grayscale-0' : 'opacity-80 group-hover:opacity-100 group-hover:scale-110'}`}
-                            />
-                            <div className="absolute top-1.5 left-1.5 flex flex-col items-start gap-1 z-20">
-                              <div className="bg-rose-600 text-white text-[9px] md:text-xs font-bold px-1.5 md:px-2.5 py-0.5 md:py-1 rounded shadow-lg backdrop-blur-md bg-opacity-90 w-fit">Mã: {acc.code}</div>
-                              <div className="flex gap-1">
-                                <span className={`text-[8px] md:text-[10px] font-black px-1.5 md:px-2.5 py-0.5 md:py-1 rounded shadow-lg uppercase w-fit ${acc.tier === 'ULVIP' ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white' : acc.tier === 'SVIP' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-[#0B1120]' : 'bg-blue-600 text-white'}`}>
-                                  {acc.tier || 'VIP'}
-                                </span>
-                              </div>
-                            </div>
-                            {isRented && (
-                              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-[2px] z-20 hover:backdrop-blur-0 transition-all pointer-events-none">
-                                <span className="text-white font-black text-[9px] md:text-xs tracking-wider bg-black/80 px-1.5 md:px-3 py-0.5 md:py-1 rounded-full mb-1 border border-yellow-500/50">ĐANG THUÊ</span>
-                                <span className="text-yellow-400 font-mono font-bold text-xs md:text-sm tracking-widest drop-shadow-md">{timeStr}</span>
-                              </div>
-                            )}
-
-                            {getGameInfo(acc.game).isFeatured && (
-                              <div className="absolute bottom-1.5 left-1.5 z-20 pointer-events-none">
-                                <span className="text-[9px] md:text-[10px] font-black px-2.5 py-1 rounded-md uppercase w-fit bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-[0_2px_10px_rgba(0,0,0,0.8)] border border-amber-300/50 backdrop-blur-md">
-                                  🔥 DỊCH VỤ NỔI BẬT
-                                </span>
-                              </div>
-                            )}
-
-                          </div>
-                          <div className="p-2 md:p-4 flex-1 flex flex-col relative z-10 bg-[#151D2F]">
-                            <h4 className="text-sm md:text-base font-black text-white text-center mb-1 line-clamp-2 cursor-pointer hover:text-blue-400 leading-tight px-1 whitespace-pre-line" title={acc.title} onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}>{acc.title}</h4>
-                            <div className="flex justify-center w-full mb-3 md:mb-4">
-                              <span className="w-fit px-4 md:px-6 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors text-emerald-400 text-xs md:text-sm font-bold py-1 md:py-1.5 rounded-lg border border-emerald-500/30 text-center tracking-wide">
-                                Kho: {acc.stock !== undefined ? acc.stock : 1}
-                              </span>
-                            </div>
-                            <div className="border-t border-slate-800 pt-2 md:pt-4 flex flex-col gap-2 md:gap-3 flex-1">
-                              <div className={`flex flex-col sm:flex-row gap-1.5 ${acc.rentPricePerHour > 0 ? 'justify-between items-start sm:items-center' : 'justify-center items-center text-center'}`}>
-                                <div className={acc.rentPricePerHour > 0 ? '' : 'flex flex-col items-center py-1.5'}>
-                                  <p className={`${acc.rentPricePerHour > 0 ? 'text-[8px] md:text-[10px]' : 'text-[10px] md:text-xs tracking-wider'} text-slate-500 font-bold mb-0.5 uppercase`}>MUA ĐỨT</p>
-                                  {acc.oldPrice && acc.oldPrice > acc.price && (
-                                    <p className={`${acc.rentPricePerHour > 0 ? 'text-[10px] md:text-xs' : 'text-xs md:text-sm'} font-bold text-slate-500 line-through mb-0.5`}>{new Intl.NumberFormat('vi-VN').format(acc.oldPrice)}đ</p>
-                                  )}
-                                  <p className={`${acc.rentPricePerHour > 0 ? 'text-sm md:text-lg' : 'text-lg md:text-2xl mt-0.5'} font-black text-rose-500`}>{new Intl.NumberFormat('vi-VN').format(acc.price)}<span className={`${acc.rentPricePerHour > 0 ? 'text-[9px] md:text-xs' : 'text-xs md:text-sm'} opacity-70 ml-0.5`}>đ</span></p>
-                                </div>
-
-                                {acc.rentPricePerHour > 0 && (
-                                  <div className="text-left sm:text-right sm:border-l sm:border-slate-700 sm:pl-3 w-full sm:w-auto">
-                                    <p className="text-[8px] md:text-[10px] text-slate-500 font-bold mb-0.5 uppercase">THUÊ / GIỜ</p>
-                                    {acc.oldRentPrice && acc.oldRentPrice > acc.rentPricePerHour && (
-                                      <p className="text-[10px] md:text-xs font-bold text-slate-500 line-through mb-0.5">{new Intl.NumberFormat('vi-VN').format(acc.oldRentPrice)}đ</p>
-                                    )}
-                                    <p className="text-sm md:text-lg font-black text-blue-400">{new Intl.NumberFormat('vi-VN').format(acc.rentPricePerHour)}<span className="text-[9px] md:text-xs opacity-70 ml-0.5">đ</span></p>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="mt-auto w-full pt-1 md:pt-2">
-                                {/* XỬ LÝ NÚT NGOÀI MẶT TIỀN: Phân biệt Chủ Thuê, Khách Vãng Lai và Gói Combo */}
-                                {isRented && currentUser?.id === acc.currentRenterId ? (
-                                  (() => {
-                                    // Dò xem khách đang thuê gói gì
-                                    const activeReq = rentRequests.find(r => r.accCode === acc.code && r.status === 'Đã giao acc');
-                                    const isCombo = activeReq && (activeReq.time.toLowerCase().includes('combo đêm') || activeReq.time.toLowerCase().includes('combo ngày'));
-
-                                    return isCombo ? (
-                                      <button disabled className="w-full py-1.5 md:py-2.5 rounded-lg text-[10px] md:text-sm font-bold flex items-center justify-center gap-1 md:gap-2 bg-slate-700 text-slate-400 cursor-not-allowed shadow-inner border border-slate-600">
-                                        ĐANG THUÊ COMBO
-                                      </button>
-                                    ) : (
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); handleStopRent(acc); }}
-                                        className="w-full py-1.5 md:py-2.5 rounded-lg text-[10px] md:text-sm font-bold flex items-center justify-center gap-1 md:gap-2 transition-colors bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/20 active:scale-95"
-                                      >
-                                        <Clock size={12} className="animate-pulse" /> NGỪNG THUÊ
-                                      </button>
-                                    );
-                                  })()
-                                ) : (
-                                  <button
-                                    onClick={() => { setViewingAcc(acc); setSelectedImageIndex(0); }}
-                                    className={`w-full py-1.5 md:py-2.5 rounded-lg text-[10px] md:text-sm font-bold flex items-center justify-center gap-1 transition-colors ${isRented ? 'bg-slate-800 text-yellow-500 border border-slate-700 hover:bg-slate-700' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'}`}
-                                  >
-                                    {isRented ? 'ĐANG THUÊ' : <>CHI TIẾT <ArrowRight size={12} /></>}
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </section>
+                  )
+                })}
+              </div>
+            </section>
           </div>
         </main>
 
@@ -4870,38 +5002,38 @@ const App = () => {
               <div className="flex flex-col">
                 {/* 1. RENDER LỊCH SỬ MUA ACC (CÓ TÍNH NĂNG MỞ RỘNG XEM PASS) */}
                 {historyTab === 'bossgame' && visibleData.map(tx => {
-                const details = tx.accDetails || {};
-                return (
-                  <div key={tx.id} className="bg-[#1A233A] border border-slate-700/60 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-amber-500/40 transition-colors text-left">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-                        <Swords size={20} />
+                  const details = tx.accDetails || {};
+                  return (
+                    <div key={tx.id} className="bg-[#1A233A] border border-slate-700/60 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-amber-500/40 transition-colors text-left">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                          <Swords size={20} />
+                        </div>
+                        <div>
+                          <h4 className="text-white font-bold">{tx.action}</h4>
+                          <p className="text-xs text-slate-400">{tx.date} • Mã đơn: <span className="font-mono text-slate-300">{tx.id}</span></p>
+                          {details.rewards && (
+                            <p className="text-xs text-amber-400 font-semibold mt-1">
+                              Quà: {details.rewards.attacks ? `+${new Intl.NumberFormat('vi-VN').format(details.rewards.attacks)} lượt` : ''}
+                              {details.rewards.royal_chests ? ` • +${details.rewards.royal_chests} Rương HK` : ''}
+                              {details.rewards.coins ? ` • +${new Intl.NumberFormat('vi-VN').format(details.rewards.coins)} Xu` : ''}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-white font-bold">{tx.action}</h4>
-                        <p className="text-xs text-slate-400">{tx.date} • Mã đơn: <span className="font-mono text-slate-300">{tx.id}</span></p>
-                        {details.rewards && (
-                          <p className="text-xs text-amber-400 font-semibold mt-1">
-                            Quà: {details.rewards.attacks ? `+${new Intl.NumberFormat('vi-VN').format(details.rewards.attacks)} lượt` : ''}
-                            {details.rewards.royal_chests ? ` • +${details.rewards.royal_chests} Rương HK` : ''}
-                            {details.rewards.coins ? ` • +${new Intl.NumberFormat('vi-VN').format(details.rewards.coins)} Xu` : ''}
-                          </p>
-                        )}
+                      <div className="text-right">
+                        <span className="text-rose-400 font-black text-base">-{new Intl.NumberFormat('vi-VN').format(tx.amount)}đ</span>
+                        <div className="mt-1">
+                          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            {tx.status || 'Thành công'}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-rose-400 font-black text-base">-{new Intl.NumberFormat('vi-VN').format(tx.amount)}đ</span>
-                      <div className="mt-1">
-                        <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          {tx.status || 'Thành công'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
 
-              {historyTab === 'buy' && visibleData.map(tx => (
+                {historyTab === 'buy' && visibleData.map(tx => (
                   <div key={tx.id} className="border-b border-slate-800 flex flex-col">
                     <div
                       className="p-4 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors cursor-pointer"
@@ -5729,7 +5861,7 @@ const App = () => {
                 /* 1. KHÁCH ĐÃ LIÊN KẾT: THÔNG TIN NHÂN VẬT + NÚT TÚI ĐỒ & PROFILE (KHÔNG CÓ NÚT ĐỔI TÀI KHOẢN THEO CHỈ THỊ) */
                 <div className="bg-gradient-to-r from-[#0B1120] via-[#151D2F] to-[#0B1120] border-2 border-emerald-500/50 rounded-2xl p-5 md:p-6 shadow-[0_0_30px_rgba(16,185,129,0.15)] backdrop-blur-md text-left animate-fade-in relative overflow-hidden">
                   <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-2 bg-gradient-to-l from-emerald-500/20 to-transparent w-48 h-16 pointer-events-none blur-xl"></div>
-                  
+
                   {/* Badge Đã liên kết vĩnh viễn */}
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.2)]">
@@ -5882,11 +6014,10 @@ const App = () => {
               return (
                 <div
                   key={pkg.id}
-                  className={`relative rounded-2xl bg-[#151D2F] border transition-all duration-300 flex flex-col justify-between overflow-hidden group hover:-translate-y-1.5 ${
-                    hasRing
+                  className={`relative rounded-2xl bg-[#151D2F] border transition-all duration-300 flex flex-col justify-between overflow-hidden group hover:-translate-y-1.5 ${hasRing
                       ? 'border-amber-500/50 shadow-[0_0_25px_rgba(245,158,11,0.2)] hover:shadow-[0_0_35px_rgba(245,158,11,0.4)]'
                       : 'border-slate-800 hover:border-slate-600 shadow-xl'
-                  }`}
+                    }`}
                 >
                   {/* BADGE KHUYẾN MÃI / LOẠI GÓI */}
                   <div className="absolute top-3 right-3 z-10">
@@ -5902,9 +6033,8 @@ const App = () => {
                       <img
                         src={pkg.image}
                         alt={pkg.name}
-                        className={`max-w-[85%] object-contain group-hover:scale-110 transition-transform duration-500 drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)] ${
-                          hasRing ? 'max-h-28 pb-1' : 'max-h-32'
-                        }`}
+                        className={`max-w-[85%] object-contain group-hover:scale-110 transition-transform duration-500 drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)] ${hasRing ? 'max-h-28 pb-1' : 'max-h-32'
+                          }`}
                       />
 
                       {/* SỐ SAO BÊN DƯỚI CHÂN NHẪN & SỐ LƯỢNG x1 Ở GÓC NGOÀI (GÓI 7 & 8) */}
@@ -5988,11 +6118,10 @@ const App = () => {
                         }
                         setSelectedBossPackage(pkg);
                       }}
-                      className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg ${
-                        hasRing
+                      className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg ${hasRing
                           ? 'bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:from-amber-600 hover:to-purple-700 text-white shadow-amber-500/20'
                           : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20'
-                      }`}
+                        }`}
                     >
                       <Zap size={14} />
                       <span>Nạp Ngay Bằng Ví</span>
@@ -6563,11 +6692,10 @@ const App = () => {
                   <span className={`text-[11px] font-bold uppercase tracking-widest block mb-2 ${linkOtpCountdown > 0 ? 'text-amber-300' : 'text-rose-400'}`}>
                     {linkOtpCountdown > 0 ? 'MÃ OTP LIÊN KẾT CỦA BẠN (2 PHÚT)' : 'MÃ OTP ĐÃ HẾT HẠN'}
                   </span>
-                  <div className={`text-4xl sm:text-5xl font-black font-mono tracking-[0.25em] pl-[0.25em] my-1 ${
-                    linkOtpCountdown > 0
+                  <div className={`text-4xl sm:text-5xl font-black font-mono tracking-[0.25em] pl-[0.25em] my-1 ${linkOtpCountdown > 0
                       ? 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-400 drop-shadow-[0_0_20px_rgba(251,191,36,0.4)]'
                       : 'text-slate-500 line-through opacity-60'
-                  }`}>
+                    }`}>
                     {linkOtpCode || '------'}
                   </div>
 
@@ -6653,11 +6781,10 @@ const App = () => {
                   type="button"
                   onClick={handleGenerateLinkOtp}
                   disabled={isGeneratingOtp}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ${
-                    linkOtpCountdown <= 0
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ${linkOtpCountdown <= 0
                       ? 'bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-white shadow-[0_0_15px_rgba(245,158,11,0.4)] animate-bounce'
                       : 'bg-slate-800 hover:bg-slate-700 text-amber-300'
-                  }`}
+                    }`}
                 >
                   <RefreshCw size={14} className={isGeneratingOtp ? 'animate-spin' : ''} />
                   <span>{linkOtpCountdown <= 0 ? 'Lấy Mã Mới' : 'Đổi Mã Khác'}</span>
@@ -6785,9 +6912,8 @@ const App = () => {
                         return (
                           <div
                             key={sIdx}
-                            className={`rounded-xl p-2.5 border flex flex-col items-center text-center relative ${
-                              it ? 'bg-slate-900/80' : 'bg-slate-950/40 border-dashed border-slate-800'
-                            }`}
+                            className={`rounded-xl p-2.5 border flex flex-col items-center text-center relative ${it ? 'bg-slate-900/80' : 'bg-slate-950/40 border-dashed border-slate-800'
+                              }`}
                             style={{ borderColor: it ? tier.border : undefined }}
                           >
                             <span className="text-[9px] font-bold text-slate-400 uppercase mb-1">
@@ -6836,11 +6962,10 @@ const App = () => {
                             key={tab.id}
                             type="button"
                             onClick={() => setActiveBagCategory(tab.id)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                              activeBagCategory === tab.id
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${activeBagCategory === tab.id
                                 ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
                                 : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300 border border-slate-800'
-                            }`}
+                              }`}
                           >
                             {tab.label}
                           </button>
@@ -7157,11 +7282,10 @@ const App = () => {
                           key={pVal}
                           type="button"
                           onClick={() => setListingPrice(pVal)}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
-                            listingPrice === pVal
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${listingPrice === pVal
                               ? 'bg-amber-500 text-black border-amber-400 font-black'
                               : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-700'
-                          }`}
+                            }`}
                         >
                           {pVal.toLocaleString()} xu
                         </button>
@@ -7311,11 +7435,10 @@ const App = () => {
                       key={tab.id}
                       type="button"
                       onClick={() => setAuctionActiveTab(tab.id)}
-                      className={`px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap cursor-pointer ${
-                        auctionActiveTab === tab.id
+                      className={`px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap cursor-pointer ${auctionActiveTab === tab.id
                           ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-black shadow-lg shadow-amber-500/30'
                           : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'
-                      }`}
+                        }`}
                     >
                       {tab.label}
                     </button>
@@ -7353,11 +7476,10 @@ const App = () => {
                             key={f.id}
                             type="button"
                             onClick={() => setAuctionCategoryFilter(f.id)}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer ${
-                              auctionCategoryFilter === f.id
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer ${auctionCategoryFilter === f.id
                                 ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50'
                                 : 'bg-slate-900/60 hover:bg-slate-800 text-slate-400 border border-slate-800'
-                            }`}
+                              }`}
                           >
                             {f.label}
                           </button>
@@ -7399,9 +7521,8 @@ const App = () => {
                             return (
                               <div
                                 key={listing.id}
-                                className={`rounded-2xl p-3 bg-gradient-to-r from-slate-900/90 to-[#151D2F] border flex flex-col justify-between shadow-lg relative group transition-all duration-200 hover:border-amber-400/60 ${
-                                  isMine ? 'ring-1 ring-amber-500/40' : ''
-                                }`}
+                                className={`rounded-2xl p-3 bg-gradient-to-r from-slate-900/90 to-[#151D2F] border flex flex-col justify-between shadow-lg relative group transition-all duration-200 hover:border-amber-400/60 ${isMine ? 'ring-1 ring-amber-500/40' : ''
+                                  }`}
                                 style={{ borderColor: isMine ? '#f59e0b' : tier.border }}
                               >
                                 <div>
@@ -7681,7 +7802,7 @@ const App = () => {
     );
   };
 
-    const renderAdminScreen = () => {
+  const renderAdminScreen = () => {
     if (currentUser?.role !== 'admin') {
       return (
         <div className="min-h-screen bg-[#0B1120] flex flex-col items-center justify-center text-slate-300">
@@ -11841,7 +11962,7 @@ const App = () => {
                             return;
                           }
 
-                          const newBoostReq = { 
+                          const newBoostReq = {
                             ...dbPayload,
                             info: { loginMethod, username, password, note, amount: activePrice, quantity: targetModal.allow_quantity ? boostQuantity : 1 }
                           };
