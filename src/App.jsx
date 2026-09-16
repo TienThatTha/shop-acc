@@ -5831,6 +5831,18 @@ const App = () => {
 
 
   // Helpers cho Modal Profile & Trang bị Mộng Thiên Huyễn
+  const getRingSkillProcStr = (item) => {
+    if (!item) return '0.1%';
+    const lvl = Number(item.skill_level || 0);
+    const rateMap = { 1: '0.2%', 2: '0.4%', 3: '0.8%', 4: '1.6%', 5: '3.2%', 6: '6.4%', 7: '12.8%', 8: '25.6%', 9: '50%' };
+    if (lvl > 0 && rateMap[lvl]) return rateMap[lvl];
+    if (item.skill_proc_rate) {
+      const p = Number(item.skill_proc_rate) * 100;
+      return p >= 1 ? `${p.toFixed(1).replace(/\.0$/, '')}%` : `${p.toFixed(1)}%`;
+    }
+    return '0.1%';
+  };
+
   const getBossTierStyle = (tierStr) => {
     const t = (tierStr || '').toLowerCase();
     if (t.includes('thượng cổ')) return { color: '#ff00ff', border: '#ff00ff', bg: 'rgba(255, 0, 255, 0.15)', label: 'THƯỢNG CỔ' };
@@ -6511,11 +6523,10 @@ const App = () => {
                         <span className="font-bold text-purple-400 bg-purple-400/10 border border-purple-400/30 px-1.5 py-0.5 rounded">
                           +{Number(item.base_dmg_percent || 0)}% DMG {item.skill_pct ? `• ⚡ ${item.skill_pct}% HP` : ''}
                         </span>
-                        {item.skill_level > 0 && (
-                          <span className="font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-1.5 py-0.5 rounded text-[10px]">
-                            ⚡ Kỹ Năng Lv.{item.skill_level} ({item.skill_proc_rate ? `${(Number(item.skill_proc_rate) * 100).toFixed(1)}%` : '0.1%'})
-                          </span>
-                        )}
+                        {/* Luôn hiển thị thông tin phát động Kỹ Năng */}
+                        <span className="font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-1.5 py-0.5 rounded text-[10px]">
+                          ⚡ {item.skill_level > 0 ? `Kỹ Năng Lv.${item.skill_level} (${getRingSkillProcStr(item)})` : `Tỉ Lệ: ${getRingSkillProcStr(item)}`}
+                        </span>
                       </div>
                     )}
                     {category === 'pet' && (
@@ -7049,11 +7060,9 @@ const App = () => {
                                         <span className="text-purple-400 block">
                                           💍 +{Number(item.base_dmg_percent || 0)}% DMG {item.skill_pct ? `• ⚡ ${item.skill_pct}% HP` : ''}
                                         </span>
-                                        {item.skill_level > 0 && (
-                                          <span className="text-amber-300 block text-[9.5px]">
-                                            ⚡ Tuyệt Kỹ: Lv.{item.skill_level} (Tỉ lệ: {item.skill_proc_rate ? `${(Number(item.skill_proc_rate) * 100).toFixed(1)}%` : '0.1%'})
-                                          </span>
-                                        )}
+                                        <span className="text-amber-300 block text-[9.5px]">
+                                          ⚡ {item.skill_level > 0 ? `Tuyệt Kỹ: Lv.${item.skill_level} (Tỉ lệ: ${getRingSkillProcStr(item)})` : `Tỉ lệ phát động: ${getRingSkillProcStr(item)}`}
+                                        </span>
                                       </>
                                     )}
                                     {category === 'pet' && (
@@ -7578,7 +7587,10 @@ const App = () => {
                                           <span className="text-amber-400">📿 +{Number(item.dmg_percent || 0)}% DMG</span>
                                         )}
                                         {category === 'ring' && (
-                                          <span className="text-purple-400">💍 +{Number(item.base_dmg_percent || 0)}% DMG {item.skill_pct ? `• ⚡${item.skill_pct}%` : ''}</span>
+                                          <span className="text-purple-400">
+                                            💍 +{Number(item.base_dmg_percent || 0)}% DMG {item.skill_pct ? `• ⚡${item.skill_pct}%` : ''}
+                                            {item.skill_level > 0 ? ` • ⚡Lv.${item.skill_level} (${getRingSkillProcStr(item)})` : ''}
+                                          </span>
                                         )}
                                         {category === 'pet' && (
                                           <span className="text-rose-400">🐾 +{Number(item.bonus_dmg || 0).toLocaleString()} DMG</span>
