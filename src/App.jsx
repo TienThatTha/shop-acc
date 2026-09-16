@@ -7,7 +7,7 @@ import {
   History, Target, Gift, Save, Upload, Plus, Unlock, QrCode,
   Download, Copy, Check, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ZoomIn,
   Sparkles, TrendingUp, Users, Ticket, Settings2, MessageCircle, Send, Eye, EyeOff,
-  ArrowLeftRight, RotateCcw, MoreVertical, AlertTriangle, ArrowLeft, Loader2, Swords, Crown, Zap, Shield, Gem
+  ArrowLeftRight, RotateCcw, MoreVertical, AlertTriangle, ArrowLeft, Loader2, Swords, Crown, Zap, Shield, Gem, Package, Link
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import emailjs from '@emailjs/browser';
@@ -412,9 +412,14 @@ const App = () => {
   };
 
   
-  // --- STATE CHO GAME MỘNG THIÊN HUYỄN ---
+  // --- STATE CHO GAME MỘNG THIÊN HUYỄN & LIÊN KẾT TÀI KHOẢN ---
   const [bossTargetId, setBossTargetId] = useState(() => localStorage.getItem('shop_boss_target_id') || '');
-  const [bossPlayerSummary, setBossPlayerSummary] = useState(null);
+  const [bossPlayerSummary, setBossPlayerSummary] = useState(() => {
+    try {
+      const saved = localStorage.getItem('shop_linked_game_player');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) { return null; }
+  });
   const [bossPlayerNotFound, setBossPlayerNotFound] = useState(false);
   const [bossNotFoundQuery, setBossNotFoundQuery] = useState('');
   const [showBossProfileModal, setShowBossProfileModal] = useState(false);
@@ -422,6 +427,29 @@ const App = () => {
   const [selectedBossPackage, setSelectedBossPackage] = useState(null);
   const [isBuyingBossPackage, setIsBuyingBossPackage] = useState(false);
   const [bossSuccessModal, setBossSuccessModal] = useState(null);
+
+  // --- STATE LIÊN KẾT OTP & TÚI ĐỒ (INVENTORY) ---
+  const [showLinkOtpModal, setShowLinkOtpModal] = useState(false);
+  const [linkOtpCode, setLinkOtpCode] = useState('');
+  const [linkOtpExpiresAt, setLinkOtpExpiresAt] = useState(null);
+  const [linkOtpCountdown, setLinkOtpCountdown] = useState(600);
+  const [isWaitingOtp, setIsWaitingOtp] = useState(false);
+  const [isGeneratingOtp, setIsGeneratingOtp] = useState(false);
+  const [showBagModal, setShowBagModal] = useState(false);
+  const [activeBagCategory, setActiveBagCategory] = useState('all');
+  const [isPerformingBagAction, setIsPerformingBagAction] = useState(false);
+  const [bagActionLoadingItem, setBagActionLoadingItem] = useState(null);
+
+  // --- STATE SÀN ĐẤU GIÁ (AUCTION MARKET) ---
+  const [showAuctionModal, setShowAuctionModal] = useState(false);
+  const [auctionMarketData, setAuctionMarketData] = useState({ active_listings: [], recent_sold: [] });
+  const [auctionActiveTab, setAuctionActiveTab] = useState('market'); // 'market', 'my_listings', 'history'
+  const [auctionCategoryFilter, setAuctionCategoryFilter] = useState('all');
+  const [auctionSearchTerm, setAuctionSearchTerm] = useState('');
+  const [showListItemModal, setShowListItemModal] = useState(false);
+  const [selectedItemToList, setSelectedItemToList] = useState(null);
+  const [listingPrice, setListingPrice] = useState(100);
+  const [listingSellQuantity, setListingSellQuantity] = useState(1);
 
   useEffect(() => {
     if (bossTargetId) {
@@ -473,6 +501,22 @@ const App = () => {
       return () => clearTimeout(timer);
     }
   }, [verifyCooldown]);
+
+  // Đồng hồ đếm ngược mã OTP liên kết tài khoản game
+  useEffect(() => {
+    if (!showLinkOtpModal || linkOtpCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setLinkOtpCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setIsWaitingOtp(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [showLinkOtpModal, linkOtpCountdown]);
   const [showSpinNotice, setShowSpinNotice] = useState(false);
   // --- HỆ THỐNG THÔNG BÁO & GIAO DIỆN RESPONSIVE ---
   const [toast, setToast] = useState(null);
@@ -2095,6 +2139,40 @@ const App = () => {
               { name: 'Trang Chủ', view: 'dashboard', auth: false, icon: <Gamepad2 size={20} /> },
               { name: 'Nạp Tiền VNĐ', view: 'naptien', auth: true, icon: <Wallet size={20} /> },
               { name: '⚔️ Nạp Game Mộng Thiên Huyễn', view: 'bossgame', auth: true, icon: <Swords size={20} /> },
+              {
+                name: '🏛️ Sàn Đấu Giá (Chợ Xu)',
+                view: 'bossgame',
+                auth: true,
+                icon: <Sparkles size={20} className="text-amber-400" />,
+                action: () => {
+                  requireAuth('bossgame');
+                  setCurrentView('bossgame');
+                  fetchAuctionMarketData();
+                  setShowAuctionModal(true);
+                }
+              },
+              {
+                name: '🎒 Túi Đồ & Trang Bị',
+                view: 'bossgame',
+                auth: true,
+                icon: <Package size={20} className="text-purple-400" />,
+                action: () => {
+                  requireAuth('bossgame');
+                  setCurrentView('bossgame');
+                  setShowBagModal(true);
+                }
+              },
+              ...(!bossPlayerSummary ? [{
+                name: '🔗 Liên Kết OTP Game',
+                view: 'bossgame',
+                auth: true,
+                icon: <Zap size={20} className="text-yellow-400 animate-pulse" />,
+                action: () => {
+                  requireAuth('bossgame');
+                  setCurrentView('bossgame');
+                  handleGenerateLinkOtp();
+                }
+              }] : []),
               { name: 'Dịch Vụ Cày Thuê', view: 'caythue', auth: false, icon: <Target size={20} /> },
               ...(hasActiveWheelRewards ? [{ name: 'Vòng Quay May Mắn', view: 'vongquay', auth: false, icon: <Gift size={20} /> }] : []),
               { name: 'Lịch Sử Giao Dịch', view: 'lichsu', auth: true, icon: <History size={20} /> },
@@ -2104,7 +2182,13 @@ const App = () => {
                 key={idx}
                 onClick={() => {
                   setIsMobileMenuOpen(false);
-                  if (item.auth) requireAuth(item.view); else setCurrentView(item.view);
+                  if (item.action) {
+                    item.action();
+                  } else if (item.auth) {
+                    requireAuth(item.view);
+                  } else {
+                    setCurrentView(item.view);
+                  }
                 }}
                 className={`p-3.5 rounded-xl text-sm font-bold flex items-center gap-3 transition-colors text-left ${currentView === item.view ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : item.adminOnly ? 'text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20' : 'bg-transparent text-slate-300 hover:bg-slate-800 hover:text-white'}`}
               >
@@ -2207,13 +2291,37 @@ const App = () => {
                 view: 'bossgame',
                 auth: true
               },
+              {
+                name: (
+                  <span className="flex items-center gap-1 text-amber-400 font-bold">
+                    <span>🏛️</span>
+                    <span>Sàn Đấu Giá</span>
+                  </span>
+                ),
+                view: 'bossgame',
+                action: () => {
+                  requireAuth('bossgame');
+                  setCurrentView('bossgame');
+                  fetchAuctionMarketData();
+                  setShowAuctionModal(true);
+                },
+                auth: true
+              },
               { name: 'Cày Thuê', view: 'caythue', auth: false },
               ...(hasActiveWheelRewards ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false }] : []),
               { name: 'Lịch Sử', view: 'lichsu', auth: true }
             ].map((item, idx) => (
               <button
                 key={idx}
-                onClick={() => item.auth ? requireAuth(item.view) : setCurrentView(item.view)}
+                onClick={() => {
+                  if (item.action) {
+                    item.action();
+                  } else if (item.auth) {
+                    requireAuth(item.view);
+                  } else {
+                    setCurrentView(item.view);
+                  }
+                }}
                 className={`px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-lg text-xs xl:text-sm font-semibold whitespace-nowrap transition-colors shrink-0 ${
                   currentView === item.view ? 'bg-blue-600/15 text-blue-400 border border-blue-500/30 shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
@@ -2237,8 +2345,54 @@ const App = () => {
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {currentUser ? (
               <>
-                {/* --- KHU VỰC HIỂN THỊ SỐ DƯ (ĐÃ BỎ QUỸ GIỜ BẢO LƯU 0Đ) --- */}
+                {/* --- KHU VỰC HIỂN THỊ SỐ DƯ & PHÍM TẮT GAME --- */}
                 <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                  {/* Phím tắt Liên Kết OTP hoặc Túi Đồ / Chợ Xu */}
+                  {bossPlayerSummary ? (
+                    <div className="hidden md:flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          requireAuth('bossgame');
+                          setCurrentView('bossgame');
+                          setShowBagModal(true);
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-purple-500/15 hover:bg-purple-500/25 border border-purple-400/40 text-purple-300 font-bold text-xs rounded-xl transition-all shadow-sm cursor-pointer"
+                        title="Bấm để mở Túi Đồ & Trang Bị"
+                      >
+                        <Package size={14} className="text-purple-400" />
+                        <span>🎒 Túi Đồ</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          requireAuth('bossgame');
+                          setCurrentView('bossgame');
+                          fetchAuctionMarketData();
+                          setShowAuctionModal(true);
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 font-bold text-xs rounded-xl transition-all shadow-sm cursor-pointer"
+                        title="Bấm để mở Sàn Đấu Giá"
+                      >
+                        <span>🏛️ Chợ Xu</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        requireAuth('bossgame');
+                        setCurrentView('bossgame');
+                        handleGenerateLinkOtp();
+                      }}
+                      className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white font-extrabold text-xs rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.4)] animate-pulse transition-all hover:scale-105 shrink-0 cursor-pointer"
+                      title="Bấm để nhận mã OTP liên kết với nhân vật game"
+                    >
+                      <Zap size={14} className="text-yellow-300" />
+                      <span>🔗 Liên Kết OTP Game</span>
+                    </button>
+                  )}
+
                   {/* Số Dư Ví */}
                   <div
                     onClick={() => { requireAuth('naptien'); setCurrentView('naptien'); }}
@@ -2311,6 +2465,48 @@ const App = () => {
                         <button onClick={() => { setShowUserDropdown(false); setCurrentView('security'); setProfileTab('vip'); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-300 hover:bg-yellow-600/20 hover:text-yellow-400 transition-colors flex items-center gap-3">
                           <Sparkles size={18} className="text-yellow-400" /> VIP
                         </button>
+
+                        <div className="border-t border-slate-700 my-1"></div>
+                        {/* Mục game Mộng Thiên Huyễn */}
+                        <button
+                          onClick={() => {
+                            setShowUserDropdown(false);
+                            requireAuth('bossgame');
+                            setCurrentView('bossgame');
+                            if (!bossPlayerSummary) handleGenerateLinkOtp();
+                          }}
+                          className="w-full px-4 py-2.5 text-left text-xs font-bold text-amber-400 hover:bg-amber-500/20 transition-colors flex items-center gap-2.5"
+                        >
+                          <Link size={16} className="text-amber-400" /> {bossPlayerSummary ? `Game: @${bossPlayerSummary.user_id}` : '🔗 Liên Kết OTP Game'}
+                        </button>
+                        {bossPlayerSummary && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setShowUserDropdown(false);
+                                requireAuth('bossgame');
+                                setCurrentView('bossgame');
+                                setShowBagModal(true);
+                              }}
+                              className="w-full px-4 py-2 text-left text-xs font-semibold text-purple-300 hover:bg-purple-500/20 transition-colors flex items-center gap-2.5"
+                            >
+                              <Package size={15} className="text-purple-400" /> 🎒 Túi Đồ & Trang Bị
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowUserDropdown(false);
+                                requireAuth('bossgame');
+                                setCurrentView('bossgame');
+                                fetchAuctionMarketData();
+                                setShowAuctionModal(true);
+                              }}
+                              className="w-full px-4 py-2 text-left text-xs font-semibold text-orange-300 hover:bg-orange-500/20 transition-colors flex items-center gap-2.5"
+                            >
+                              <span className="text-sm">🏛️</span> Sàn Đấu Giá (Chợ Xu)
+                            </button>
+                          </>
+                        )}
+
                         <div className="border-t border-slate-700 my-1"></div>
                         <button onClick={() => { setShowUserDropdown(false); setConfirmDialog({ title: 'Đăng xuất', message: 'Bạn có chắc muốn đăng xuất?', onConfirm: async () => { await supabase.auth.signOut(); localStorage.removeItem('shop_cached_user'); localStorage.removeItem('shop_user_id'); setCurrentUser(null); setCurrentView('dashboard'); showToast('Đã đăng xuất an toàn!'); } }); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-rose-400 hover:bg-rose-600/20 hover:text-rose-300 transition-colors flex items-center gap-3">
                           <LogOut size={18} /> Đăng xuất
@@ -2803,10 +2999,11 @@ const App = () => {
             ring: rg,
             necklace: nk,
             exp: wp?.player_exp || 0,
-            bonus_coins: wp?.player_coins || 0,
+            bonus_coins: wp?.player_coins || dbPlayer.bonus_coins || dbPlayer.coins || 0,
             total_dmg: wp?.total_dmg || 0,
             has_x2_rate: wp?.has_x2_rate || false,
-            platform: wp?.platform || 'tiktok'
+            platform: wp?.platform || 'tiktok',
+            inventory: Array.isArray(wp?.inventory) ? wp.inventory : (Array.isArray(dbPlayer?.inventory) ? dbPlayer.inventory : [])
           };
         }
       } catch (err) {
@@ -2816,11 +3013,14 @@ const App = () => {
       // 2. Tra cứu hoàn tất qua Supabase Cloud
       if (foundPlayer) {
         setBossPlayerSummary(foundPlayer);
+        setBossTargetId(foundPlayer.user_id);
         setBossPlayerNotFound(false);
         setBossNotFoundQuery('');
-        showToast(`Đã tìm thấy: ${foundPlayer.nickname} (Cấp ${foundPlayer.level} - ${new Intl.NumberFormat('vi-VN').format(foundPlayer.cp)} CP)!`);
+        localStorage.setItem('shop_linked_game_player', JSON.stringify(foundPlayer));
+        localStorage.setItem('shop_boss_target_id', foundPlayer.user_id);
+        showToast(`Đã nhận diện: ${foundPlayer.nickname} (Cấp ${foundPlayer.level} - ${new Intl.NumberFormat('vi-VN').format(foundPlayer.cp)} CP)!`);
       } else {
-        // KHÔNG TÌM THẤY: Báo rõ không có dữ liệu, tuyệt đối không lấy đại đại
+        // KHÔNG TÌM THẤY: Báo rõ không có dữ liệu
         setBossPlayerSummary(null);
         setBossPlayerNotFound(true);
         setBossNotFoundQuery(rawId);
@@ -2831,15 +3031,306 @@ const App = () => {
     }
   };
 
+  // Tự động đồng bộ thông tin nhân vật game & túi đồ khi vào màn hình bossgame
+  useEffect(() => {
+    if (currentView === 'bossgame') {
+      const target = bossPlayerSummary?.user_id || bossTargetId || currentUser?.linked_game_id || localStorage.getItem('shop_boss_target_id');
+      if (target) {
+        handleCheckBossPlayer(target);
+      }
+    }
+  }, [currentView]);
+
+  // --- HÀM TẠO MÃ OTP LIÊN KẾT TÀI KHOẢN ---
+  const handleGenerateLinkOtp = async () => {
+    if (!currentUser) return requireAuth('login');
+    setIsGeneratingOtp(true);
+    try {
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const orderId = `OTP_${Date.now()}_${code}`;
+      const expiresAt = Date.now() + 10 * 60 * 1000;
+
+      const { error } = await supabase.from('game_orders').insert([{
+        id: orderId,
+        user_id: code,
+        nickname: currentUser.name || 'Khách Web',
+        web_user: currentUser.name || currentUser.id,
+        package_id: 'account_link_otp',
+        package_name: 'Liên kết tài khoản game qua OTP',
+        price: 0,
+        rewards: {
+          otp_code: code,
+          web_user_id: currentUser.id,
+          web_user_name: currentUser.name,
+          expires_at: expiresAt
+        },
+        status: 'pending'
+      }]);
+
+      if (error) throw error;
+
+      setLinkOtpCode(code);
+      setLinkOtpExpiresAt(expiresAt);
+      setLinkOtpCountdown(600);
+      setIsWaitingOtp(true);
+      setShowLinkOtpModal(true);
+      showToast("Đã tạo mã OTP! Hãy bình luận trên Live TikTok hoặc chat Discord để liên kết.", "success");
+
+      // Polling kiểm tra trạng thái OTP hoàn tất
+      const pollInterval = setInterval(async () => {
+        try {
+          const { data: checkOrder } = await supabase
+            .from('game_orders')
+            .select('*')
+            .eq('id', orderId)
+            .maybeSingle();
+
+          if (checkOrder && checkOrder.status === 'completed') {
+            clearInterval(pollInterval);
+            setIsWaitingOtp(false);
+            const res = checkOrder.result || {};
+            const linkedUid = res.game_user_id || checkOrder.user_id;
+
+            setCurrentUser(prev => prev ? ({ ...prev, linked_game_id: linkedUid }) : prev);
+            localStorage.setItem('shop_boss_target_id', linkedUid);
+
+            await handleCheckBossPlayer(linkedUid);
+            setShowLinkOtpModal(false);
+            showToast(`🎉 Liên kết thành công với nhân vật ${res.game_nickname || linkedUid}!`, "success");
+          }
+        } catch (e) {
+          console.error("Lỗi poll OTP:", e);
+        }
+      }, 2000);
+
+      setTimeout(() => clearInterval(pollInterval), 10 * 60 * 1000);
+
+    } catch (err) {
+      console.error("Lỗi tạo mã OTP:", err);
+      showToast("Không thể tạo mã OTP lúc này, vui lòng thử lại sau!", "error");
+    } finally {
+      setIsGeneratingOtp(false);
+    }
+  };
+
+  // --- HÀM THỰC HIỆN HÀNH ĐỘNG TRÊN TÚI ĐỒ (TRANG BỊ / XÓA ĐỒ / DỌN RÁC) ---
+  const handleExecuteBagAction = async (actionType, item = null, itemIndex = null) => {
+    if (!currentUser) return requireAuth('login');
+    if (!bossPlayerSummary) {
+      showToast("Vui lòng liên kết tài khoản trước khi quản lý túi đồ!", "error");
+      return;
+    }
+    if (isPerformingBagAction) return;
+
+    if (actionType === 'delete' && item) {
+      if (!window.confirm(`Bạn có chắc muốn xóa/phân giải món [${item.name}] không? Bạn sẽ nhận lại lượt đánh boss tương ứng.`)) {
+        return;
+      }
+    }
+    if (actionType === 'dismantle_all') {
+      if (!window.confirm("Bạn có chắc muốn Dọn Sạch Đồ Rác không? Hệ thống sẽ giữ lại đồ đang mặc, đồ cùng loại để up sao và đồ phẩm cao, chỉ phân giải đồ rác để nhận lượt đánh.")) {
+        return;
+      }
+    }
+
+    setIsPerformingBagAction(true);
+    setBagActionLoadingItem(item ? (item.id || item.name || itemIndex) : 'all');
+
+    const actionId = `ACT_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const targetUid = bossPlayerSummary.user_id;
+
+    try {
+      const { error } = await supabase.from('game_orders').insert([{
+        id: actionId,
+        user_id: targetUid,
+        nickname: bossPlayerSummary.nickname,
+        web_user: currentUser.name || currentUser.id,
+        package_id: `game_action_${actionType}`,
+        package_name: actionType === 'equip' ? `Trang bị ${item?.name || ''}` : (actionType === 'delete' ? `Xóa ${item?.name || ''}` : 'Dọn sạch đồ rác'),
+        price: 0,
+        rewards: {
+          action: actionType,
+          item_index: itemIndex,
+          item_name: item?.name,
+          item_category: item?.category,
+          item: item
+        },
+        status: 'pending'
+      }]);
+
+      if (error) throw error;
+
+      showToast("Đang gửi yêu cầu vào game, vui lòng đợi giây lát...", "info");
+
+      let attempts = 0;
+      const pollAction = setInterval(async () => {
+        attempts++;
+        try {
+          const { data: checkAct } = await supabase
+            .from('game_orders')
+            .select('*')
+            .eq('id', actionId)
+            .maybeSingle();
+
+          if (checkAct && checkAct.status === 'completed') {
+            clearInterval(pollAction);
+            setIsPerformingBagAction(false);
+            setBagActionLoadingItem(null);
+
+            const msg = checkAct.result?.message || (actionType === 'equip' ? 'Đã trang bị thành công!' : 'Đã thực thi thành công!');
+            showToast(`✨ ${msg}`, "success");
+
+            await handleCheckBossPlayer(targetUid);
+          } else if (attempts >= 15) {
+            clearInterval(pollAction);
+            setIsPerformingBagAction(false);
+            setBagActionLoadingItem(null);
+            await handleCheckBossPlayer(targetUid);
+          }
+        } catch (e) {
+          console.error("Lỗi poll action:", e);
+        }
+      }, 1500);
+
+    } catch (err) {
+      console.error("Lỗi gửi hành động túi đồ:", err);
+      showToast("Có lỗi xảy ra khi thực hiện, vui lòng thử lại!", "error");
+      setIsPerformingBagAction(false);
+      setBagActionLoadingItem(null);
+    }
+  };
+
+  // --- HÀM LẤY DỮ LIỆU SÀN ĐẤU GIÁ (AUCTION MARKET) ---
+  const fetchAuctionMarketData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('site_config')
+        .select('*')
+        .eq('id', 'game_auction_market')
+        .maybeSingle();
+      if (data && data.value) {
+        setAuctionMarketData(data.value);
+      }
+    } catch (err) {
+      console.error("Lỗi lấy dữ liệu sàn đấu giá:", err);
+    }
+  };
+
+  // --- HÀM THỰC HIỆN HÀNH ĐỘNG SÀN ĐẤU GIÁ (TREO BÁN / THU HỒI / MUA ĐỒ) ---
+  const handleExecuteAuctionAction = async (actionType, payload = {}) => {
+    if (!currentUser) return requireAuth('login');
+    if (!bossPlayerSummary) {
+      showToast("Vui lòng liên kết tài khoản trước khi tham gia Sàn Đấu Giá!", "error");
+      return;
+    }
+    if (isPerformingBagAction) return;
+
+    const targetUid = bossPlayerSummary.user_id;
+
+    if (actionType === 'buy_auction') {
+      const listing = payload.listing;
+      if (!listing) return;
+      if (String(listing.seller_id).toLowerCase() === String(targetUid).toLowerCase()) {
+        showToast("Bạn không thể tự mua đồ của chính mình! Hãy dùng nút 'Thu Hồi'.", "error");
+        return;
+      }
+      const myCoins = Number(bossPlayerSummary.bonus_coins || 0);
+      if (myCoins < Number(listing.price || 0)) {
+        showToast(`Bạn không đủ xu để mua! Cần ${Number(listing.price).toLocaleString()} xu, bạn có ${myCoins.toLocaleString()} xu.`, "error");
+        return;
+      }
+      if (!window.confirm(`Xác nhận mua [${listing.item?.name}] với giá ${Number(listing.price).toLocaleString()} xu?`)) {
+        return;
+      }
+    }
+
+    if (actionType === 'cancel_auction') {
+      const listing = payload.listing;
+      if (!listing) return;
+      if (!window.confirm(`Xác nhận thu hồi [${listing.item?.name}] về lại túi đồ?`)) {
+        return;
+      }
+    }
+
+    setIsPerformingBagAction(true);
+    setBagActionLoadingItem(payload.auction_id || payload.itemIndex || 'auction');
+
+    const actionId = `AUC_ACT_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+    try {
+      const rewardsPayload = {
+        action: actionType,
+        ...payload
+      };
+
+      let pkgName = 'Hành động đấu giá';
+      if (actionType === 'list_auction') pkgName = `Treo bán ${payload.item_name || ''} (${payload.price} xu)`;
+      if (actionType === 'cancel_auction') pkgName = `Thu hồi đấu giá #${payload.auction_id || ''}`;
+      if (actionType === 'buy_auction') pkgName = `Mua đấu giá #${payload.auction_id || ''} (${payload.price} xu)`;
+
+      const { error } = await supabase.from('game_orders').insert([{
+        id: actionId,
+        user_id: targetUid,
+        nickname: bossPlayerSummary.nickname,
+        web_user: currentUser.name || currentUser.id,
+        package_id: `game_action_${actionType}`,
+        package_name: pkgName,
+        price: 0,
+        rewards: rewardsPayload,
+        status: 'pending'
+      }]);
+
+      if (error) throw error;
+
+      showToast("Đang gửi yêu cầu tới Sàn Đấu Giá...", "info");
+
+      let attempts = 0;
+      const pollAction = setInterval(async () => {
+        attempts++;
+        try {
+          const { data: checkAct } = await supabase
+            .from('game_orders')
+            .select('*')
+            .eq('id', actionId)
+            .maybeSingle();
+
+          if (checkAct && checkAct.status === 'completed') {
+            clearInterval(pollAction);
+            setIsPerformingBagAction(false);
+            setBagActionLoadingItem(null);
+
+            const msg = checkAct.result?.message || 'Giao dịch thành công!';
+            showToast(`🏛️ ${msg}`, checkAct.result?.success ? "success" : "error");
+
+            await handleCheckBossPlayer(targetUid);
+            await fetchAuctionMarketData();
+            setShowListItemModal(false);
+          } else if (attempts >= 15) {
+            clearInterval(pollAction);
+            setIsPerformingBagAction(false);
+            setBagActionLoadingItem(null);
+            await handleCheckBossPlayer(targetUid);
+            await fetchAuctionMarketData();
+          }
+        } catch (e) {
+          console.error("Lỗi poll auction action:", e);
+        }
+      }, 1500);
+
+    } catch (err) {
+      console.error("Lỗi gửi action đấu giá:", err);
+      showToast("Có lỗi xảy ra khi thực hiện, vui lòng thử lại!", "error");
+      setIsPerformingBagAction(false);
+      setBagActionLoadingItem(null);
+    }
+  };
+
   // --- HÀM THANH TOÁN MUA GÓI NẠP GAME BOSS MỘNG THIÊN HUYỄN ---
   const executeBuyBossPackage = async (pkg) => {
     if (!currentUser) return requireAuth('login');
-    if (!bossTargetId.trim()) {
-      showToast("Vui lòng nhập ID TikTok hoặc Discord nhận quà trước!", "error");
-      return;
-    }
-    if (!bossPlayerSummary || !bossPlayerSummary.exists) {
-      showToast("Vui lòng bấm 'Kiểm Tra ID' và chọn đúng người chơi có thật trong game trước khi nạp!", "error");
+    if (!bossPlayerSummary) {
+      showToast("Vui lòng liên kết tài khoản game qua mã OTP trước khi nạp!", "error");
+      setShowLinkOtpModal(true);
       return;
     }
     if ((currentUser.balance || 0) < pkg.price) {
@@ -2851,7 +3342,7 @@ const App = () => {
 
     const orderId = `BG_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
     const dateStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN');
-    const targetUid = bossTargetId.trim().replace(/^@/, '');
+    const targetUid = (bossPlayerSummary.user_id || bossTargetId).trim().replace(/^@/, '');
 
     const orderDetails = {
       order_id: orderId,
@@ -3004,6 +3495,27 @@ const App = () => {
                         className="inline-block px-4 py-1 bg-gradient-to-r from-amber-500/30 to-rose-500/30 text-amber-300 font-extrabold text-xs rounded-full border border-amber-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(245,158,11,0.5)] cursor-pointer hover:scale-105 transition-all animate-pulse"
                       >
                         ⚔️ NẠP GAME MỘNG THIÊN HUYỄN (TỰ ĐỘNG)
+                      </div>
+                      <div
+                        onClick={() => {
+                          requireAuth('bossgame');
+                          setCurrentView('bossgame');
+                          fetchAuctionMarketData();
+                          setShowAuctionModal(true);
+                        }}
+                        className="inline-block px-4 py-1 bg-gradient-to-r from-orange-500/30 to-amber-500/30 text-orange-300 font-extrabold text-xs rounded-full border border-orange-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(249,115,22,0.5)] cursor-pointer hover:scale-105 transition-all"
+                      >
+                        🏛️ SÀN ĐẤU GIÁ (CHỢ XU 20%)
+                      </div>
+                      <div
+                        onClick={() => {
+                          requireAuth('bossgame');
+                          setCurrentView('bossgame');
+                          if (!bossPlayerSummary) handleGenerateLinkOtp(); else setShowBagModal(true);
+                        }}
+                        className="inline-block px-4 py-1 bg-gradient-to-r from-purple-500/30 to-indigo-500/30 text-purple-300 font-extrabold text-xs rounded-full border border-purple-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(168,85,247,0.5)] cursor-pointer hover:scale-105 transition-all"
+                      >
+                        {bossPlayerSummary ? '🎒 TÚI ĐỒ & QUẢN LÝ TRANG BỊ' : '🔗 LIÊN KẾT TÀI KHOẢN GAME (OTP)'}
                       </div>
                     </div>
                     <h2 className="text-4xl md:text-5xl font-black text-white mb-4 uppercase leading-tight drop-shadow-lg">
@@ -5147,6 +5659,16 @@ const App = () => {
 
   const getBossItemAsset = (name, category) => {
     const n = (name || '').toLowerCase();
+    if (n.includes('tinh hoa') || n.includes('essence') || n.includes('da_tinh_hoa')) {
+      return '/game-assets/da_tinh_hoa.png';
+    }
+    if (n.includes('tinh thể') || n.includes('crystal') || n.includes('ring_crystal')) {
+      return '/game-assets/ring_crystal.png';
+    }
+    if (category === 'material') {
+      if (n.includes('tinh hoa') || n.includes('essence')) return '/game-assets/da_tinh_hoa.png';
+      return '/game-assets/ring_crystal.png';
+    }
     if (category === 'weapon') {
       if (n.includes('bá vương') || n.includes('thượng cổ')) return '/game-assets/weapon_ba_vuong.png';
       return '/game-assets/weapon_tram_ma.png';
@@ -5186,120 +5708,135 @@ const App = () => {
               Hệ thống tự động chuyển thẳng <strong className="text-amber-400">Lượt Đánh, Rương Hoàng Kim, Xu Nâng Cấp & Trang Bị Thần Binh</strong> vào tài khoản game của bạn ngay khi bấm Mua. Loa Livestream sẽ tự động đọc tên cảm ơn và hiệu ứng nạp VIP sẽ phát sáng rực rỡ!
             </p>
 
-            {/* KHUNG NHẬP ID NGƯỜI CHƠI & TRA CỨU */}
-            <div className="max-w-2xl mx-auto bg-[#0B1120]/90 border border-slate-700/80 rounded-2xl p-4 md:p-6 shadow-2xl backdrop-blur-md">
-              <label className="block text-left text-xs md:text-sm font-bold text-slate-300 mb-2 uppercase tracking-wide flex items-center justify-between">
-                <span>🎯 Nhập ID TikTok / Discord hoặc Tên In-game nhận quà:</span>
-                {bossPlayerSummary && (
-                  <span className="text-emerald-400 text-xs font-bold flex items-center gap-1">
-                    <CheckCircle2 size={14} /> Đã kết nối ID
-                  </span>
-                )}
-              </label>
-
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input
-                    type="text"
-                    value={bossTargetId}
-                    onChange={(e) => {
-                      setBossTargetId(e.target.value);
-                      setBossPlayerSummary(null);
-                      setBossPlayerNotFound(false);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleCheckBossPlayer();
-                    }}
-                    placeholder="Ví dụ: ugnlus hoặc @kyone2408 hoặc ID Discord"
-                    className="w-full pl-10 pr-4 py-3 bg-[#151D2F] border border-slate-700 rounded-xl text-white font-bold text-sm focus:outline-none focus:border-amber-500 transition-colors shadow-inner"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleCheckBossPlayer()}
-                  disabled={isCheckingBossPlayer}
-                  className="px-6 py-3 bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-600 hover:to-rose-700 text-white font-black text-sm rounded-xl transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:scale-105 flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
-                >
-                  {isCheckingBossPlayer ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                  <span>Kiểm Tra ID</span>
-                </button>
-              </div>
-
-              {/* CARD XEM TRƯỚC THÔNG TIN NGƯỜI CHƠI THẬT */}
-              {bossPlayerSummary && (
-                <div className="mt-4 p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-slate-900/90 to-[#151D2F] border border-amber-500/40 text-left animate-fade-in flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 w-full overflow-hidden box-border">
-                  <div className="flex items-center gap-3 min-w-0 w-full flex-1 overflow-hidden">
-                    <img
-                      src={bossPlayerSummary.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(bossPlayerSummary.user_id)}`}
-                      alt="Avatar"
-                      onClick={() => setShowBossProfileModal(true)}
-                      className="w-13 h-13 sm:w-14 sm:h-14 rounded-full border-2 border-amber-400 object-cover shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.5)] cursor-pointer hover:scale-105 transition-transform"
-                      title="👉 Bấm để xem chi tiết Profile & Trang bị"
-                    />
-                    <div className="min-w-0 flex-1 overflow-hidden">
-                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
-                        <h4
-                          onClick={() => setShowBossProfileModal(true)}
-                          className="text-white font-black text-sm sm:text-base hover:text-amber-400 cursor-pointer transition-colors truncate max-w-[170px] sm:max-w-xs"
-                          title="👉 Bấm để xem chi tiết Profile & Trang bị"
-                        >
-                          {bossPlayerSummary.nickname}
-                        </h4>
-                        {bossPlayerSummary.level && (
-                          <span className="px-2 py-0.5 rounded-full bg-blue-600/30 text-blue-400 border border-blue-500/40 text-[10px] font-bold shrink-0">
-                            Cấp {bossPlayerSummary.level}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-400 font-mono mt-0.5 truncate">ID: @{bossPlayerSummary.user_id}</p>
-                      {bossPlayerSummary.cp && bossPlayerSummary.cp !== 'Auto' && (
-                        <div className="text-xs text-amber-400 font-bold mt-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-                            <span className="whitespace-nowrap">
-                              ⚔️ Lực Chiến: <span className="text-white">{new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.cp)} CP</span>
-                            </span>
-                            {bossPlayerSummary.bonus_attacks > 0 && (
-                              <span className="text-emerald-400 whitespace-nowrap">
-                                💥 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.bonus_attacks)} Lượt
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
+            {/* KHU VỰC LIÊN KẾT TÀI KHOẢN & THÔNG TIN NHÂN VẬT GAME (BỎ KIỂM TRA ID) */}
+            <div className="max-w-3xl mx-auto">
+              {bossPlayerSummary ? (
+                /* 1. KHÁCH ĐÃ LIÊN KẾT: THÔNG TIN NHÂN VẬT + NÚT TÚI ĐỒ & PROFILE (KHÔNG CÓ NÚT ĐỔI TÀI KHOẢN THEO CHỈ THỊ) */
+                <div className="bg-gradient-to-r from-[#0B1120] via-[#151D2F] to-[#0B1120] border-2 border-emerald-500/50 rounded-2xl p-5 md:p-6 shadow-[0_0_30px_rgba(16,185,129,0.15)] backdrop-blur-md text-left animate-fade-in relative overflow-hidden">
+                  <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-2 bg-gradient-to-l from-emerald-500/20 to-transparent w-48 h-16 pointer-events-none blur-xl"></div>
+                  
+                  {/* Badge Đã liên kết vĩnh viễn */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                      <CheckCircle2 size={14} className="text-emerald-400" />
+                      <span>✓ ĐÃ LIÊN KẾT TÀI KHOẢN GAME VĨNH VIỄN</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 font-medium">
+                      Tự động nạp vào nhân vật này 24/7
                     </div>
                   </div>
 
-                  <div className="w-full sm:w-auto text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 border-t sm:border-t-0 pt-2.5 sm:pt-0 border-slate-800/80 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setShowBossProfileModal(true)}
-                      className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 bg-gradient-to-r from-cyan-600/30 to-blue-600/30 hover:from-cyan-600/50 hover:to-blue-600/50 text-cyan-300 border border-cyan-500/50 rounded-xl text-xs font-bold transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] flex items-center justify-center gap-1.5 hover:scale-105 active:scale-95 cursor-pointer"
-                    >
-                      <Eye size={14} />
-                      <span>Xem Profile & Đồ</span>
-                    </button>
-                    <span className="text-[10px] text-emerald-400 font-bold hidden sm:block">
-                      ✓ Sẵn sàng nhận quà
-                    </span>
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+                    {/* Thông tin nhân vật */}
+                    <div className="flex items-center gap-4 min-w-0 flex-1">
+                      <div className="relative shrink-0">
+                        <img
+                          src={bossPlayerSummary.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(bossPlayerSummary.user_id)}`}
+                          alt="Avatar"
+                          onClick={() => setShowBossProfileModal(true)}
+                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-amber-400 object-cover shadow-[0_0_20px_rgba(245,158,11,0.4)] cursor-pointer hover:scale-105 transition-transform"
+                          title="👉 Bấm để xem chi tiết Profile & Trang bị"
+                        />
+                        <div className="absolute -bottom-1.5 -right-1.5 bg-blue-600 text-white font-black text-[10px] px-1.5 py-0.5 rounded-md border border-blue-400 shadow">
+                          Lv.{bossPlayerSummary.level || 1}
+                        </div>
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3
+                            onClick={() => setShowBossProfileModal(true)}
+                            className="text-white font-black text-lg sm:text-xl truncate drop-shadow cursor-pointer hover:text-amber-400 transition-colors"
+                            title="👉 Bấm để xem chi tiết Profile & Trang bị"
+                          >
+                            {bossPlayerSummary.nickname}
+                          </h3>
+                        </div>
+                        <p className="text-xs text-slate-400 font-mono mt-0.5">
+                          ID: <span className="text-amber-400 font-bold">@{bossPlayerSummary.user_id}</span>
+                        </p>
+
+                        {/* Chỉ số Lực chiến, Xu, Lượt, Rương */}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-2 text-xs font-bold">
+                          <span className="text-amber-300 bg-amber-500/15 border border-amber-400/30 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                            ⚔️ <span className="text-white">{new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.cp || 0)} CP</span>
+                          </span>
+                          <span className="text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-2 py-0.5 rounded-lg">
+                            🪙 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.bonus_coins || 0)} Xu
+                          </span>
+                          <span className="text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-lg">
+                            ⚡ {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.bonus_attacks || 0)} Lượt
+                          </span>
+                          <span className="text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-lg">
+                            👑 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.royal_chests || 0)} Rương VIP
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Các Nút hành động: Túi Đồ, Sàn Đấu Giá & Xem Profile */}
+                    <div className="flex flex-row md:flex-col gap-2.5 w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          fetchAuctionMarketData();
+                          setShowAuctionModal(true);
+                        }}
+                        className="flex-1 md:flex-none px-4 py-2.5 bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.35)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 cursor-pointer border border-amber-400/40"
+                      >
+                        <span className="text-base leading-none">🏛️</span>
+                        <span>Sàn Đấu Giá (Chợ Đồ)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowBagModal(true)}
+                        className="flex-1 md:flex-none px-4 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.35)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 cursor-pointer border border-indigo-400/40"
+                      >
+                        <span className="text-base leading-none">🎒</span>
+                        <span>Túi Đồ & Trang Bị</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowBossProfileModal(true)}
+                        className="flex-1 md:flex-none px-4 py-2.5 bg-[#1A233A] hover:bg-slate-800 text-cyan-300 font-bold text-xs rounded-xl border border-cyan-500/40 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                      >
+                        <Eye size={15} />
+                        <span>Xem Profile Chi Tiết</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              )}
+              ) : (
+                /* 2. KHÁCH CHƯA LIÊN KẾT: HIỆN THÔNG BÁO BẮT BUỘC LIÊN KẾT ĐỂ NẠP DỄ DÀNG */
+                <div className="bg-gradient-to-br from-[#151D2F] via-[#1A233A] to-[#0B1120] border-2 border-amber-500/60 rounded-2xl p-6 md:p-8 shadow-[0_0_35px_rgba(245,158,11,0.2)] backdrop-blur-md text-center animate-fade-in relative overflow-hidden">
+                  <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 mb-4 shadow-[0_0_20px_rgba(245,158,11,0.3)] animate-pulse">
+                    <Zap size={32} />
+                  </div>
 
-              {/* CARD BÁO KHÔNG CÓ DỮ LIỆU KHI TRA KHÔNG RA */}
-              {bossPlayerNotFound && (
-                <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-rose-950/40 via-red-900/30 to-slate-900/90 border border-rose-500/50 text-left animate-fade-in flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
-                    <AlertCircle size={22} />
+                  <h3 className="text-xl sm:text-2xl font-black uppercase text-white mb-2 tracking-tight">
+                    ⚠️ BẠN CHƯA LIÊN KẾT TÀI KHOẢN GAME!
+                  </h3>
+                  <p className="text-slate-300 text-xs sm:text-sm max-w-xl mx-auto mb-6 leading-relaxed">
+                    Hãy liên kết tài khoản web với nhân vật game qua <strong className="text-amber-400">mã OTP an toàn</strong>. Sau khi liên kết, bạn sẽ nạp tự động 1-chạm không cần nhập ID, đồng thời có thể <strong className="text-purple-400">mở túi đồ, thay trang bị & xóa đồ rác</strong> trực tiếp trên web!
+                  </p>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleGenerateLinkOtp}
+                      disabled={isGeneratingOtp}
+                      className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {isGeneratingOtp ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} className="text-yellow-300" />}
+                      <span>🔗 LẤY MÃ OTP ĐỂ LIÊN KẾT NGAY</span>
+                    </button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-rose-400 font-bold text-sm flex items-center gap-1.5">
-                      Không có dữ liệu người chơi!
-                    </h4>
-                    <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
-                      Không tìm thấy tài khoản cho <span className="text-amber-400 font-mono font-bold">"{bossNotFoundQuery}"</span> trong hệ thống game Mộng Thiên Huyễn. Vui lòng kiểm tra lại chính xác ID TikTok / Discord hoặc Tên In-game.
-                    </p>
-                  </div>
+
+                  <p className="text-[11px] text-slate-400 mt-4">
+                    🔒 Chỉ cần xác nhận 1 lần duy nhất bằng cách bình luận mã trên <strong className="text-slate-200">TikTok Live</strong> hoặc gõ lệnh trên <strong className="text-slate-200">Discord</strong>.
+                  </p>
                 </div>
               )}
             </div>
@@ -5429,8 +5966,9 @@ const App = () => {
                       type="button"
                       onClick={() => {
                         if (!currentUser) return requireAuth('login');
-                        if (!bossTargetId.trim()) {
-                          showToast("Vui lòng nhập ID TikTok hoặc Discord nhận quà ở khung trên!", "error");
+                        if (!bossPlayerSummary) {
+                          showToast("Vui lòng liên kết tài khoản game trước khi nạp!", "info");
+                          handleGenerateLinkOtp();
                           return;
                         }
                         setSelectedBossPackage(pkg);
@@ -5457,8 +5995,8 @@ const App = () => {
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-400">
               <div className="p-3 bg-[#0B1120] rounded-xl border border-slate-800">
-                <p className="font-bold text-white mb-1">1. Nhập Đúng ID</p>
-                <p>Điền chính xác ID TikTok (ví dụ: <code className="text-amber-400 font-mono">ugnlus</code>) hoặc Discord ID để quà vào đúng nhân vật.</p>
+                <p className="font-bold text-white mb-1">1. Liên Kết 1-Chạm</p>
+                <p>Tài khoản đã liên kết vĩnh viễn với nick game của bạn. Không cần nhập ID mỗi lần nạp.</p>
               </div>
               <div className="p-3 bg-[#0B1120] rounded-xl border border-slate-800">
                 <p className="font-bold text-white mb-1">2. Trừ Tiền & Chuyển Quà</p>
@@ -5494,8 +6032,13 @@ const App = () => {
                 <div className="p-3.5 rounded-xl bg-[#0B1120] border border-slate-800">
                   <span className="text-xs text-slate-400 block mb-1">Tài khoản nhận quà trong game:</span>
                   <div className="flex items-center justify-between">
-                    <span className="text-white font-black text-sm">@{bossTargetId.trim().replace(/^@/, '')}</span>
-                    <span className="text-emerald-400 text-xs font-bold">✓ Tự động duyệt</span>
+                    <div>
+                      <span className="text-white font-black text-sm">{bossPlayerSummary?.nickname || bossTargetId}</span>
+                      <span className="text-slate-400 text-xs ml-2 font-mono">(@{bossPlayerSummary?.user_id || bossTargetId.trim().replace(/^@/, '')})</span>
+                    </div>
+                    <span className="text-emerald-400 text-xs font-bold flex items-center gap-1">
+                      <CheckCircle2 size={13} /> Đã liên kết vĩnh viễn
+                    </span>
                   </div>
                 </div>
 
@@ -5762,9 +6305,16 @@ const App = () => {
                       </span>
                     )}
                     {category === 'ring' && (
-                      <span className="font-bold text-purple-400 bg-purple-400/10 border border-purple-400/30 px-1.5 py-0.5 rounded">
-                        +{Number(item.base_dmg_percent || 0)}% DMG {item.skill_pct ? `• ⚡ ${item.skill_pct}% HP` : ''}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-bold text-purple-400 bg-purple-400/10 border border-purple-400/30 px-1.5 py-0.5 rounded">
+                          +{Number(item.base_dmg_percent || 0)}% DMG {item.skill_pct ? `• ⚡ ${item.skill_pct}% HP` : ''}
+                        </span>
+                        {item.skill_level > 0 && (
+                          <span className="font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-1.5 py-0.5 rounded text-[10px]">
+                            ⚡ Kỹ Năng Lv.{item.skill_level} ({item.skill_proc_rate ? `${(Number(item.skill_proc_rate) * 100).toFixed(1)}%` : '0.1%'})
+                          </span>
+                        )}
+                      </div>
                     )}
                     {category === 'pet' && (
                       <span className="font-bold text-rose-400 bg-rose-400/10 border border-rose-400/30 px-1.5 py-0.5 rounded">
@@ -5958,6 +6508,1136 @@ const App = () => {
                     className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-colors cursor-pointer"
                   >
                     Đóng
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* MODAL OTP LIÊN KẾT TÀI KHOẢN GAME & WEB */}
+        {showLinkOtpModal && (
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-[#151D2F] border-2 border-amber-500/70 w-full max-w-lg rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(245,158,11,0.3)] animate-scale-up text-left">
+              {/* Header */}
+              <div className="p-5 border-b border-slate-800 bg-[#1A233A] flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400">
+                    <Zap size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white uppercase tracking-tight">
+                      Liên Kết Tài Khoản Game
+                    </h3>
+                    <p className="text-[11px] text-slate-400">Xác nhận 1 lần duy nhất để nạp và quản lý đồ</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowLinkOtpModal(false)}
+                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 space-y-5">
+                {/* Khung mã OTP */}
+                <div className="bg-[#0B1120] border-2 border-dashed border-amber-500/50 rounded-2xl p-5 text-center relative overflow-hidden">
+                  <span className="text-[11px] font-bold text-amber-300 uppercase tracking-widest block mb-2">
+                    MÃ OTP LIÊN KẾT CỦA BẠN
+                  </span>
+                  <div className="text-4xl sm:text-5xl font-black font-mono text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-400 tracking-[0.25em] pl-[0.25em] drop-shadow-[0_0_20px_rgba(251,191,36,0.4)] my-1">
+                    {linkOtpCode || '------'}
+                  </div>
+
+                  <div className="flex items-center justify-center gap-3 mt-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (linkOtpCode) {
+                          navigator.clipboard.writeText(linkOtpCode);
+                          showToast("Đã sao chép mã OTP!", "success");
+                        }
+                      }}
+                      className="px-4 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 text-xs font-bold transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 cursor-pointer"
+                    >
+                      <Copy size={13} />
+                      <span>Sao Chép Mã</span>
+                    </button>
+                    <span className="text-xs text-slate-400 font-mono">
+                      ⏱️ Còn lại: <strong className="text-rose-400 font-bold">{Math.floor(linkOtpCountdown / 60)}:{(linkOtpCountdown % 60).toString().padStart(2, '0')}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2 Cách xác nhận */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wide">
+                    Chọn 1 trong 2 cách sau để xác nhận:
+                  </h4>
+
+                  {/* Cách 1: TikTok Live */}
+                  <div className="p-3.5 rounded-xl bg-[#0B1120] border border-slate-800 flex items-start gap-3 hover:border-slate-700 transition-colors">
+                    <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center font-black text-xs shrink-0 mt-0.5">
+                      TT
+                    </div>
+                    <div className="flex-1 min-w-0 text-xs text-slate-300">
+                      <p className="font-bold text-white mb-1">Cách 1: Bình luận trên Live TikTok</p>
+                      <p className="leading-relaxed">
+                        Vào xem livestream đang phát, gõ bình luận chat:
+                        <code className="mx-1 px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-mono font-bold border border-slate-700">
+                          lk {linkOtpCode}
+                        </code>
+                        hoặc <code className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono font-bold">link {linkOtpCode}</code>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Cách 2: Discord */}
+                  <div className="p-3.5 rounded-xl bg-[#0B1120] border border-slate-800 flex items-start gap-3 hover:border-slate-700 transition-colors">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-black text-xs shrink-0 mt-0.5">
+                      DC
+                    </div>
+                    <div className="flex-1 min-w-0 text-xs text-slate-300">
+                      <p className="font-bold text-white mb-1">Cách 2: Gõ lệnh trong Discord</p>
+                      <p className="leading-relaxed">
+                        Vào bất kỳ kênh chat Discord của máy chủ, gõ lệnh:
+                        <code className="mx-1 px-2 py-0.5 rounded bg-slate-800 text-cyan-300 font-mono font-bold border border-slate-700">
+                          mlink {linkOtpCode}
+                        </code>
+                        hoặc <code className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 font-mono font-bold">/link {linkOtpCode}</code>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Trạng thái chờ */}
+                <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-center gap-2.5 text-xs text-slate-400">
+                  <Loader2 size={16} className="animate-spin text-amber-400 shrink-0" />
+                  <span>Hệ thống đang tự động lắng nghe và nhận diện...</span>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-slate-800 bg-[#1A233A] flex justify-between items-center">
+                <button
+                  type="button"
+                  onClick={handleGenerateLinkOtp}
+                  disabled={isGeneratingOtp}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw size={14} className={isGeneratingOtp ? 'animate-spin' : ''} />
+                  <span>Đổi Mã Khác</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowLinkOtpModal(false)}
+                  className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL TÚI ĐỒ & QUẢN LÝ TRANG BỊ (INVENTORY) */}
+        {showBagModal && bossPlayerSummary && (() => {
+          const p = bossPlayerSummary;
+          const rawInv = Array.isArray(p.inventory) ? p.inventory : [];
+
+          // Phân loại đồ trong túi
+          const getCategoryOfItem = (item) => {
+            if (item.category) return item.category;
+            const n = (item.name || '').toLowerCase();
+            if (n.includes('tinh hoa') || n.includes('tinh thể') || n.includes('essence') || n.includes('crystal') || n.includes('đá')) return 'material';
+            if (n.includes('nhẫn') || n.includes('ring')) return 'ring';
+            if (n.includes('dây chuyền') || n.includes('necklace')) return 'necklace';
+            if (n.includes('giáp') || n.includes('armor')) return 'armor';
+            if (n.includes('rồng') || n.includes('phượng') || n.includes('pet') || n.includes('thú')) return 'pet';
+            return 'weapon';
+          };
+
+          const filteredInventory = rawInv.filter(item => {
+            if (activeBagCategory === 'all') return true;
+            return getCategoryOfItem(item) === activeBagCategory;
+          });
+
+          return (
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+              onClick={(e) => { if (e.target === e.currentTarget) setShowBagModal(false); }}
+            >
+              <div className="bg-gradient-to-br from-[#0d1326] via-[#0b101d] to-[#060913] border-2 border-purple-500/70 rounded-3xl w-full max-w-4xl max-h-[92vh] shadow-[0_0_60px_rgba(168,85,247,0.3)] p-5 sm:p-6 flex flex-col relative text-white animate-zoom-in overflow-hidden">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-purple-500/20 pb-4 mb-4 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-2xl shadow-[0_0_20px_rgba(168,85,247,0.5)]">
+                      🎒
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-black text-lg sm:text-xl text-white tracking-wide">
+                          TÚI ĐỒ & QUẢN LÝ TRANG BỊ
+                        </h3>
+                        <span className="text-[10px] font-black text-purple-300 bg-purple-500/20 border border-purple-500/40 rounded px-2 py-0.5">
+                          {p.nickname}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Túi đồ: <strong className="text-amber-300 font-bold">{rawInv.length}</strong> món • Lực chiến: <strong className="text-white font-bold">{new Intl.NumberFormat('vi-VN').format(p.cp || 0)} CP</strong>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowBagModal(false);
+                        fetchAuctionMarketData();
+                        setShowAuctionModal(true);
+                      }}
+                      className="px-3.5 py-2 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-black text-xs rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer border border-amber-400/40"
+                    >
+                      <span>🏛️ Sàn Đấu Giá</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleExecuteBagAction('dismantle_all')}
+                      disabled={isPerformingBagAction || rawInv.length === 0}
+                      className="px-3 py-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-xs rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      title="Phân giải các món đồ rác không dùng để nhận lượt đánh boss"
+                    >
+                      <Trash2 size={14} />
+                      <span>Dọn Rác</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowBagModal(false)}
+                      className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-rose-600 text-slate-400 hover:text-white flex items-center justify-center transition-colors border border-slate-700 shrink-0 cursor-pointer"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Content Scrollable */}
+                <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-4 flex-1">
+                  {/* PHẦN 1: 5 Ô TRANG BỊ ĐANG MẶC TRÊN NGƯỜI */}
+                  <div className="bg-[#0B101B]/80 border border-slate-800 rounded-2xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Crown size={15} /> 5 Trang Bị Đang Mặc Hiện Tại:
+                      </span>
+                      <span className="text-[11px] text-slate-400">
+                        Bấm "Trang Bị" ở túi đồ bên dưới để thay đồ lên người
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                      {[
+                        { slot: 'Vũ Khí', cat: 'weapon', item: p.weapon, icon: '⚔️' },
+                        { slot: 'Áo Giáp', cat: 'armor', item: p.armor, icon: '🛡️' },
+                        { slot: 'Dây Chuyền', cat: 'necklace', item: p.necklace, icon: '📿' },
+                        { slot: 'Nhẫn Thần', cat: 'ring', item: p.ring, icon: '💍' },
+                        { slot: 'Linh Thú', cat: 'pet', item: p.pet, icon: '🐾' }
+                      ].map((slotInfo, sIdx) => {
+                        const it = slotInfo.item;
+                        const tier = getBossTierStyle(it?.tier);
+                        const img = it ? getBossItemAsset(it.name, slotInfo.cat) : null;
+                        const stars = it ? '⭐'.repeat(Math.max(1, Math.min(5, Number(it.stars || 1)))) : '';
+
+                        return (
+                          <div
+                            key={sIdx}
+                            className={`rounded-xl p-2.5 border flex flex-col items-center text-center relative ${
+                              it ? 'bg-slate-900/80' : 'bg-slate-950/40 border-dashed border-slate-800'
+                            }`}
+                            style={{ borderColor: it ? tier.border : undefined }}
+                          >
+                            <span className="text-[9px] font-bold text-slate-400 uppercase mb-1">
+                              {slotInfo.slot}
+                            </span>
+                            <div className="w-12 h-12 rounded-lg bg-black/40 flex items-center justify-center relative my-1">
+                              {img ? (
+                                <img src={img} alt={it.name} className="w-10 h-10 object-contain" />
+                              ) : (
+                                <span className="text-xl opacity-60">{slotInfo.icon}</span>
+                              )}
+                              {it && (
+                                <span className="absolute bottom-0 right-0 text-[8px] font-black text-amber-300">
+                                  {stars}
+                                </span>
+                              )}
+                            </div>
+                            <span className="font-bold text-xs truncate max-w-full" style={{ color: it ? tier.color : '#64748b' }}>
+                              {it ? `${it.name}${it.plus ? ` +${it.plus}` : ''}` : 'Chưa mặc'}
+                            </span>
+                            {it && (
+                              <span className="text-[9px] font-bold text-emerald-400 mt-0.5">
+                                {slotInfo.cat === 'necklace' ? `+${it.dmg_percent || 0}%` : (slotInfo.cat === 'ring' ? `+${it.base_dmg_percent || 0}%` : `${Number(it.base_dmg || it.bonus_dmg || 0).toLocaleString()} DMG`)}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* PHẦN 2: KHO TÚI ĐỒ (INVENTORY) */}
+                  <div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+                        {[
+                          { id: 'all', label: `Tất Cả (${rawInv.length})` },
+                          { id: 'weapon', label: '⚔️ Vũ Khí' },
+                          { id: 'armor', label: '🛡️ Áo Giáp' },
+                          { id: 'necklace', label: '📿 Dây Chuyền' },
+                          { id: 'ring', label: '💍 Nhẫn' },
+                          { id: 'pet', label: '🐾 Linh Thú' },
+                          { id: 'material', label: '💎 Nguyên Liệu' },
+                        ].map(tab => (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setActiveBagCategory(tab.id)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                              activeBagCategory === tab.id
+                                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                                : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                            }`}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Danh sách vật phẩm trong túi */}
+                    {filteredInventory.length === 0 ? (
+                      <div className="p-12 text-center bg-slate-900/40 rounded-2xl border border-dashed border-slate-800">
+                        <span className="text-4xl block mb-2 opacity-50">🎒</span>
+                        <p className="text-slate-400 font-bold text-sm">Không có trang bị nào trong mục này!</p>
+                        <p className="text-slate-500 text-xs mt-1">Săn Boss trên Live hoặc Nạp Rương Hoàng Kim để nhận đồ khủng.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {filteredInventory.map((item, idx) => {
+                          const category = getCategoryOfItem(item);
+                          const tier = getBossTierStyle(item.tier);
+                          const img = getBossItemAsset(item.name, category);
+                          const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
+                          const stars = '⭐'.repeat(starsCount);
+                          const isLoadingThis = isPerformingBagAction && (bagActionLoadingItem === (item.id || item.name || idx) || bagActionLoadingItem === 'all');
+
+                          return (
+                            <div
+                              key={idx}
+                              className="rounded-2xl p-3.5 bg-gradient-to-r from-slate-900/90 to-[#151D2F] border transition-all duration-200 flex flex-col justify-between hover:border-purple-400/60 shadow-lg relative group"
+                              style={{ borderColor: tier.border }}
+                            >
+                              <div className="flex items-start gap-3">
+                                {/* Ảnh trang bị */}
+                                <div
+                                  className="w-14 h-14 rounded-xl flex items-center justify-center relative shrink-0 overflow-hidden"
+                                  style={{
+                                    border: `1.5px solid ${tier.color}`,
+                                    background: '#060913'
+                                  }}
+                                >
+                                  {img ? (
+                                    <img src={img} alt={item.name} className="w-11 h-11 object-contain" />
+                                  ) : (
+                                    <span className="text-2xl">⚔️</span>
+                                  )}
+                                  <div className="absolute bottom-0.5 text-center text-[8px] text-amber-300">
+                                    {stars}
+                                  </div>
+                                </div>
+
+                                {/* Thông tin trang bị */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-black text-xs sm:text-sm truncate" style={{ color: tier.color }}>
+                                      {item.name}{item.plus ? ` +${item.plus}` : ''}
+                                    </span>
+                                    <span
+                                      className="text-[8px] font-black px-1 py-0.5 rounded border uppercase shrink-0"
+                                      style={{ color: tier.color, background: tier.bg, borderColor: tier.border }}
+                                    >
+                                      {tier.label}
+                                    </span>
+                                  </div>
+
+                                  {/* Stats */}
+                                  <div className="text-[10px] text-slate-300 font-bold mt-1 space-y-0.5">
+                                    {(category === 'weapon' || category === 'armor') && (
+                                      <span className="text-emerald-400 block">
+                                        ⚡ +{Number(item.base_dmg || 0).toLocaleString()} DMG {item.plus ? `(+${Math.round(Number(item.base_dmg || 0) * item.plus * 0.25).toLocaleString()})` : ''}
+                                      </span>
+                                    )}
+                                    {category === 'necklace' && (
+                                      <span className="text-amber-400 block">
+                                        📿 +{Number(item.dmg_percent || 0)}% DMG Toàn Bộ
+                                      </span>
+                                    )}
+                                    {category === 'ring' && (
+                                      <>
+                                        <span className="text-purple-400 block">
+                                          💍 +{Number(item.base_dmg_percent || 0)}% DMG {item.skill_pct ? `• ⚡ ${item.skill_pct}% HP` : ''}
+                                        </span>
+                                        {item.skill_level > 0 && (
+                                          <span className="text-amber-300 block text-[9.5px]">
+                                            ⚡ Tuyệt Kỹ: Lv.{item.skill_level} (Tỉ lệ: {item.skill_proc_rate ? `${(Number(item.skill_proc_rate) * 100).toFixed(1)}%` : '0.1%'})
+                                          </span>
+                                        )}
+                                      </>
+                                    )}
+                                    {category === 'pet' && (
+                                      <span className="text-rose-400 block">
+                                        🐾 +{Number(item.bonus_dmg || 0).toLocaleString()} DMG {item.level ? `(Lv.${item.level})` : ''}
+                                      </span>
+                                    )}
+                                    {category === 'material' && (
+                                      <span className="text-cyan-400 block font-bold">
+                                        💎 Số lượng: x{Number(item.quantity || 1).toLocaleString()} {item.id === 'item_essence_stone' || (item.name || '').toLowerCase().includes('tinh hoa') ? 'Viên' : 'Tinh Thể'}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Nút hành động: Mặc & Bán & Xóa */}
+                              <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-800">
+                                {category === 'material' ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      disabled={isPerformingBagAction}
+                                      onClick={() => {
+                                        setSelectedItemToList({ ...item, originalIndex: idx });
+                                        setListingPrice(100);
+                                        setListingSellQuantity(Math.min(item.quantity || 1, 1));
+                                        setShowListItemModal(true);
+                                      }}
+                                      className="flex-1 py-1.5 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-black text-xs rounded-xl transition-all shadow hover:scale-105 active:scale-95 flex items-center justify-center gap-1 cursor-pointer border border-amber-400/40"
+                                      title="Treo bán nguyên liệu này lên Sàn Đấu Giá bằng Xu (phí sàn 20%)"
+                                    >
+                                      <span>🏷️ Bán</span>
+                                    </button>
+                                    <div className="py-1 px-2 bg-purple-950/40 border border-purple-500/30 rounded-xl text-center text-[10px] text-purple-300 font-bold whitespace-nowrap">
+                                      /dap nhan
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      disabled={isPerformingBagAction}
+                                      onClick={() => handleExecuteBagAction('equip', item, idx)}
+                                      className="flex-1 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs rounded-xl transition-all shadow hover:scale-105 active:scale-95 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                                    >
+                                      {isLoadingThis ? <Loader2 size={13} className="animate-spin" /> : <Swords size={13} />}
+                                      <span>Mặc</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      disabled={isPerformingBagAction}
+                                      onClick={() => {
+                                        setSelectedItemToList({ ...item, originalIndex: idx });
+                                        setListingPrice(100);
+                                        setListingSellQuantity(1);
+                                        setShowListItemModal(true);
+                                      }}
+                                      className="px-2.5 py-1.5 bg-gradient-to-r from-amber-600/30 to-yellow-600/30 hover:from-amber-500 hover:to-yellow-500 text-amber-300 hover:text-white border border-amber-500/40 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
+                                      title="Treo bán món này lên Sàn Đấu Giá bằng Xu (phí sàn 20%)"
+                                    >
+                                      <span>🏷️ Bán</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      disabled={isPerformingBagAction}
+                                      onClick={() => handleExecuteBagAction('delete', item, idx)}
+                                      className="px-2.5 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                                      title="Xóa trang bị và nhận lượt đánh boss tương ứng"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer Action */}
+                <div className="border-t border-slate-800 pt-3 mt-3 flex justify-between items-center shrink-0">
+                  <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                    ℹ️ Trang bị hoặc xóa đồ sẽ tự động đồng bộ ngay lập tức vào game
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowBagModal(false)}
+                    className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  >
+                    Đóng Túi Đồ
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* MODAL CON: TREO BÁN LÊN SÀN ĐẤU GIÁ */}
+        {showListItemModal && selectedItemToList && (() => {
+          const item = selectedItemToList;
+          const category = getCategoryOfItem(item);
+          const tier = getBossTierStyle(item.tier);
+          const img = getBossItemAsset(item.name, category);
+          const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
+          const stars = '⭐'.repeat(starsCount);
+          const isStackable = category === 'material' || (item.quantity && item.quantity > 1);
+          const maxQty = item.quantity || 1;
+          const safePrice = Math.max(1, Number(listingPrice) || 0);
+          const feeCoins = Math.round(safePrice * 0.20);
+          const netReceive = safePrice - feeCoins;
+
+          return (
+            <div
+              className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+              onClick={(e) => { if (e.target === e.currentTarget) setShowListItemModal(false); }}
+            >
+              <div className="bg-gradient-to-br from-[#12192c] via-[#0e1526] to-[#080d1a] border-2 border-amber-500/70 rounded-3xl w-full max-w-md shadow-[0_0_60px_rgba(245,158,11,0.35)] p-5 sm:p-6 text-white animate-zoom-in relative">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-amber-500/20 pb-3 mb-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-lg text-amber-400">
+                      🏷️
+                    </div>
+                    <div>
+                      <h3 className="font-black text-base text-white tracking-wide">
+                        TREO BÁN LÊN SÀN ĐẤU GIÁ
+                      </h3>
+                      <p className="text-[11px] text-amber-300/80 font-medium">
+                        Giao dịch bằng Xu • Phí sàn 20% khi khớp lệnh
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowListItemModal(false)}
+                    className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-rose-600 text-slate-400 hover:text-white flex items-center justify-center transition-colors border border-slate-700 cursor-pointer"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+
+                {/* Card xem trước vật phẩm */}
+                <div
+                  className="rounded-2xl p-3 bg-gradient-to-r from-slate-900 to-[#151D2F] border flex items-center gap-3.5 mb-4 shadow-inner"
+                  style={{ borderColor: tier.border }}
+                >
+                  <div className="relative w-14 h-14 shrink-0 flex items-center justify-center bg-black/40 rounded-xl">
+                    {img ? (
+                      <img src={img} alt={item.name} className="w-12 h-12 object-contain filter drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                    ) : (
+                      <span className="text-2xl">📦</span>
+                    )}
+                    {stars && (
+                      <span className="absolute bottom-0 right-0 text-[8px] font-black text-amber-300">
+                        {stars}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-black text-sm text-white truncate" title={item.name}>
+                      {item.name}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span
+                        className="text-[9px] font-black px-1.5 py-0.5 rounded uppercase"
+                        style={{ color: tier.color, background: tier.bg, borderColor: tier.border }}
+                      >
+                        {tier.label}
+                      </span>
+                      {isStackable && (
+                        <span className="text-[10px] font-bold text-cyan-300 bg-cyan-950/50 border border-cyan-500/30 px-1.5 py-0.5 rounded">
+                          Túi có: x{Number(maxQty).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form thiết lập giá & số lượng */}
+                <div className="space-y-3.5">
+                  {isStackable && maxQty > 1 && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                        Số Lượng Muốn Bán (Tối đa: {maxQty}):
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max={maxQty}
+                        value={listingSellQuantity}
+                        onChange={(e) => {
+                          const v = Math.max(1, Math.min(maxQty, parseInt(e.target.value) || 1));
+                          setListingSellQuantity(v);
+                        }}
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-sm focus:border-amber-400 focus:outline-none"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Giá Bán Mong Muốn (<span className="text-amber-400">Xu</span>):
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        max="1000000"
+                        value={listingPrice}
+                        onChange={(e) => setListingPrice(Math.max(1, parseInt(e.target.value) || 0))}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-amber-500/40 text-amber-300 font-black text-base focus:border-amber-400 focus:outline-none pr-12"
+                        placeholder="Nhập số xu..."
+                      />
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-amber-400">
+                        XU
+                      </span>
+                    </div>
+
+                    {/* Nút chọn nhanh giá */}
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {[50, 100, 200, 500, 1000, 2000].map(pVal => (
+                        <button
+                          key={pVal}
+                          type="button"
+                          onClick={() => setListingPrice(pVal)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                            listingPrice === pVal
+                              ? 'bg-amber-500 text-black border-amber-400 font-black'
+                              : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-700'
+                          }`}
+                        >
+                          {pVal.toLocaleString()} xu
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bảng tính chi phí minh bạch */}
+                  <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-xs space-y-1.5">
+                    <div className="flex justify-between items-center text-slate-300">
+                      <span>🪙 Giá niêm yết:</span>
+                      <strong className="text-amber-300 font-black">{safePrice.toLocaleString()} Xu</strong>
+                    </div>
+                    <div className="flex justify-between items-center text-slate-400">
+                      <span>⚖️ Phí sàn giao dịch (20%):</span>
+                      <span className="text-rose-400 font-bold">-{feeCoins.toLocaleString()} Xu</span>
+                    </div>
+                    <div className="border-t border-amber-500/20 pt-1.5 flex justify-between items-center">
+                      <span className="font-bold text-white">💰 Thực nhận về ví (80%):</span>
+                      <strong className="text-emerald-400 font-black text-sm">+{netReceive.toLocaleString()} Xu</strong>
+                    </div>
+                    <p className="text-[10px] text-slate-400 italic pt-1 leading-normal">
+                      * Món đồ sẽ được chuyển lên sàn. Bạn có thể <strong>Thu Hồi về túi bất kỳ lúc nào</strong> nếu chưa có ai mua.
+                    </p>
+                  </div>
+                </div>
+
+                {/* 2 Nút hành động */}
+                <div className="flex items-center gap-2.5 mt-5 pt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowListItemModal(false)}
+                    className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                  >
+                    Hủy Bỏ
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isPerformingBagAction || safePrice <= 0}
+                    onClick={() => {
+                      handleExecuteAuctionAction('list_auction', {
+                        item_index: item.originalIndex,
+                        item_name: item.name,
+                        item: item,
+                        price: safePrice,
+                        quantity: listingSellQuantity
+                      });
+                    }}
+                    className="flex-[2] py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    {isPerformingBagAction ? <Loader2 size={14} className="animate-spin" /> : <span>🚀</span>}
+                    <span>Treo Bán ({safePrice.toLocaleString()} Xu)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* MODAL SÀN ĐẤU GIÁ (AUCTION MARKET) */}
+        {showAuctionModal && (() => {
+          const rawActive = Array.isArray(auctionMarketData.active_listings) ? auctionMarketData.active_listings : [];
+          const rawSold = Array.isArray(auctionMarketData.recent_sold) ? auctionMarketData.recent_sold : [];
+          const myUid = (bossPlayerSummary?.user_id || '').toLowerCase();
+
+          // Lọc danh sách chợ
+          const filteredMarketListings = rawActive.filter(l => {
+            const item = l.item || {};
+            const cat = getCategoryOfItem(item);
+            if (auctionCategoryFilter !== 'all' && cat !== auctionCategoryFilter) return false;
+            if (auctionSearchTerm.trim()) {
+              const q = auctionSearchTerm.toLowerCase();
+              const nameMatch = (item.name || '').toLowerCase().includes(q);
+              const sellerMatch = (l.seller_name || '').toLowerCase().includes(q);
+              if (!nameMatch && !sellerMatch) return false;
+            }
+            return true;
+          });
+
+          // Đồ tôi đang bán
+          const myListings = rawActive.filter(l => String(l.seller_id).toLowerCase() === myUid);
+
+          return (
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+              onClick={(e) => { if (e.target === e.currentTarget) setShowAuctionModal(false); }}
+            >
+              <div className="bg-gradient-to-br from-[#0d1326] via-[#0b101d] to-[#060913] border-2 border-amber-500/70 rounded-3xl w-full max-w-5xl max-h-[92vh] shadow-[0_0_60px_rgba(245,158,11,0.3)] p-5 sm:p-6 flex flex-col relative text-white animate-zoom-in overflow-hidden">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-amber-500/20 pb-4 mb-4 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 via-orange-600 to-yellow-600 flex items-center justify-center text-2xl shadow-[0_0_20px_rgba(245,158,11,0.5)]">
+                      🏛️
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-black text-lg sm:text-xl text-white tracking-wide">
+                          SÀN ĐẤU GIÁ VẬT PHẨM (CHỢ XU)
+                        </h3>
+                        <span className="text-[10px] font-black text-amber-300 bg-amber-500/20 border border-amber-500/40 rounded px-2 py-0.5">
+                          Phí Sàn 20%
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Giao dịch tự do giữa người chơi bằng Xu • Người bán thực nhận 80% giá trị
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                    {/* Xu của người chơi */}
+                    {bossPlayerSummary && (
+                      <div className="px-3 py-1.5 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center gap-1.5 text-xs font-black text-yellow-400">
+                        <span>🪙</span>
+                        <span>{new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.bonus_coins || 0)} Xu</span>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={fetchAuctionMarketData}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border border-slate-700"
+                      title="Làm mới danh sách sàn đấu giá"
+                    >
+                      <RefreshCw size={13} />
+                      <span>Làm mới</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowAuctionModal(false)}
+                      className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3 Tab Điều Hướng */}
+                <div className="flex items-center gap-2 border-b border-slate-800 pb-3 mb-3 shrink-0 overflow-x-auto">
+                  {[
+                    { id: 'market', label: `🏛️ Chợ Toàn Server (${rawActive.length})` },
+                    { id: 'my_listings', label: `📦 Đồ Tôi Đang Bán (${myListings.length})` },
+                    { id: 'history', label: `📜 Lịch Sử Giao Dịch (${rawSold.length})` },
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setAuctionActiveTab(tab.id)}
+                      className={`px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap cursor-pointer ${
+                        auctionActiveTab === tab.id
+                          ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-black shadow-lg shadow-amber-500/30'
+                          : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+
+                  {/* Nút mở túi đồ nhanh để treo bán */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAuctionModal(false);
+                      setShowBagModal(true);
+                    }}
+                    className="ml-auto px-3 py-1.5 bg-purple-600/30 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/40 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                  >
+                    <span>🎒 Mở Túi Đồ Để Treo Bán</span>
+                  </button>
+                </div>
+
+                {/* TAB 1: CHỢ TOÀN SERVER */}
+                {auctionActiveTab === 'market' && (
+                  <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                    {/* Thanh lọc & tìm kiếm */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 mb-3 shrink-0">
+                      <div className="flex items-center gap-1 overflow-x-auto pb-1 max-w-full">
+                        {[
+                          { id: 'all', label: 'Tất Cả' },
+                          { id: 'weapon', label: '⚔️ Vũ Khí' },
+                          { id: 'armor', label: '🛡️ Áo Giáp' },
+                          { id: 'necklace', label: '📿 Dây Chuyền' },
+                          { id: 'ring', label: '💍 Nhẫn' },
+                          { id: 'pet', label: '🐾 Linh Thú' },
+                          { id: 'material', label: '💎 Nguyên Liệu' },
+                        ].map(f => (
+                          <button
+                            key={f.id}
+                            type="button"
+                            onClick={() => setAuctionCategoryFilter(f.id)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer ${
+                              auctionCategoryFilter === f.id
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50'
+                                : 'bg-slate-900/60 hover:bg-slate-800 text-slate-400 border border-slate-800'
+                            }`}
+                          >
+                            {f.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="relative w-full sm:w-48 shrink-0">
+                        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                        <input
+                          type="text"
+                          value={auctionSearchTerm}
+                          onChange={(e) => setAuctionSearchTerm(e.target.value)}
+                          placeholder="Tìm món đồ, người bán..."
+                          className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-white text-xs focus:border-amber-400 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Lưới vật phẩm chợ */}
+                    <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                      {filteredMarketListings.length === 0 ? (
+                        <div className="p-12 text-center bg-slate-900/40 rounded-2xl border border-dashed border-slate-800 my-4">
+                          <span className="text-4xl block mb-2 opacity-50">🏛️</span>
+                          <p className="text-slate-300 font-bold text-sm">Chưa có vật phẩm nào phù hợp trên sàn!</p>
+                          <p className="text-slate-500 text-xs mt-1">Hãy mở Túi Đồ và bấm nút "Treo Bán" để là người đầu tiên niêm yết đồ lên chợ.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {filteredMarketListings.map((listing) => {
+                            const item = listing.item || {};
+                            const category = getCategoryOfItem(item);
+                            const tier = getBossTierStyle(item.tier);
+                            const img = getBossItemAsset(item.name, category);
+                            const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
+                            const stars = '⭐'.repeat(starsCount);
+                            const isMine = String(listing.seller_id).toLowerCase() === myUid;
+                            const isLoadingThis = isPerformingBagAction && bagActionLoadingItem === listing.id;
+
+                            return (
+                              <div
+                                key={listing.id}
+                                className={`rounded-2xl p-3 bg-gradient-to-r from-slate-900/90 to-[#151D2F] border flex flex-col justify-between shadow-lg relative group transition-all duration-200 hover:border-amber-400/60 ${
+                                  isMine ? 'ring-1 ring-amber-500/40' : ''
+                                }`}
+                                style={{ borderColor: isMine ? '#f59e0b' : tier.border }}
+                              >
+                                <div>
+                                  {/* Badge mã ID & thời gian */}
+                                  <div className="flex items-center justify-between gap-1 text-[9px] text-slate-400 mb-1 pb-1 border-b border-slate-800/80">
+                                    <span className="font-mono text-amber-400/80">#{listing.id.slice(-6)}</span>
+                                    <span>{new Date(listing.created_at * 1000).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                  </div>
+
+                                  <div className="flex items-start gap-3 mt-1">
+                                    <div className="relative w-14 h-14 shrink-0 flex items-center justify-center bg-black/50 rounded-xl border border-slate-800">
+                                      {img ? (
+                                        <img src={img} alt={item.name} className="w-11 h-11 object-contain filter drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]" />
+                                      ) : (
+                                        <span className="text-xl">📦</span>
+                                      )}
+                                      {category !== 'material' && (
+                                        <span className="absolute bottom-0 right-0 text-[8px] font-black text-amber-300">
+                                          {stars}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="min-w-0 flex-1">
+                                      <div className="font-black text-xs text-white truncate" title={item.name}>
+                                        {item.name} {item.plus ? <span className="text-yellow-400">+{item.plus}</span> : ''}
+                                      </div>
+
+                                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                        <span
+                                          className="text-[9px] font-black px-1.5 py-0.5 rounded uppercase"
+                                          style={{ color: tier.color, background: tier.bg, borderColor: tier.border }}
+                                        >
+                                          {tier.label}
+                                        </span>
+
+                                        {item.skill_level > 0 && (
+                                          <span className="text-[9px] font-bold text-amber-300 bg-amber-500/20 px-1 rounded">
+                                            Lv.{item.skill_level}
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {/* Stats tóm tắt */}
+                                      <div className="text-[10px] text-slate-300 font-bold mt-1">
+                                        {(category === 'weapon' || category === 'armor') && (
+                                          <span className="text-emerald-400">⚡ +{Number(item.base_dmg || 0).toLocaleString()} DMG</span>
+                                        )}
+                                        {category === 'necklace' && (
+                                          <span className="text-amber-400">📿 +{Number(item.dmg_percent || 0)}% DMG</span>
+                                        )}
+                                        {category === 'ring' && (
+                                          <span className="text-purple-400">💍 +{Number(item.base_dmg_percent || 0)}% DMG {item.skill_pct ? `• ⚡${item.skill_pct}%` : ''}</span>
+                                        )}
+                                        {category === 'pet' && (
+                                          <span className="text-rose-400">🐾 +{Number(item.bonus_dmg || 0).toLocaleString()} DMG</span>
+                                        )}
+                                        {category === 'material' && (
+                                          <span className="text-cyan-400">💎 x{Number(item.quantity || 1).toLocaleString()} {item.id === 'item_essence_stone' || (item.name || '').toLowerCase().includes('tinh hoa') ? 'Viên' : 'Tinh Thể'}</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Người bán */}
+                                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-800 text-[10px] text-slate-400">
+                                    <div className="w-4 h-4 rounded-full bg-slate-800 overflow-hidden shrink-0">
+                                      <img
+                                        src={listing.seller_avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(listing.seller_id)}`}
+                                        alt="Seller"
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <span className="truncate flex-1">
+                                      Người bán: <strong className={isMine ? 'text-amber-300 font-black' : 'text-slate-300'}>{listing.seller_name}</strong>
+                                    </span>
+                                    {isMine && (
+                                      <span className="text-[9px] font-black text-amber-300 bg-amber-500/20 px-1 rounded">Bạn</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Khung giá & Nút mua / thu hồi */}
+                                <div className="mt-3 pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
+                                  <div>
+                                    <div className="text-[9px] text-slate-400 font-medium">Giá niêm yết</div>
+                                    <div className="text-sm font-black text-amber-300 flex items-center gap-1">
+                                      <span>🪙</span>
+                                      <span>{Number(listing.price || 0).toLocaleString()} Xu</span>
+                                    </div>
+                                  </div>
+
+                                  {isMine ? (
+                                    <button
+                                      type="button"
+                                      disabled={isPerformingBagAction}
+                                      onClick={() => handleExecuteAuctionAction('cancel_auction', { auction_id: listing.id, listing })}
+                                      className="px-3 py-1.5 bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white border border-slate-700 hover:border-rose-500 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                                      title="Thu hồi vật phẩm về lại túi đồ của bạn"
+                                    >
+                                      {isLoadingThis ? <Loader2 size={12} className="animate-spin" /> : <span>↩️</span>}
+                                      <span>Thu Hồi</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      disabled={isPerformingBagAction}
+                                      onClick={() => handleExecuteAuctionAction('buy_auction', { auction_id: listing.id, listing, price: listing.price })}
+                                      className="px-4 py-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.4)] transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                                    >
+                                      {isLoadingThis ? <Loader2 size={12} className="animate-spin" /> : <Wallet size={12} />}
+                                      <span>Mua Ngay</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 2: ĐỒ CỦA TÔI ĐANG BÁN */}
+                {auctionActiveTab === 'my_listings' && (
+                  <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                    {myListings.length === 0 ? (
+                      <div className="p-12 text-center bg-slate-900/40 rounded-2xl border border-dashed border-slate-800 my-4">
+                        <span className="text-4xl block mb-2 opacity-50">📦</span>
+                        <p className="text-slate-300 font-bold text-sm">Bạn chưa có món đồ nào đang treo bán trên sàn!</p>
+                        <p className="text-slate-500 text-xs mt-1">Mở Túi Đồ và bấm nút "Treo Bán" ở bất kỳ trang bị hoặc nguyên liệu nào để bán lấy Xu.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5">
+                        {myListings.map(listing => {
+                          const item = listing.item || {};
+                          const category = getCategoryOfItem(item);
+                          const tier = getBossTierStyle(item.tier);
+                          const img = getBossItemAsset(item.name, category);
+                          const safePrice = Number(listing.price || 0);
+                          const feeCoins = Number(listing.fee_coins || Math.round(safePrice * 0.20));
+                          const netReceive = Number(listing.net_receive || (safePrice - feeCoins));
+                          const isLoadingThis = isPerformingBagAction && bagActionLoadingItem === listing.id;
+
+                          return (
+                            <div
+                              key={listing.id}
+                              className="rounded-2xl p-3.5 bg-slate-900/90 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-12 h-12 rounded-xl bg-black/40 flex items-center justify-center shrink-0 border border-slate-800">
+                                  {img ? (
+                                    <img src={img} alt={item.name} className="w-10 h-10 object-contain" />
+                                  ) : (
+                                    <span className="text-xl">📦</span>
+                                  )}
+                                </div>
+
+                                <div className="min-w-0">
+                                  <div className="font-black text-xs sm:text-sm text-white truncate">
+                                    {item.name}
+                                  </div>
+                                  <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                                    <span style={{ color: tier.color }}>{tier.label}</span>
+                                    <span>• Mã: #{listing.id.slice(-6)}</span>
+                                    <span>• Đăng lúc: {new Date(listing.created_at * 1000).toLocaleTimeString('vi-VN')}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
+                                <div className="text-right text-xs">
+                                  <div>
+                                    Giá: <strong className="text-amber-300 font-black">{safePrice.toLocaleString()} Xu</strong>
+                                  </div>
+                                  <div className="text-[10px] text-slate-400">
+                                    Phí 20%: -{feeCoins.toLocaleString()} • Thực nhận: <span className="text-emerald-400 font-bold">+{netReceive.toLocaleString()} Xu</span>
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  disabled={isPerformingBagAction}
+                                  onClick={() => handleExecuteAuctionAction('cancel_auction', { auction_id: listing.id, listing })}
+                                  className="px-3.5 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                                >
+                                  {isLoadingThis ? <Loader2 size={13} className="animate-spin" /> : <span>↩️</span>}
+                                  <span>Thu Hồi</span>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* TAB 3: LỊCH SỬ GIAO DỊCH */}
+                {auctionActiveTab === 'history' && (
+                  <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                    {rawSold.length === 0 ? (
+                      <div className="p-12 text-center bg-slate-900/40 rounded-2xl border border-dashed border-slate-800 my-4">
+                        <span className="text-4xl block mb-2 opacity-50">📜</span>
+                        <p className="text-slate-300 font-bold text-sm">Chưa có giao dịch nào hoàn tất!</p>
+                        <p className="text-slate-500 text-xs mt-1">Các món đồ mua bán thành công trên sàn đấu giá sẽ được lưu lại tại đây.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {rawSold.map((listing, sIdx) => {
+                          const item = listing.item || {};
+                          const category = getCategoryOfItem(item);
+                          const tier = getBossTierStyle(item.tier);
+                          const img = getBossItemAsset(item.name, category);
+                          const soldTime = listing.sold_at ? new Date(listing.sold_at * 1000).toLocaleString('vi-VN') : 'Gần đây';
+
+                          return (
+                            <div
+                              key={listing.id || sIdx}
+                              className="rounded-xl p-3 bg-slate-900/70 border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-lg bg-black/40 flex items-center justify-center shrink-0 border border-slate-800">
+                                  {img ? (
+                                    <img src={img} alt={item.name} className="w-8 h-8 object-contain" />
+                                  ) : (
+                                    <span>📦</span>
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="font-bold text-white truncate">
+                                    {item.name}
+                                  </div>
+                                  <div className="text-[10px] text-slate-400 mt-0.5">
+                                    Người bán: <span className="text-slate-300 font-semibold">{listing.seller_name}</span> ➔ Người mua: <span className="text-emerald-400 font-semibold">{listing.buyer_name}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="text-right shrink-0">
+                                <div className="text-amber-300 font-black">
+                                  🪙 {Number(listing.price || 0).toLocaleString()} Xu
+                                </div>
+                                <div className="text-[9px] text-slate-500 mt-0.5">
+                                  {soldTime}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Footer Modal */}
+                <div className="border-t border-slate-800 pt-3 mt-3 flex justify-between items-center shrink-0">
+                  <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                    ℹ️ Đấu giá an toàn 100% • Mua bán realtime tự động trừ xu và nhận đồ ngay lập tức
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowAuctionModal(false)}
+                    className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  >
+                    Đóng Sàn Đấu Giá
                   </button>
                 </div>
               </div>
