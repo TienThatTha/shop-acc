@@ -5865,6 +5865,25 @@ const App = () => {
     return null;
   };
 
+  const getCategoryOfItem = (item) => {
+    if (!item) return 'weapon';
+    if (item.category) return item.category;
+    if (item.type) {
+      const t = String(item.type).toLowerCase();
+      if (['material', 'ring', 'necklace', 'armor', 'weapon', 'pet'].includes(t)) {
+        return t;
+      }
+    }
+    const n = (item.name || '').toLowerCase();
+    if (n.includes('tinh hoa') || n.includes('tinh thể') || n.includes('essence') || n.includes('crystal') || n.includes('đá')) return 'material';
+    if (n.includes('nhẫn') || n.includes('ring')) return 'ring';
+    if (n.includes('dây chuyền') || n.includes('necklace')) return 'necklace';
+    if (n.includes('giáp') || n.includes('armor')) return 'armor';
+    if (n.includes('rồng') || n.includes('phượng') || n.includes('pet') || n.includes('thú')) return 'pet';
+    return 'weapon';
+  };
+
+
   // =============================================================================
   // MÀN HÌNH NẠP GAME MỘNG THIÊN HUYỄN (ĐẠI CHIẾN BOSS)
   // =============================================================================
@@ -6858,18 +6877,7 @@ const App = () => {
             return true;
           });
 
-          // Phân loại đồ trong túi
-          const getCategoryOfItem = (item) => {
-            if (item.category) return item.category;
-            const n = (item.name || '').toLowerCase();
-            if (n.includes('tinh hoa') || n.includes('tinh thể') || n.includes('essence') || n.includes('crystal') || n.includes('đá')) return 'material';
-            if (n.includes('nhẫn') || n.includes('ring')) return 'ring';
-            if (n.includes('dây chuyền') || n.includes('necklace')) return 'necklace';
-            if (n.includes('giáp') || n.includes('armor')) return 'armor';
-            if (n.includes('rồng') || n.includes('phượng') || n.includes('pet') || n.includes('thú')) return 'pet';
-            return 'weapon';
-          };
-
+          // Lọc danh sách theo danh mục đang chọn
           const filteredInventory = unequippedInventory.filter(item => {
             if (activeBagCategory === 'all') return true;
             return getCategoryOfItem(item) === activeBagCategory;
@@ -7058,7 +7066,7 @@ const App = () => {
                                 </div>
                               </div>
 
-                              {/* Nút hành động: Mặc & Bán & Xóa */}
+                              {/* Nút hành động: Mặc & Treo Đấu Giá & Xóa */}
                               <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-800">
                                 {category === 'material' ? (
                                   <>
@@ -7074,7 +7082,7 @@ const App = () => {
                                       className="flex-1 py-1.5 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-black text-xs rounded-xl transition-all shadow hover:scale-105 active:scale-95 flex items-center justify-center gap-1 cursor-pointer border border-amber-400/40"
                                       title="Treo bán nguyên liệu này lên Sàn Đấu Giá bằng Xu (phí sàn 20%)"
                                     >
-                                      <span>🏷️ Bán</span>
+                                      <span>🏷️ Treo Đấu Giá</span>
                                     </button>
                                     <div className="py-1 px-2 bg-purple-950/40 border border-purple-500/30 rounded-xl text-center text-[10px] text-purple-300 font-bold whitespace-nowrap">
                                       /dap nhan
@@ -7102,9 +7110,9 @@ const App = () => {
                                         setShowListItemModal(true);
                                       }}
                                       className="px-2.5 py-1.5 bg-gradient-to-r from-amber-600/30 to-yellow-600/30 hover:from-amber-500 hover:to-yellow-500 text-amber-300 hover:text-white border border-amber-500/40 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
-                                      title="Treo bán món này lên Sàn Đấu Giá bằng Xu (phí sàn 20%)"
+                                      title="Treo món này lên Sàn Đấu Giá bằng Xu (phí sàn 20%)"
                                     >
-                                      <span>🏷️ Bán</span>
+                                      <span>🏷️ Treo Đấu Giá</span>
                                     </button>
 
                                     <button
@@ -7149,12 +7157,13 @@ const App = () => {
         {showListItemModal && selectedItemToList && (() => {
           const item = selectedItemToList;
           const category = getCategoryOfItem(item);
-          const tier = getBossTierStyle(item.tier);
-          const img = getBossItemAsset(item.name, category);
-          const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
+          const tier = getBossTierStyle(item?.tier);
+          const img = getBossItemAsset(item?.name, category);
+          const numStars = Number(item?.stars);
+          const starsCount = Math.max(1, Math.min(5, isNaN(numStars) || numStars < 1 ? 1 : numStars));
           const stars = '⭐'.repeat(starsCount);
-          const isStackable = category === 'material' || (item.quantity && item.quantity > 1);
-          const maxQty = item.quantity || 1;
+          const isStackable = category === 'material' || (item?.quantity && item.quantity > 1);
+          const maxQty = item?.quantity || 1;
           const safePrice = Math.max(1, Number(listingPrice) || 0);
           const feeCoins = Math.round(safePrice * 0.20);
           const netReceive = safePrice - feeCoins;
@@ -7173,7 +7182,7 @@ const App = () => {
                     </div>
                     <div>
                       <h3 className="font-black text-base text-white tracking-wide">
-                        TREO BÁN LÊN SÀN ĐẤU GIÁ
+                        TREO ĐẤU GIÁ VẬT PHẨM
                       </h3>
                       <p className="text-[11px] text-amber-300/80 font-medium">
                         Giao dịch bằng Xu • Phí sàn 20% khi khớp lệnh
@@ -7231,7 +7240,7 @@ const App = () => {
                   {isStackable && maxQty > 1 && (
                     <div>
                       <label className="block text-xs font-bold text-slate-300 mb-1">
-                        Số Lượng Muốn Bán (Tối đa: {maxQty}):
+                        Số Lượng Treo Đấu Giá (Tối đa: {maxQty}):
                       </label>
                       <input
                         type="number"
@@ -7249,7 +7258,7 @@ const App = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1">
-                      Giá Bán Mong Muốn (<span className="text-amber-400">Xu</span>):
+                      Giá Treo Đấu Giá (<span className="text-amber-400">Xu</span>):
                     </label>
                     <div className="relative">
                       <input
@@ -7318,9 +7327,8 @@ const App = () => {
                     disabled={isPerformingBagAction || safePrice <= 0}
                     onClick={() => {
                       handleExecuteAuctionAction('list_auction', {
-                        item_index: item.originalIndex,
-                        item_name: item.name,
                         item: item,
+                        item_name: item.name,
                         price: safePrice,
                         quantity: listingSellQuantity
                       });
@@ -7328,7 +7336,7 @@ const App = () => {
                     className="flex-[2] py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     {isPerformingBagAction ? <Loader2 size={14} className="animate-spin" /> : <span>🚀</span>}
-                    <span>Treo Bán ({safePrice.toLocaleString()} Xu)</span>
+                    <span>Treo Đấu Giá ({safePrice.toLocaleString()} Xu)</span>
                   </button>
                 </div>
               </div>
