@@ -413,13 +413,8 @@ const App = () => {
 
   
   // --- STATE CHO GAME MỘNG THIÊN HUYỄN & LIÊN KẾT TÀI KHOẢN ---
-  const [bossTargetId, setBossTargetId] = useState(() => localStorage.getItem('shop_boss_target_id') || '');
-  const [bossPlayerSummary, setBossPlayerSummary] = useState(() => {
-    try {
-      const saved = localStorage.getItem('shop_linked_game_player');
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) { return null; }
-  });
+  const [bossTargetId, setBossTargetId] = useState('');
+  const [bossPlayerSummary, setBossPlayerSummary] = useState(null);
   const [bossPlayerNotFound, setBossPlayerNotFound] = useState(false);
   const [bossNotFoundQuery, setBossNotFoundQuery] = useState('');
   const [showBossProfileModal, setShowBossProfileModal] = useState(false);
@@ -3016,8 +3011,9 @@ const App = () => {
         setBossTargetId(foundPlayer.user_id);
         setBossPlayerNotFound(false);
         setBossNotFoundQuery('');
-        localStorage.setItem('shop_linked_game_player', JSON.stringify(foundPlayer));
-        localStorage.setItem('shop_boss_target_id', foundPlayer.user_id);
+        if (currentUser?.id && currentUser.linked_game_id === foundPlayer.user_id) {
+          localStorage.setItem(`shop_linked_game_id_${currentUser.id}`, foundPlayer.user_id);
+        }
         showToast(`Đã nhận diện: ${foundPlayer.nickname} (Cấp ${foundPlayer.level} - ${new Intl.NumberFormat('vi-VN').format(foundPlayer.cp)} CP)!`);
       } else {
         // KHÔNG TÌM THẤY: Báo rõ không có dữ liệu
@@ -3031,15 +3027,51 @@ const App = () => {
     }
   };
 
-  // Tự động đồng bộ thông tin nhân vật game & túi đồ khi vào màn hình bossgame
+  // Dọn dẹp cache cũ không an toàn từ các phiên trước
   useEffect(() => {
-    if (currentView === 'bossgame') {
-      const target = bossPlayerSummary?.user_id || bossTargetId || currentUser?.linked_game_id || localStorage.getItem('shop_boss_target_id');
-      if (target) {
-        handleCheckBossPlayer(target);
-      }
+    try {
+      localStorage.removeItem('shop_linked_game_player');
+      localStorage.removeItem('shop_boss_target_id');
+    } catch (e) {}
+  }, []);
+
+  // Chỉ tải thông tin nhân vật game nếu người dùng hiện tại đã liên kết chính thức qua OTP
+  useEffect(() => {
+    if (!currentUser) {
+      setBossPlayerSummary(null);
+      setBossTargetId('');
+      return;
     }
-  }, [currentView]);
+    const userLinkedId = currentUser.linked_game_id || localStorage.getItem(`shop_linked_game_id_${currentUser.id}`);
+    if (userLinkedId) {
+      setBossTargetId(userLinkedId);
+      handleCheckBossPlayer(userLinkedId);
+    } else {
+      setBossPlayerSummary(null);
+      setBossTargetId('');
+    }
+  }, [currentUser?.id, currentView]);
+
+  // Hàm Hủy / Đổi Liên Kết Game chính chủ
+  const handleUnlinkGameAccount = () => {
+    setConfirmDialog({
+      title: 'Hủy Liên Kết Game',
+      message: 'Bạn có chắc chắn muốn hủy liên kết với nhân vật này để lấy mã OTP liên kết với tài khoản game chính chủ của bạn không?',
+      onConfirm: () => {
+        if (currentUser?.id) {
+          localStorage.removeItem(`shop_linked_game_id_${currentUser.id}`);
+        }
+        try {
+          localStorage.removeItem('shop_linked_game_player');
+          localStorage.removeItem('shop_boss_target_id');
+        } catch (e) {}
+        setBossPlayerSummary(null);
+        setBossTargetId('');
+        setCurrentUser(prev => prev ? ({ ...prev, linked_game_id: null }) : null);
+        showToast("Đã hủy liên kết thành công! Vui lòng bấm 'Lấy Mã OTP' để liên kết nhân vật của bạn.", "info");
+      }
+    });
+  };
 
   // --- HÀM TẠO MÃ OTP LIÊN KẾT TÀI KHOẢN ---
   const handleGenerateLinkOtp = async () => {
@@ -3091,8 +3123,11 @@ const App = () => {
             const res = checkOrder.result || {};
             const linkedUid = res.game_user_id || checkOrder.user_id;
 
+            if (currentUser?.id) {
+              localStorage.setItem(`shop_linked_game_id_${currentUser.id}`, linkedUid);
+            }
             setCurrentUser(prev => prev ? ({ ...prev, linked_game_id: linkedUid }) : prev);
-            localStorage.setItem('shop_boss_target_id', linkedUid);
+            setBossTargetId(linkedUid);
 
             await handleCheckBossPlayer(linkedUid);
             setShowLinkOtpModal(false);
@@ -3103,7 +3138,7 @@ const App = () => {
         }
       }, 2000);
 
-      setTimeout(() => clearInterval(pollInterval), 10 * 60 * 1000);
+      setTimeout(() => clearInterval(pollInterval), 2 * 60 * 1000);
 
     } catch (err) {
       console.error("Lỗi tạo mã OTP:", err);
@@ -5715,14 +5750,22 @@ const App = () => {
                 <div className="bg-gradient-to-r from-[#0B1120] via-[#151D2F] to-[#0B1120] border-2 border-emerald-500/50 rounded-2xl p-5 md:p-6 shadow-[0_0_30px_rgba(16,185,129,0.15)] backdrop-blur-md text-left animate-fade-in relative overflow-hidden">
                   <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-2 bg-gradient-to-l from-emerald-500/20 to-transparent w-48 h-16 pointer-events-none blur-xl"></div>
                   
-                  {/* Badge Đã liên kết vĩnh viễn */}
+                  {/* Badge Đã liên kết */}
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.2)]">
                       <CheckCircle2 size={14} className="text-emerald-400" />
-                      <span>✓ ĐÃ LIÊN KẾT TÀI KHOẢN GAME VĨNH VIỄN</span>
+                      <span>✓ ĐÃ LIÊN KẾT NHÂN VẬT: @{bossPlayerSummary.user_id}</span>
                     </div>
-                    <div className="text-[11px] text-slate-400 font-medium">
-                      Tự động nạp vào nhân vật này 24/7
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleUnlinkGameAccount}
+                        className="px-3 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 hover:text-rose-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                        title="Bấm để hủy liên kết nhân vật này và liên kết với tài khoản game chính chủ của bạn qua OTP"
+                      >
+                        <LogOut size={13} />
+                        <span>Hủy / Đổi Tài Khoản Game</span>
+                      </button>
                     </div>
                   </div>
 
