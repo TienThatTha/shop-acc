@@ -3018,7 +3018,17 @@ const App = () => {
             total_dmg: wp?.total_dmg || 0,
             has_x2_rate: wp?.has_x2_rate || false,
             platform: wp?.platform || 'tiktok',
-            inventory: Array.isArray(wp?.inventory) ? wp.inventory : (Array.isArray(dbPlayer?.inventory) ? dbPlayer.inventory : [])
+            inventory: (() => {
+              const raw = wp?.inventory || dbPlayer?.inventory;
+              if (Array.isArray(raw)) return raw;
+              if (typeof raw === 'string') {
+                try {
+                  const pJson = JSON.parse(raw);
+                  if (Array.isArray(pJson)) return pJson;
+                } catch (e) { }
+              }
+              return [];
+            })()
           };
         }
       } catch (err) {
@@ -3103,6 +3113,13 @@ const App = () => {
     }
   }, [currentUser?.id, currentView]);
 
+
+  // Tự động làm mới túi đồ mỗi khi mở Modal Túi Đồ
+  useEffect(() => {
+    if (showBagModal && bossTargetId) {
+      handleCheckBossPlayer(bossTargetId);
+    }
+  }, [showBagModal]);
 
   // --- HÀM TẠO MÃ OTP LIÊN KẾT TÀI KHOẢN (REALTIME + POLLING + TAB FOCUS) ---
   const handleGenerateLinkOtp = async () => {
@@ -6822,7 +6839,24 @@ const App = () => {
         {/* MODAL TÚI ĐỒ & QUẢN LÝ TRANG BỊ (INVENTORY) */}
         {showBagModal && bossPlayerSummary && (() => {
           const p = bossPlayerSummary;
-          const rawInv = Array.isArray(p.inventory) ? p.inventory : [];
+          const rawInv = Array.isArray(p.inventory) ? p.inventory : (Array.isArray(p.weapon?.inventory) ? p.weapon.inventory : []);
+
+          // Định danh các trang bị đang được sử dụng (mặc trên người) để không bao giờ hiển thị vào túi đồ
+          const equippedIds = new Set([
+            p.weapon?.id,
+            p.armor?.id,
+            p.pet?.id,
+            p.ring?.id,
+            p.necklace?.id
+          ].filter(Boolean));
+
+          // Lọc bỏ triệt để trang bị đang sử dụng (chỉ giữ lại đồ chưa mặc trong túi)
+          const unequippedInventory = rawInv.filter(item => {
+            if (!item) return false;
+            if (item.is_equipped || item.equipped) return false;
+            if (item.id && equippedIds.has(item.id)) return false;
+            return true;
+          });
 
           // Phân loại đồ trong túi
           const getCategoryOfItem = (item) => {
@@ -6836,7 +6870,7 @@ const App = () => {
             return 'weapon';
           };
 
-          const filteredInventory = rawInv.filter(item => {
+          const filteredInventory = unequippedInventory.filter(item => {
             if (activeBagCategory === 'all') return true;
             return getCategoryOfItem(item) === activeBagCategory;
           });
@@ -6856,14 +6890,14 @@ const App = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-black text-lg sm:text-xl text-white tracking-wide">
-                          TÚI ĐỒ & QUẢN LÝ TRANG BỊ
+                          TÚI ĐỒ & KHO TRANG BỊ
                         </h3>
                         <span className="text-[10px] font-black text-purple-300 bg-purple-500/20 border border-purple-500/40 rounded px-2 py-0.5">
                           {p.nickname}
                         </span>
                       </div>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        Túi đồ: <strong className="text-amber-300 font-bold">{rawInv.length}</strong> món • Lực chiến: <strong className="text-white font-bold">{new Intl.NumberFormat('vi-VN').format(p.cp || 0)} CP</strong>
+                        Trong túi: <strong className="text-amber-300 font-bold">{unequippedInventory.length}</strong> món đồ chưa mặc • Lực chiến: <strong className="text-white font-bold">{new Intl.NumberFormat('vi-VN').format(p.cp || 0)} CP</strong>
                       </p>
                     </div>
                   </div>
@@ -6884,7 +6918,7 @@ const App = () => {
                     <button
                       type="button"
                       onClick={() => handleExecuteBagAction('dismantle_all')}
-                      disabled={isPerformingBagAction || rawInv.length === 0}
+                      disabled={isPerformingBagAction || unequippedInventory.length === 0}
                       className="px-3 py-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-xs rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                       title="Phân giải các món đồ rác không dùng để nhận lượt đánh boss"
                     >
@@ -6901,74 +6935,13 @@ const App = () => {
                   </div>
                 </div>
 
-                {/* Content Scrollable */}
+                {/* Content Scrollable - KHÔNG CÒN HIỂN THỊ PHẦN 5 Ô ĐANG MẶC THEO YÊU CẦU */}
                 <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-4 flex-1">
-                  {/* PHẦN 1: 5 Ô TRANG BỊ ĐANG MẶC TRÊN NGƯỜI */}
-                  <div className="bg-[#0B101B]/80 border border-slate-800 rounded-2xl p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <Crown size={15} /> 5 Trang Bị Đang Mặc Hiện Tại:
-                      </span>
-                      <span className="text-[11px] text-slate-400">
-                        Bấm "Trang Bị" ở túi đồ bên dưới để thay đồ lên người
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                      {[
-                        { slot: 'Vũ Khí', cat: 'weapon', item: p.weapon, icon: '⚔️' },
-                        { slot: 'Áo Giáp', cat: 'armor', item: p.armor, icon: '🛡️' },
-                        { slot: 'Dây Chuyền', cat: 'necklace', item: p.necklace, icon: '📿' },
-                        { slot: 'Nhẫn Thần', cat: 'ring', item: p.ring, icon: '💍' },
-                        { slot: 'Linh Thú', cat: 'pet', item: p.pet, icon: '🐾' }
-                      ].map((slotInfo, sIdx) => {
-                        const it = slotInfo.item;
-                        const tier = getBossTierStyle(it?.tier);
-                        const img = it ? getBossItemAsset(it.name, slotInfo.cat) : null;
-                        const stars = it ? '⭐'.repeat(Math.max(1, Math.min(5, Number(it.stars || 1)))) : '';
-
-                        return (
-                          <div
-                            key={sIdx}
-                            className={`rounded-xl p-2.5 border flex flex-col items-center text-center relative ${it ? 'bg-slate-900/80' : 'bg-slate-950/40 border-dashed border-slate-800'
-                              }`}
-                            style={{ borderColor: it ? tier.border : undefined }}
-                          >
-                            <span className="text-[9px] font-bold text-slate-400 uppercase mb-1">
-                              {slotInfo.slot}
-                            </span>
-                            <div className="w-12 h-12 rounded-lg bg-black/40 flex items-center justify-center relative my-1">
-                              {img ? (
-                                <img src={img} alt={it.name} className="w-10 h-10 object-contain" />
-                              ) : (
-                                <span className="text-xl opacity-60">{slotInfo.icon}</span>
-                              )}
-                              {it && (
-                                <span className="absolute bottom-0 right-0 text-[8px] font-black text-amber-300">
-                                  {stars}
-                                </span>
-                              )}
-                            </div>
-                            <span className="font-bold text-xs truncate max-w-full" style={{ color: it ? tier.color : '#64748b' }}>
-                              {it ? `${it.name}${it.plus ? ` +${it.plus}` : ''}` : 'Chưa mặc'}
-                            </span>
-                            {it && (
-                              <span className="text-[9px] font-bold text-emerald-400 mt-0.5">
-                                {slotInfo.cat === 'necklace' ? `+${it.dmg_percent || 0}%` : (slotInfo.cat === 'ring' ? `+${it.base_dmg_percent || 0}%` : `${Number(it.base_dmg || it.bonus_dmg || 0).toLocaleString()} DMG`)}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* PHẦN 2: KHO TÚI ĐỒ (INVENTORY) */}
                   <div>
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
                         {[
-                          { id: 'all', label: `Tất Cả (${rawInv.length})` },
+                          { id: 'all', label: `Tất Cả (${unequippedInventory.length})` },
                           { id: 'weapon', label: '⚔️ Vũ Khí' },
                           { id: 'armor', label: '🛡️ Áo Giáp' },
                           { id: 'necklace', label: '📿 Dây Chuyền' },
