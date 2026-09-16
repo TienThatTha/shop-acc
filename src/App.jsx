@@ -2970,10 +2970,10 @@ const App = () => {
 
 
   // --- HÀM TRA CỨU NGƯỜI CHƠI GAME BOSS MỘNG THIÊN HUYỄN ---
-  const handleCheckBossPlayer = async (targetIdInput) => {
+  const handleCheckBossPlayer = async (targetIdInput, isSilent = true) => {
     const rawId = (targetIdInput !== undefined ? targetIdInput : bossTargetId).trim();
     if (!rawId) {
-      showToast("Vui lòng nhập ID TikTok, Discord ID hoặc Tên In-game!", "error");
+      if (!isSilent) showToast("Vui lòng nhập ID TikTok, Discord ID hoặc Tên In-game!", "error");
       return;
     }
     setIsCheckingBossPlayer(true);
@@ -3044,13 +3044,17 @@ const App = () => {
         if (currentUser?.id && currentUser.linked_game_id === foundPlayer.user_id) {
           localStorage.setItem(`shop_linked_game_id_${currentUser.id}`, foundPlayer.user_id);
         }
-        showToast(`Đã nhận diện: ${foundPlayer.nickname} (Cấp ${foundPlayer.level} - ${new Intl.NumberFormat('vi-VN').format(foundPlayer.cp)} CP)!`);
+        if (!isSilent) {
+          showToast(`Đã nhận diện: ${foundPlayer.nickname} (Cấp ${foundPlayer.level} - ${new Intl.NumberFormat('vi-VN').format(foundPlayer.cp)} CP)!`);
+        }
       } else {
         // KHÔNG TÌM THẤY: Báo rõ không có dữ liệu
         setBossPlayerSummary(null);
         setBossPlayerNotFound(true);
         setBossNotFoundQuery(rawId);
-        showToast(`Không tìm thấy dữ liệu người chơi "${rawId}"! Vui lòng kiểm tra lại ID.`, "error");
+        if (!isSilent) {
+          showToast(`Không tìm thấy dữ liệu người chơi "${rawId}"! Vui lòng kiểm tra lại ID.`, "error");
+        }
       }
     } finally {
       setIsCheckingBossPlayer(false);
