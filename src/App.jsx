@@ -3052,26 +3052,6 @@ const App = () => {
     }
   }, [currentUser?.id, currentView]);
 
-  // Hàm Hủy / Đổi Liên Kết Game chính chủ
-  const handleUnlinkGameAccount = () => {
-    setConfirmDialog({
-      title: 'Hủy Liên Kết Game',
-      message: 'Bạn có chắc chắn muốn hủy liên kết với nhân vật này để lấy mã OTP liên kết với tài khoản game chính chủ của bạn không?',
-      onConfirm: () => {
-        if (currentUser?.id) {
-          localStorage.removeItem(`shop_linked_game_id_${currentUser.id}`);
-        }
-        try {
-          localStorage.removeItem('shop_linked_game_player');
-          localStorage.removeItem('shop_boss_target_id');
-        } catch (e) {}
-        setBossPlayerSummary(null);
-        setBossTargetId('');
-        setCurrentUser(prev => prev ? ({ ...prev, linked_game_id: null }) : null);
-        showToast("Đã hủy liên kết thành công! Vui lòng bấm 'Lấy Mã OTP' để liên kết nhân vật của bạn.", "info");
-      }
-    });
-  };
 
   // --- HÀM TẠO MÃ OTP LIÊN KẾT TÀI KHOẢN ---
   const handleGenerateLinkOtp = async () => {
@@ -5750,22 +5730,14 @@ const App = () => {
                 <div className="bg-gradient-to-r from-[#0B1120] via-[#151D2F] to-[#0B1120] border-2 border-emerald-500/50 rounded-2xl p-5 md:p-6 shadow-[0_0_30px_rgba(16,185,129,0.15)] backdrop-blur-md text-left animate-fade-in relative overflow-hidden">
                   <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-2 bg-gradient-to-l from-emerald-500/20 to-transparent w-48 h-16 pointer-events-none blur-xl"></div>
                   
-                  {/* Badge Đã liên kết */}
+                  {/* Badge Đã liên kết vĩnh viễn */}
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.2)]">
                       <CheckCircle2 size={14} className="text-emerald-400" />
-                      <span>✓ ĐÃ LIÊN KẾT NHÂN VẬT: @{bossPlayerSummary.user_id}</span>
+                      <span>✓ ĐÃ LIÊN KẾT TÀI KHOẢN GAME VĨNH VIỄN</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={handleUnlinkGameAccount}
-                        className="px-3 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 hover:text-rose-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-                        title="Bấm để hủy liên kết nhân vật này và liên kết với tài khoản game chính chủ của bạn qua OTP"
-                      >
-                        <LogOut size={13} />
-                        <span>Hủy / Đổi Tài Khoản Game</span>
-                      </button>
+                    <div className="text-[11px] text-slate-400 font-medium">
+                      Tự động nạp vào nhân vật này 24/7
                     </div>
                   </div>
 
