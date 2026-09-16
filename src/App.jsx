@@ -432,7 +432,7 @@ const App = () => {
   const [showLinkOtpModal, setShowLinkOtpModal] = useState(false);
   const [linkOtpCode, setLinkOtpCode] = useState('');
   const [linkOtpExpiresAt, setLinkOtpExpiresAt] = useState(null);
-  const [linkOtpCountdown, setLinkOtpCountdown] = useState(600);
+  const [linkOtpCountdown, setLinkOtpCountdown] = useState(120);
   const [isWaitingOtp, setIsWaitingOtp] = useState(false);
   const [isGeneratingOtp, setIsGeneratingOtp] = useState(false);
   const [showBagModal, setShowBagModal] = useState(false);
@@ -3048,7 +3048,7 @@ const App = () => {
     try {
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const orderId = `OTP_${Date.now()}_${code}`;
-      const expiresAt = Date.now() + 10 * 60 * 1000;
+      const expiresAt = Date.now() + 2 * 60 * 1000;
 
       const { error } = await supabase.from('game_orders').insert([{
         id: orderId,
@@ -3071,10 +3071,10 @@ const App = () => {
 
       setLinkOtpCode(code);
       setLinkOtpExpiresAt(expiresAt);
-      setLinkOtpCountdown(600);
+      setLinkOtpCountdown(120);
       setIsWaitingOtp(true);
       setShowLinkOtpModal(true);
-      showToast("Đã tạo mã OTP! Hãy bình luận trên Live TikTok hoặc chat Discord để liên kết.", "success");
+      showToast("Đã tạo mã OTP (hiệu lực 2 phút)! Hãy bình luận trên Live TikTok hoặc chat Discord để liên kết.", "success");
 
       // Polling kiểm tra trạng thái OTP hoàn tất
       const pollInterval = setInterval(async () => {
@@ -6529,7 +6529,7 @@ const App = () => {
                     <h3 className="text-base font-black text-white uppercase tracking-tight">
                       Liên Kết Tài Khoản Game
                     </h3>
-                    <p className="text-[11px] text-slate-400">Xác nhận 1 lần duy nhất để nạp và quản lý đồ</p>
+                    <p className="text-[11px] text-slate-400">Xác nhận 1 lần duy nhất để nạp và quản lý đồ (Hiệu lực: 2 phút)</p>
                   </div>
                 </div>
                 <button
@@ -6544,30 +6544,35 @@ const App = () => {
               {/* Body */}
               <div className="p-6 space-y-5">
                 {/* Khung mã OTP */}
-                <div className="bg-[#0B1120] border-2 border-dashed border-amber-500/50 rounded-2xl p-5 text-center relative overflow-hidden">
-                  <span className="text-[11px] font-bold text-amber-300 uppercase tracking-widest block mb-2">
-                    MÃ OTP LIÊN KẾT CỦA BẠN
+                <div className={`bg-[#0B1120] border-2 border-dashed rounded-2xl p-5 text-center relative overflow-hidden transition-colors ${linkOtpCountdown > 0 ? 'border-amber-500/50' : 'border-rose-500/50'}`}>
+                  <span className={`text-[11px] font-bold uppercase tracking-widest block mb-2 ${linkOtpCountdown > 0 ? 'text-amber-300' : 'text-rose-400'}`}>
+                    {linkOtpCountdown > 0 ? 'MÃ OTP LIÊN KẾT CỦA BẠN (2 PHÚT)' : 'MÃ OTP ĐÃ HẾT HẠN'}
                   </span>
-                  <div className="text-4xl sm:text-5xl font-black font-mono text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-400 tracking-[0.25em] pl-[0.25em] drop-shadow-[0_0_20px_rgba(251,191,36,0.4)] my-1">
+                  <div className={`text-4xl sm:text-5xl font-black font-mono tracking-[0.25em] pl-[0.25em] my-1 ${
+                    linkOtpCountdown > 0
+                      ? 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-400 drop-shadow-[0_0_20px_rgba(251,191,36,0.4)]'
+                      : 'text-slate-500 line-through opacity-60'
+                  }`}>
                     {linkOtpCode || '------'}
                   </div>
 
                   <div className="flex items-center justify-center gap-3 mt-3">
                     <button
                       type="button"
+                      disabled={linkOtpCountdown <= 0}
                       onClick={() => {
-                        if (linkOtpCode) {
+                        if (linkOtpCode && linkOtpCountdown > 0) {
                           navigator.clipboard.writeText(linkOtpCode);
                           showToast("Đã sao chép mã OTP!", "success");
                         }
                       }}
-                      className="px-4 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 text-xs font-bold transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 cursor-pointer"
+                      className="px-4 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 text-xs font-bold transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <Copy size={13} />
                       <span>Sao Chép Mã</span>
                     </button>
                     <span className="text-xs text-slate-400 font-mono">
-                      ⏱️ Còn lại: <strong className="text-rose-400 font-bold">{Math.floor(linkOtpCountdown / 60)}:{(linkOtpCountdown % 60).toString().padStart(2, '0')}</strong>
+                      ⏱️ Còn lại: <strong className={`font-bold ${linkOtpCountdown > 30 ? 'text-emerald-400' : linkOtpCountdown > 0 ? 'text-amber-400 animate-pulse' : 'text-rose-500'}`}>{Math.floor(linkOtpCountdown / 60)}:{(linkOtpCountdown % 60).toString().padStart(2, '0')}</strong>
                     </span>
                   </div>
                 </div>
@@ -6614,10 +6619,17 @@ const App = () => {
                 </div>
 
                 {/* Trạng thái chờ */}
-                <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-center gap-2.5 text-xs text-slate-400">
-                  <Loader2 size={16} className="animate-spin text-amber-400 shrink-0" />
-                  <span>Hệ thống đang tự động lắng nghe và nhận diện...</span>
-                </div>
+                {linkOtpCountdown > 0 ? (
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-center gap-2.5 text-xs text-slate-400">
+                    <Loader2 size={16} className="animate-spin text-amber-400 shrink-0" />
+                    <span>Hệ thống đang tự động lắng nghe và nhận diện...</span>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center gap-2.5 text-xs text-rose-400 font-bold animate-pulse">
+                    <AlertCircle size={16} className="text-rose-400 shrink-0" />
+                    <span>Mã OTP đã hết hạn (2 phút)! Vui lòng bấm "Lấy Mã Mới" bên dưới.</span>
+                  </div>
+                )}
               </div>
 
               {/* Footer */}
@@ -6626,10 +6638,14 @@ const App = () => {
                   type="button"
                   onClick={handleGenerateLinkOtp}
                   disabled={isGeneratingOtp}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                    linkOtpCountdown <= 0
+                      ? 'bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-white shadow-[0_0_15px_rgba(245,158,11,0.4)] animate-bounce'
+                      : 'bg-slate-800 hover:bg-slate-700 text-amber-300'
+                  }`}
                 >
                   <RefreshCw size={14} className={isGeneratingOtp ? 'animate-spin' : ''} />
-                  <span>Đổi Mã Khác</span>
+                  <span>{linkOtpCountdown <= 0 ? 'Lấy Mã Mới' : 'Đổi Mã Khác'}</span>
                 </button>
                 <button
                   type="button"
