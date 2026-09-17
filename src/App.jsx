@@ -809,26 +809,29 @@ const App = () => {
           const { data: user } = await supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').eq('id', session.user.id).single();
 
           if (user && !user.is_locked) {
-            // Tra cứu linked_game_id từ game_orders (OTP đã completed) hoặc localStorage
-            let linkedGameId = localStorage.getItem(`shop_linked_game_id_${user.id}`) || null;
-            if (!linkedGameId) {
-              try {
-                const { data: completedOtp } = await supabase
-                  .from('game_orders')
-                  .select('result, user_id')
-                  .eq('package_id', 'account_link_otp')
-                  .eq('status', 'completed')
-                  .or(`web_user.eq."${user.name || user.id}",rewards->>web_user_id.eq."${user.id}"`)
-                  .order('completed_at', { ascending: false })
-                  .limit(1)
-                  .maybeSingle();
-                if (completedOtp?.result?.game_user_id) {
-                  linkedGameId = completedOtp.result.game_user_id;
-                  localStorage.setItem(`shop_linked_game_id_${user.id}`, linkedGameId);
-                }
-              } catch (e) {
-                console.log("OTP link lookup:", e);
+            // Tra cứu linked_game_id từ Supabase game_orders (OTP completed) - ưu tiên server để tránh cache sai lệch giữa các tài khoản
+            let linkedGameId = null;
+            try {
+              const { data: completedOtp } = await supabase
+                .from('game_orders')
+                .select('result, user_id')
+                .eq('package_id', 'account_link_otp')
+                .eq('status', 'completed')
+                .or(`web_user.eq."${user.name || user.id}",rewards->>web_user_id.eq."${user.id}"`)
+                .order('completed_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              if (completedOtp) {
+                linkedGameId = completedOtp.result?.game_user_id || completedOtp.user_id;
               }
+            } catch (e) {
+              console.log("OTP link lookup:", e);
+            }
+
+            if (linkedGameId) {
+              localStorage.setItem(`shop_linked_game_id_${user.id}`, linkedGameId);
+            } else {
+              localStorage.removeItem(`shop_linked_game_id_${user.id}`);
             }
             const enrichedUser = linkedGameId ? { ...user, linked_game_id: linkedGameId } : user;
             setCurrentUser(enrichedUser);
@@ -1635,6 +1638,8 @@ const App = () => {
           localStorage.removeItem('shop_cached_user');
           return showToast("Tài khoản của bạn đã bị khóa!", 'error');
         }
+        setBossPlayerSummary(null);
+        setBossTargetId('');
         setCurrentUser(userData);
         localStorage.setItem('shop_cached_user', JSON.stringify(userData));
 
@@ -2229,6 +2234,10 @@ const App = () => {
                     await supabase.auth.signOut();
                     localStorage.removeItem('shop_cached_user'); // <--- Đấm phát chết luôn Session của Supabase
                     localStorage.removeItem('shop_user_id');
+                    localStorage.removeItem('shop_boss_target_id');
+                    localStorage.removeItem('shop_linked_game_player');
+                    setBossPlayerSummary(null);
+                    setBossTargetId('');
                     setCurrentUser(null);
                     setCurrentView('dashboard');
                     showToast("Đã đăng xuất an toàn!");
@@ -2526,7 +2535,7 @@ const App = () => {
                         )}
 
                         <div className="border-t border-slate-700 my-1"></div>
-                        <button onClick={() => { setShowUserDropdown(false); setConfirmDialog({ title: 'Đăng xuất', message: 'Bạn có chắc muốn đăng xuất?', onConfirm: async () => { await supabase.auth.signOut(); localStorage.removeItem('shop_cached_user'); localStorage.removeItem('shop_user_id'); setCurrentUser(null); setCurrentView('dashboard'); showToast('Đã đăng xuất an toàn!'); } }); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-rose-400 hover:bg-rose-600/20 hover:text-rose-300 transition-colors flex items-center gap-3">
+                        <button onClick={() => { setShowUserDropdown(false); setConfirmDialog({ title: 'Đăng xuất', message: 'Bạn có chắc muốn đăng xuất?', onConfirm: async () => { await supabase.auth.signOut(); localStorage.removeItem('shop_cached_user'); localStorage.removeItem('shop_user_id'); localStorage.removeItem('shop_boss_target_id'); localStorage.removeItem('shop_linked_game_player'); setBossPlayerSummary(null); setBossTargetId(''); setCurrentUser(null); setCurrentView('dashboard'); showToast('Đã đăng xuất an toàn!'); } }); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-rose-400 hover:bg-rose-600/20 hover:text-rose-300 transition-colors flex items-center gap-3">
                           <LogOut size={18} /> Đăng xuất
                         </button>
                       </div>
@@ -3074,50 +3083,46 @@ const App = () => {
 
   // Tự động đồng bộ và duy trì thông tin nhân vật game của tài khoản đã liên kết
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUser?.id) {
       setBossPlayerSummary(null);
       setBossTargetId('');
       return;
     }
-    const userLinkedId = currentUser.linked_game_id || localStorage.getItem(`shop_linked_game_id_${currentUser.id}`);
-    if (userLinkedId) {
-      setBossTargetId(userLinkedId);
-      handleCheckBossPlayer(userLinkedId);
-    } else {
-      // Phục hồi liên kết từ Supabase game_orders nếu localStorage bị mất hoặc đổi thiết bị
-      let isSubscribed = true;
-      (async () => {
-        try {
-          const { data: pastOrders } = await supabase
-            .from('game_orders')
-            .select('result, user_id, web_user, rewards')
-            .eq('package_id', 'account_link_otp')
-            .eq('status', 'completed')
-            .or(`web_user.eq."${currentUser.name || currentUser.id}",rewards->>web_user_id.eq."${currentUser.id}"`)
-            .order('completed_at', { ascending: false })
-            .limit(1);
+    let isSubscribed = true;
+    (async () => {
+      try {
+        // Luôn xác thực trực tiếp với Supabase Cloud để lấy đúng nhân vật liên kết, loại bỏ cache cũ sai lệch
+        const { data: pastOrders } = await supabase
+          .from('game_orders')
+          .select('result, user_id, web_user, rewards')
+          .eq('package_id', 'account_link_otp')
+          .eq('status', 'completed')
+          .or(`web_user.eq."${currentUser.name || currentUser.id}",rewards->>web_user_id.eq."${currentUser.id}"`)
+          .order('completed_at', { ascending: false })
+          .limit(1);
 
-          if (isSubscribed && pastOrders && pastOrders.length > 0) {
-            const ord = pastOrders[0];
-            const uid = ord.result?.game_user_id || ord.user_id;
-            if (uid) {
-              localStorage.setItem(`shop_linked_game_id_${currentUser.id}`, uid);
-              setCurrentUser(prev => prev ? ({ ...prev, linked_game_id: uid }) : prev);
-              setBossTargetId(uid);
-              handleCheckBossPlayer(uid);
-              return;
-            }
+        if (isSubscribed && pastOrders && pastOrders.length > 0) {
+          const ord = pastOrders[0];
+          const uid = ord.result?.game_user_id || ord.user_id;
+          if (uid) {
+            localStorage.setItem(`shop_linked_game_id_${currentUser.id}`, uid);
+            setCurrentUser(prev => prev && prev.linked_game_id !== uid ? ({ ...prev, linked_game_id: uid }) : prev);
+            setBossTargetId(uid);
+            handleCheckBossPlayer(uid);
+            return;
           }
-        } catch (err) {
-          console.log("Lỗi phục hồi liên kết OTP:", err);
         }
-        if (isSubscribed) {
-          setBossPlayerSummary(null);
-          setBossTargetId('');
-        }
-      })();
-      return () => { isSubscribed = false; };
-    }
+      } catch (err) {
+        console.log("Lỗi đồng bộ liên kết game:", err);
+      }
+      if (isSubscribed) {
+        localStorage.removeItem(`shop_linked_game_id_${currentUser.id}`);
+        setCurrentUser(prev => prev && prev.linked_game_id ? ({ ...prev, linked_game_id: null }) : prev);
+        setBossPlayerSummary(null);
+        setBossTargetId('');
+      }
+    })();
+    return () => { isSubscribed = false; };
   }, [currentUser?.id, currentView]);
 
 
