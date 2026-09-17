@@ -7066,12 +7066,34 @@ const App = () => {
             p.necklace?.id
           ].filter(Boolean));
 
-          // Lọc bỏ triệt để trang bị đang sử dụng (chỉ giữ lại đồ chưa mặc trong túi)
+          // Lọc bỏ triệt để trang bị đang sử dụng (chỉ giữ lại đồ chưa mặc trong túi) và sắp xếp theo Tier từ cao tới thấp
           const unequippedInventory = rawInv.filter(item => {
             if (!item) return false;
             if (item.is_equipped || item.equipped) return false;
             if (item.id && equippedIds.has(item.id)) return false;
             return true;
+          }).sort((a, b) => {
+            const weightA = getItemTierWeight(a);
+            const weightB = getItemTierWeight(b);
+            if (weightB !== weightA) return weightB - weightA;
+
+            const starsA = Number(a.stars || 1);
+            const starsB = Number(b.stars || 1);
+            if (starsB !== starsA) return starsB - starsA;
+
+            const plusA = Number(a.plus || 0);
+            const plusB = Number(b.plus || 0);
+            if (plusB !== plusA) return plusB - plusA;
+
+            const skillLvlA = Number(a.skill_level || 1);
+            const skillLvlB = Number(b.skill_level || 1);
+            if (skillLvlB !== skillLvlA) return skillLvlB - skillLvlA;
+
+            const qtyA = Number(a.quantity || 1);
+            const qtyB = Number(b.quantity || 1);
+            if (qtyB !== qtyA) return qtyB - qtyA;
+
+            return 0;
           });
 
           // Lọc danh sách theo danh mục đang chọn
@@ -7167,6 +7189,10 @@ const App = () => {
                           </button>
                         ))}
                       </div>
+
+                      <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-purple-300 bg-purple-500/15 border border-purple-500/30 px-2.5 py-1 rounded-lg shrink-0 whitespace-nowrap">
+                        ⚡ Tier cao ➔ thấp
+                      </span>
                     </div>
 
                     {/* Danh sách vật phẩm trong túi */}
