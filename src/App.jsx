@@ -5852,8 +5852,37 @@ const App = () => {
     return '0.1%';
   };
 
-  const getBossTierStyle = (tierStr) => {
-    const t = (tierStr || '').toLowerCase();
+  const isEnhancementStone = (itemOrTier, optionalItem) => {
+    const it = (typeof itemOrTier === 'object' && itemOrTier !== null)
+      ? itemOrTier
+      : (typeof optionalItem === 'object' && optionalItem !== null ? optionalItem : null);
+    const str = (typeof itemOrTier === 'string' ? itemOrTier : '').toLowerCase();
+    const itName = it ? String(it.name || it.id || '').toLowerCase() : '';
+    const itCat = it ? String(it.category || '').toLowerCase() : '';
+
+    const textToMatch = `${str} ${itName} ${itCat}`;
+    return (
+      textToMatch.includes('đá tinh hoa') ||
+      textToMatch.includes('da tinh hoa') ||
+      textToMatch.includes('tinh thể cường hóa') ||
+      textToMatch.includes('tinh the cuong hoa') ||
+      textToMatch.includes('đá cường hóa') ||
+      textToMatch.includes('da cuong hoa') ||
+      textToMatch.includes('item_essence_stone') ||
+      textToMatch.includes('item_ring_crystal') ||
+      textToMatch.includes('tinh hoa') ||
+      textToMatch.includes('tinh thể') ||
+      textToMatch.includes('tinh the') ||
+      itCat === 'material' ||
+      itCat === 'crystal'
+    );
+  };
+
+  const getBossTierStyle = (tierStr, item) => {
+    if (isEnhancementStone(tierStr, item)) {
+      return { color: '#ff00ff', border: '#ff00ff', bg: 'rgba(255, 0, 255, 0.15)', label: 'THƯỢNG CỔ' };
+    }
+    const t = (typeof tierStr === 'string' ? tierStr : (item && item.tier) || '').toLowerCase();
     if (t.includes('thượng cổ')) return { color: '#ff00ff', border: '#ff00ff', bg: 'rgba(255, 0, 255, 0.15)', label: 'THƯỢNG CỔ' };
     if (t.includes('cổ đại')) return { color: '#00ffaa', border: '#00ffaa', bg: 'rgba(0, 255, 170, 0.15)', label: 'CỔ ĐẠI' };
     if (t.includes('tối thượng')) return { color: '#ff3366', border: '#ff3366', bg: 'rgba(255, 51, 102, 0.15)', label: 'TỐI THƯỢNG' };
@@ -5866,6 +5895,8 @@ const App = () => {
 
   const getItemTierWeight = (item) => {
     if (!item) return 0;
+    if (isEnhancementStone(null, item)) return 900; // Tất cả đá dùng để cường hóa đều là Tier Thượng Cổ (trọng số cao nhất 900)!
+
     const rawTier = String(item.tier || '').toLowerCase();
     if (rawTier.includes('thượng cổ')) return 900;
     if (rawTier.includes('cổ đại')) return 800;
@@ -5883,11 +5914,10 @@ const App = () => {
     }
 
     const name = String(item.name || '').toLowerCase();
-    if (name.includes('thượng cổ') || name.includes('bát hoang') || name.includes('nữ oa') || name.includes('bá vương')) return 900;
+    if (name.includes('thượng cổ') || name.includes('bát hoang') || name.includes('nữ oa') || name.includes('bá vương') || name.includes('tinh hoa') || name.includes('tinh thể') || name.includes('đá')) return 900;
     if (name.includes('cổ đại') || name.includes('chaos') || name.includes('long vương')) return 800;
     if (name.includes('tối thượng') || name.includes('vô cực') || name.includes('phượng hoàng') || name.includes('hắc ma vương') || name.includes('hắc ám ma vương')) return 700;
-    if (name.includes('thần thoại') || name.includes('diệt tộc') || name.includes('kim cương') || name.includes('rồng thần tí hon') || name.includes('hoàng kim') || name.includes('tinh thể')) return 600;
-    if (name.includes('đá tinh hoa') || name.includes('cực phẩm')) return 500;
+    if (name.includes('thần thoại') || name.includes('diệt tộc') || name.includes('kim cương') || name.includes('rồng thần tí hon') || name.includes('hoàng kim')) return 600;
     if (name.includes('sử thi') || name.includes('hỏa thần') || name.includes('thánh quang') || name.includes('rồng con') || name.includes('tử tinh') || name.includes('huyết ma')) return 400;
     if (name.includes('hiếm') || name.includes('trảm ma') || name.includes('giáp rồng') || name.includes('cáo tuyết') || name.includes('lam ngọc')) return 300;
     if (name.includes('gỗ') || name.includes('sắt') || name.includes('mèo') || name.includes('bạc') || name.includes('hắc thiết')) return 100;
@@ -6214,10 +6244,10 @@ const App = () => {
       if (itemId === 'item_essence_stone' || lowerName.includes('tinh hoa') || lowerName.includes('essence')) {
         matInfo = {
           title: 'Đá Tinh Hoa Thần Binh',
-          badge: 'NGUYÊN LIỆU TUYỆT KỸ',
-          badgeColor: '#c084fc',
-          badgeBg: 'rgba(192, 132, 252, 0.15)',
-          badgeBorder: '#a855f7',
+          badge: 'ĐÁ THƯỢNG CỔ',
+          badgeColor: '#ff00ff',
+          badgeBg: 'rgba(255, 0, 255, 0.15)',
+          badgeBorder: '#ff00ff',
           icon: '💎',
           purpose: [
             'Nâng cấp Level Kỹ Năng Nhẫn Thần Binh (từ Lv.1 lên tối đa Lv.9 tối thượng).',
@@ -6235,10 +6265,10 @@ const App = () => {
       } else if (itemId === 'item_ring_crystal' || lowerName.includes('tinh thể') || lowerName.includes('crystal')) {
         matInfo = {
           title: 'Tinh Thể Cường Hóa',
-          badge: 'NGUYÊN LIỆU ĐỘT PHÁ',
-          badgeColor: '#38bdf8',
-          badgeBg: 'rgba(56, 189, 248, 0.15)',
-          badgeBorder: '#0ea5e9',
+          badge: 'ĐÁ THƯỢNG CỔ',
+          badgeColor: '#ff00ff',
+          badgeBg: 'rgba(255, 0, 255, 0.15)',
+          badgeBorder: '#ff00ff',
           icon: '🔮',
           purpose: [
             'Cường hóa nâng Sao cho Nhẫn Thần Binh (từ 1⭐ lên tối đa 5⭐).',
@@ -6405,7 +6435,13 @@ const App = () => {
                 {isMaterial ? (
                   <>
                     <span
-                      className="text-[9px] font-black px-2 py-0.5 rounded-md border uppercase shrink-0"
+                      className="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase shrink-0"
+                      style={{ color: tier.color, background: tier.bg, borderColor: tier.border }}
+                    >
+                      {tier.label}
+                    </span>
+                    <span
+                      className="text-[9px] font-black px-1.5 py-0.5 rounded-md border uppercase shrink-0"
                       style={{ color: matInfo.badgeColor, background: matInfo.badgeBg, borderColor: matInfo.badgeBorder }}
                     >
                       {matInfo.badge}
