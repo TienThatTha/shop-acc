@@ -3281,68 +3281,6 @@ const App = () => {
     }
   };
 
-  // --- HÀM HỦY LIÊN KẾT TÀI KHOẢN GAME (CHO PHÉP ĐỔI SANG NHÂN VẬT KHÁC) ---
-  const handleUnlinkGameAccount = () => {
-    if (!currentUser) return requireAuth('login');
-    const currentUid = bossPlayerSummary?.user_id || currentUser.linked_game_id || bossTargetId;
-    if (!currentUid) {
-      showToast("Bạn chưa liên kết tài khoản game nào!", "info");
-      return;
-    }
-
-    setConfirmDialog({
-      title: 'Hủy / Đổi Liên Kết Nhân Vật Game',
-      message: `Bạn có chắc muốn hủy liên kết tài khoản web với nhân vật game @${currentUid}? Sau khi hủy, bạn có thể lấy mã OTP mới để liên kết lại với đúng nhân vật chính xác của mình.`,
-      confirmText: 'Xác Nhận Hủy',
-      confirmColor: 'bg-rose-600 hover:bg-rose-700',
-      onConfirm: async () => {
-        try {
-          // 1. Xóa khỏi localStorage trình duyệt
-          if (currentUser?.id) {
-            localStorage.removeItem(`shop_linked_game_id_${currentUser.id}`);
-          }
-          setCurrentUser(prev => prev ? ({ ...prev, linked_game_id: null }) : prev);
-          setBossTargetId('');
-          setBossPlayerSummary(null);
-
-          // 2. Vô hiệu hóa các đơn liên kết cũ trên Supabase để không bị khôi phục nhầm
-          try {
-            await supabase
-              .from('game_orders')
-              .update({ status: 'cancelled' })
-              .eq('package_id', 'account_link_otp')
-              .or(`web_user.eq."${currentUser.name || currentUser.id}",rewards->>web_user_id.eq."${currentUser.id}"`);
-          } catch (e) { }
-
-          // 3. Gửi lệnh hủy tới bot backend
-          try {
-            await supabase.from('game_orders').insert([{
-              id: `ACT_UNLINK_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-              user_id: currentUid,
-              nickname: currentUser.name || 'Khách Web',
-              web_user: currentUser.name || currentUser.id,
-              package_id: 'game_action_unlink_account',
-              package_name: 'Hủy liên kết tài khoản game',
-              price: 0,
-              rewards: {
-                action: 'unlink_account',
-                web_user_id: currentUser.id,
-                web_user_name: currentUser.name,
-                game_user_id: currentUid
-              },
-              status: 'pending'
-            }]);
-          } catch (e) { }
-
-          showToast("Đã hủy liên kết thành công! Bạn có thể lấy mã OTP mới để liên kết nhân vật chính xác.", "success");
-        } catch (err) {
-          console.error("Lỗi hủy liên kết:", err);
-          showToast("Đã hủy liên kết khỏi thiết bị này.", "info");
-        }
-      }
-    });
-  };
-
   // --- HÀM THỰC HIỆN HÀNH ĐỘNG TRÊN TÚI ĐỒ (TRANG BỊ / XÓA ĐỒ / DỌN RÁC) ---
   const handleExecuteBagAction = async (actionType, item = null, itemIndex = null) => {
     if (!currentUser) return requireAuth('login');
@@ -6149,17 +6087,10 @@ const App = () => {
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.2)]">
                       <CheckCircle2 size={14} className="text-emerald-400" />
-                      <span>✓ ĐÃ LIÊN KẾT TÀI KHOẢN GAME</span>
+                      <span>✓ ĐÃ LIÊN KẾT TÀI KHOẢN GAME VĨNH VIỄN</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={handleUnlinkGameAccount}
-                        className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 hover:text-white border border-rose-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
-                        title="Hủy liên kết nếu bị nhầm nick hoặc muốn đổi sang nhân vật khác"
-                      >
-                        <span>🔄 Hủy / Đổi Liên Kết</span>
-                      </button>
+                    <div className="text-[11px] text-slate-400 font-medium">
+                      Tự động nạp vào nhân vật này 24/7
                     </div>
                   </div>
 
