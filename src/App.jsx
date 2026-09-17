@@ -3281,6 +3281,68 @@ const App = () => {
     }
   };
 
+  // --- HÀM HỦY LIÊN KẾT TÀI KHOẢN GAME (CHO PHÉP ĐỔI SANG NHÂN VẬT KHÁC) ---
+  const handleUnlinkGameAccount = () => {
+    if (!currentUser) return requireAuth('login');
+    const currentUid = bossPlayerSummary?.user_id || currentUser.linked_game_id || bossTargetId;
+    if (!currentUid) {
+      showToast("Bạn chưa liên kết tài khoản game nào!", "info");
+      return;
+    }
+
+    setConfirmDialog({
+      title: 'Hủy / Đổi Liên Kết Nhân Vật Game',
+      message: `Bạn có chắc muốn hủy liên kết tài khoản web với nhân vật game @${currentUid}? Sau khi hủy, bạn có thể lấy mã OTP mới để liên kết lại với đúng nhân vật chính xác của mình.`,
+      confirmText: 'Xác Nhận Hủy',
+      confirmColor: 'bg-rose-600 hover:bg-rose-700',
+      onConfirm: async () => {
+        try {
+          // 1. Xóa khỏi localStorage trình duyệt
+          if (currentUser?.id) {
+            localStorage.removeItem(`shop_linked_game_id_${currentUser.id}`);
+          }
+          setCurrentUser(prev => prev ? ({ ...prev, linked_game_id: null }) : prev);
+          setBossTargetId('');
+          setBossPlayerSummary(null);
+
+          // 2. Vô hiệu hóa các đơn liên kết cũ trên Supabase để không bị khôi phục nhầm
+          try {
+            await supabase
+              .from('game_orders')
+              .update({ status: 'cancelled' })
+              .eq('package_id', 'account_link_otp')
+              .or(`web_user.eq."${currentUser.name || currentUser.id}",rewards->>web_user_id.eq."${currentUser.id}"`);
+          } catch (e) { }
+
+          // 3. Gửi lệnh hủy tới bot backend
+          try {
+            await supabase.from('game_orders').insert([{
+              id: `ACT_UNLINK_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+              user_id: currentUid,
+              nickname: currentUser.name || 'Khách Web',
+              web_user: currentUser.name || currentUser.id,
+              package_id: 'game_action_unlink_account',
+              package_name: 'Hủy liên kết tài khoản game',
+              price: 0,
+              rewards: {
+                action: 'unlink_account',
+                web_user_id: currentUser.id,
+                web_user_name: currentUser.name,
+                game_user_id: currentUid
+              },
+              status: 'pending'
+            }]);
+          } catch (e) { }
+
+          showToast("Đã hủy liên kết thành công! Bạn có thể lấy mã OTP mới để liên kết nhân vật chính xác.", "success");
+        } catch (err) {
+          console.error("Lỗi hủy liên kết:", err);
+          showToast("Đã hủy liên kết khỏi thiết bị này.", "info");
+        }
+      }
+    });
+  };
+
   // --- HÀM THỰC HIỆN HÀNH ĐỘNG TRÊN TÚI ĐỒ (TRANG BỊ / XÓA ĐỒ / DỌN RÁC) ---
   const handleExecuteBagAction = async (actionType, item = null, itemIndex = null) => {
     if (!currentUser) return requireAuth('login');
@@ -5855,68 +5917,178 @@ const App = () => {
     return { color: '#94a3b8', border: '#475569', bg: 'rgba(148, 163, 184, 0.15)', label: 'THƯỜNG' };
   };
 
-  const getBossItemAsset = (name, category) => {
-    const n = (name || '').toLowerCase();
-    // 1. Nguyên liệu (Materials)
-    if (n.includes('tinh hoa') || n.includes('essence') || n.includes('da_tinh_hoa')) {
-      return '/game-assets/da_tinh_hoa.png';
+  const ITEM_CANONICAL_ASSETS = {
+    // Vũ khí (Weapons)
+    "kiếm gỗ": "/game-assets/weapon_wooden_sword.png",
+    "trảm ma kiếm": "/game-assets/weapon_tram_ma.png",
+    "song đao hỏa thần": "/game-assets/weapon_song_dao.png",
+    "song đao hoả thần": "/game-assets/weapon_song_dao.png",
+    "thần đao diệt tộc": "/game-assets/weapon_than_dao.png",
+    "huyền thoại ma vương": "/game-assets/weapon_ma_vuong.png",
+    "ma vương": "/game-assets/weapon_ma_vuong.png",
+    "thần kiếm cổ đại chaos": "/game-assets/weapon_chaos.png",
+    "thần kiếm chaos": "/game-assets/weapon_chaos.png",
+    "bá vương thần đao thượng cổ": "/game-assets/weapon_ba_vuong.png",
+    "bá vương thần đao": "/game-assets/weapon_ba_vuong.png",
+
+    // Áo giáp (Armors)
+    "giáp sắt": "/game-assets/armor_giap_sat.png",
+    "giáp rồng": "/game-assets/armor_giap_rong.png",
+    "giáp thánh quang": "/game-assets/armor_thanh_quang.png",
+    "giáp kim cương": "/game-assets/armor_kim_cuong.png",
+    "giáp vô cực tối thượng": "/game-assets/armor_vo_cuc.png",
+    "giáp vô cực": "/game-assets/armor_vo_cuc.png",
+    "giáp cổ đại long vương": "/game-assets/armor_long_vuong.png",
+    "giáp long vương": "/game-assets/armor_long_vuong.png",
+    "thần giáp thượng cổ nữ oa": "/game-assets/armor_nu_oa.png",
+    "thần giáp nữ oa": "/game-assets/armor_nu_oa.png",
+    "giáp nữ oa": "/game-assets/armor_nu_oa.png",
+
+    // Linh thú (Pets)
+    "mèo béo": "/game-assets/pet_meo_beo.png",
+    "cáo tuyết": "/game-assets/pet_cao_tuyet.png",
+    "rồng con": "/game-assets/pet_rong_con.png",
+    "rồng thần tí hon": "/game-assets/pet_rong_than.png",
+    "phượng hoàng tối thượng": "/game-assets/pet_phuong_hoang.png",
+    "phượng hoàng": "/game-assets/pet_phuong_hoang.png",
+    "thần rồng cổ đại chaos": "/game-assets/pet_rong_chaos.png",
+    "thần rồng chaos": "/game-assets/pet_rong_chaos.png",
+    "bát hoang thần rồng thượng cổ": "/game-assets/pet_rong_thuong_co.png",
+    "bát hoang thần rồng": "/game-assets/pet_rong_thuong_co.png",
+    "rồng thượng cổ": "/game-assets/pet_rong_thuong_co.png",
+
+    // Dây chuyền (Necklaces)
+    "dây chuyền bạc": "/game-assets/necklace_thuong.png",
+    "dây chuyền lam ngọc": "/game-assets/necklace_hiem.png",
+    "dây chuyền tử tinh": "/game-assets/necklace_epic.png",
+    "dây chuyền hoàng kim": "/game-assets/necklace_thanthoai.png",
+    "dây chuyền hắc ma vương": "/game-assets/necklace_toithuong.png",
+    "dây chuyền cổ đại chaos": "/game-assets/necklace_codai.png",
+    "dây chuyền chaos": "/game-assets/necklace_codai.png",
+    "thần dây chuyền thượng cổ vô cực": "/game-assets/necklace_thuongco.png",
+    "thần dây chuyền vô cực": "/game-assets/necklace_thuongco.png",
+
+    // Nhẫn (Rings)
+    "nhẫn hắc thiết": "/game-assets/ring_thuong.png",
+    "nhẫn lam ngọc tinh": "/game-assets/ring_hiem.png",
+    "nhẫn huyết ma thạch": "/game-assets/ring_epic.png",
+    "nhẫn hoàng kim diệt thế": "/game-assets/ring_thanthoai.png",
+    "nhẫn hắc ám ma vương": "/game-assets/ring_toithuong.png",
+    "nhẫn thần long chaos": "/game-assets/ring_codai.png",
+    "nhẫn chaos": "/game-assets/ring_codai.png",
+    "bát hoang thần giới vô cực": "/game-assets/ring_thuongco.png",
+    "nhẫn bát hoang thần giới vô cực": "/game-assets/ring_thuongco.png",
+    "nhẫn bát hoang": "/game-assets/ring_thuongco.png",
+
+    // Nguyên liệu (Materials)
+    "tinh thể cường hóa": "/game-assets/ring_crystal.png",
+    "tinh thể cường hoá": "/game-assets/ring_crystal.png",
+    "tinh thể": "/game-assets/ring_crystal.png",
+    "đá tinh hoa": "/game-assets/da_tinh_hoa.png",
+    "bùa reset boss": "/game-assets/item_reset_boss.png"
+  };
+
+  const getBossItemAsset = (itemOrName, maybeCategory) => {
+    let name = '';
+    let category = '';
+    let directImg = '';
+
+    if (itemOrName && typeof itemOrName === 'object') {
+      name = itemOrName.name || '';
+      category = itemOrName.category || maybeCategory || '';
+      directImg = itemOrName.image || '';
+    } else {
+      name = String(itemOrName || '');
+      category = String(maybeCategory || '');
     }
-    if (n.includes('tinh thể') || n.includes('tinh the') || n.includes('crystal') || n.includes('ring_crystal')) {
-      return '/game-assets/ring_crystal.png';
+
+    // 0. Nếu item đã có ảnh định danh trực tiếp hợp lệ
+    if (directImg && typeof directImg === 'string') {
+      const cleanImg = directImg.split('/').pop().split('?')[0];
+      if (cleanImg && !cleanImg.includes('none') && cleanImg.endsWith('.png')) {
+        return `/game-assets/${cleanImg}`;
+      }
     }
+
+    const rawName = (name || '').trim();
+    // Bỏ qua cấp cường hóa như +1, +2, +15 nếu nằm trong chuỗi tên
+    const n = rawName.replace(/\s*\+\d+$/, '').trim().toLowerCase();
+    
+    // 1. Tra cứu chính xác theo tên chuẩn (Canonical SSOT)
+    if (ITEM_CANONICAL_ASSETS[n]) {
+      return ITEM_CANONICAL_ASSETS[n];
+    }
+
+    // 2. Tra cứu từ khóa đặc trưng (Keyword Pattern Matching)
+    // Nguyên liệu
+    if (n.includes('tinh hoa') || n.includes('essence') || n.includes('da_tinh_hoa')) return '/game-assets/da_tinh_hoa.png';
+    if (n.includes('tinh thể') || n.includes('tinh the') || n.includes('crystal') || n.includes('ring_crystal')) return '/game-assets/ring_crystal.png';
+    if (n.includes('reset') || n.includes('bùa reset')) return '/game-assets/item_reset_boss.png';
     if (category === 'material') {
       if (n.includes('tinh hoa') || n.includes('essence')) return '/game-assets/da_tinh_hoa.png';
       return '/game-assets/ring_crystal.png';
     }
 
-    // 2. Linh thú (Pets)
-    if (category === 'pet' || n.includes('pet') || n.includes('linh thú') || n.includes('rồng') || n.includes('phượng') || n.includes('cáo') || n.includes('mèo')) {
-      if (n.includes('phượng hoàng') || n.includes('phuong hoang')) return '/game-assets/pet_phuong_hoang.png';
-      if (n.includes('cáo tuyết') || n.includes('cao tuyet')) return '/game-assets/pet_cao_tuyet.png';
+    // Linh thú (Pets) - Ưu tiên chim Phượng Hoàng, Cáo, Mèo trước Rồng
+    if (category === 'pet' || n.includes('phượng') || n.includes('phuong') || n.includes('cáo') || n.includes('cao') || n.includes('mèo') || n.includes('meo') || n.includes('rồng') || n.includes('rong') || n.includes('linh thú')) {
+      if (n.includes('phượng') || n.includes('phuong')) return '/game-assets/pet_phuong_hoang.png';
+      if (n.includes('cáo') || n.includes('cao')) return '/game-assets/pet_cao_tuyet.png';
       if (n.includes('mèo') || n.includes('meo')) return '/game-assets/pet_meo_beo.png';
-      if (n.includes('thần') || n.includes('rong than')) return '/game-assets/pet_rong_than.png';
-      if (n.includes('thượng cổ') || n.includes('thuong co')) return '/game-assets/pet_rong_thuong_co.png';
+      if (n.includes('bát hoang') || n.includes('bat hoang') || n.includes('thuong co') || n.includes('thượng cổ')) return '/game-assets/pet_rong_thuong_co.png';
+      if (n.includes('chaos') || n.includes('cổ đại') || n.includes('co dai')) return '/game-assets/pet_rong_chaos.png';
+      if (n.includes('tí hon') || n.includes('ti hon') || n.includes('thần') || n.includes('than')) return '/game-assets/pet_rong_than.png';
+      if (n.includes('con')) return '/game-assets/pet_rong_con.png';
       return '/game-assets/pet_rong_chaos.png';
     }
 
-    // 3. Giáp (Armor)
-    if (category === 'armor' || n.includes('giáp') || n.includes('armor')) {
+    // Áo giáp (Armors)
+    if (category === 'armor' || n.includes('giáp') || n.includes('giap') || n.includes('armor')) {
       if (n.includes('nữ oa') || n.includes('nu oa')) return '/game-assets/armor_nu_oa.png';
       if (n.includes('vô cực') || n.includes('vo cuc')) return '/game-assets/armor_vo_cuc.png';
       if (n.includes('long vương') || n.includes('long vuong')) return '/game-assets/armor_long_vuong.png';
-      if (n.includes('rồng') || n.includes('rong')) return '/game-assets/armor_giap_rong.png';
       if (n.includes('kim cương') || n.includes('kim cuong')) return '/game-assets/armor_kim_cuong.png';
       if (n.includes('thánh quang') || n.includes('thanh quang')) return '/game-assets/armor_thanh_quang.png';
+      if (n.includes('giáp rồng') || n.includes('giap rong')) return '/game-assets/armor_giap_rong.png';
+      if (n.includes('giáp sắt') || n.includes('giap sat')) return '/game-assets/armor_giap_sat.png';
+      if (n.includes('thượng cổ')) return '/game-assets/armor_nu_oa.png';
+      if (n.includes('cổ đại')) return '/game-assets/armor_long_vuong.png';
+      if (n.includes('tối thượng')) return '/game-assets/armor_vo_cuc.png';
       return '/game-assets/armor_long_vuong.png';
     }
 
-    // 4. Vũ khí (Weapon)
-    if (category === 'weapon' || n.includes('kiếm') || n.includes('đao') || n.includes('vũ khí')) {
+    // Vũ khí (Weapons)
+    if (category === 'weapon' || n.includes('kiếm') || n.includes('kiem') || n.includes('đao') || n.includes('dao') || n.includes('vũ khí')) {
       if (n.includes('bá vương') || n.includes('ba vuong')) return '/game-assets/weapon_ba_vuong.png';
-      if (n.includes('thần đao') || n.includes('than dao')) return '/game-assets/weapon_than_dao.png';
-      if (n.includes('ma vương') || n.includes('ma vuong')) return '/game-assets/weapon_ma_vuong.png';
-      if (n.includes('song đao') || n.includes('song dao')) return '/game-assets/weapon_song_dao.png';
-      if (n.includes('chaos')) return '/game-assets/weapon_chaos.png';
+      if (n.includes('chaos') || n.includes('cổ đại')) return '/game-assets/weapon_chaos.png';
+      if (n.includes('ma vương') || n.includes('huyền thoại')) return '/game-assets/weapon_ma_vuong.png';
+      if (n.includes('thần đao') || n.includes('diệt tộc')) return '/game-assets/weapon_than_dao.png';
+      if (n.includes('song đao') || n.includes('hỏa thần') || n.includes('hoả thần')) return '/game-assets/weapon_song_dao.png';
+      if (n.includes('trảm ma')) return '/game-assets/weapon_tram_ma.png';
+      if (n.includes('kiếm gỗ') || n.includes('kiem go')) return '/game-assets/weapon_wooden_sword.png';
+      if (n.includes('thượng cổ')) return '/game-assets/weapon_ba_vuong.png';
       return '/game-assets/weapon_tram_ma.png';
     }
 
-    // 5. Nhẫn (Ring)
-    if (category === 'ring' || n.includes('nhẫn') || n.includes('ring')) {
-      if (n.includes('thượng cổ') || n.includes('bát hoang')) return '/game-assets/ring_thuongco.png';
-      if (n.includes('cổ đại') || n.includes('chaos')) return '/game-assets/ring_codai.png';
-      if (n.includes('thần thoại')) return '/game-assets/ring_thanthoai.png';
-      if (n.includes('epic')) return '/game-assets/ring_epic.png';
-      if (n.includes('hiếm')) return '/game-assets/ring_hiem.png';
-      return '/game-assets/ring_toithuong.png';
+    // Nhẫn (Rings)
+    if (category === 'ring' || n.includes('nhẫn') || n.includes('nhan') || n.includes('ring')) {
+      if (n.includes('bát hoang') || n.includes('thượng cổ')) return '/game-assets/ring_thuongco.png';
+      if (n.includes('thần long') || n.includes('chaos') || n.includes('cổ đại')) return '/game-assets/ring_codai.png';
+      if (n.includes('hắc ám') || n.includes('ma vương') || n.includes('tối thượng')) return '/game-assets/ring_toithuong.png';
+      if (n.includes('hoàng kim') || n.includes('thần thoại')) return '/game-assets/ring_thanthoai.png';
+      if (n.includes('huyết ma') || n.includes('epic')) return '/game-assets/ring_epic.png';
+      if (n.includes('lam ngọc') || n.includes('hiếm')) return '/game-assets/ring_hiem.png';
+      return '/game-assets/ring_thuong.png';
     }
 
-    // 6. Dây chuyền (Necklace)
+    // Dây chuyền (Necklaces)
     if (category === 'necklace' || n.includes('dây chuyền') || n.includes('chuyền') || n.includes('necklace')) {
-      if (n.includes('thượng cổ')) return '/game-assets/necklace_thuongco.png';
-      if (n.includes('cổ đại')) return '/game-assets/necklace_codai.png';
-      if (n.includes('thần thoại')) return '/game-assets/necklace_thanthoai.png';
-      if (n.includes('tối thượng')) return '/game-assets/necklace_toithuong.png';
-      return '/game-assets/necklace_epic.png';
+      if (n.includes('thần dây chuyền') || n.includes('thượng cổ')) return '/game-assets/necklace_thuongco.png';
+      if (n.includes('chaos') || n.includes('cổ đại')) return '/game-assets/necklace_codai.png';
+      if (n.includes('hắc ma') || n.includes('tối thượng')) return '/game-assets/necklace_toithuong.png';
+      if (n.includes('hoàng kim') || n.includes('thần thoại')) return '/game-assets/necklace_thanthoai.png';
+      if (n.includes('tử tinh') || n.includes('epic')) return '/game-assets/necklace_epic.png';
+      if (n.includes('lam ngọc') || n.includes('hiếm')) return '/game-assets/necklace_hiem.png';
+      return '/game-assets/necklace_thuong.png';
     }
 
     return '/game-assets/ring_crystal.png';
@@ -5977,10 +6149,17 @@ const App = () => {
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.2)]">
                       <CheckCircle2 size={14} className="text-emerald-400" />
-                      <span>✓ ĐÃ LIÊN KẾT TÀI KHOẢN GAME VĨNH VIỄN</span>
+                      <span>✓ ĐÃ LIÊN KẾT TÀI KHOẢN GAME</span>
                     </div>
-                    <div className="text-[11px] text-slate-400 font-medium">
-                      Tự động nạp vào nhân vật này 24/7
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleUnlinkGameAccount}
+                        className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 hover:text-white border border-rose-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                        title="Hủy liên kết nếu bị nhầm nick hoặc muốn đổi sang nhân vật khác"
+                      >
+                        <span>🔄 Hủy / Đổi Liên Kết</span>
+                      </button>
                     </div>
                   </div>
 
@@ -6484,7 +6663,7 @@ const App = () => {
             }
 
             const tier = getBossTierStyle(item.tier);
-            const imgUrl = getBossItemAsset(item.name, category);
+            const imgUrl = getBossItemAsset(item, category);
             const plusText = (item.plus && item.plus > 0) ? ` +${item.plus}` : '';
             const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
             const stars = '⭐'.repeat(starsCount);
@@ -7040,7 +7219,7 @@ const App = () => {
                         {filteredInventory.map((item, idx) => {
                           const category = getCategoryOfItem(item);
                           const tier = getBossTierStyle(item.tier);
-                          const img = getBossItemAsset(item.name, category);
+                          const img = getBossItemAsset(item, category);
                           const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
                           const stars = '⭐'.repeat(starsCount);
                           const isLoadingThis = isPerformingBagAction && (bagActionLoadingItem === (item.id || item.name || idx) || bagActionLoadingItem === 'all');
@@ -7212,7 +7391,7 @@ const App = () => {
           const item = selectedItemToList;
           const category = getCategoryOfItem(item);
           const tier = getBossTierStyle(item?.tier);
-          const img = getBossItemAsset(item?.name, category);
+          const img = getBossItemAsset(item, category);
           const numStars = Number(item?.stars);
           const starsCount = Math.max(1, Math.min(5, isNaN(numStars) || numStars < 1 ? 1 : numStars));
           const stars = '⭐'.repeat(starsCount);
@@ -7565,7 +7744,7 @@ const App = () => {
                             const item = listing.item || {};
                             const category = getCategoryOfItem(item);
                             const tier = getBossTierStyle(item.tier);
-                            const img = getBossItemAsset(item.name, category);
+                            const img = getBossItemAsset(item, category);
                             const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
                             const stars = '⭐'.repeat(starsCount);
                             const isMine = String(listing.seller_id).toLowerCase() === myUid;
@@ -7718,7 +7897,7 @@ const App = () => {
                           const item = listing.item || {};
                           const category = getCategoryOfItem(item);
                           const tier = getBossTierStyle(item.tier);
-                          const img = getBossItemAsset(item.name, category);
+                          const img = getBossItemAsset(item, category);
                           const safePrice = Number(listing.price || 0);
                           const feeCoins = Number(listing.fee_coins || Math.round(safePrice * 0.20));
                           const netReceive = Number(listing.net_receive || (safePrice - feeCoins));
@@ -7793,7 +7972,7 @@ const App = () => {
                           const item = listing.item || {};
                           const category = getCategoryOfItem(item);
                           const tier = getBossTierStyle(item.tier);
-                          const img = getBossItemAsset(item.name, category);
+                          const img = getBossItemAsset(item, category);
                           const soldTime = listing.sold_at ? new Date(listing.sold_at * 1000).toLocaleString('vi-VN') : 'Gần đây';
 
                           return (
