@@ -9752,9 +9752,23 @@ const App = () => {
                   </div>
                 </div>
 
-                <div className="mb-4 flex relative max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                  <input type="text" value={adminSearchUser} onChange={(e) => { setAdminSearchUser(e.target.value); setVisibleUsersCount(10); }} placeholder="Tìm theo tên, SĐT hoặc Email..." className="w-full pl-10 pr-4 py-2 bg-[#0B1120] border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex relative max-w-md flex-1 min-w-[260px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                    <input type="text" value={adminSearchUser} onChange={(e) => { setAdminSearchUser(e.target.value); setVisibleUsersCount(10); }} placeholder="Tìm theo tên, SĐT hoặc Email..." className="w-full pl-10 pr-4 py-2 bg-[#0B1120] border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
+                  </div>
+                  <button
+                    onClick={() => {
+                      const id = prompt("Nhập Tên hoặc ID TikTok / User ID cần kiểm tra Stat & Trang bị:");
+                      if (id && id.trim()) {
+                        handleCheckBossPlayer(id.trim(), false).then(() => setShowBossProfileModal(true));
+                      }
+                    }}
+                    className="px-3.5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs rounded-lg shadow-md flex items-center gap-1.5 border border-cyan-400/30 transition-all cursor-pointer"
+                    title="Kiểm tra toàn bộ Chỉ số (Stat), Lực chiến CP và Trang bị của bất kỳ người chơi nào"
+                  >
+                    <span>📊</span> Tra Cứu Stat Game
+                  </button>
                 </div>
 
                 <div
@@ -9800,6 +9814,18 @@ const App = () => {
                           </td>
                           <td className="p-4 text-center">
                             <div className="flex justify-center gap-2">
+                              <button
+                                onClick={async () => {
+                                  const targetId = u.linked_game_id || u.phone || u.email || u.name;
+                                  showToast(`Đang tra cứu hồ sơ game cho ${u.name}...`, 'info');
+                                  await handleCheckBossPlayer(targetId, true);
+                                  setShowBossProfileModal(true);
+                                }}
+                                className="px-2.5 py-1.5 bg-amber-500/20 text-amber-300 rounded text-xs font-bold hover:bg-amber-500 hover:text-black transition-colors flex items-center gap-1 border border-amber-500/30 shadow-sm"
+                                title="Kiểm tra Stat, Lực chiến CP & Trang bị của người này"
+                              >
+                                <span>📊</span> Stat
+                              </button>
                               <button onClick={() => setViewUserHistory(u)} className="px-3 py-1.5 bg-indigo-500/20 text-indigo-400 rounded text-xs font-bold hover:bg-indigo-500 hover:text-white transition-colors flex items-center gap-1" title="Lịch sử giao dịch"><History size={14} /> Lịch sử</button>
                               <button onClick={() => { setEditingUser(u); setShowUserModal(true); }} className="p-2 bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors" title="Chỉnh sửa"><Edit size={16} /></button>
                               {u.role !== 'admin' && (
