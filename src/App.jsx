@@ -7,7 +7,7 @@ import {
   History, Target, Gift, Save, Upload, Plus, Unlock, QrCode,
   Download, Copy, Check, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ZoomIn,
   Sparkles, TrendingUp, Users, Ticket, Settings2, MessageCircle, Send, Eye, EyeOff,
-  ArrowLeftRight, RotateCcw, MoreVertical, AlertTriangle, ArrowLeft, Loader2, Swords, Crown, Zap, Shield, Gem, Package, Link
+  ArrowLeftRight, RotateCcw, MoreVertical, AlertTriangle, ArrowLeft, Loader2, Swords, Crown, Zap, Shield, Gem, Package, Link, BarChart2
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import emailjs from '@emailjs/browser';
@@ -418,6 +418,7 @@ const App = () => {
   const [bossPlayerNotFound, setBossPlayerNotFound] = useState(false);
   const [bossNotFoundQuery, setBossNotFoundQuery] = useState('');
   const [showBossProfileModal, setShowBossProfileModal] = useState(false);
+  const [showBossStatModal, setShowBossStatModal] = useState(false);
   const [isCheckingBossPlayer, setIsCheckingBossPlayer] = useState(false);
   const [selectedBossPackage, setSelectedBossPackage] = useState(null);
   const [isBuyingBossPackage, setIsBuyingBossPackage] = useState(false);
@@ -2531,6 +2532,17 @@ const App = () => {
                               className="w-full px-4 py-2 text-left text-xs font-semibold text-orange-300 hover:bg-orange-500/20 transition-colors flex items-center gap-2.5"
                             >
                               <span className="text-sm">🏛️</span> Sàn Đấu Giá (Chợ Xu)
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowUserDropdown(false);
+                                requireAuth('bossgame');
+                                setCurrentView('bossgame');
+                                setShowBossStatModal(true);
+                              }}
+                              className="w-full px-4 py-2 text-left text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition-colors flex items-center gap-2.5"
+                            >
+                              <BarChart2 size={15} className="text-emerald-400" /> 📊 Xem Bảng Stat
                             </button>
                           </>
                         )}
@@ -6647,7 +6659,7 @@ const App = () => {
         }}
       >
         <div
-          className="w-[330px] sm:w-[350px] overflow-y-auto custom-scrollbar rounded-2xl p-3.5 sm:p-4 bg-gradient-to-b from-[#0F172A] via-[#0B1120] to-[#060913] border-2 text-slate-200 shadow-2xl backdrop-blur-2xl animate-fade-in relative"
+          className="w-[330px] sm:w-[360px] max-w-[95vw] overflow-y-auto custom-scrollbar rounded-2xl p-3.5 sm:p-4 bg-gradient-to-b from-[#0F172A] via-[#0B1120] to-[#060913] border-2 text-slate-200 shadow-2xl backdrop-blur-2xl animate-fade-in relative"
           style={{
             borderColor: isMaterial ? matInfo.badgeBorder : tier.border,
             boxShadow: `0 0 25px ${isMaterial ? matInfo.badgeBorder : tier.color}40, 0 20px 40px rgba(0,0,0,0.9)`,
@@ -6988,30 +7000,32 @@ const App = () => {
                         return (
                           <div
                             key={bIdx}
-                            className={`px-2.5 py-1.5 rounded-lg border text-[10.5px] flex items-center justify-between transition-all ${
+                            className={`p-2 rounded-lg border text-[11px] flex items-start justify-between gap-2 transition-all ${
                               isUnlocked
                                 ? 'bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-transparent border-amber-500/60 text-amber-200 font-bold shadow-[0_0_12px_rgba(245,158,11,0.25)]'
-                                : 'bg-slate-950/40 border-dashed border-slate-800/70 text-slate-500 opacity-40 font-normal'
+                                : 'bg-slate-950/50 border-dashed border-slate-800/80 text-slate-400 font-normal'
                             }`}
                           >
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span className={isUnlocked ? 'text-amber-400 font-black' : 'text-slate-600'}>
+                            <div className="flex items-start gap-1.5 min-w-0 flex-1">
+                              <span className={`shrink-0 mt-0.5 ${isUnlocked ? 'text-amber-400 font-black' : 'text-slate-500'}`}>
                                 {isUnlocked ? '✅' : '🔒'}
                               </span>
-                              <span className={isUnlocked ? 'text-amber-300 font-extrabold' : 'text-slate-500 font-semibold'}>
-                                ({bonus.count} Món):
-                              </span>
-                              <span className={isUnlocked ? 'text-slate-100 font-bold truncate' : 'text-slate-500 truncate'}>
-                                {bonus.desc}
-                              </span>
+                              <div className="min-w-0 flex-1 leading-snug break-words whitespace-normal">
+                                <span className={`mr-1.5 ${isUnlocked ? 'text-amber-300 font-extrabold' : 'text-slate-400 font-semibold'}`}>
+                                  ({bonus.count} Món):
+                                </span>
+                                <span className={isUnlocked ? 'text-slate-100 font-bold' : 'text-slate-300'}>
+                                  {bonus.desc}
+                                </span>
+                              </div>
                             </div>
 
                             {isUnlocked ? (
-                              <span className="text-[8.5px] bg-amber-500/30 text-amber-300 font-black px-1.5 py-0.5 rounded border border-amber-500/50 uppercase shrink-0 ml-1">
+                              <span className="text-[8.5px] bg-amber-500/30 text-amber-300 font-black px-1.5 py-0.5 rounded border border-amber-500/50 uppercase shrink-0 mt-0.5">
                                 Đã sáng
                               </span>
                             ) : (
-                              <span className="text-[8.5px] text-slate-600 font-mono shrink-0 ml-1">
+                              <span className="text-[8.5px] text-slate-500 font-mono shrink-0 mt-0.5">
                                 (Chưa đủ)
                               </span>
                             )}
@@ -7171,14 +7185,27 @@ const App = () => {
                         <span>Túi Đồ & Trang Bị</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setShowBossProfileModal(true)}
-                        className="flex-1 md:flex-none px-4 py-2.5 bg-[#1A233A] hover:bg-slate-800 text-cyan-300 font-bold text-xs rounded-xl border border-cyan-500/40 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-                      >
-                        <Eye size={15} />
-                        <span>Xem Profile Chi Tiết</span>
-                      </button>
+                      <div className="flex gap-2 w-full md:w-auto">
+                        <button
+                          type="button"
+                          onClick={() => setShowBossStatModal(true)}
+                          className="flex-1 md:flex-none px-3.5 py-2.5 bg-gradient-to-r from-emerald-600/30 via-teal-600/30 to-cyan-600/30 hover:from-emerald-500/40 hover:to-cyan-500/40 text-emerald-300 font-bold text-xs rounded-xl border border-emerald-500/40 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                          title="Xem bảng chi tiết thuộc tính chiến đấu (HP, Công, Thủ, Crit)"
+                        >
+                          <BarChart2 size={15} />
+                          <span>Xem Bảng Stat</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowBossProfileModal(true)}
+                          className="flex-1 md:flex-none px-3.5 py-2.5 bg-[#1A233A] hover:bg-slate-800 text-cyan-300 font-bold text-xs rounded-xl border border-cyan-500/40 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                          title="Xem 5 món trang bị, linh thú, nhẫn thần binh"
+                        >
+                          <Eye size={15} />
+                          <span>Xem Profile</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -7781,13 +7808,24 @@ const App = () => {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setShowBossProfileModal(false)}
-                    className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-rose-600 text-slate-400 hover:text-white flex items-center justify-center transition-colors border border-slate-700 shrink-0 cursor-pointer"
-                  >
-                    <X size={16} />
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => { setShowBossProfileModal(false); setShowBossStatModal(true); }}
+                      className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl border border-emerald-400/50 shadow flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105"
+                      title="Chuyển sang xem Bảng Stat Thuộc Tính Chiến Đấu"
+                    >
+                      <BarChart2 size={14} />
+                      <span className="hidden sm:inline">Xem Stat</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowBossProfileModal(false)}
+                      className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-rose-600 text-slate-400 hover:text-white flex items-center justify-center transition-colors border border-slate-700 shrink-0 cursor-pointer"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Scrollable Content */}
@@ -7882,13 +7920,331 @@ const App = () => {
                 </div>
 
                 {/* Footer Action */}
-                <div className="border-t border-slate-800 pt-3 mt-3 flex justify-between items-center shrink-0">
-                  <span className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
-                    <CheckCircle2 size={13} /> Tài khoản hợp lệ & sẵn sàng nhận quà
-                  </span>
+                <div className="border-t border-slate-800 pt-3 mt-3 flex justify-between items-center shrink-0 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setShowBossProfileModal(false); setShowBossStatModal(true); }}
+                      className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <BarChart2 size={14} />
+                      <span>Xem Bảng Stat Thuộc Tính</span>
+                    </button>
+                    <span className="text-[11px] text-emerald-400 font-bold hidden sm:flex items-center gap-1">
+                      <CheckCircle2 size={13} /> Sẵn sàng nhận quà
+                    </span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setShowBossProfileModal(false)}
+                    className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* MODAL STAT CHI TIẾT THUỘC TÍNH CHIẾN ĐẤU (HP, CÔNG, THỦ, CRIT) */}
+        {showBossStatModal && bossPlayerSummary && (() => {
+          const p = bossPlayerSummary;
+          const lvl = Number(p.level || 1);
+
+          // 1. MÁU (HP) & PHÒNG THỦ (DEF)
+          const baseHp = 1000 + lvl * 150;
+          let armorHp = 0;
+          let armorDef = 0;
+          if (p.armor) {
+            const getArmorStats = (it) => {
+              if (it?.base_hp !== undefined && it?.base_def !== undefined) {
+                return { baseHp: Number(it.base_hp), baseDef: Number(it.base_def) };
+              }
+              const n = (it?.name || '').toLowerCase();
+              const t = (it?.tier || '').toLowerCase();
+              if (n.includes('nữ oa') || t.includes('thượng cổ')) return { baseHp: 150000, baseDef: 15000 };
+              if (n.includes('long vương') || t.includes('cổ đại')) return { baseHp: 60000, baseDef: 6000 };
+              if (n.includes('vô cực') || t.includes('tối thượng')) return { baseHp: 25000, baseDef: 2500 };
+              if (n.includes('kim cương') || t.includes('thần thoại')) return { baseHp: 10000, baseDef: 1000 };
+              if (n.includes('thánh quang') || t.includes('epic')) return { baseHp: 4000, baseDef: 400 };
+              if (n.includes('giáp rồng') || t.includes('hiếm')) return { baseHp: 1500, baseDef: 150 };
+              return { baseHp: 500, baseDef: 50 };
+            };
+            const aStats = getArmorStats(p.armor);
+            const aPlus = Number(p.armor.plus || 0);
+            const aStars = Math.max(1, Math.min(5, Number(p.armor.stars || 1)));
+            const starMultMath = Math.pow(2, Math.max(0, aStars - 1));
+            armorHp = Math.round(aStats.baseHp * (1 + 0.25 * aPlus) * starMultMath);
+            armorDef = Math.round(aStats.baseDef * (1 + 0.20 * aPlus) * starMultMath);
+          }
+
+          const maxHp = Number(p.max_hp !== undefined ? p.max_hp : (baseHp + armorHp));
+          const currentHp = Number(p.current_hp !== undefined ? p.current_hp : maxHp);
+          const hpPct = Math.min(100, Math.max(0, (currentHp / Math.max(1, maxHp)) * 100));
+          const totalDef = Number(p.total_def !== undefined ? p.total_def : armorDef);
+          const dmgReducPct = Number(p.dmg_reduction_pct !== undefined ? p.dmg_reduction_pct : (totalDef > 0 ? (totalDef / (totalDef + 2500) * 100) : 0));
+          const isDead = Boolean(p.is_dead);
+          const respawnTime = Number(p.respawn_seconds_left || 0);
+
+          // 2. TẤN CÔNG (ATK / ALL DMG)
+          const baseUserDmg = 100 + (lvl * 25);
+          let wpDmg = 0;
+          if (p.weapon) {
+            const wpBase = Number(p.weapon.base_dmg || 0);
+            const wpPlus = Number(p.weapon.plus || 0);
+            const wpStars = Math.max(1, Math.min(5, Number(p.weapon.stars || 1)));
+            wpDmg = Math.round(wpBase * (1.0 + wpPlus * 0.25) * Math.pow(2, wpStars - 1));
+          }
+          let arDmg = 0;
+          if (p.armor) {
+            const arBase = Number(p.armor.base_dmg || 0);
+            const arPlus = Number(p.armor.plus || 0);
+            const arStars = Math.max(1, Math.min(5, Number(p.armor.stars || 1)));
+            arDmg = Math.round(arBase * (1.0 + arPlus * 0.25) * Math.pow(2, arStars - 1));
+          }
+          let petDmg = 0;
+          if (p.pet) {
+            const pBase = Number(p.pet.bonus_dmg || 0);
+            const pStars = Math.max(1, Math.min(5, Number(p.pet.stars || 1)));
+            petDmg = Math.round(pBase * Math.pow(2, pStars - 1));
+          }
+          let baseTotalDmg = baseUserDmg + wpDmg + arDmg + petDmg;
+          let nkPct = 0;
+          if (p.necklace) {
+            const bPct = Number(p.necklace.dmg_percent || 0);
+            const uPct = Math.max(Number(p.necklace.plus || 0), Math.round(bPct * (p.necklace.plus || 0) * 0.20));
+            const nStars = Math.max(1, Math.min(5, Number(p.necklace.stars || 1)));
+            nkPct = (bPct + uPct) * Math.pow(2, nStars - 1);
+          }
+          let ringDmgPct = 0;
+          if (p.ring) {
+            const rBase = Number(p.ring.base_dmg_percent || 0);
+            const rS = Math.max(1, Math.min(5, Number(p.ring.stars || 1)));
+            ringDmgPct = Math.round(rBase * Math.pow(3, rS - 1));
+          }
+          const allAttack = Number(p.total_attack || Math.round(baseTotalDmg * (1.0 + (nkPct / 100.0)) * (1.0 + (ringDmgPct / 100.0))));
+
+          // 3. CHÍ MẠNG (CRIT & CRIT DMG TỔNG %)
+          let fallbackCrit = 15;
+          if (p.pet && p.pet.tier) {
+            const tLow = (p.pet.tier || '').toLowerCase();
+            fallbackCrit = tLow.includes('thượng cổ') ? 50 : (tLow.includes('cổ đại') ? 35 : (tLow.includes('tối thượng') ? 25 : (tLow.includes('thần thoại') ? 20 : (tLow.includes('epic') ? 15 : 10))));
+          }
+          const critRate = Number((p.crit_chance !== undefined && p.crit_chance > 0) ? p.crit_chance : fallbackCrit);
+          const critMul = Number(p.crit_multiplier !== undefined ? p.crit_multiplier : 1.8);
+          const critTotalPct = Math.round(critMul * 100);
+
+          const ringProcStr = p.ring ? getRingSkillProcStr(p.ring) : 'Chưa mở khóa';
+
+          return (
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+              onClick={(e) => { if (e.target === e.currentTarget) setShowBossStatModal(false); }}
+            >
+              <div className="bg-gradient-to-br from-[#090e1c] via-[#0b1224] to-[#04060c] border-2 border-cyan-400 rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-[0_0_55px_rgba(0,229,255,0.4)] p-5 sm:p-6 flex flex-col relative text-white animate-zoom-in overflow-hidden">
+                {/* Header */}
+                <div className="flex justify-between items-start border-b border-cyan-500/25 pb-4 mb-4 shrink-0">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <img
+                      src={p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id)}`}
+                      alt="Avatar"
+                      className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-[2.5px] border-cyan-400 shadow-[0_0_16px_rgba(0,229,255,0.7)] object-cover bg-slate-900 shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-lg sm:text-xl text-white tracking-wide truncate max-w-[200px] sm:max-w-[280px]">
+                          {p.nickname}
+                        </span>
+                        <span className="text-[10px] font-black text-cyan-400 bg-cyan-400/15 border border-cyan-400/40 rounded px-2 py-0.5">
+                          Cấp {lvl}
+                        </span>
+                        <span className="text-[10px] font-black text-yellow-400 bg-yellow-400/15 border border-yellow-400/40 rounded px-2 py-0.5">
+                          ⚔️ Chiến Thần
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-400 font-mono mt-0.5 truncate">
+                        @{p.user_id}
+                      </div>
+                      <div className="text-[11px] text-cyan-300 font-bold mt-1 flex items-center gap-1">
+                        📊 BẢNG THUỘC TÍNH CHIẾN ĐẤU (HP, CÔNG, THỦ, CRIT)
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => { setShowBossStatModal(false); setShowBossProfileModal(true); }}
+                      className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-xs rounded-xl border border-indigo-400/50 shadow flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105"
+                      title="Xem Profile & Trang Bị"
+                    >
+                      <Eye size={14} />
+                      <span className="hidden sm:inline">Xem Profile</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowBossStatModal(false)}
+                      className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-rose-600 text-slate-400 hover:text-white flex items-center justify-center transition-colors border border-slate-700 shrink-0 cursor-pointer"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Scrollable Content */}
+                <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-3.5 flex-1">
+                  {/* Fiery CP Bar & Combat Status */}
+                  <div className="bg-gradient-to-r from-orange-600/20 via-amber-500/20 to-orange-600/10 border border-orange-500/80 rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-[0_0_20px_rgba(255,100,0,0.25)] flex-wrap gap-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl animate-bounce">🔥</span>
+                      <div>
+                        <div className="text-[10px] font-black text-amber-400 uppercase tracking-wider">Tổng Lực Chiến (CP)</div>
+                        <div className="text-xl sm:text-2xl font-black text-white drop-shadow-[0_0_10px_rgba(255,69,0,0.8)] font-sans">
+                          {Number(p.cp || 0).toLocaleString()} CP
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      {isDead ? (
+                        <span className="text-xs font-black text-rose-400 bg-rose-500/15 border border-rose-500/40 px-3 py-1 rounded-xl">
+                          🔴 Trọng Thương ({respawnTime}s)
+                        </span>
+                      ) : (
+                        <span className="text-xs font-black text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-3 py-1 rounded-xl">
+                          🟢 Sẵn Sàng Chiến Đấu ({hpPct.toFixed(0)}% HP)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 4 CORE COMBAT STATS (MÁU, CÔNG, THỦ, CRIT) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* CARD 1: HP */}
+                    <div className="bg-rose-950/20 border border-rose-500/40 rounded-2xl p-3.5 relative overflow-hidden shadow-[0_4px_15px_rgba(244,63,94,0.1)]">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-xs font-black text-rose-400 uppercase flex items-center gap-1.5">
+                          ❤️ Sinh Lực (HP)
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-bold">Max HP</span>
+                      </div>
+                      <div className="text-xl font-black text-white font-sans drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]">
+                        {currentHp.toLocaleString()} / {maxHp.toLocaleString()} HP
+                      </div>
+                      <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden mt-2.5 border border-rose-500/30">
+                        <div
+                          className="h-full bg-gradient-to-r from-rose-500 to-red-600 rounded-full shadow-[0_0_8px_#f43f5e]"
+                          style={{ width: `${hpPct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* CARD 2: TẤN CÔNG (ATK / ALL DMG) */}
+                    <div className="bg-emerald-950/20 border border-emerald-500/40 rounded-2xl p-3.5 relative overflow-hidden shadow-[0_4px_15px_rgba(16,185,129,0.1)]">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-xs font-black text-emerald-400 uppercase flex items-center gap-1.5">
+                          ⚔️ Sức Tấn Công (ATK)
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-bold">All Real DMG</span>
+                      </div>
+                      <div className="text-xl font-black text-emerald-300 font-sans drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]">
+                        {allAttack > 0 ? allAttack.toLocaleString() : '0'} DMG
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-2 font-medium">
+                        Sát thương thực tế mỗi đòn chém Boss
+                      </div>
+                    </div>
+
+                    {/* CARD 3: PHÒNG THỦ (DEF) */}
+                    <div className="bg-sky-950/20 border border-sky-500/40 rounded-2xl p-3.5 relative overflow-hidden shadow-[0_4px_15px_rgba(14,165,233,0.1)]">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-xs font-black text-sky-400 uppercase flex items-center gap-1.5">
+                          🛡️ Phòng Thủ (DEF)
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-bold">Giảm Sát Thương</span>
+                      </div>
+                      <div className="text-xl font-black text-sky-300 font-sans drop-shadow-[0_0_8px_rgba(14,165,233,0.6)]">
+                        {totalDef.toLocaleString()} DEF
+                      </div>
+                      <div className="text-[11.5px] text-sky-400 font-bold mt-2">
+                        🛡️ Giảm Sát Thương Nhận Vào: {dmgReducPct.toFixed(1)}%
+                      </div>
+                    </div>
+
+                    {/* CARD 4: CRIT & CRIT DMG (TỔNG %) */}
+                    <div className="bg-pink-950/20 border border-pink-500/40 rounded-2xl p-3.5 relative overflow-hidden shadow-[0_4px_15px_rgba(244,63,94,0.1)]">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-xs font-black text-pink-400 uppercase flex items-center gap-1.5">
+                          ⚡ Bạo Kích & Sát Thương (Crit)
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-bold">Chí Mạng</span>
+                      </div>
+                      <div className="text-xl font-black text-rose-400 font-sans drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]">
+                        ⚡ {critRate.toFixed(1)}% | 💥 {critTotalPct}%
+                      </div>
+                      <div className="text-[11px] text-rose-300 font-bold mt-2">
+                        💥 Sát Thương Chí Mạng: {critTotalPct}%
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* KỸ NĂNG THẦN BINH & TÀI NGUYÊN */}
+                  <div>
+                    <div className="text-xs font-black text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      🔮 Kỹ Năng Thần Binh & Tài Nguyên
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">💍 Nhẫn Thần Binh</div>
+                        <div className="text-xs font-extrabold text-purple-400 mt-1 truncate">
+                          {ringProcStr}
+                        </div>
+                      </div>
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">📈 Thưởng EXP Đòn Đánh</div>
+                        <div className="text-xs font-extrabold text-sky-400 mt-1">
+                          +{(p.exp_bonus_multiplier || 0).toFixed(1)}% EXP
+                        </div>
+                      </div>
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">⚡ Lượt Đánh Khả Dụng</div>
+                        <div className="text-xs font-extrabold text-cyan-400 mt-1">
+                          {Number(p.bonus_attacks || 0).toLocaleString()} lượt
+                        </div>
+                      </div>
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">🪙 Xu Nâng Cấp Khả Dụng</div>
+                        <div className="text-xs font-extrabold text-amber-400 mt-1">
+                          {Number(p.bonus_coins || 0).toLocaleString()} Xu
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Action */}
+                <div className="border-t border-slate-800 pt-3 mt-3 flex justify-between items-center shrink-0 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setShowBossStatModal(false); setShowBossProfileModal(true); }}
+                      className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Eye size={14} />
+                      <span>Xem Profile & 5 Trang Bị</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowBossStatModal(false); setShowBagModal(true); }}
+                      className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-purple-300 font-bold text-xs rounded-xl border border-purple-500/30 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Package size={14} />
+                      <span>Mở Túi Đồ</span>
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowBossStatModal(false)}
                     className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-colors cursor-pointer"
                   >
                     Đóng
@@ -9759,13 +10115,13 @@ const App = () => {
                   </div>
                   <button
                     onClick={() => {
-                      const id = prompt("Nhập Tên hoặc ID TikTok / User ID cần kiểm tra Stat & Trang bị:");
+                      const id = prompt("Nhập Tên hoặc ID TikTok / User ID cần kiểm tra Stat & Thuộc tính:");
                       if (id && id.trim()) {
-                        handleCheckBossPlayer(id.trim(), false).then(() => setShowBossProfileModal(true));
+                        handleCheckBossPlayer(id.trim(), false).then(() => setShowBossStatModal(true));
                       }
                     }}
-                    className="px-3.5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs rounded-lg shadow-md flex items-center gap-1.5 border border-cyan-400/30 transition-all cursor-pointer"
-                    title="Kiểm tra toàn bộ Chỉ số (Stat), Lực chiến CP và Trang bị của bất kỳ người chơi nào"
+                    className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-lg shadow-md flex items-center gap-1.5 border border-emerald-400/30 transition-all cursor-pointer"
+                    title="Kiểm tra toàn bộ Chỉ số (Stat), HP, Tấn công, DEF, Crit của bất kỳ người chơi nào"
                   >
                     <span>📊</span> Tra Cứu Stat Game
                   </button>
