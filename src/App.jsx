@@ -6178,6 +6178,205 @@ const App = () => {
     };
   };
 
+  // --- HÀM LOẠI BỎ ICON LẶP THỪA TRONG THUỘC TÍNH PHỤ ---
+  const formatSubStatText = (sub) => {
+    if (!sub) return '';
+    let str = String(sub).trim();
+    // Loại bỏ các icon ✨ đứng trước một emoji khác (ví dụ: "✨ ⚡" -> "⚡", "✨ 💥" -> "💥")
+    str = str.replace(/^(?:✨\s*)+(?=[\p{Extended_Pictographic}\u2600-\u27bf])/u, '').trim();
+    return str;
+  };
+
+  // --- HỆ THỐNG BỘ TRANG BỊ & KÍCH HOẠT HIỆU ỨNG SET (SET BONUSES) ---
+  const SET_DEFINITIONS = {
+    thuong_co: {
+      name: 'Bộ Thần Trang Thượng Cổ',
+      tier: 'Thượng Cổ',
+      color: '#ff00ff',
+      icon: '👑',
+      badge: 'CỰC PHẨM THƯỢNG CỔ',
+      pieces: [
+        { slot: 'weapon', label: 'Vũ Khí', name: 'Bá Vương Thần Đao Thượng Cổ', slotIcon: '⚔️' },
+        { slot: 'armor', label: 'Áo Giáp', name: 'Thần Giáp Thượng Cổ Nữ Oa', slotIcon: '🛡️' },
+        { slot: 'necklace', label: 'Dây Chuyền', name: 'Thần Dây Chuyền Thượng Cổ Vô Cực', slotIcon: '📿' },
+        { slot: 'ring', label: 'Nhẫn Thần', name: 'Bát Hoang Thần Giới Vô Cực', slotIcon: '💍' },
+        { slot: 'pet', label: 'Linh Thú', name: 'Bát Hoang Thần Rồng Thượng Cổ', slotIcon: '🐾' }
+      ],
+      bonuses: [
+        { count: 2, desc: '+15% Tổng Sát Thương & +10% Bạo Kích' },
+        { count: 3, desc: '+30% Sinh Lực (HP) & +25% Phòng Thủ (DEF)' },
+        { count: 4, desc: '+25% Sát Thương Boss & +15% Xuyên Giáp' },
+        { count: 5, desc: '+50% Toàn Thuộc Tính & Tuyệt Kỹ: Nộ Long Thượng Cổ (Bạo Kích x3.0)' }
+      ]
+    },
+    co_dai: {
+      name: 'Bộ Chiến Binh Cổ Đại',
+      tier: 'Cổ Đại',
+      color: '#00ffaa',
+      icon: '🐉',
+      badge: 'CHIẾN BINH CỔ ĐẠI',
+      pieces: [
+        { slot: 'weapon', label: 'Vũ Khí', name: 'Thần Kiếm Cổ Đại Chaos', slotIcon: '⚔️' },
+        { slot: 'armor', label: 'Áo Giáp', name: 'Giáp Cổ Đại Long Vương', slotIcon: '🛡️' },
+        { slot: 'necklace', label: 'Dây Chuyền', name: 'Dây Chuyền Cổ Đại Chaos', slotIcon: '📿' },
+        { slot: 'ring', label: 'Nhẫn Thần', name: 'Nhẫn Thần Long Chaos', slotIcon: '💍' },
+        { slot: 'pet', label: 'Linh Thú', name: 'Thần Rồng Cổ Đại Chaos', slotIcon: '🐾' }
+      ],
+      bonuses: [
+        { count: 2, desc: '+12% Tổng Sát Thương' },
+        { count: 3, desc: '+20% Sinh Lực (HP) & +20% Phòng Thủ (DEF)' },
+        { count: 4, desc: '+20% Sát Thương Bạo Kích & +10% Xuyên Giáp' },
+        { count: 5, desc: '+35% Toàn Thuộc Tính & Giảm 25% Sát Thương Boss' }
+      ]
+    },
+    toi_thuong: {
+      name: 'Bộ Hắc Ma Tối Thượng',
+      tier: 'Tối Thượng',
+      color: '#ff3366',
+      icon: '🌌',
+      badge: 'HẮC MA TỐI THƯỢNG',
+      pieces: [
+        { slot: 'weapon', label: 'Vũ Khí', name: 'Huyền Thoại Ma Vương', slotIcon: '⚔️' },
+        { slot: 'armor', label: 'Áo Giáp', name: 'Giáp Vô Cực Tối Thượng', slotIcon: '🛡️' },
+        { slot: 'necklace', label: 'Dây Chuyền', name: 'Dây Chuyền Hắc Ma Vương', slotIcon: '📿' },
+        { slot: 'ring', label: 'Nhẫn Thần', name: 'Nhẫn Hắc Ám Ma Vương', slotIcon: '💍' },
+        { slot: 'pet', label: 'Linh Thú', name: 'Phượng Hoàng Tối Thượng', slotIcon: '🐾' }
+      ],
+      bonuses: [
+        { count: 2, desc: '+10% Tổng Sát Thương' },
+        { count: 3, desc: '+15% Sinh Lực (HP) & +15% Phòng Thủ (DEF)' },
+        { count: 4, desc: '+15% Sát Thương Bạo Kích & +10% Xuyên Giáp' },
+        { count: 5, desc: '+25% Toàn Thuộc Tính & Hút Máu 10%' }
+      ]
+    },
+    than_thoai: {
+      name: 'Bộ Hoàng Kim Thần Thoại',
+      tier: 'Thần Thoại',
+      color: '#ffaa00',
+      icon: '✨',
+      badge: 'HOÀNG KIM THẦN THOẠI',
+      pieces: [
+        { slot: 'weapon', label: 'Vũ Khí', name: 'Thần Đao Diệt Tộc', slotIcon: '⚔️' },
+        { slot: 'armor', label: 'Áo Giáp', name: 'Giáp Kim Cương', slotIcon: '🛡️' },
+        { slot: 'necklace', label: 'Dây Chuyền', name: 'Dây Chuyền Hoàng Kim', slotIcon: '📿' },
+        { slot: 'ring', label: 'Nhẫn Thần', name: 'Nhẫn Hoàng Kim Diệt Thế', slotIcon: '💍' },
+        { slot: 'pet', label: 'Linh Thú', name: 'Rồng Thần Tí Hon', slotIcon: '🐾' }
+      ],
+      bonuses: [
+        { count: 2, desc: '+8% Tổng Sát Thương' },
+        { count: 3, desc: '+12% Sinh Lực (HP) & +12% Phòng Thủ (DEF)' },
+        { count: 4, desc: '+12% Sát Thương Bạo Kích' },
+        { count: 5, desc: '+20% Toàn Thuộc Tính & Hộ Thể Kim Cương' }
+      ]
+    },
+    epic: {
+      name: 'Bộ Thánh Quang Sử Thi',
+      tier: 'Epic',
+      color: '#a855f7',
+      icon: '🌟',
+      badge: 'THÁNH QUANG SỬ THI',
+      pieces: [
+        { slot: 'weapon', label: 'Vũ Khí', name: 'Song Đao Hỏa Thần', slotIcon: '⚔️' },
+        { slot: 'armor', label: 'Áo Giáp', name: 'Giáp Thánh Quang', slotIcon: '🛡️' },
+        { slot: 'necklace', label: 'Dây Chuyền', name: 'Dây Chuyền Tử Tinh', slotIcon: '📿' },
+        { slot: 'ring', label: 'Nhẫn Thần', name: 'Nhẫn Huyết Ma Thạch', slotIcon: '💍' },
+        { slot: 'pet', label: 'Linh Thú', name: 'Rồng Con', slotIcon: '🐾' }
+      ],
+      bonuses: [
+        { count: 2, desc: '+5% Tổng Sát Thương' },
+        { count: 3, desc: '+8% Sinh Lực (HP) & +8% Phòng Thủ (DEF)' },
+        { count: 4, desc: '+15% Toàn Thuộc Tính' }
+      ]
+    },
+    hiem: {
+      name: 'Bộ Hiếm Lam Tinh',
+      tier: 'Hiếm',
+      color: '#38bdf8',
+      icon: '🔷',
+      badge: 'LAM TINH HIẾM',
+      pieces: [
+        { slot: 'weapon', label: 'Vũ Khí', name: 'Trảm Ma Kiếm', slotIcon: '⚔️' },
+        { slot: 'armor', label: 'Áo Giáp', name: 'Giáp Rồng', slotIcon: '🛡️' },
+        { slot: 'necklace', label: 'Dây Chuyền', name: 'Dây Chuyền Lam Ngọc', slotIcon: '📿' },
+        { slot: 'ring', label: 'Nhẫn Thần', name: 'Nhẫn Lam Ngọc Tinh', slotIcon: '💍' },
+        { slot: 'pet', label: 'Linh Thú', name: 'Cáo Tuyết', slotIcon: '🐾' }
+      ],
+      bonuses: [
+        { count: 2, desc: '+3% Tổng Sát Thương' },
+        { count: 3, desc: '+5% Sinh Lực & +5% Phòng Thủ' },
+        { count: 4, desc: '+8% Toàn Thuộc Tính' }
+      ]
+    },
+    thuong: {
+      name: 'Bộ Tân Thủ Thường',
+      tier: 'Thường',
+      color: '#94a3b8',
+      icon: '🗡️',
+      badge: 'TÂN THỦ CƠ BẢN',
+      pieces: [
+        { slot: 'weapon', label: 'Vũ Khí', name: 'Kiếm Gỗ', slotIcon: '⚔️' },
+        { slot: 'armor', label: 'Áo Giáp', name: 'Giáp Sắt', slotIcon: '🛡️' },
+        { slot: 'necklace', label: 'Dây Chuyền', name: 'Dây Chuyền Bạc', slotIcon: '📿' },
+        { slot: 'ring', label: 'Nhẫn Thần', name: 'Nhẫn Hắc Thiết', slotIcon: '💍' },
+        { slot: 'pet', label: 'Linh Thú', name: 'Mèo Béo', slotIcon: '🐾' }
+      ],
+      bonuses: [
+        { count: 2, desc: '+2% Tổng Sát Thương' },
+        { count: 3, desc: '+5% Sinh Lực & +5% Phòng Thủ' },
+        { count: 4, desc: '+5% Toàn Thuộc Tính' }
+      ]
+    }
+  };
+
+  const getItemSetInfo = (it) => {
+    if (!it) return null;
+    const cat = String(it.category || '').toLowerCase();
+    if (cat === 'material' || cat === 'nguyenlieu' || cat === 'crystal') return null;
+    const name = String(it.name || '').toLowerCase();
+    const tier = String(it.tier || '').toLowerCase();
+
+    // Bỏ qua nếu là nguyên liệu đá
+    if (name.includes('tinh hoa') || name.includes('tinh thể') || name.includes('đá') || name.includes('bùa')) return null;
+
+    let setKey = null;
+    if (tier.includes('thượng cổ') || name.includes('thượng cổ') || name.includes('bá vương') || name.includes('nữ oa') || name.includes('bát hoang')) {
+      setKey = 'thuong_co';
+    } else if (tier.includes('cổ đại') || name.includes('cổ đại') || name.includes('long vương') || name.includes('chaos')) {
+      setKey = 'co_dai';
+    } else if (tier.includes('tối thượng') || name.includes('tối thượng') || name.includes('ma vương')) {
+      setKey = 'toi_thuong';
+    } else if (tier.includes('thần thoại') || name.includes('thần thoại') || name.includes('diệt tộc') || name.includes('kim cương') || name.includes('hoàng kim')) {
+      setKey = 'than_thoai';
+    } else if (tier.includes('epic') || tier.includes('sử thi') || name.includes('hỏa thần') || name.includes('thánh quang') || name.includes('tử tinh')) {
+      setKey = 'epic';
+    } else if (tier.includes('hiếm') || tier.includes('rare') || name.includes('trảm ma') || name.includes('giáp rồng') || name.includes('lam ngọc') || name.includes('cáo tuyết')) {
+      setKey = 'hiem';
+    } else if (tier.includes('thường') || tier.includes('common') || name.includes('kiếm gỗ') || name.includes('giáp sắt') || name.includes('bạc') || name.includes('hắc thiết') || name.includes('mèo béo')) {
+      setKey = 'thuong';
+    }
+
+    if (!setKey || !SET_DEFINITIONS[setKey]) return null;
+    return { setKey, ...SET_DEFINITIONS[setKey] };
+  };
+
+  const getEquippedSetStatus = (setKey, playerSummary) => {
+    if (!setKey || !playerSummary) return { equippedCount: 0, equippedSlots: [] };
+    const slots = ['weapon', 'armor', 'necklace', 'ring', 'pet'];
+    let count = 0;
+    const equippedSlots = [];
+    slots.forEach(slotKey => {
+      const eq = playerSummary[slotKey];
+      if (eq && eq.name) {
+        const eqSet = getItemSetInfo(eq);
+        if (eqSet && eqSet.setKey === setKey) {
+          count++;
+          equippedSlots.push({ slot: slotKey, item: eq });
+        }
+      }
+    });
+    return { equippedCount: count, equippedSlots };
+  };
+
   const showItemTooltip = (item, e, customCat, isPinned = false) => {
     if (!item) return;
     if (hideTooltipTimerRef.current) clearTimeout(hideTooltipTimerRef.current);
@@ -6379,6 +6578,27 @@ const App = () => {
     }
 
     // DÀNH CHO TRANG BỊ (EQUIPMENT)
+    const getArmorStats = (it) => {
+      if (it?.base_hp !== undefined && it?.base_def !== undefined) {
+        return { baseHp: Number(it.base_hp), baseDef: Number(it.base_def) };
+      }
+      const n = (it?.name || '').toLowerCase();
+      const t = (it?.tier || '').toLowerCase();
+      if (n.includes('nữ oa') || t.includes('thượng cổ')) return { baseHp: 150000, baseDef: 15000 };
+      if (n.includes('long vương') || t.includes('cổ đại')) return { baseHp: 60000, baseDef: 6000 };
+      if (n.includes('vô cực') || t.includes('tối thượng')) return { baseHp: 25000, baseDef: 2500 };
+      if (n.includes('kim cương') || t.includes('thần thoại')) return { baseHp: 10000, baseDef: 1000 };
+      if (n.includes('thánh quang') || t.includes('epic')) return { baseHp: 4000, baseDef: 400 };
+      if (n.includes('giáp rồng') || t.includes('hiếm')) return { baseHp: 1500, baseDef: 150 };
+      return { baseHp: 500, baseDef: 50 };
+    };
+
+    const armorStats = getArmorStats(item);
+    const starMultMath = Math.pow(2, Math.max(0, starsCount - 1));
+    const totalEstHp = Math.round(armorStats.baseHp * (1 + 0.25 * plusVal) * starMultMath);
+    const totalEstDef = Math.round(armorStats.baseDef * (1 + 0.20 * plusVal) * starMultMath);
+    const estDmgReduc = Math.min(80, Math.round((totalEstDef / (totalEstDef + 2500)) * 100));
+
     const baseDmg = Number(item.base_dmg || 0);
     const plusBonus = Math.round(baseDmg * plusVal * 0.25);
     const totalBasePlus = baseDmg + plusBonus;
@@ -6566,7 +6786,7 @@ const App = () => {
                 </div>
 
                 <div className="space-y-1.5 text-[11px]">
-                  {(category === 'weapon' || category === 'armor') && (
+                  {category === 'weapon' && (
                     <>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
                         <span className="text-slate-400">Sát thương gốc (Base DMG):</span>
@@ -6585,6 +6805,37 @@ const App = () => {
                       <div className="flex justify-between items-center pt-1">
                         <span className="text-emerald-400 font-bold">Tổng Sát Thương Dự Tính:</span>
                         <span className="font-black text-emerald-300 text-xs">+{totalEstDmg.toLocaleString()} DMG ⚡</span>
+                      </div>
+                    </>
+                  )}
+
+                  {category === 'armor' && (
+                    <>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-slate-400">Sinh lực gốc (Base HP):</span>
+                        <span className="font-bold text-emerald-400">+{armorStats.baseHp.toLocaleString()} HP</span>
+                      </div>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-slate-400">Phòng thủ gốc (Base DEF):</span>
+                        <span className="font-bold text-cyan-400">+{armorStats.baseDef.toLocaleString()} DEF</span>
+                      </div>
+                      {plusVal > 0 && (
+                        <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                          <span className="text-yellow-400">Cường hóa (+{plusVal}):</span>
+                          <span className="font-bold text-yellow-300">+{plusVal * 25}% HP • +{plusVal * 20}% DEF</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-amber-400">Hệ số Sao ({starsCount}⭐):</span>
+                        <span className="font-bold text-amber-300">x{starMultMath} Chỉ Số</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="text-emerald-400 font-bold">Tổng Sinh Lực (HP):</span>
+                        <span className="font-black text-emerald-300 text-xs">+{totalEstHp.toLocaleString()} HP ❤️</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-0.5">
+                        <span className="text-cyan-400 font-bold">Tổng Phòng Thủ (DEF):</span>
+                        <span className="font-black text-cyan-300 text-xs">+{totalEstDef.toLocaleString()} DEF (Giảm ~{estDmgReduc}% ST Boss) 🛡️</span>
                       </div>
                     </>
                   )}
@@ -6661,14 +6912,7 @@ const App = () => {
                 {allSubStats.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
                     {allSubStats.map((sub, sIdx) => {
-                      let cleanSub = String(sub).trim();
-                      // Loại bỏ icon lặp thừa nếu dòng thuộc tính đã có sẵn biểu tượng
-                      if (cleanSub.startsWith('✨ ') && cleanSub.length > 3) {
-                        const rest = cleanSub.slice(2).trim();
-                        if (/^[\p{Extended_Pictographic}\u2600-\u27bf]/u.test(rest)) {
-                          cleanSub = rest;
-                        }
-                      }
+                      const cleanSub = formatSubStatText(sub);
                       return (
                         <span
                           key={sIdx}
@@ -6685,6 +6929,99 @@ const App = () => {
                   </div>
                 )}
               </div>
+
+              {/* HIỆU ỨNG BỘ TRANG BỊ (SET BONUS) */}
+              {(() => {
+                const setInfo = getItemSetInfo(item);
+                if (!setInfo) return null;
+                const { equippedCount, equippedSlots } = getEquippedSetStatus(setInfo.setKey, bossPlayerSummary);
+                const totalPieces = setInfo.pieces.length;
+                const isSetFull = equippedCount >= totalPieces;
+
+                return (
+                  <div className="bg-slate-900/70 border border-slate-800/80 rounded-xl p-2.5">
+                    {/* Header Bộ */}
+                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/60 mb-2">
+                      <div className="flex items-center gap-1.5 font-black text-[11px] uppercase tracking-wide" style={{ color: setInfo.color }}>
+                        <span>{setInfo.icon}</span>
+                        <span>{setInfo.name}</span>
+                      </div>
+                      <span className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded border ${
+                        equippedCount >= 2
+                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                          : 'bg-slate-800/60 border-slate-700/60 text-slate-400'
+                      }`}>
+                        Kích hoạt: {equippedCount}/{totalPieces} món
+                      </span>
+                    </div>
+
+                    {/* Danh sách các món trong bộ */}
+                    <div className="flex flex-wrap gap-1 mb-2.5">
+                      {setInfo.pieces.map((piece, pIdx) => {
+                        const isEquipped = equippedSlots.some(s => s.slot === piece.slot);
+                        return (
+                          <span
+                            key={pIdx}
+                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 transition-all ${
+                              isEquipped
+                                ? 'bg-amber-500/20 border border-amber-500/40 text-amber-200 drop-shadow-[0_0_6px_rgba(245,158,11,0.3)]'
+                                : 'bg-black/40 border border-dashed border-slate-800/80 text-slate-500 opacity-60'
+                            }`}
+                          >
+                            <span>{piece.slotIcon}</span>
+                            <span className="truncate max-w-[130px]">{piece.name}</span>
+                            {isEquipped && <span className="text-emerald-400 font-black">✓</span>}
+                          </span>
+                        );
+                      })}
+                    </div>
+
+                    {/* Các mốc kích hoạt thuộc tính Set */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] font-bold text-slate-400 flex items-center justify-between">
+                        <span>Thuộc tính kích hoạt bộ:</span>
+                        {isSetFull && <span className="text-[9px] text-amber-300 font-bold">✨ ĐÃ ĐỦ TRỌN BỘ!</span>}
+                      </div>
+
+                      {setInfo.bonuses.map((bonus, bIdx) => {
+                        const isUnlocked = equippedCount >= bonus.count;
+                        return (
+                          <div
+                            key={bIdx}
+                            className={`px-2.5 py-1.5 rounded-lg border text-[10.5px] flex items-center justify-between transition-all ${
+                              isUnlocked
+                                ? 'bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-transparent border-amber-500/60 text-amber-200 font-bold shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+                                : 'bg-slate-950/40 border-dashed border-slate-800/70 text-slate-500 opacity-40 font-normal'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className={isUnlocked ? 'text-amber-400 font-black' : 'text-slate-600'}>
+                                {isUnlocked ? '✅' : '🔒'}
+                              </span>
+                              <span className={isUnlocked ? 'text-amber-300 font-extrabold' : 'text-slate-500 font-semibold'}>
+                                ({bonus.count} Món):
+                              </span>
+                              <span className={isUnlocked ? 'text-slate-100 font-bold truncate' : 'text-slate-500 truncate'}>
+                                {bonus.desc}
+                              </span>
+                            </div>
+
+                            {isUnlocked ? (
+                              <span className="text-[8.5px] bg-amber-500/30 text-amber-300 font-black px-1.5 py-0.5 rounded border border-amber-500/50 uppercase shrink-0 ml-1">
+                                Đã sáng
+                              </span>
+                            ) : (
+                              <span className="text-[8.5px] text-slate-600 font-mono shrink-0 ml-1">
+                                (Chưa đủ)
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* HƯỚNG DẪN & TÍNH NĂNG */}
               <div className="bg-black/40 border border-slate-800/60 rounded-xl p-2.5 space-y-1.5 text-[10px] text-slate-300">
@@ -7325,7 +7662,7 @@ const App = () => {
 
                   {/* Stats row */}
                   <div className="flex items-center gap-1.5 mt-1.5 flex-wrap text-[10px]">
-                    {(category === 'weapon' || category === 'armor') && (
+                    {category === 'weapon' && (
                       <>
                         <span className="font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded">
                           {Number(item.base_dmg || 0).toLocaleString()} DMG
@@ -7337,6 +7674,23 @@ const App = () => {
                         )}
                       </>
                     )}
+                    {category === 'armor' && (() => {
+                      const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 150000 : (item.tier?.toLowerCase().includes('cổ đại') ? 60000 : (item.tier?.toLowerCase().includes('tối thượng') ? 25000 : (item.tier?.toLowerCase().includes('thần thoại') ? 10000 : (item.tier?.toLowerCase().includes('epic') ? 4000 : 1500))))));
+                      const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 15000 : (item.tier?.toLowerCase().includes('cổ đại') ? 6000 : (item.tier?.toLowerCase().includes('tối thượng') ? 2500 : (item.tier?.toLowerCase().includes('thần thoại') ? 1000 : (item.tier?.toLowerCase().includes('epic') ? 400 : 150))))));
+                      const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
+                      const totHp = Math.round(bHp * (1 + 0.25 * (item.plus || 0)) * sMult);
+                      const totDef = Math.round(bDef * (1 + 0.20 * (item.plus || 0)) * sMult);
+                      return (
+                        <>
+                          <span className="font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded">
+                            ❤️ +{totHp.toLocaleString()} HP
+                          </span>
+                          <span className="font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 px-1.5 py-0.5 rounded">
+                            🛡️ +{totDef.toLocaleString()} DEF
+                          </span>
+                        </>
+                      );
+                    })()}
                     {category === 'necklace' && (
                       <span className="font-bold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.5 rounded">
                         +{Number(item.dmg_percent || 0)}% DMG
@@ -7370,14 +7724,7 @@ const App = () => {
                     return (
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         {allSubs.slice(0, 3).map((sub, sIdx) => {
-                          let cleanSub = String(sub).trim();
-                          // Nếu có icon lặp như "✨ ⚡" hoặc "✨ ✨", giữ lại 1 icon duy nhất tương ứng với thuộc tính
-                          if (cleanSub.startsWith('✨ ') && cleanSub.length > 3) {
-                            const rest = cleanSub.slice(2).trim();
-                            if (/^[\p{Extended_Pictographic}\u2600-\u27bf]/u.test(rest)) {
-                              cleanSub = rest;
-                            }
-                          }
+                          const cleanSub = formatSubStatText(sub);
                           return (
                             <span
                               key={sIdx}
@@ -7907,11 +8254,23 @@ const App = () => {
 
                                   {/* Stats */}
                                   <div className="text-[10px] text-slate-300 font-bold mt-1 space-y-0.5">
-                                    {(category === 'weapon' || category === 'armor') && (
+                                    {category === 'weapon' && (
                                       <span className="text-emerald-400 block">
                                         ⚡ +{Number(item.base_dmg || 0).toLocaleString()} DMG {item.plus ? `(+${Math.round(Number(item.base_dmg || 0) * item.plus * 0.25).toLocaleString()})` : ''}
                                       </span>
                                     )}
+                                    {category === 'armor' && (() => {
+                                      const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 150000 : (item.tier?.toLowerCase().includes('cổ đại') ? 60000 : (item.tier?.toLowerCase().includes('tối thượng') ? 25000 : (item.tier?.toLowerCase().includes('thần thoại') ? 10000 : (item.tier?.toLowerCase().includes('epic') ? 4000 : 1500))))));
+                                      const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 15000 : (item.tier?.toLowerCase().includes('cổ đại') ? 6000 : (item.tier?.toLowerCase().includes('tối thượng') ? 2500 : (item.tier?.toLowerCase().includes('thần thoại') ? 1000 : (item.tier?.toLowerCase().includes('epic') ? 400 : 150))))));
+                                      const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
+                                      const totHp = Math.round(bHp * (1 + 0.25 * (item.plus || 0)) * sMult);
+                                      const totDef = Math.round(bDef * (1 + 0.20 * (item.plus || 0)) * sMult);
+                                      return (
+                                        <span className="text-emerald-400 block">
+                                          ❤️ +{totHp.toLocaleString()} HP • 🛡️ +{totDef.toLocaleString()} DEF
+                                        </span>
+                                      );
+                                    })()}
                                     {category === 'necklace' && (
                                       <span className="text-amber-400 block">
                                         📿 +{Number(item.dmg_percent || 0)}% DMG Toàn Bộ
@@ -8494,9 +8853,19 @@ const App = () => {
 
                                       {/* Stats tóm tắt */}
                                       <div className="text-[10px] text-slate-300 font-bold mt-1">
-                                        {(category === 'weapon' || category === 'armor') && (
+                                        {category === 'weapon' && (
                                           <span className="text-emerald-400">⚡ +{Number(item.base_dmg || 0).toLocaleString()} DMG</span>
                                         )}
+                                        {category === 'armor' && (() => {
+                                          const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 150000 : (item.tier?.toLowerCase().includes('cổ đại') ? 60000 : (item.tier?.toLowerCase().includes('tối thượng') ? 25000 : (item.tier?.toLowerCase().includes('thần thoại') ? 10000 : (item.tier?.toLowerCase().includes('epic') ? 4000 : 1500))))));
+                                          const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 15000 : (item.tier?.toLowerCase().includes('cổ đại') ? 6000 : (item.tier?.toLowerCase().includes('tối thượng') ? 2500 : (item.tier?.toLowerCase().includes('thần thoại') ? 1000 : (item.tier?.toLowerCase().includes('epic') ? 400 : 150))))));
+                                          const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
+                                          const totHp = Math.round(bHp * (1 + 0.25 * (item.plus || 0)) * sMult);
+                                          const totDef = Math.round(bDef * (1 + 0.20 * (item.plus || 0)) * sMult);
+                                          return (
+                                            <span className="text-emerald-400">❤️ +{totHp.toLocaleString()} HP • 🛡️ +{totDef.toLocaleString()} DEF</span>
+                                          );
+                                        })()}
                                         {category === 'necklace' && (
                                           <span className="text-amber-400">📿 +{Number(item.dmg_percent || 0)}% DMG</span>
                                         )}
