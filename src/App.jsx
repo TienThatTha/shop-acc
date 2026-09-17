@@ -6005,7 +6005,13 @@ const App = () => {
     "tinh thể cường hoá": "/game-assets/ring_crystal.png",
     "tinh thể": "/game-assets/ring_crystal.png",
     "đá tinh hoa": "/game-assets/da_tinh_hoa.png",
-    "bùa reset boss": "/game-assets/item_reset_boss.png"
+    "bùa reset boss": "/game-assets/item_reset_boss.png",
+    "bình huyết dược": "/game-assets/item_health_potion.png",
+    "bình máu": "/game-assets/item_health_potion.png",
+    "item_health_potion": "/game-assets/item_health_potion.png",
+    "bùa phục sinh": "/game-assets/item_revive_amulet.png",
+    "bùa hồi sinh": "/game-assets/item_revive_amulet.png",
+    "item_revive_amulet": "/game-assets/item_revive_amulet.png"
   };
 
   const getBossItemAsset = (itemOrName, maybeCategory) => {
@@ -6040,6 +6046,10 @@ const App = () => {
     }
 
     // 2. Tra cứu từ khóa đặc trưng (Keyword Pattern Matching)
+    // Thần Dược Máu & Bùa Phục Sinh
+    if (n.includes('huyết dược') || n.includes('bình máu') || n.includes('binh mau') || n.includes('health_potion') || n.includes('potion')) return '/game-assets/item_health_potion.png';
+    if (n.includes('phục sinh') || n.includes('hồi sinh') || n.includes('revive_amulet') || n.includes('amulet') || n.includes('revive')) return '/game-assets/item_revive_amulet.png';
+
     // Nguyên liệu
     if (n.includes('tinh hoa') || n.includes('essence') || n.includes('da_tinh_hoa')) return '/game-assets/da_tinh_hoa.png';
     if (n.includes('tinh thể') || n.includes('tinh the') || n.includes('crystal') || n.includes('ring_crystal')) return '/game-assets/ring_crystal.png';
@@ -6124,6 +6134,8 @@ const App = () => {
       }
     }
     const n = (item.name || '').toLowerCase();
+    if (n.includes('huyết dược') || n.includes('bình máu') || n.includes('potion')) return 'potion';
+    if (n.includes('phục sinh') || n.includes('hồi sinh') || n.includes('amulet') || n.includes('revive')) return 'revive';
     if (n.includes('tinh hoa') || n.includes('tinh thể') || n.includes('essence') || n.includes('crystal') || n.includes('đá')) return 'material';
     if (n.includes('nhẫn') || n.includes('ring')) return 'ring';
     if (n.includes('dây chuyền') || n.includes('necklace')) return 'necklace';
