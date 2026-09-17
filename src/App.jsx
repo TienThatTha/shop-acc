@@ -6524,13 +6524,19 @@ const App = () => {
                   <div className="flex flex-wrap gap-1.5">
                     {allSubStats.map((sub, sIdx) => {
                       let cleanSub = String(sub).trim();
+                      // Loại bỏ icon lặp thừa nếu dòng thuộc tính đã có sẵn biểu tượng
+                      if (cleanSub.startsWith('✨ ') && cleanSub.length > 3) {
+                        const rest = cleanSub.slice(2).trim();
+                        if (/^[\p{Extended_Pictographic}\u2600-\u27bf]/u.test(rest)) {
+                          cleanSub = rest;
+                        }
+                      }
                       return (
                         <span
                           key={sIdx}
-                          className="text-[10px] font-bold text-slate-200 bg-purple-950/40 border border-purple-500/30 px-2 py-0.5 rounded-lg flex items-center gap-1"
+                          className="text-[10px] font-bold text-slate-200 bg-purple-950/40 border border-purple-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm"
                         >
-                          <span className="text-purple-400">✨</span>
-                          <span>{cleanSub.replace(/^✨\s*/, '')}</span>
+                          <span>{cleanSub}</span>
                         </span>
                       );
                     })}
@@ -6543,17 +6549,23 @@ const App = () => {
               </div>
 
               {/* HƯỚNG DẪN & TÍNH NĂNG */}
-              <div className="bg-black/40 border border-slate-800/60 rounded-xl p-2.5 space-y-1 text-[10px] text-slate-300">
-                <div className="font-black text-cyan-300 flex items-center gap-1 uppercase">
+              <div className="bg-black/40 border border-slate-800/60 rounded-xl p-2.5 space-y-1.5 text-[10px] text-slate-300">
+                <div className="font-black text-cyan-300 flex items-center gap-1 uppercase tracking-wide">
                   <span>💡</span> Hướng dẫn sử dụng:
                 </div>
                 <div>• Bấm nút <strong>[Mặc Vào]</strong> ở Túi Đồ để trang bị trực tiếp vào nhân vật.</div>
-                {category === 'ring' ? (
-                  <div>• Dùng <strong>Đá Tinh Hoa & Tinh Thể</strong> gõ lệnh <code>/dap nhan</code> trên live để up Kỹ Năng & Sao.</div>
+                {category === 'weapon' ? (
+                  <div>• Gõ lệnh <code className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-bold font-mono">/dap kiem</code> (hoặc <code>mdap kiem</code> / <code>/cuonghoa</code>) trên <strong>Live TikTok</strong> hoặc <strong>Discord</strong> để cường hóa tăng cấp (+plus).</div>
+                ) : category === 'armor' ? (
+                  <div>• Gõ lệnh <code className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-bold font-mono">/dap giap</code> (hoặc <code>mdap giap</code> / <code>/cuonghoa</code>) trên <strong>Live TikTok</strong> hoặc <strong>Discord</strong> để cường hóa tăng cấp (+plus).</div>
+                ) : category === 'necklace' ? (
+                  <div>• Gõ lệnh <code className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-bold font-mono">/dap chuyen</code> (hoặc <code>mdap chuyen</code> / <code>/cuonghoa</code>) trên <strong>Live TikTok</strong> hoặc <strong>Discord</strong> để cường hóa tăng cấp (+plus).</div>
+                ) : category === 'ring' ? (
+                  <div>• Dùng <strong>Tinh Thể & Xu</strong>, gõ lệnh <code className="px-1.5 py-0.5 rounded bg-slate-800 text-purple-300 font-bold font-mono">/dap nhan</code> (hoặc <code>mdap nhan</code> / <code>/cuonghoa</code>) trên <strong>Live TikTok</strong> hoặc <strong>Discord</strong> để nâng Cấp Tuyệt Kỹ & Đột phá Sao.</div>
                 ) : category === 'pet' ? (
-                  <div>• Cho ăn trên web hoặc gõ lệnh <code>/pet</code> trên livestream để thăng cấp Linh Thú.</div>
+                  <div>• Dùng Lượt đánh, gõ lệnh <code className="px-1.5 py-0.5 rounded bg-slate-800 text-rose-300 font-bold font-mono">/feed</code> (hoặc <code>/feed &lt;số lượt&gt;</code>, <code>mfeed</code>, <code>/nuoi</code>) trên <strong>Live TikTok</strong> hoặc <strong>Discord</strong> để cho ăn tăng cấp (Level) và tăng sức mạnh Linh Thú.</div>
                 ) : (
-                  <div>• Gõ lệnh <code>/dap</code> trên livestream TikTok để cường hóa tăng cấp (+plus).</div>
+                  <div>• Gõ lệnh <code className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-bold font-mono">/dap</code> (hoặc <code>/cuonghoa</code>) trên <strong>Live TikTok</strong> hoặc <strong>Discord</strong> để cường hóa tăng cấp.</div>
                 )}
                 <div>• Có thể bấm nút <strong>[Treo Đấu Giá]</strong> để bán lấy Xu trên Sàn Đấu Giá.</div>
               </div>
