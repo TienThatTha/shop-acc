@@ -8094,25 +8094,25 @@ const App = () => {
 
                 {/* Scrollable Content */}
                 <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-3.5 flex-1">
-                  {/* Fiery CP Bar & Combat Status */}
-                  <div className="bg-gradient-to-r from-orange-600/20 via-amber-500/20 to-orange-600/10 border border-orange-500/80 rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-[0_0_20px_rgba(255,100,0,0.25)] flex-wrap gap-2">
+                  {/* Highlight Bar: Trạng Thái Sinh Mệnh (HP) */}
+                  <div className="bg-gradient-to-r from-rose-950/40 via-red-900/20 to-slate-900/60 border border-rose-500/50 rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-[0_0_20px_rgba(244,63,94,0.2)] flex-wrap gap-2">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl animate-bounce">🔥</span>
+                      <span className="text-2xl animate-pulse">❤️</span>
                       <div>
-                        <div className="text-[10px] font-black text-amber-400 uppercase tracking-wider">Tổng Lực Chiến (CP)</div>
-                        <div className="text-xl sm:text-2xl font-black text-white drop-shadow-[0_0_10px_rgba(255,69,0,0.8)] font-sans">
-                          {Number(p.cp || 0).toLocaleString()} CP
+                        <div className="text-[10px] font-black text-rose-400 uppercase tracking-wider">Tình Trạng Sinh Lực (HP)</div>
+                        <div className="text-xl sm:text-2xl font-black text-white font-sans drop-shadow-[0_0_10px_rgba(244,63,94,0.8)]">
+                          {currentHp.toLocaleString()} <span className="text-sm font-bold text-slate-400">/ {maxHp.toLocaleString()} HP</span>
                         </div>
                       </div>
                     </div>
                     <div>
                       {isDead ? (
-                        <span className="text-xs font-black text-rose-400 bg-rose-500/15 border border-rose-500/40 px-3 py-1 rounded-xl">
-                          🔴 Trọng Thương ({respawnTime}s)
+                        <span className="text-xs font-black text-rose-400 bg-rose-500/15 border border-rose-500/40 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
+                          💀 Trọng Thương ({respawnTime}s hồi sinh)
                         </span>
                       ) : (
-                        <span className="text-xs font-black text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-3 py-1 rounded-xl">
-                          🟢 Sẵn Sàng Chiến Đấu ({hpPct.toFixed(0)}% HP)
+                        <span className="text-xs font-black text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
+                          🟢 Khỏe Mạnh ({hpPct.toFixed(0)}% Máu)
                         </span>
                       )}
                     </div>
