@@ -437,6 +437,7 @@ const App = () => {
 
   // --- STATE ITEM HOVER / INSPECT TOOLTIP ---
   const [activeItemTooltip, setActiveItemTooltip] = useState(null);
+  const hideTooltipTimerRef = useRef(null);
 
   // --- STATE SÀN ĐẤU GIÁ (AUCTION MARKET) ---
   const [showAuctionModal, setShowAuctionModal] = useState(false);
@@ -6089,30 +6090,67 @@ const App = () => {
     return 'weapon';
   };
 
-  // --- HÀM TÍNH TOÁN VỊ TRÍ & ĐIỀU KHIỂN POPUP TOOLTIP CHI TIẾT VẬT PHẨM ---
+  // --- HÀM TÍNH TOÁN VỊ TRÍ & ĐIỀU KHIỂN POPUP TOOLTIP CHI TIẾT VẬT PHẨM THÔNG MINH ---
   const calculateTooltipPosition = (clientX, clientY) => {
-    const tooltipWidth = 350;
-    const tooltipHeight = 460;
-    let posX = clientX + 18;
-    let posY = clientY + 18;
-
-    if (typeof window !== 'undefined') {
-      if (posX + tooltipWidth > window.innerWidth - 14) {
-        posX = clientX - tooltipWidth - 18;
-      }
-      if (posX < 12) posX = 12;
-
-      if (posY + tooltipHeight > window.innerHeight - 14) {
-        posY = Math.max(12, window.innerHeight - tooltipHeight - 14);
-      }
-      if (posY < 12) posY = 12;
+    if (typeof window === 'undefined') {
+      return { x: clientX, topStyle: `${clientY}px`, bottomStyle: undefined, isAbove: false, maxHeight: 500 };
     }
 
-    return { x: posX, y: posY };
+    const winW = window.innerWidth;
+    const winH = window.innerHeight;
+    const isMobile = winW < 640;
+    const tooltipWidth = isMobile ? Math.min(winW - 24, 340) : 350;
+
+    // 1. Tính toán tọa độ X (Ngang) - tự động lật sang trái nếu sát mép phải
+    let posX = clientX + 16;
+    if (posX + tooltipWidth > winW - 12) {
+      posX = clientX - tooltipWidth - 16;
+    }
+    if (posX < 12) {
+      posX = 12;
+    }
+    if (posX + tooltipWidth > winW - 12) {
+      posX = Math.max(12, winW - tooltipWidth - 12);
+    }
+
+    // 2. Tính toán Y (Dọc): Tự động lật lên trên (Flip-Up) nếu không gian phía dưới bị hẹp
+    const spaceBelow = winH - clientY - 16;
+    const spaceAbove = clientY - 16;
+    const neededHeight = 460; // Chiều cao thoải mái để hiển thị cả thông số & hướng dẫn chi tiết
+
+    // Nếu phía dưới nhỏ hơn 460px và phía trên thoáng hơn -> LẬT LÊN TRÊN
+    const isAbove = spaceBelow < neededHeight && spaceAbove > spaceBelow;
+
+    let maxHeight = 500;
+    let topStyle = undefined;
+    let bottomStyle = undefined;
+
+    if (isAbove) {
+      // Đáy của popup cách con trỏ chuột 12px về phía trên (tính từ đáy viewport)
+      const bottomPx = winH - clientY + 12;
+      bottomStyle = `${bottomPx}px`;
+      // Giới hạn chiều cao tối đa không vượt qua mép trên màn hình (để lề 16px)
+      maxHeight = Math.max(220, clientY - 28);
+    } else {
+      // Đỉnh của popup cách con trỏ chuột 14px về phía dưới (tính từ đỉnh viewport)
+      const topPx = clientY + 14;
+      topStyle = `${topPx}px`;
+      // Giới hạn chiều cao tối đa không vượt qua mép dưới màn hình (để lề 16px)
+      maxHeight = Math.max(220, winH - topPx - 16);
+    }
+
+    return {
+      x: posX,
+      topStyle,
+      bottomStyle,
+      isAbove,
+      maxHeight
+    };
   };
 
   const showItemTooltip = (item, e, customCat, isPinned = false) => {
     if (!item) return;
+    if (hideTooltipTimerRef.current) clearTimeout(hideTooltipTimerRef.current);
     const cat = customCat || getCategoryOfItem(item);
     const clientX = e?.clientX ?? (e?.touches?.[0]?.clientX || (typeof window !== 'undefined' ? window.innerWidth / 2 : 200));
     const clientY = e?.clientY ?? (e?.touches?.[0]?.clientY || (typeof window !== 'undefined' ? window.innerHeight / 2 : 200));
@@ -6122,7 +6160,10 @@ const App = () => {
       item,
       category: cat,
       x: pos.x,
-      y: pos.y,
+      topStyle: pos.topStyle,
+      bottomStyle: pos.bottomStyle,
+      isAbove: pos.isAbove,
+      maxHeight: pos.maxHeight,
       isPinned
     });
   };
@@ -6133,18 +6174,28 @@ const App = () => {
     const clientY = e?.clientY;
     if (clientX == null || clientY == null) return;
     const pos = calculateTooltipPosition(clientX, clientY);
-    setActiveItemTooltip(prev => prev ? { ...prev, x: pos.x, y: pos.y } : null);
+    setActiveItemTooltip(prev => prev ? {
+      ...prev,
+      x: pos.x,
+      topStyle: pos.topStyle,
+      bottomStyle: pos.bottomStyle,
+      isAbove: pos.isAbove,
+      maxHeight: pos.maxHeight
+    } : null);
   };
 
   const hideItemTooltip = () => {
     if (activeItemTooltip && activeItemTooltip.isPinned) return;
-    setActiveItemTooltip(null);
+    if (hideTooltipTimerRef.current) clearTimeout(hideTooltipTimerRef.current);
+    hideTooltipTimerRef.current = setTimeout(() => {
+      setActiveItemTooltip(null);
+    }, 140);
   };
 
   // --- RENDER POPUP CHI TIẾT VẬT PHẨM (TOOLTIP / HOVER CARD) ---
   const renderItemDetailedTooltip = () => {
     if (!activeItemTooltip || !activeItemTooltip.item) return null;
-    const { item, category: rawCat, x, y, isPinned } = activeItemTooltip;
+    const { item, category: rawCat, x, topStyle, bottomStyle, maxHeight: activeMaxH, isPinned } = activeItemTooltip;
     const category = rawCat || getCategoryOfItem(item);
     const tier = getBossTierStyle(item.tier);
     const img = getBossItemAsset(item, category);
@@ -6287,19 +6338,29 @@ const App = () => {
 
     const catBadge = getCatBadgeInfo();
 
+    const maxHeight = activeMaxH || 480;
+
     return (
       <div
-        className={`fixed z-[999999] transition-all duration-150 ${isPinned ? 'pointer-events-auto' : 'pointer-events-none'}`}
+        className="fixed z-[999999] pointer-events-auto"
         style={{
           left: `${x}px`,
-          top: `${y}px`,
+          top: topStyle,
+          bottom: bottomStyle,
+        }}
+        onMouseEnter={() => {
+          if (hideTooltipTimerRef.current) clearTimeout(hideTooltipTimerRef.current);
+        }}
+        onMouseLeave={() => {
+          if (!isPinned) hideItemTooltip();
         }}
       >
         <div
-          className="w-[330px] sm:w-[350px] max-h-[85vh] overflow-y-auto custom-scrollbar rounded-2xl p-4 bg-gradient-to-b from-[#0F172A] via-[#0B1120] to-[#060913] border-2 text-slate-200 shadow-2xl backdrop-blur-2xl animate-fade-in relative"
+          className="w-[330px] sm:w-[350px] overflow-y-auto custom-scrollbar rounded-2xl p-3.5 sm:p-4 bg-gradient-to-b from-[#0F172A] via-[#0B1120] to-[#060913] border-2 text-slate-200 shadow-2xl backdrop-blur-2xl animate-fade-in relative"
           style={{
             borderColor: isMaterial ? matInfo.badgeBorder : tier.border,
-            boxShadow: `0 0 25px ${isMaterial ? matInfo.badgeBorder : tier.color}40, 0 20px 40px rgba(0,0,0,0.9)`
+            boxShadow: `0 0 25px ${isMaterial ? matInfo.badgeBorder : tier.color}40, 0 20px 40px rgba(0,0,0,0.9)`,
+            maxHeight: `${maxHeight}px`
           }}
         >
           {/* Nút đóng nếu là chế độ Pinned (mobile/click) */}
@@ -6381,13 +6442,13 @@ const App = () => {
           {/* NỘI DUNG CHI TIẾT */}
           {isMaterial ? (
             /* --- NGUYÊN LIỆU: MÔ TẢ DÙNG ĐỂ LÀM GÌ & CÁCH SỬ DỤNG --- */
-            <div className="mt-3 space-y-3 text-xs">
+            <div className="mt-2.5 space-y-2 text-xs">
               {/* PHẦN 1: DÙNG ĐỂ LÀM GÌ */}
               <div className="bg-slate-900/70 border border-slate-800/80 rounded-xl p-2.5">
-                <div className="text-[11px] font-black text-amber-300 flex items-center gap-1.5 uppercase tracking-wide mb-1.5">
+                <div className="text-[11px] font-black text-amber-300 flex items-center gap-1.5 uppercase tracking-wide mb-1">
                   <span>📖</span> Dùng để làm gì?
                 </div>
-                <ul className="space-y-1.5 text-[11px] text-slate-300 leading-relaxed">
+                <ul className="space-y-1 text-[10.5px] text-slate-300 leading-snug">
                   {matInfo.purpose.map((p, pIdx) => (
                     <li key={pIdx} className="flex items-start gap-1.5">
                       <span className="text-amber-400 font-bold shrink-0 mt-0.5">•</span>
@@ -6399,10 +6460,10 @@ const App = () => {
 
               {/* PHẦN 2: CÁCH SỬ DỤNG NHƯ THẾ NÀO */}
               <div className="bg-slate-900/70 border border-slate-800/80 rounded-xl p-2.5">
-                <div className="text-[11px] font-black text-cyan-300 flex items-center gap-1.5 uppercase tracking-wide mb-1.5">
+                <div className="text-[11px] font-black text-cyan-300 flex items-center gap-1.5 uppercase tracking-wide mb-1">
                   <span>💡</span> Cách sử dụng như thế nào?
                 </div>
-                <ul className="space-y-1.5 text-[11px] text-slate-300 leading-relaxed">
+                <ul className="space-y-1 text-[10.5px] text-slate-300 leading-snug">
                   {matInfo.howToUse.map((h, hIdx) => (
                     <li key={hIdx} className="flex items-start gap-1.5">
                       <span className="text-cyan-400 font-bold shrink-0 mt-0.5">✓</span>
