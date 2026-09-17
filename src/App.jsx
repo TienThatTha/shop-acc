@@ -6222,6 +6222,45 @@ const App = () => {
     }, 140);
   };
 
+  // --- HÀM BẤM TRỰC TIẾP VÀO Ô ĐỒ ĐỂ GHIM / MỞ POPUP CHI TIẾT ---
+  const handleItemCardClick = (item, e, customCat) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (!item) return;
+
+    // Nếu popup đang mở và đang ghim (pinned) chính món này -> bấm lần nữa để đóng (toggle)
+    if (activeItemTooltip && activeItemTooltip.isPinned && (
+      (activeItemTooltip.item?.id && item.id && activeItemTooltip.item?.id === item.id) ||
+      (activeItemTooltip.item?.name && activeItemTooltip.item?.name === item.name)
+    )) {
+      setActiveItemTooltip(null);
+      return;
+    }
+
+    // Mở và ghim popup chi tiết (isPinned = true)
+    showItemTooltip(item, e, customCat, true);
+  };
+
+  // Tự động đóng popup đã ghim khi bấm ra ngoài khoảng trống
+  useEffect(() => {
+    if (!activeItemTooltip || !activeItemTooltip.isPinned) return;
+    const handleOutsideClick = (e) => {
+      const tooltipEl = document.getElementById('active-item-tooltip-popup');
+      if (tooltipEl && tooltipEl.contains(e.target)) return;
+      setActiveItemTooltip(null);
+    };
+
+    const timer = setTimeout(() => {
+      window.addEventListener('click', handleOutsideClick);
+      window.addEventListener('touchstart', handleOutsideClick);
+    }, 60);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('click', handleOutsideClick);
+      window.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, [activeItemTooltip]);
+
   // --- RENDER POPUP CHI TIẾT VẬT PHẨM (TOOLTIP / HOVER CARD) ---
   const renderItemDetailedTooltip = () => {
     if (!activeItemTooltip || !activeItemTooltip.item) return null;
@@ -6372,12 +6411,14 @@ const App = () => {
 
     return (
       <div
+        id="active-item-tooltip-popup"
         className="fixed z-[999999] pointer-events-auto"
         style={{
           left: `${x}px`,
           top: topStyle,
           bottom: bottomStyle,
         }}
+        onClick={(e) => e.stopPropagation()}
         onMouseEnter={() => {
           if (hideTooltipTimerRef.current) clearTimeout(hideTooltipTimerRef.current);
         }}
@@ -6398,7 +6439,7 @@ const App = () => {
             <button
               type="button"
               onClick={() => setActiveItemTooltip(null)}
-              className="absolute top-3 right-3 w-7 h-7 rounded-full bg-slate-800/80 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center text-xs font-bold transition-all cursor-pointer border border-slate-700"
+              className="absolute top-3 right-3 w-7 h-7 rounded-full bg-slate-800/80 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center text-xs font-bold transition-all cursor-pointer border border-slate-700 z-20 shadow-md"
               title="Đóng popup"
             >
               ✕
@@ -7238,6 +7279,7 @@ const App = () => {
                 onMouseEnter={(e) => showItemTooltip(item, e, category)}
                 onMouseMove={updateItemTooltipPos}
                 onMouseLeave={hideItemTooltip}
+                onClick={(e) => handleItemCardClick(item, e, category)}
               >
                 {/* Thumbnail vuông chuẩn tỉ lệ, không bị kéo dãn trên mobile */}
                 <div
@@ -7820,6 +7862,7 @@ const App = () => {
                               onMouseEnter={(e) => showItemTooltip(item, e, category)}
                               onMouseMove={updateItemTooltipPos}
                               onMouseLeave={hideItemTooltip}
+                              onClick={(e) => handleItemCardClick(item, e, category)}
                             >
                               <div className="flex items-start gap-3">
                                 {/* Ảnh trang bị */}
@@ -7854,7 +7897,7 @@ const App = () => {
                                     </span>
                                     <button
                                       type="button"
-                                      onClick={(e) => { e.stopPropagation(); showItemTooltip(item, e, category, true); }}
+                                      onClick={(e) => { e.stopPropagation(); handleItemCardClick(item, e, category); }}
                                       className="w-4 h-4 rounded-full bg-slate-800 hover:bg-purple-600 text-slate-400 hover:text-white flex items-center justify-center text-[9px] transition-all border border-slate-700 ml-auto shrink-0 cursor-pointer"
                                       title="Xem mô tả & thông số chi tiết"
                                     >
@@ -7905,7 +7948,8 @@ const App = () => {
                                     <button
                                       type="button"
                                       disabled={isPerformingBagAction}
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         setSelectedItemToList({ ...item, originalIndex: idx });
                                         setListingPrice(100);
                                         setListingSellQuantity(Math.min(item.quantity || 1, 1));
@@ -7925,7 +7969,10 @@ const App = () => {
                                     <button
                                       type="button"
                                       disabled={isPerformingBagAction}
-                                      onClick={() => handleExecuteBagAction('equip', item, idx)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleExecuteBagAction('equip', item, idx);
+                                      }}
                                       className="flex-1 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs rounded-xl transition-all shadow hover:scale-105 active:scale-95 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                                     >
                                       {isLoadingThis ? <Loader2 size={13} className="animate-spin" /> : <Swords size={13} />}
@@ -7935,7 +7982,8 @@ const App = () => {
                                     <button
                                       type="button"
                                       disabled={isPerformingBagAction}
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         setSelectedItemToList({ ...item, originalIndex: idx });
                                         setListingPrice(100);
                                         setListingSellQuantity(1);
@@ -7950,7 +7998,10 @@ const App = () => {
                                     <button
                                       type="button"
                                       disabled={isPerformingBagAction}
-                                      onClick={() => handleExecuteBagAction('delete', item, idx)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleExecuteBagAction('delete', item, idx);
+                                      }}
                                       className="px-2.5 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                                       title="Xóa trang bị và nhận lượt đánh boss tương ứng"
                                     >
@@ -8037,6 +8088,7 @@ const App = () => {
                   onMouseEnter={(e) => showItemTooltip(item, e, category)}
                   onMouseMove={updateItemTooltipPos}
                   onMouseLeave={hideItemTooltip}
+                  onClick={(e) => handleItemCardClick(item, e, category)}
                 >
                   <div className="relative w-14 h-14 shrink-0 flex items-center justify-center bg-black/40 rounded-xl">
                     {img ? (
@@ -8389,6 +8441,7 @@ const App = () => {
                                 onMouseEnter={(e) => showItemTooltip(item, e, category)}
                                 onMouseMove={updateItemTooltipPos}
                                 onMouseLeave={hideItemTooltip}
+                                onClick={(e) => handleItemCardClick(item, e, category)}
                               >
                                 <div>
                                   {/* Badge mã ID & thời gian */}
@@ -8416,7 +8469,7 @@ const App = () => {
                                         <span className="truncate">{item.name} {item.plus ? <span className="text-yellow-400">+{item.plus}</span> : ''}</span>
                                         <button
                                           type="button"
-                                          onClick={(e) => { e.stopPropagation(); showItemTooltip(item, e, category, true); }}
+                                          onClick={(e) => { e.stopPropagation(); handleItemCardClick(item, e, category); }}
                                           className="w-4 h-4 rounded-full bg-slate-800 hover:bg-amber-500 text-slate-400 hover:text-black flex items-center justify-center text-[9px] transition-all border border-slate-700 ml-1 shrink-0 cursor-pointer"
                                           title="Xem mô tả & thông số chi tiết"
                                         >
@@ -8495,7 +8548,10 @@ const App = () => {
                                     <button
                                       type="button"
                                       disabled={isPerformingBagAction}
-                                      onClick={() => handleExecuteAuctionAction('cancel_auction', { auction_id: listing.id, listing })}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleExecuteAuctionAction('cancel_auction', { auction_id: listing.id, listing });
+                                      }}
                                       className="px-3 py-1.5 bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white border border-slate-700 hover:border-rose-500 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
                                       title="Thu hồi vật phẩm về lại túi đồ của bạn"
                                     >
@@ -8506,7 +8562,10 @@ const App = () => {
                                     <button
                                       type="button"
                                       disabled={isPerformingBagAction}
-                                      onClick={() => handleExecuteAuctionAction('buy_auction', { auction_id: listing.id, listing, price: listing.price })}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleExecuteAuctionAction('buy_auction', { auction_id: listing.id, listing, price: listing.price });
+                                      }}
                                       className="px-4 py-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.4)] transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                                     >
                                       {isLoadingThis ? <Loader2 size={12} className="animate-spin" /> : <Wallet size={12} />}
@@ -8551,6 +8610,7 @@ const App = () => {
                               onMouseEnter={(e) => showItemTooltip(item, e, category)}
                               onMouseMove={updateItemTooltipPos}
                               onMouseLeave={hideItemTooltip}
+                              onClick={(e) => handleItemCardClick(item, e, category)}
                             >
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-12 h-12 rounded-xl bg-black/40 flex items-center justify-center shrink-0 border border-slate-800">
@@ -8586,7 +8646,10 @@ const App = () => {
                                 <button
                                   type="button"
                                   disabled={isPerformingBagAction}
-                                  onClick={() => handleExecuteAuctionAction('cancel_auction', { auction_id: listing.id, listing })}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleExecuteAuctionAction('cancel_auction', { auction_id: listing.id, listing });
+                                  }}
                                   className="px-3.5 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                                 >
                                   {isLoadingThis ? <Loader2 size={13} className="animate-spin" /> : <span>↩️</span>}
@@ -8626,6 +8689,7 @@ const App = () => {
                               onMouseEnter={(e) => showItemTooltip(item, e, category)}
                               onMouseMove={updateItemTooltipPos}
                               onMouseLeave={hideItemTooltip}
+                              onClick={(e) => handleItemCardClick(item, e, category)}
                             >
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-10 h-10 rounded-lg bg-black/40 flex items-center justify-center shrink-0 border border-slate-800">
