@@ -435,6 +435,9 @@ const App = () => {
   const [isPerformingBagAction, setIsPerformingBagAction] = useState(false);
   const [bagActionLoadingItem, setBagActionLoadingItem] = useState(null);
 
+  // --- STATE ITEM HOVER / INSPECT TOOLTIP ---
+  const [activeItemTooltip, setActiveItemTooltip] = useState(null);
+
   // --- STATE SÀN ĐẤU GIÁ (AUCTION MARKET) ---
   const [showAuctionModal, setShowAuctionModal] = useState(false);
   const [auctionMarketData, setAuctionMarketData] = useState({ active_listings: [], recent_sold: [] });
@@ -6081,6 +6084,486 @@ const App = () => {
     return 'weapon';
   };
 
+  // --- HÀM TÍNH TOÁN VỊ TRÍ & ĐIỀU KHIỂN POPUP TOOLTIP CHI TIẾT VẬT PHẨM ---
+  const calculateTooltipPosition = (clientX, clientY) => {
+    const tooltipWidth = 350;
+    const tooltipHeight = 460;
+    let posX = clientX + 18;
+    let posY = clientY + 18;
+
+    if (typeof window !== 'undefined') {
+      if (posX + tooltipWidth > window.innerWidth - 14) {
+        posX = clientX - tooltipWidth - 18;
+      }
+      if (posX < 12) posX = 12;
+
+      if (posY + tooltipHeight > window.innerHeight - 14) {
+        posY = Math.max(12, window.innerHeight - tooltipHeight - 14);
+      }
+      if (posY < 12) posY = 12;
+    }
+
+    return { x: posX, y: posY };
+  };
+
+  const showItemTooltip = (item, e, customCat, isPinned = false) => {
+    if (!item) return;
+    const cat = customCat || getCategoryOfItem(item);
+    const clientX = e?.clientX ?? (e?.touches?.[0]?.clientX || (typeof window !== 'undefined' ? window.innerWidth / 2 : 200));
+    const clientY = e?.clientY ?? (e?.touches?.[0]?.clientY || (typeof window !== 'undefined' ? window.innerHeight / 2 : 200));
+    const pos = calculateTooltipPosition(clientX, clientY);
+
+    setActiveItemTooltip({
+      item,
+      category: cat,
+      x: pos.x,
+      y: pos.y,
+      isPinned
+    });
+  };
+
+  const updateItemTooltipPos = (e) => {
+    if (!activeItemTooltip || activeItemTooltip.isPinned) return;
+    const clientX = e?.clientX;
+    const clientY = e?.clientY;
+    if (clientX == null || clientY == null) return;
+    const pos = calculateTooltipPosition(clientX, clientY);
+    setActiveItemTooltip(prev => prev ? { ...prev, x: pos.x, y: pos.y } : null);
+  };
+
+  const hideItemTooltip = () => {
+    if (activeItemTooltip && activeItemTooltip.isPinned) return;
+    setActiveItemTooltip(null);
+  };
+
+  // --- RENDER POPUP CHI TIẾT VẬT PHẨM (TOOLTIP / HOVER CARD) ---
+  const renderItemDetailedTooltip = () => {
+    if (!activeItemTooltip || !activeItemTooltip.item) return null;
+    const { item, category: rawCat, x, y, isPinned } = activeItemTooltip;
+    const category = rawCat || getCategoryOfItem(item);
+    const tier = getBossTierStyle(item.tier);
+    const img = getBossItemAsset(item, category);
+    const isMaterial = category === 'material';
+    const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
+    const stars = '⭐'.repeat(starsCount);
+    const plusVal = Number(item.plus || 0);
+
+    const itemName = String(item.name || '').trim();
+    const lowerName = itemName.toLowerCase();
+    const itemId = String(item.id || '').toLowerCase();
+
+    // DÀNH CHO NGUYÊN LIỆU (MATERIAL)
+    let matInfo = null;
+    if (isMaterial) {
+      if (itemId === 'item_essence_stone' || lowerName.includes('tinh hoa') || lowerName.includes('essence')) {
+        matInfo = {
+          title: 'Đá Tinh Hoa Thần Binh',
+          badge: 'NGUYÊN LIỆU TUYỆT KỸ',
+          badgeColor: '#c084fc',
+          badgeBg: 'rgba(192, 132, 252, 0.15)',
+          badgeBorder: '#a855f7',
+          icon: '💎',
+          purpose: [
+            'Nâng cấp Level Kỹ Năng Nhẫn Thần Binh (từ Lv.1 lên tối đa Lv.9 tối thượng).',
+            'Tăng vọt tỉ lệ phát động đòn đánh chém % Máu Tối Đa Boss (từ 0.2% lên đến 50.0% HP Boss mỗi đòn đánh!).',
+            'Gia tăng chỉ số Lực Chiến (CP) toàn diện và kích hoạt hiệu ứng chém Boss màu Thần Binh trên Overlay live stream.'
+          ],
+          howToUse: [
+            'Gõ lệnh [/dap nhan] trên livestream TikTok khi đang có Đá Tinh Hoa trong túi đồ.',
+            'Hệ thống tự động ưu tiên nâng cấp Level Kỹ Năng Nhẫn trước khi người chơi có đủ đá.',
+            'Cơ chế Bảo Hiểm Pity: Không bao giờ bị rớt cấp kỹ năng khi thất bại. Xịt càng nhiều lần thì lần sau tỉ lệ thành công càng tăng (đạt 100% khi đủ mốc).',
+            'Có thể bấm nút [Treo Đấu Giá] ở Túi Đồ để bán lấy Xu từ người chơi khác.'
+          ],
+          whereToGet: 'Săn Boss Thế Giới Lv50+ / Mở Rương Hoàng Kim / Mua tại Shop Xu (/shop) / Mua lại trên Sàn Đấu Giá.'
+        };
+      } else if (itemId === 'item_ring_crystal' || lowerName.includes('tinh thể') || lowerName.includes('crystal')) {
+        matInfo = {
+          title: 'Tinh Thể Cường Hóa',
+          badge: 'NGUYÊN LIỆU ĐỘT PHÁ',
+          badgeColor: '#38bdf8',
+          badgeBg: 'rgba(56, 189, 248, 0.15)',
+          badgeBorder: '#0ea5e9',
+          icon: '🔮',
+          purpose: [
+            'Cường hóa nâng Sao cho Nhẫn Thần Binh (từ 1⭐ lên tối đa 5⭐).',
+            'Đột phá Bậc Nhẫn lên phẩm cấp cao hơn: Thường ➔ Hiếm ➔ Sử Thi ➔ Thần Thoại ➔ Tối Thượng ➔ Thượng Cổ.',
+            'Nhân bội % Sát Thương Toàn Bộ của Nhẫn và mở khóa thêm các dòng thuộc tính ẩn (Sub-stats).'
+          ],
+          howToUse: [
+            'Gõ lệnh [/dap nhan] trên livestream TikTok khi đang đeo Nhẫn Thần Binh.',
+            'Hệ thống tự động ưu tiên tiêu Tinh Thể trong túi đồ (hoặc dùng nhẫn trùng cùng loại thay thế).',
+            'Nếu thiếu Tinh Thể, có thể quy đổi trực tiếp 20 Xu = 1 Tinh Thể.',
+            'Có thể treo bán lấy Xu trên Sàn Đấu Giá cho người chơi khác.'
+          ],
+          whereToGet: 'Rơi từ Boss Thế Giới / Mở Rương Boss & Hoàng Kim / Mua tại Shop Xu (/shop 20 xu) / Mua trên Sàn Đấu Giá.'
+        };
+      } else if (itemId === 'royal_chest' || lowerName.includes('hoàng kim') || lowerName.includes('royal')) {
+        matInfo = {
+          title: 'Rương Hoàng Kim',
+          badge: 'RƯƠNG BÁU VẬT THẦN THOẠI',
+          badgeColor: '#facc15',
+          badgeBg: 'rgba(250, 204, 21, 0.15)',
+          badgeBorder: '#eab308',
+          icon: '👑',
+          purpose: [
+            'Mở nhận các trang bị cực phẩm Thần Thoại & Tối Thượng (Vũ Khí, Áo Giáp, Dây Chuyền, Nhẫn, Linh Thú).',
+            'Cơ hội nhận Đá Tinh Hoa, Tinh Thể Cường Hóa, Lượng lớn Xu và Lượt Đánh Boss tích lũy.'
+          ],
+          howToUse: [
+            'Mở trực tiếp trên Website ở mục Rương Báu hoặc gõ lệnh [/mohop] trên livestream TikTok.',
+            'Có thể mở lẻ từng rương hoặc mở nhiều rương cùng lúc để gom trang bị khủng.'
+          ],
+          whereToGet: 'Nạp Gói Ưu Đãi Chiến Thần trên web / Đạt Top Donate / Thưởng sự kiện Boss.'
+        };
+      } else if (itemId === 'boss_chest' || lowerName.includes('rương boss') || lowerName.includes('rương')) {
+        matInfo = {
+          title: 'Rương Chiến Lợi Phẩm Boss',
+          badge: 'RƯƠNG CHIẾN LỢI PHẨM',
+          badgeColor: '#fb923c',
+          badgeBg: 'rgba(251, 146, 60, 0.15)',
+          badgeBorder: '#f97316',
+          icon: '📦',
+          purpose: [
+            'Mở nhận trang bị ngẫu nhiên (từ Thường đến Sử Thi) để tăng lực chiến hoặc làm phôi ghép sao.',
+            'Nhận Xu và Lượt đánh miễn phí để tiếp tục săn Boss.'
+          ],
+          howToUse: [
+            'Mở ngay trên Website hoặc gõ lệnh [/mohop] trên live TikTok.'
+          ],
+          whereToGet: 'Tiêu diệt Boss Thế Giới trên livestream / Thưởng mốc sát thương Boss.'
+        };
+      } else {
+        matInfo = {
+          title: itemName || 'Nguyên Liệu Đặc Biệt',
+          badge: 'NGUYÊN LIỆU VẬT PHẨM',
+          badgeColor: '#38bdf8',
+          badgeBg: 'rgba(56, 189, 248, 0.15)',
+          badgeBorder: '#0284c7',
+          icon: '💎',
+          purpose: [
+            'Vật phẩm hỗ trợ nâng cấp sức mạnh, cường hóa trang bị hoặc tham gia tính năng đặc biệt.',
+            'Có thể lưu giữ trong Túi Đồ hoặc niêm yết bán lấy Xu trên Sàn Đấu Giá.'
+          ],
+          howToUse: [
+            'Sử dụng theo các lệnh tương ứng trên livestream TikTok hoặc quản lý tại Túi Đồ.',
+            'Bấm [Treo Đấu Giá] để bán lại cho người chơi khác kiếm Xu.'
+          ],
+          whereToGet: 'Săn Boss / Sự Kiện / Sàn Đấu Giá.'
+        };
+      }
+    }
+
+    // DÀNH CHO TRANG BỊ (EQUIPMENT)
+    const baseDmg = Number(item.base_dmg || 0);
+    const plusBonus = Math.round(baseDmg * plusVal * 0.25);
+    const totalBasePlus = baseDmg + plusBonus;
+    const starMult = (starsCount === 5 ? 2.5 : (starsCount === 4 ? 2.0 : (starsCount === 3 ? 1.6 : (starsCount === 2 ? 1.3 : 1.0))));
+    const totalEstDmg = Math.round(totalBasePlus * starMult);
+    const bonusDmg = Number(item.bonus_dmg || 0);
+    const dmgPercent = Number(item.dmg_percent || 0);
+    const baseDmgPercent = Number(item.base_dmg_percent || 0);
+    const skillPct = Number(item.skill_pct || 0);
+    const skillLevel = Number(item.skill_level || 0);
+    const skillProcStr = getRingSkillProcStr(item);
+    const petLevel = Number(item.level || 1);
+
+    const rawSub1 = Array.isArray(item?.sub_stats) ? item.sub_stats : (typeof item?.sub_stats === 'string' ? [item.sub_stats] : []);
+    const rawSub2 = Array.isArray(item?.star_sub_stats) ? item.star_sub_stats : (typeof item?.star_sub_stats === 'string' ? [item.star_sub_stats] : []);
+    const allSubStats = Array.from(new Set([...rawSub1, ...rawSub2].filter(Boolean)));
+
+    const getCatBadgeInfo = () => {
+      if (category === 'weapon') return { label: 'VŨ KHÍ TẤN CÔNG', icon: '⚔️', color: '#10b981', border: '#059669', bg: 'rgba(16, 185, 129, 0.15)' };
+      if (category === 'armor') return { label: 'ÁO GIÁP PHÒNG HỘ', icon: '🛡️', color: '#06b6d4', border: '#0891b2', bg: 'rgba(6, 182, 212, 0.15)' };
+      if (category === 'necklace') return { label: 'DÂY CHUYỀN THẦN LỰC', icon: '📿', color: '#f59e0b', border: '#d97706', bg: 'rgba(245, 158, 11, 0.15)' };
+      if (category === 'ring') return { label: 'NHẪN THẦN BINH TUYỆT KỸ', icon: '💍', color: '#a855f7', border: '#9333ea', bg: 'rgba(168, 85, 247, 0.15)' };
+      if (category === 'pet') return { label: 'LINH THÚ TRỢ CHIẾN', icon: '🐾', color: '#f43f5e', border: '#e11d48', bg: 'rgba(244, 63, 94, 0.15)' };
+      return { label: 'TRANG BỊ', icon: '🛡️', color: '#38bdf8', border: '#0ea5e9', bg: 'rgba(56, 189, 248, 0.15)' };
+    };
+
+    const catBadge = getCatBadgeInfo();
+
+    return (
+      <div
+        className={`fixed z-[999999] transition-all duration-150 ${isPinned ? 'pointer-events-auto' : 'pointer-events-none'}`}
+        style={{
+          left: `${x}px`,
+          top: `${y}px`,
+        }}
+      >
+        <div
+          className="w-[330px] sm:w-[350px] max-h-[85vh] overflow-y-auto custom-scrollbar rounded-2xl p-4 bg-gradient-to-b from-[#0F172A] via-[#0B1120] to-[#060913] border-2 text-slate-200 shadow-2xl backdrop-blur-2xl animate-fade-in relative"
+          style={{
+            borderColor: isMaterial ? matInfo.badgeBorder : tier.border,
+            boxShadow: `0 0 25px ${isMaterial ? matInfo.badgeBorder : tier.color}40, 0 20px 40px rgba(0,0,0,0.9)`
+          }}
+        >
+          {/* Nút đóng nếu là chế độ Pinned (mobile/click) */}
+          {isPinned && (
+            <button
+              type="button"
+              onClick={() => setActiveItemTooltip(null)}
+              className="absolute top-3 right-3 w-7 h-7 rounded-full bg-slate-800/80 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center text-xs font-bold transition-all cursor-pointer border border-slate-700"
+              title="Đóng popup"
+            >
+              ✕
+            </button>
+          )}
+
+          {/* HEADER VẬT PHẨM */}
+          <div className="flex items-start gap-3 pb-3 border-b border-slate-800">
+            <div
+              className="w-14 h-14 rounded-xl flex items-center justify-center relative shrink-0 overflow-hidden bg-black/60 shadow-inner"
+              style={{
+                border: `1.5px solid ${isMaterial ? matInfo.badgeBorder : tier.color}`,
+                boxShadow: `inset 0 0 12px ${isMaterial ? matInfo.badgeBorder : tier.color}30`
+              }}
+            >
+              {img ? (
+                <img src={img} alt={item.name} className="w-11 h-11 object-contain filter drop-shadow-[0_0_6px_rgba(255,255,255,0.2)]" />
+              ) : (
+                <span className="text-2xl">{isMaterial ? matInfo.icon : catBadge.icon}</span>
+              )}
+              {!isMaterial && (
+                <div className="absolute bottom-0.5 text-center text-[7.5px] text-amber-300 font-bold">
+                  {stars}
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0 pr-2">
+              <div className="font-black text-sm text-white truncate leading-tight">
+                {item.name}{plusVal > 0 ? <span className="text-yellow-400 font-black"> +{plusVal}</span> : ''}
+              </div>
+
+              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                {isMaterial ? (
+                  <>
+                    <span
+                      className="text-[9px] font-black px-2 py-0.5 rounded-md border uppercase shrink-0"
+                      style={{ color: matInfo.badgeColor, background: matInfo.badgeBg, borderColor: matInfo.badgeBorder }}
+                    >
+                      {matInfo.badge}
+                    </span>
+                    <span className="text-[10px] font-bold text-cyan-300 bg-cyan-950/60 border border-cyan-500/30 px-1.5 py-0.5 rounded">
+                      x{Number(item.quantity || 1).toLocaleString()} {itemId === 'item_essence_stone' || lowerName.includes('tinh hoa') ? 'Viên' : (itemId === 'item_ring_crystal' || lowerName.includes('tinh thể') ? 'Tinh Thể' : 'Cái')}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span
+                      className="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase shrink-0"
+                      style={{ color: tier.color, background: tier.bg, borderColor: tier.border }}
+                    >
+                      {tier.label}
+                    </span>
+                    <span
+                      className="text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase shrink-0"
+                      style={{ color: catBadge.color, background: catBadge.bg, borderColor: catBadge.border }}
+                    >
+                      {catBadge.icon} {catBadge.label}
+                    </span>
+                    {starsCount > 0 && (
+                      <span className="text-[9px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded">
+                        {starsCount}⭐
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* NỘI DUNG CHI TIẾT */}
+          {isMaterial ? (
+            /* --- NGUYÊN LIỆU: MÔ TẢ DÙNG ĐỂ LÀM GÌ & CÁCH SỬ DỤNG --- */
+            <div className="mt-3 space-y-3 text-xs">
+              {/* PHẦN 1: DÙNG ĐỂ LÀM GÌ */}
+              <div className="bg-slate-900/70 border border-slate-800/80 rounded-xl p-2.5">
+                <div className="text-[11px] font-black text-amber-300 flex items-center gap-1.5 uppercase tracking-wide mb-1.5">
+                  <span>📖</span> Dùng để làm gì?
+                </div>
+                <ul className="space-y-1.5 text-[11px] text-slate-300 leading-relaxed">
+                  {matInfo.purpose.map((p, pIdx) => (
+                    <li key={pIdx} className="flex items-start gap-1.5">
+                      <span className="text-amber-400 font-bold shrink-0 mt-0.5">•</span>
+                      <span>{p}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* PHẦN 2: CÁCH SỬ DỤNG NHƯ THẾ NÀO */}
+              <div className="bg-slate-900/70 border border-slate-800/80 rounded-xl p-2.5">
+                <div className="text-[11px] font-black text-cyan-300 flex items-center gap-1.5 uppercase tracking-wide mb-1.5">
+                  <span>💡</span> Cách sử dụng như thế nào?
+                </div>
+                <ul className="space-y-1.5 text-[11px] text-slate-300 leading-relaxed">
+                  {matInfo.howToUse.map((h, hIdx) => (
+                    <li key={hIdx} className="flex items-start gap-1.5">
+                      <span className="text-cyan-400 font-bold shrink-0 mt-0.5">✓</span>
+                      <span>{h}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* PHẦN 3: NGUỒN GỐC & CÁCH SỞ HỮU */}
+              <div className="text-[10px] text-slate-400 bg-black/40 border border-slate-800/60 rounded-xl p-2 flex items-start gap-1.5">
+                <span className="text-purple-400 font-bold shrink-0">🏷️ Nguồn kiếm:</span>
+                <span className="text-slate-300">{matInfo.whereToGet}</span>
+              </div>
+            </div>
+          ) : (
+            /* --- TRANG BỊ: BẢNG THÔNG SỐ CHI TIẾT --- */
+            <div className="mt-3 space-y-2.5 text-xs">
+              {/* CHỈ SỐ CHÍNH (PRIMARY STATS) */}
+              <div className="bg-slate-900/70 border border-slate-800/80 rounded-xl p-2.5">
+                <div className="text-[11px] font-black text-emerald-400 flex items-center gap-1.5 uppercase tracking-wide mb-2">
+                  <span>⚡</span> Thông Số Chiến Đấu Chi Tiết
+                </div>
+
+                <div className="space-y-1.5 text-[11px]">
+                  {(category === 'weapon' || category === 'armor') && (
+                    <>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-slate-400">Sát thương gốc (Base DMG):</span>
+                        <span className="font-bold text-white">+{baseDmg.toLocaleString()} DMG</span>
+                      </div>
+                      {plusVal > 0 && (
+                        <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                          <span className="text-yellow-400">Cường hóa (+{plusVal}):</span>
+                          <span className="font-bold text-yellow-300">+{plusBonus.toLocaleString()} DMG (+{plusVal * 25}%)</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-amber-400">Hệ số Sao ({starsCount}⭐):</span>
+                        <span className="font-bold text-amber-300">x{starMult.toFixed(2)} Sức Mạnh</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="text-emerald-400 font-bold">Tổng Sát Thương Dự Tính:</span>
+                        <span className="font-black text-emerald-300 text-xs">+{totalEstDmg.toLocaleString()} DMG ⚡</span>
+                      </div>
+                    </>
+                  )}
+
+                  {category === 'necklace' && (
+                    <>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-slate-400">Khuếch đại sát thương:</span>
+                        <span className="font-bold text-amber-300 text-xs">+{dmgPercent}% DMG Toàn Bộ</span>
+                      </div>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-amber-400">Hiệu quả Sao ({starsCount}⭐):</span>
+                        <span className="font-bold text-amber-300">x{starMult.toFixed(2)} Khuếch Đại</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 italic pt-0.5">
+                        * Tăng trực tiếp phần trăm sát thương cho tất cả các đòn đánh chém Boss.
+                      </div>
+                    </>
+                  )}
+
+                  {category === 'ring' && (
+                    <>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-slate-400">Sát thương cơ bản:</span>
+                        <span className="font-bold text-purple-300">+{baseDmgPercent}% DMG</span>
+                      </div>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-purple-400 font-bold">Tuyệt kỹ rút máu Boss:</span>
+                        <span className="font-black text-purple-300">⚡ Rút {skillPct}% Máu Tối Đa</span>
+                      </div>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-amber-400 font-bold">Cấp Kỹ Năng Tuyệt Kỹ:</span>
+                        <span className="font-bold text-amber-300">Lv.{skillLevel} / 9</span>
+                      </div>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-amber-300">Tỉ lệ kích hoạt mỗi đòn:</span>
+                        <span className="font-black text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded text-[10px]">
+                          ⚡ {skillProcStr}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center pt-0.5">
+                        <span className="text-slate-400">Giới hạn sát thương (Cap):</span>
+                        <span className="font-bold text-slate-300">x{item.cap_mult || 100} Sát Thương Gốc</span>
+                      </div>
+                    </>
+                  )}
+
+                  {category === 'pet' && (
+                    <>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-slate-400">Sát thương Linh Thú:</span>
+                        <span className="font-bold text-rose-300">+{bonusDmg.toLocaleString()} DMG</span>
+                      </div>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-rose-400 font-bold">Cấp độ Linh Thú:</span>
+                        <span className="font-bold text-rose-300">Cấp {petLevel} / 100</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-0.5">
+                        <span className="text-amber-400">Tỉ lệ Chí Mạng Linh Thú:</span>
+                        <span className="font-bold text-amber-300">+{starsCount * 3}% Crit</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* DÒNG THUỘC TÍNH PHỤ (SUB-STATS) */}
+              <div className="bg-slate-900/70 border border-slate-800/80 rounded-xl p-2.5">
+                <div className="text-[11px] font-black text-purple-300 flex items-center justify-between uppercase tracking-wide mb-1.5">
+                  <span className="flex items-center gap-1.5"><span>✨</span> Thuộc Tính Phụ & Dòng Sao</span>
+                  <span className="text-[9.5px] font-normal text-slate-400">({allSubStats.length} Dòng)</span>
+                </div>
+
+                {allSubStats.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {allSubStats.map((sub, sIdx) => {
+                      let cleanSub = String(sub).trim();
+                      return (
+                        <span
+                          key={sIdx}
+                          className="text-[10px] font-bold text-slate-200 bg-purple-950/40 border border-purple-500/30 px-2 py-0.5 rounded-lg flex items-center gap-1"
+                        >
+                          <span className="text-purple-400">✨</span>
+                          <span>{cleanSub.replace(/^✨\s*/, '')}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-slate-400 italic py-1">
+                    Chưa mở khóa dòng phụ. Nâng sao hoặc đột phá bậc để mở khóa các dòng ẩn cực mạnh!
+                  </div>
+                )}
+              </div>
+
+              {/* HƯỚNG DẪN & TÍNH NĂNG */}
+              <div className="bg-black/40 border border-slate-800/60 rounded-xl p-2.5 space-y-1 text-[10px] text-slate-300">
+                <div className="font-black text-cyan-300 flex items-center gap-1 uppercase">
+                  <span>💡</span> Hướng dẫn sử dụng:
+                </div>
+                <div>• Bấm nút <strong>[Mặc Vào]</strong> ở Túi Đồ để trang bị trực tiếp vào nhân vật.</div>
+                {category === 'ring' ? (
+                  <div>• Dùng <strong>Đá Tinh Hoa & Tinh Thể</strong> gõ lệnh <code>/dap nhan</code> trên live để up Kỹ Năng & Sao.</div>
+                ) : category === 'pet' ? (
+                  <div>• Cho ăn trên web hoặc gõ lệnh <code>/pet</code> trên livestream để thăng cấp Linh Thú.</div>
+                ) : (
+                  <div>• Gõ lệnh <code>/dap</code> trên livestream TikTok để cường hóa tăng cấp (+plus).</div>
+                )}
+                <div>• Có thể bấm nút <strong>[Treo Đấu Giá]</strong> để bán lấy Xu trên Sàn Đấu Giá.</div>
+              </div>
+            </div>
+          )}
+
+          {/* FOOTER TIP */}
+          <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-400">
+            <span>Mộng Thiên Huyễn • Hệ Thống Vật Phẩm</span>
+            <span className="text-amber-400/80 font-mono">ID: #{String(item.id || item.name || '').slice(-6)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // =============================================================================
   // MÀN HÌNH NẠP GAME MỘNG THIÊN HUYỄN (ĐẠI CHIẾN BOSS)
@@ -6632,12 +7115,15 @@ const App = () => {
 
             return (
               <div
-                className="rounded-2xl p-3 sm:p-3.5 flex items-start gap-3 sm:gap-3.5 relative transition-all duration-200"
+                className="rounded-2xl p-3 sm:p-3.5 flex items-start gap-3 sm:gap-3.5 relative transition-all duration-200 cursor-pointer hover:border-cyan-400/70 group"
                 style={{
                   background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(20, 28, 48, 0.92))',
                   border: `1.5px solid ${tier.border}`,
                   boxShadow: `0 4px 15px rgba(0,0,0,0.4)`
                 }}
+                onMouseEnter={(e) => showItemTooltip(item, e, category)}
+                onMouseMove={updateItemTooltipPos}
+                onMouseLeave={hideItemTooltip}
               >
                 {/* Thumbnail vuông chuẩn tỉ lệ, không bị kéo dãn trên mobile */}
                 <div
@@ -7215,8 +7701,11 @@ const App = () => {
                           return (
                             <div
                               key={idx}
-                              className="rounded-2xl p-3.5 bg-gradient-to-r from-slate-900/90 to-[#151D2F] border transition-all duration-200 flex flex-col justify-between hover:border-purple-400/60 shadow-lg relative group"
+                              className="rounded-2xl p-3.5 bg-gradient-to-r from-slate-900/90 to-[#151D2F] border transition-all duration-200 flex flex-col justify-between hover:border-purple-400/60 shadow-lg relative group cursor-pointer"
                               style={{ borderColor: tier.border }}
+                              onMouseEnter={(e) => showItemTooltip(item, e, category)}
+                              onMouseMove={updateItemTooltipPos}
+                              onMouseLeave={hideItemTooltip}
                             >
                               <div className="flex items-start gap-3">
                                 {/* Ảnh trang bị */}
@@ -7249,6 +7738,14 @@ const App = () => {
                                     >
                                       {tier.label}
                                     </span>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); showItemTooltip(item, e, category, true); }}
+                                      className="w-4 h-4 rounded-full bg-slate-800 hover:bg-purple-600 text-slate-400 hover:text-white flex items-center justify-center text-[9px] transition-all border border-slate-700 ml-auto shrink-0 cursor-pointer"
+                                      title="Xem mô tả & thông số chi tiết"
+                                    >
+                                      ℹ️
+                                    </button>
                                   </div>
 
                                   {/* Stats */}
@@ -7421,8 +7918,11 @@ const App = () => {
 
                 {/* Card xem trước vật phẩm */}
                 <div
-                  className="rounded-2xl p-3 bg-gradient-to-r from-slate-900 to-[#151D2F] border flex items-center gap-3.5 mb-4 shadow-inner"
+                  className="rounded-2xl p-3 bg-gradient-to-r from-slate-900 to-[#151D2F] border flex items-center gap-3.5 mb-4 shadow-inner cursor-pointer hover:border-amber-400/60 transition-all"
                   style={{ borderColor: tier.border }}
+                  onMouseEnter={(e) => showItemTooltip(item, e, category)}
+                  onMouseMove={updateItemTooltipPos}
+                  onMouseLeave={hideItemTooltip}
                 >
                   <div className="relative w-14 h-14 shrink-0 flex items-center justify-center bg-black/40 rounded-xl">
                     {img ? (
@@ -7769,9 +8269,12 @@ const App = () => {
                             return (
                               <div
                                 key={listing.id}
-                                className={`rounded-2xl p-3 bg-gradient-to-r from-slate-900/90 to-[#151D2F] border flex flex-col justify-between shadow-lg relative group transition-all duration-200 hover:border-amber-400/60 ${isMine ? 'ring-1 ring-amber-500/40' : ''
+                                className={`rounded-2xl p-3 bg-gradient-to-r from-slate-900/90 to-[#151D2F] border flex flex-col justify-between shadow-lg relative group transition-all duration-200 hover:border-amber-400/60 cursor-pointer ${isMine ? 'ring-1 ring-amber-500/40' : ''
                                   }`}
                                 style={{ borderColor: isMine ? '#f59e0b' : tier.border }}
+                                onMouseEnter={(e) => showItemTooltip(item, e, category)}
+                                onMouseMove={updateItemTooltipPos}
+                                onMouseLeave={hideItemTooltip}
                               >
                                 <div>
                                   {/* Badge mã ID & thời gian */}
@@ -7795,8 +8298,16 @@ const App = () => {
                                     </div>
 
                                     <div className="min-w-0 flex-1">
-                                      <div className="font-black text-xs text-white truncate" title={item.name}>
-                                        {item.name} {item.plus ? <span className="text-yellow-400">+{item.plus}</span> : ''}
+                                      <div className="font-black text-xs text-white truncate flex items-center justify-between" title={item.name}>
+                                        <span className="truncate">{item.name} {item.plus ? <span className="text-yellow-400">+{item.plus}</span> : ''}</span>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => { e.stopPropagation(); showItemTooltip(item, e, category, true); }}
+                                          className="w-4 h-4 rounded-full bg-slate-800 hover:bg-amber-500 text-slate-400 hover:text-black flex items-center justify-center text-[9px] transition-all border border-slate-700 ml-1 shrink-0 cursor-pointer"
+                                          title="Xem mô tả & thông số chi tiết"
+                                        >
+                                          ℹ️
+                                        </button>
                                       </div>
 
                                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
@@ -7922,7 +8433,10 @@ const App = () => {
                           return (
                             <div
                               key={listing.id}
-                              className="rounded-2xl p-3.5 bg-slate-900/90 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md"
+                              className="rounded-2xl p-3.5 bg-slate-900/90 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md hover:border-amber-400/60 transition-all cursor-pointer"
+                              onMouseEnter={(e) => showItemTooltip(item, e, category)}
+                              onMouseMove={updateItemTooltipPos}
+                              onMouseLeave={hideItemTooltip}
                             >
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-12 h-12 rounded-xl bg-black/40 flex items-center justify-center shrink-0 border border-slate-800">
@@ -7994,7 +8508,10 @@ const App = () => {
                           return (
                             <div
                               key={listing.id || sIdx}
-                              className="rounded-xl p-3 bg-slate-900/70 border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                              className="rounded-xl p-3 bg-slate-900/70 border border-slate-800 flex items-center justify-between gap-3 text-xs hover:border-slate-600 transition-all cursor-pointer"
+                              onMouseEnter={(e) => showItemTooltip(item, e, category)}
+                              onMouseMove={updateItemTooltipPos}
+                              onMouseLeave={hideItemTooltip}
                             >
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-10 h-10 rounded-lg bg-black/40 flex items-center justify-center shrink-0 border border-slate-800">
@@ -12462,6 +12979,7 @@ const App = () => {
           animation-play-state: paused !important;
         }
       `}} />
+      {renderItemDetailedTooltip()}
     </>
   );
 };
