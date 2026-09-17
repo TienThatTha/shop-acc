@@ -5855,6 +5855,37 @@ const App = () => {
     return { color: '#94a3b8', border: '#475569', bg: 'rgba(148, 163, 184, 0.15)', label: 'THƯỜNG' };
   };
 
+  const getItemTierWeight = (item) => {
+    if (!item) return 0;
+    const rawTier = String(item.tier || '').toLowerCase();
+    if (rawTier.includes('thượng cổ')) return 900;
+    if (rawTier.includes('cổ đại')) return 800;
+    if (rawTier.includes('tối thượng')) return 700;
+    if (rawTier.includes('thần thoại')) return 600;
+    if (rawTier.includes('huyền thoại')) return 550;
+    if (rawTier.includes('cực phẩm')) return 500;
+    if (rawTier.includes('sử thi') || rawTier.includes('epic')) return 400;
+    if (rawTier.includes('hiếm') || rawTier.includes('rare')) return 300;
+    if (rawTier.includes('thường') || rawTier.includes('common')) return 100;
+
+    const numTier = Number(item.tier);
+    if (!isNaN(numTier) && numTier > 0) {
+      return numTier * 100;
+    }
+
+    const name = String(item.name || '').toLowerCase();
+    if (name.includes('thượng cổ') || name.includes('bát hoang') || name.includes('nữ oa') || name.includes('bá vương')) return 900;
+    if (name.includes('cổ đại') || name.includes('chaos') || name.includes('long vương')) return 800;
+    if (name.includes('tối thượng') || name.includes('vô cực') || name.includes('phượng hoàng') || name.includes('hắc ma vương') || name.includes('hắc ám ma vương')) return 700;
+    if (name.includes('thần thoại') || name.includes('diệt tộc') || name.includes('kim cương') || name.includes('rồng thần tí hon') || name.includes('hoàng kim') || name.includes('tinh thể')) return 600;
+    if (name.includes('đá tinh hoa') || name.includes('cực phẩm')) return 500;
+    if (name.includes('sử thi') || name.includes('hỏa thần') || name.includes('thánh quang') || name.includes('rồng con') || name.includes('tử tinh') || name.includes('huyết ma')) return 400;
+    if (name.includes('hiếm') || name.includes('trảm ma') || name.includes('giáp rồng') || name.includes('cáo tuyết') || name.includes('lam ngọc')) return 300;
+    if (name.includes('gỗ') || name.includes('sắt') || name.includes('mèo') || name.includes('bạc') || name.includes('hắc thiết')) return 100;
+
+    return 0;
+  };
+
   const ITEM_CANONICAL_ASSETS = {
     // Vũ khí (Weapons)
     "kiếm gỗ": "/game-assets/weapon_wooden_sword.png",
@@ -7514,7 +7545,7 @@ const App = () => {
           const rawSold = Array.isArray(auctionMarketData.recent_sold) ? auctionMarketData.recent_sold : [];
           const myUid = (bossPlayerSummary?.user_id || '').toLowerCase();
 
-          // Lọc danh sách chợ
+          // Lọc danh sách chợ và sắp xếp theo Tier từ cao tới thấp
           const filteredMarketListings = rawActive.filter(l => {
             const item = l.item || {};
             const cat = getCategoryOfItem(item);
@@ -7526,10 +7557,33 @@ const App = () => {
               if (!nameMatch && !sellerMatch) return false;
             }
             return true;
+          }).sort((a, b) => {
+            const itemA = a.item || {};
+            const itemB = b.item || {};
+            const weightA = getItemTierWeight(itemA);
+            const weightB = getItemTierWeight(itemB);
+            if (weightB !== weightA) return weightB - weightA;
+
+            const starsA = Number(itemA.stars || 1);
+            const starsB = Number(itemB.stars || 1);
+            if (starsB !== starsA) return starsB - starsA;
+
+            const plusA = Number(itemA.plus || 0);
+            const plusB = Number(itemB.plus || 0);
+            if (plusB !== plusA) return plusB - plusA;
+
+            return (b.created_at || 0) - (a.created_at || 0);
           });
 
-          // Đồ tôi đang bán
-          const myListings = rawActive.filter(l => String(l.seller_id).toLowerCase() === myUid);
+          // Đồ tôi đang bán (cũng sắp xếp theo Tier từ cao tới thấp)
+          const myListings = rawActive
+            .filter(l => String(l.seller_id).toLowerCase() === myUid)
+            .sort((a, b) => {
+              const weightA = getItemTierWeight(a.item || {});
+              const weightB = getItemTierWeight(b.item || {});
+              if (weightB !== weightA) return weightB - weightA;
+              return (b.created_at || 0) - (a.created_at || 0);
+            });
 
           return (
             <div
@@ -7649,15 +7703,20 @@ const App = () => {
                         ))}
                       </div>
 
-                      <div className="relative w-full sm:w-48 shrink-0">
-                        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                        <input
-                          type="text"
-                          value={auctionSearchTerm}
-                          onChange={(e) => setAuctionSearchTerm(e.target.value)}
-                          placeholder="Tìm món đồ, người bán..."
-                          className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-white text-xs focus:border-amber-400 focus:outline-none"
-                        />
+                      <div className="flex items-center gap-2">
+                        <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-lg shrink-0 whitespace-nowrap">
+                          ⚡ Tier cao ➔ thấp
+                        </span>
+                        <div className="relative w-full sm:w-48 shrink-0">
+                          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                          <input
+                            type="text"
+                            value={auctionSearchTerm}
+                            onChange={(e) => setAuctionSearchTerm(e.target.value)}
+                            placeholder="Tìm món đồ, người bán..."
+                            className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-white text-xs focus:border-amber-400 focus:outline-none"
+                          />
+                        </div>
                       </div>
                     </div>
 
