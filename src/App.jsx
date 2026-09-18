@@ -6212,7 +6212,7 @@ const App = () => {
     return str;
   };
 
-  // --- HỆ THỐNG BỘ TRANG BỊ & KÍCH HOẠT HIỆU ỨNG SET (SET BONUSES) ---
+  // --- HỆ THỐNG BỘ TRANG BỊ & KÍCH HOẠT HIỆU ỨNG SET (SET BONUSES) ĐỒNG BỘ 100% VỚI GAME_CORE.PY ---
   const SET_DEFINITIONS = {
     thuong_co: {
       name: 'Bộ Thần Trang Thượng Cổ',
@@ -6228,8 +6228,8 @@ const App = () => {
         { slot: 'pet', label: 'Linh Thú', name: 'Bát Hoang Thần Rồng Thượng Cổ', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 3, desc: '+30% Sinh Lực (HP) & +25% Phòng Thủ (DEF)' },
-        { count: 5, desc: '+50% Toàn Thuộc Tính & Tuyệt Kỹ: Nộ Long Thượng Cổ (Bạo Kích x3.0)' }
+        { count: 3, desc: '+100% Máu (HP) & +70% Phòng Thủ (DEF)' },
+        { count: 5, desc: '+220% Máu (HP), +150% Phòng Thủ (DEF), +70% Sát Thương (ATK), +180% Sát Thương Bạo Kích & Kháng 16% Phản Đòn của Boss' }
       ]
     },
     co_dai: {
@@ -6246,8 +6246,8 @@ const App = () => {
         { slot: 'pet', label: 'Linh Thú', name: 'Thần Rồng Cổ Đại Chaos', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 3, desc: '+20% Sinh Lực (HP) & +20% Phòng Thủ (DEF)' },
-        { count: 5, desc: '+35% Toàn Thuộc Tính & Giảm 25% Sát Thương Boss' }
+        { count: 3, desc: '+50% Máu (HP) & +35% Phòng Thủ (DEF)' },
+        { count: 5, desc: '+110% Máu (HP), +75% Phòng Thủ (DEF), +35% Sát Thương (ATK), +90% Sát Thương Bạo Kích & Kháng 8% Phản Đòn của Boss' }
       ]
     },
     toi_thuong: {
@@ -6264,8 +6264,8 @@ const App = () => {
         { slot: 'pet', label: 'Linh Thú', name: 'Phượng Hoàng Tối Thượng', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 3, desc: '+15% Sinh Lực (HP) & +15% Phòng Thủ (DEF)' },
-        { count: 5, desc: '+25% Toàn Thuộc Tính & Hút Máu 10%' }
+        { count: 3, desc: '+35% Máu (HP) & +25% Phòng Thủ (DEF)' },
+        { count: 5, desc: '+75% Máu (HP), +50% Phòng Thủ (DEF), +25% Sát Thương (ATK), +60% Sát Thương Bạo Kích & Kháng 5% Phản Đòn của Boss' }
       ]
     },
     than_thoai: {
@@ -6282,8 +6282,8 @@ const App = () => {
         { slot: 'pet', label: 'Linh Thú', name: 'Rồng Thần Tí Hon', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 3, desc: '+12% Sinh Lực (HP) & +12% Phòng Thủ (DEF)' },
-        { count: 5, desc: '+20% Toàn Thuộc Tính & Hộ Thể Kim Cương' }
+        { count: 3, desc: '+25% Máu (HP) & +18% Phòng Thủ (DEF)' },
+        { count: 5, desc: '+50% Máu (HP), +35% Phòng Thủ (DEF), +20% Sát Thương (ATK) & +40% Sát Thương Bạo Kích' }
       ]
     },
     epic: {
@@ -6300,12 +6300,12 @@ const App = () => {
         { slot: 'pet', label: 'Linh Thú', name: 'Rồng Con', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 3, desc: '+8% Sinh Lực (HP) & +8% Phòng Thủ (DEF)' },
-        { count: 5, desc: '+15% Toàn Thuộc Tính' }
+        { count: 3, desc: '+18% Máu (HP) & +12% Phòng Thủ (DEF)' },
+        { count: 5, desc: '+35% Máu (HP), +25% Phòng Thủ (DEF), +15% Sát Thương (ATK) & +25% Sát Thương Bạo Kích' }
       ]
     },
     hiem: {
-      name: 'Bộ Hiếm Lam Tinh',
+      name: 'Bộ Lam Tinh Hiếm',
       tier: 'Hiếm',
       color: '#38bdf8',
       icon: '🔷',
@@ -6318,12 +6318,12 @@ const App = () => {
         { slot: 'pet', label: 'Linh Thú', name: 'Cáo Tuyết', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 3, desc: '+5% Sinh Lực & +5% Phòng Thủ' },
-        { count: 5, desc: '+8% Toàn Thuộc Tính' }
+        { count: 3, desc: '+12% Máu (HP) & +8% Phòng Thủ (DEF)' },
+        { count: 5, desc: '+25% Máu (HP), +15% Phòng Thủ (DEF), +10% Sát Thương (ATK) & +15% Sát Thương Bạo Kích' }
       ]
     },
     thuong: {
-      name: 'Bộ Tân Thủ Thường',
+      name: 'Bộ Tân Thủ Cơ Bản',
       tier: 'Thường',
       color: '#94a3b8',
       icon: '🗡️',
@@ -6336,8 +6336,8 @@ const App = () => {
         { slot: 'pet', label: 'Linh Thú', name: 'Mèo Béo', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 3, desc: '+5% Sinh Lực & +5% Phòng Thủ' },
-        { count: 5, desc: '+5% Toàn Thuộc Tính' }
+        { count: 3, desc: '+5% Máu (HP) & +5% Phòng Thủ (DEF)' },
+        { count: 5, desc: '+10% Máu (HP), +10% Phòng Thủ (DEF) & +5% Sát Thương (ATK)' }
       ]
     }
   };
@@ -8066,6 +8066,24 @@ const App = () => {
 
           const ringProcStr = p.ring ? getRingSkillProcStr(p.ring) : 'Chưa mở khóa';
 
+          let potionCount = Number(p.potions !== undefined ? p.potions : 0);
+          let reviveCount = Number(p.revives !== undefined ? p.revives : 0);
+          if (p.inventory && Array.isArray(p.inventory) && (p.potions === undefined || p.revives === undefined)) {
+            potionCount = 0;
+            reviveCount = 0;
+            for (const it of p.inventory) {
+              const id = String(it.id || '').toLowerCase();
+              const name = String(it.name || '').toLowerCase();
+              const cat = String(it.category || '').toLowerCase();
+              const qty = Number(it.quantity || 1) || 1;
+              if (id === 'item_health_potion' || name.includes('huyết dược') || name.includes('bình máu') || cat === 'potion') {
+                potionCount += qty;
+              } else if (id === 'item_revive_amulet' || name.includes('phục sinh') || name.includes('hồi sinh') || cat === 'revive') {
+                reviveCount += qty;
+              }
+            }
+          }
+
           return (
             <div
               className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in"
@@ -8123,52 +8141,57 @@ const App = () => {
 
                 {/* Scrollable Content */}
                 <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-3.5 flex-1">
-                  {/* Highlight Bar: Trạng Thái Sinh Mệnh (HP) */}
-                  <div className="bg-gradient-to-r from-rose-950/40 via-red-900/20 to-slate-900/60 border border-rose-500/50 rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-[0_0_20px_rgba(244,63,94,0.2)] flex-wrap gap-2">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl animate-pulse">❤️</span>
-                      <div>
-                        <div className="text-[10px] font-black text-rose-400 uppercase tracking-wider">Tình Trạng Sinh Lực (HP)</div>
-                        <div className="text-xl sm:text-2xl font-black text-white font-sans drop-shadow-[0_0_10px_rgba(244,63,94,0.8)]">
-                          {currentHp.toLocaleString()} <span className="text-sm font-bold text-slate-400">/ {maxHp.toLocaleString()} HP</span>
+                  {/* Highlight Bar: Trạng Thái Sinh Mệnh (HP) (Hòa chung thanh máu & đưa Bình Máu + Bùa Phục Sinh lên ngay trên số máu bự) */}
+                  <div className="bg-gradient-to-r from-rose-950/40 via-red-900/25 to-slate-900/60 border border-rose-500/50 rounded-2xl p-3.5 flex flex-col gap-2.5 shadow-[0_0_20px_rgba(244,63,94,0.25)]">
+                    {/* Hàng trên: Tiêu đề + 🧪 Bình Máu & ✨ Bùa Phục Sinh */}
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="text-[10.5px] font-black text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>❤️ Tình Trạng Sinh Lực (HP)</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="bg-rose-500/20 border border-rose-500/50 rounded-xl px-2.5 py-1 flex items-center gap-1.5 shadow-sm">
+                          <span className="text-xs">🧪</span>
+                          <span className="text-[10px] font-bold text-rose-300 uppercase">Bình Máu:</span>
+                          <span className="text-xs font-black text-white">{potionCount.toLocaleString()} Bình</span>
+                        </div>
+                        <div className="bg-amber-500/20 border border-amber-500/50 rounded-xl px-2.5 py-1 flex items-center gap-1.5 shadow-sm">
+                          <span className="text-xs">✨</span>
+                          <span className="text-[10px] font-bold text-amber-300 uppercase">Bùa Phục Sinh:</span>
+                          <span className="text-xs font-black text-white">{reviveCount.toLocaleString()} Bùa</span>
                         </div>
                       </div>
                     </div>
-                    <div>
-                      {isDead ? (
-                        <span className="text-xs font-black text-rose-400 bg-rose-500/15 border border-rose-500/40 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
-                          💀 Trọng Thương ({respawnTime}s hồi sinh)
-                        </span>
-                      ) : (
-                        <span className="text-xs font-black text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
-                          🟢 Khỏe Mạnh ({hpPct.toFixed(0)}% Máu)
-                        </span>
-                      )}
+
+                    {/* Hàng giữa: Số máu bự + Trạng thái chiến đấu */}
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="text-2xl sm:text-3xl font-black text-white font-sans drop-shadow-[0_0_12px_rgba(244,63,94,0.85)]">
+                        {currentHp.toLocaleString()} <span className="text-sm font-bold text-slate-400">/ {maxHp.toLocaleString()} HP</span>
+                      </div>
+                      <div>
+                        {isDead ? (
+                          <span className="text-xs font-black text-rose-400 bg-rose-500/15 border border-rose-500/40 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
+                            💀 Trọng Thương ({respawnTime}s hồi sinh)
+                          </span>
+                        ) : (
+                          <span className="text-xs font-black text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
+                            🟢 Khỏe Mạnh ({hpPct.toFixed(0)}% Máu)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Hàng dưới: Thanh máu neon hòa chung với số máu bự */}
+                    <div className="w-full h-2.5 bg-slate-900/90 rounded-full overflow-hidden border border-rose-500/40 shadow-inner">
+                      <div
+                        className="h-full bg-gradient-to-r from-rose-500 to-red-600 rounded-full shadow-[0_0_10px_#f43f5e] transition-all duration-300"
+                        style={{ width: `${hpPct}%` }}
+                      />
                     </div>
                   </div>
 
-                  {/* 4 CORE COMBAT STATS (MÁU, CÔNG, THỦ, CRIT) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* CARD 1: HP */}
-                    <div className="bg-rose-950/20 border border-rose-500/40 rounded-2xl p-3.5 relative overflow-hidden shadow-[0_4px_15px_rgba(244,63,94,0.1)]">
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-xs font-black text-rose-400 uppercase flex items-center gap-1.5">
-                          ❤️ Sinh Lực (HP)
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-bold">Max HP</span>
-                      </div>
-                      <div className="text-xl font-black text-white font-sans drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]">
-                        {currentHp.toLocaleString()} / {maxHp.toLocaleString()} HP
-                      </div>
-                      <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden mt-2.5 border border-rose-500/30">
-                        <div
-                          className="h-full bg-gradient-to-r from-rose-500 to-red-600 rounded-full shadow-[0_0_8px_#f43f5e]"
-                          style={{ width: `${hpPct}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* CARD 2: TẤN CÔNG (ATK / ALL DMG) */}
+                  {/* 3 CORE COMBAT STATS (CÔNG, THỦ, CRIT) - Cân đối 3 cột */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {/* CARD 1: TẤN CÔNG (ATK / ALL DMG) */}
                     <div className="bg-emerald-950/20 border border-emerald-500/40 rounded-2xl p-3.5 relative overflow-hidden shadow-[0_4px_15px_rgba(16,185,129,0.1)]">
                       <div className="flex justify-between items-center mb-1.5">
                         <span className="text-xs font-black text-emerald-400 uppercase flex items-center gap-1.5">
@@ -8184,7 +8207,7 @@ const App = () => {
                       </div>
                     </div>
 
-                    {/* CARD 3: PHÒNG THỦ (DEF) */}
+                    {/* CARD 2: PHÒNG THỦ (DEF) */}
                     <div className="bg-sky-950/20 border border-sky-500/40 rounded-2xl p-3.5 relative overflow-hidden shadow-[0_4px_15px_rgba(14,165,233,0.1)]">
                       <div className="flex justify-between items-center mb-1.5">
                         <span className="text-xs font-black text-sky-400 uppercase flex items-center gap-1.5">
@@ -8196,11 +8219,11 @@ const App = () => {
                         {totalDef.toLocaleString()} DEF
                       </div>
                       <div className="text-[11.5px] text-sky-400 font-bold mt-2">
-                        🛡️ Giảm Sát Thương Nhận Vào: {dmgReducPct.toFixed(1)}%
+                        🛡️ Giảm Sát Thương: {dmgReducPct.toFixed(1)}%
                       </div>
                     </div>
 
-                    {/* CARD 4: CRIT & CRIT DMG (TỔNG %) */}
+                    {/* CARD 3: CRIT & CRIT DMG (TỔNG %) */}
                     <div className="bg-pink-950/20 border border-pink-500/40 rounded-2xl p-3.5 relative overflow-hidden shadow-[0_4px_15px_rgba(244,63,94,0.1)]">
                       <div className="flex justify-between items-center mb-1.5">
                         <span className="text-xs font-black text-pink-400 uppercase flex items-center gap-1.5">
@@ -8217,34 +8240,22 @@ const App = () => {
                     </div>
                   </div>
 
-                  {/* KỸ NĂNG THẦN BINH & TÀI NGUYÊN */}
+                  {/* KỸ NĂNG THẦN BINH & ĐẶC QUYỀN (Đã bỏ xu nâng cấp, chuyển bình máu & bùa lên trên) */}
                   <div>
                     <div className="text-xs font-black text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      🔮 Kỹ Năng Thần Binh & Tài Nguyên
+                      🔮 Kỹ Năng Thần Binh & Đặc Quyền Tích Lũy
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">💍 Nhẫn Thần Binh</div>
-                        <div className="text-xs font-extrabold text-purple-400 mt-1 truncate">
+                        <div className="text-sm font-extrabold text-purple-400 mt-1 truncate">
                           {ringProcStr}
                         </div>
                       </div>
-                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">📈 Thưởng EXP Đòn Đánh</div>
-                        <div className="text-xs font-extrabold text-sky-400 mt-1">
+                        <div className="text-sm font-extrabold text-sky-400 mt-1">
                           +{(p.exp_bonus_multiplier || 0).toFixed(1)}% EXP
-                        </div>
-                      </div>
-                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">⚡ Lượt Đánh Khả Dụng</div>
-                        <div className="text-xs font-extrabold text-cyan-400 mt-1">
-                          {Number(p.bonus_attacks || 0).toLocaleString()} lượt
-                        </div>
-                      </div>
-                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">🪙 Xu Nâng Cấp Khả Dụng</div>
-                        <div className="text-xs font-extrabold text-amber-400 mt-1">
-                          {Number(p.bonus_coins || 0).toLocaleString()} Xu
                         </div>
                       </div>
                     </div>
