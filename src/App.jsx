@@ -6671,7 +6671,7 @@ const App = () => {
         }}
       >
         <div
-          className="w-[330px] sm:w-[360px] max-w-[95vw] overflow-y-auto custom-scrollbar rounded-2xl p-3.5 sm:p-4 bg-gradient-to-b from-[#0F172A] via-[#0B1120] to-[#060913] border-2 text-slate-200 shadow-2xl backdrop-blur-2xl animate-fade-in relative"
+          className="w-[360px] sm:w-[440px] max-w-[95vw] overflow-y-auto custom-scrollbar rounded-2xl p-3.5 sm:p-4 bg-gradient-to-b from-[#0F172A] via-[#0B1120] to-[#060913] border-2 text-slate-200 shadow-2xl backdrop-blur-2xl animate-fade-in relative"
           style={{
             borderColor: isMaterial ? matInfo.badgeBorder : tier.border,
             boxShadow: `0 0 25px ${isMaterial ? matInfo.badgeBorder : tier.color}40, 0 20px 40px rgba(0,0,0,0.9)`,
@@ -6980,31 +6980,31 @@ const App = () => {
                     </div>
 
                     {/* Danh sách các món trong bộ */}
-                    <div className="flex flex-wrap gap-1 mb-2.5">
+                    <div className="flex flex-wrap gap-1.5 mb-3">
                       {setInfo.pieces.map((piece, pIdx) => {
                         const isEquipped = equippedSlots.some(s => s.slot === piece.slot);
                         return (
                           <span
                             key={pIdx}
-                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 transition-all ${
+                            className={`text-[9.5px] font-bold px-2 py-1 rounded-md flex items-center gap-1.5 transition-all ${
                               isEquipped
                                 ? 'bg-amber-500/20 border border-amber-500/40 text-amber-200 drop-shadow-[0_0_6px_rgba(245,158,11,0.3)]'
-                                : 'bg-black/40 border border-dashed border-slate-800/80 text-slate-500 opacity-60'
+                                : 'bg-black/40 border border-dashed border-slate-800/80 text-slate-500 opacity-70'
                             }`}
                           >
-                            <span>{piece.slotIcon}</span>
-                            <span className="truncate max-w-[130px]">{piece.name}</span>
-                            {isEquipped && <span className="text-emerald-400 font-black">✓</span>}
+                            <span className="text-xs shrink-0">{piece.slotIcon}</span>
+                            <span className="break-words whitespace-normal leading-tight">{piece.name}</span>
+                            {isEquipped && <span className="text-emerald-400 font-black shrink-0">✓</span>}
                           </span>
                         );
                       })}
                     </div>
 
                     {/* Các mốc kích hoạt thuộc tính Set */}
-                    <div className="space-y-1.5">
-                      <div className="text-[10px] font-bold text-slate-400 flex items-center justify-between">
+                    <div className="space-y-2">
+                      <div className="text-[10.5px] font-black text-slate-400 flex items-center justify-between">
                         <span>Thuộc tính kích hoạt bộ:</span>
-                        {isSetFull && <span className="text-[9px] text-amber-300 font-bold">✨ ĐÃ ĐỦ TRỌN BỘ!</span>}
+                        {isSetFull && <span className="text-[9.5px] text-amber-300 font-black">✨ ĐÃ ĐỦ TRỌN BỘ!</span>}
                       </div>
 
                       {setInfo.bonuses.map((bonus, bIdx) => {
@@ -7012,35 +7012,44 @@ const App = () => {
                         return (
                           <div
                             key={bIdx}
-                            className={`p-2 rounded-lg border text-[11px] flex items-start justify-between gap-2 transition-all ${
+                            className={`p-2.5 rounded-xl border text-[11px] transition-all flex flex-col gap-1.5 ${
                               isUnlocked
-                                ? 'bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-transparent border-amber-500/60 text-amber-200 font-bold shadow-[0_0_12px_rgba(245,158,11,0.25)]'
-                                : 'bg-slate-950/50 border-dashed border-slate-800/80 text-slate-400 font-normal'
+                                ? 'bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-transparent border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+                                : 'bg-slate-950/60 border-dashed border-slate-800 text-slate-400'
                             }`}
                           >
-                            <div className="flex items-start gap-1.5 min-w-0 flex-1">
-                              <span className={`shrink-0 mt-0.5 ${isUnlocked ? 'text-amber-400 font-black' : 'text-slate-500'}`}>
-                                {isUnlocked ? '✅' : '🔒'}
-                              </span>
-                              <div className="min-w-0 flex-1 leading-snug break-words whitespace-normal">
-                                <span className={`mr-1.5 ${isUnlocked ? 'text-amber-300 font-extrabold' : 'text-slate-400 font-semibold'}`}>
-                                  ({bonus.count} Món):
+                            {/* Dòng 1: Mốc kích hoạt & Trạng thái */}
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <span className={`text-xs shrink-0 ${isUnlocked ? 'text-amber-400 font-black' : 'text-slate-500'}`}>
+                                  {isUnlocked ? '✅' : '🔒'}
                                 </span>
-                                <span className={isUnlocked ? 'text-slate-100 font-bold' : 'text-slate-300'}>
-                                  {bonus.desc}
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border uppercase tracking-wider ${
+                                  isUnlocked
+                                    ? 'bg-amber-500/30 border-amber-500/60 text-amber-300 shadow-sm'
+                                    : 'bg-slate-800/80 border-slate-700/80 text-slate-400'
+                                }`}>
+                                  Bộ [{bonus.count} Món]
                                 </span>
                               </div>
+
+                              {isUnlocked ? (
+                                <span className="text-[9px] bg-amber-500/30 text-amber-300 font-black px-2 py-0.5 rounded-md border border-amber-500/50 uppercase tracking-wide shrink-0">
+                                  ✨ Đã kích hoạt
+                                </span>
+                              ) : (
+                                <span className="text-[9px] text-slate-500 font-mono shrink-0">
+                                  (Chưa đủ)
+                                </span>
+                              )}
                             </div>
 
-                            {isUnlocked ? (
-                              <span className="text-[8.5px] bg-amber-500/30 text-amber-300 font-black px-1.5 py-0.5 rounded border border-amber-500/50 uppercase shrink-0 mt-0.5">
-                                Đã sáng
+                            {/* Dòng 2: Nội dung thuộc tính XUỐNG HÀNG riêng biệt, tự do xuống dòng và KHÔNG BAO GIỜ bị cắt khúc */}
+                            <div className="pl-5 text-[11.5px] leading-relaxed break-words whitespace-normal">
+                              <span className={isUnlocked ? 'text-amber-100 font-bold drop-shadow-[0_0_8px_rgba(245,158,11,0.3)]' : 'text-slate-300 font-medium'}>
+                                {bonus.desc}
                               </span>
-                            ) : (
-                              <span className="text-[8.5px] text-slate-500 font-mono shrink-0 mt-0.5">
-                                (Chưa đủ)
-                              </span>
-                            )}
+                            </div>
                           </div>
                         );
                       })}
