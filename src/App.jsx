@@ -3335,13 +3335,14 @@ const App = () => {
         nickname: bossPlayerSummary.nickname,
         web_user: currentUser.name || currentUser.id,
         package_id: `game_action_${actionType}`,
-        package_name: actionType === 'equip' ? `Trang bị ${item?.name || ''}` : (actionType === 'delete' ? `Xóa ${item?.name || ''}` : 'Dọn sạch đồ rác'),
+        package_name: actionType === 'equip' ? `Trang bị ${item?.name || ''}` : (actionType === 'unequip' ? `Tháo ${item?.name || itemIndex || ''}` : (actionType === 'delete' ? `Xóa ${item?.name || ''}` : 'Dọn sạch đồ rác')),
         price: 0,
         rewards: {
           action: actionType,
           item_index: itemIndex,
           item_name: item?.name,
           item_category: item?.category,
+          slot: itemIndex,
           item: item
         },
         status: 'pending'
@@ -3366,7 +3367,7 @@ const App = () => {
             setIsPerformingBagAction(false);
             setBagActionLoadingItem(null);
 
-            const msg = checkAct.result?.message || (actionType === 'equip' ? 'Đã trang bị thành công!' : 'Đã thực thi thành công!');
+            const msg = checkAct.result?.message || (actionType === 'equip' ? 'Đã trang bị thành công!' : (actionType === 'unequip' ? 'Đã tháo trang bị cất về túi đồ!' : 'Đã thực thi thành công!'));
             showToast(`✨ ${msg}`, "success");
 
             await handleCheckBossPlayer(targetUid);
@@ -6227,9 +6228,7 @@ const App = () => {
         { slot: 'pet', label: 'Linh Thú', name: 'Bát Hoang Thần Rồng Thượng Cổ', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 2, desc: '+15% Tổng Sát Thương & +10% Bạo Kích' },
         { count: 3, desc: '+30% Sinh Lực (HP) & +25% Phòng Thủ (DEF)' },
-        { count: 4, desc: '+25% Sát Thương Boss & +15% Xuyên Giáp' },
         { count: 5, desc: '+50% Toàn Thuộc Tính & Tuyệt Kỹ: Nộ Long Thượng Cổ (Bạo Kích x3.0)' }
       ]
     },
@@ -6247,9 +6246,7 @@ const App = () => {
         { slot: 'pet', label: 'Linh Thú', name: 'Thần Rồng Cổ Đại Chaos', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 2, desc: '+12% Tổng Sát Thương' },
         { count: 3, desc: '+20% Sinh Lực (HP) & +20% Phòng Thủ (DEF)' },
-        { count: 4, desc: '+20% Sát Thương Bạo Kích & +10% Xuyên Giáp' },
         { count: 5, desc: '+35% Toàn Thuộc Tính & Giảm 25% Sát Thương Boss' }
       ]
     },
@@ -6267,9 +6264,7 @@ const App = () => {
         { slot: 'pet', label: 'Linh Thú', name: 'Phượng Hoàng Tối Thượng', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 2, desc: '+10% Tổng Sát Thương' },
         { count: 3, desc: '+15% Sinh Lực (HP) & +15% Phòng Thủ (DEF)' },
-        { count: 4, desc: '+15% Sát Thương Bạo Kích & +10% Xuyên Giáp' },
         { count: 5, desc: '+25% Toàn Thuộc Tính & Hút Máu 10%' }
       ]
     },
@@ -6287,9 +6282,7 @@ const App = () => {
         { slot: 'pet', label: 'Linh Thú', name: 'Rồng Thần Tí Hon', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 2, desc: '+8% Tổng Sát Thương' },
         { count: 3, desc: '+12% Sinh Lực (HP) & +12% Phòng Thủ (DEF)' },
-        { count: 4, desc: '+12% Sát Thương Bạo Kích' },
         { count: 5, desc: '+20% Toàn Thuộc Tính & Hộ Thể Kim Cương' }
       ]
     },
@@ -6307,9 +6300,8 @@ const App = () => {
         { slot: 'pet', label: 'Linh Thú', name: 'Rồng Con', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 2, desc: '+5% Tổng Sát Thương' },
         { count: 3, desc: '+8% Sinh Lực (HP) & +8% Phòng Thủ (DEF)' },
-        { count: 4, desc: '+15% Toàn Thuộc Tính' }
+        { count: 5, desc: '+15% Toàn Thuộc Tính' }
       ]
     },
     hiem: {
@@ -6326,9 +6318,8 @@ const App = () => {
         { slot: 'pet', label: 'Linh Thú', name: 'Cáo Tuyết', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 2, desc: '+3% Tổng Sát Thương' },
         { count: 3, desc: '+5% Sinh Lực & +5% Phòng Thủ' },
-        { count: 4, desc: '+8% Toàn Thuộc Tính' }
+        { count: 5, desc: '+8% Toàn Thuộc Tính' }
       ]
     },
     thuong: {
@@ -6345,9 +6336,8 @@ const App = () => {
         { slot: 'pet', label: 'Linh Thú', name: 'Mèo Béo', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 2, desc: '+2% Tổng Sát Thương' },
         { count: 3, desc: '+5% Sinh Lực & +5% Phòng Thủ' },
-        { count: 4, desc: '+5% Toàn Thuộc Tính' }
+        { count: 5, desc: '+5% Toàn Thuộc Tính' }
       ]
     }
   };
@@ -7691,20 +7681,38 @@ const App = () => {
                 </div>
 
                 <div className="flex-1 min-w-0 flex flex-col justify-start">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-extrabold text-xs sm:text-sm leading-snug" style={{ color: tier.color }} title={item.name}>
-                      {item.name}{plusText}
-                    </span>
-                    <span
-                      className="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase shrink-0"
-                      style={{ color: tier.color, background: tier.bg, borderColor: tier.border }}
-                    >
-                      {tier.label}
-                    </span>
-                    {category === 'pet' && item.level && (
-                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-600 text-white shadow-sm shrink-0">
-                        Lv.{item.level}
+                  <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                      <span className="font-extrabold text-xs sm:text-sm leading-snug" style={{ color: tier.color }} title={item.name}>
+                        {item.name}{plusText}
                       </span>
+                      <span
+                        className="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase shrink-0"
+                        style={{ color: tier.color, background: tier.bg, borderColor: tier.border }}
+                      >
+                        {tier.label}
+                      </span>
+                      {category === 'pet' && item.level && (
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-600 text-white shadow-sm shrink-0">
+                          Lv.{item.level}
+                        </span>
+                      )}
+                    </div>
+                    {/* Nút Tháo Trang Bị về Túi Đồ nếu đang xem profile của chính mình */}
+                    {bossPlayerSummary && String(bossPlayerSummary.user_id).toLowerCase() === String(p.user_id).toLowerCase() && (
+                      <button
+                        type="button"
+                        disabled={isPerformingBagAction}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleExecuteBagAction('unequip', item, category);
+                        }}
+                        className="px-2 py-0.5 bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/40 rounded-lg text-[10.5px] font-black transition-all hover:scale-105 active:scale-95 flex items-center gap-1 cursor-pointer disabled:opacity-50 shrink-0 ml-auto"
+                        title={`Tháo ${defaultTitle} cất vào túi đồ`}
+                      >
+                        {isPerformingBagAction && bagActionLoadingItem === category ? <Loader2 size={10} className="animate-spin" /> : null}
+                        <span>Tháo 📤</span>
+                      </button>
                     )}
                   </div>
 
