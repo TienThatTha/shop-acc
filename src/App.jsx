@@ -3039,7 +3039,7 @@ const App = () => {
             ring: rg,
             necklace: nk,
             exp: wp?.player_exp || 0,
-            bonus_coins: wp?.player_coins || dbPlayer.bonus_coins || dbPlayer.coins || 0,
+            bonus_coins: (wp?.player_coins !== undefined && wp?.player_coins !== null) ? Number(wp.player_coins) : (dbPlayer.bonus_coins || dbPlayer.coins || 0),
             total_dmg: wp?.total_dmg || 0,
             has_x2_rate: wp?.has_x2_rate || false,
             platform: wp?.platform || 'tiktok',
