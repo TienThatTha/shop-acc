@@ -450,6 +450,9 @@ const App = () => {
   const [selectedItemToList, setSelectedItemToList] = useState(null);
   const [listingPrice, setListingPrice] = useState(100);
   const [listingSellQuantity, setListingSellQuantity] = useState(1);
+  const [listingPassword, setListingPassword] = useState('');
+  const [buyingLockedListing, setBuyingLockedListing] = useState(null);
+  const [buyPasscodePrompt, setBuyPasscodePrompt] = useState('');
 
   useEffect(() => {
     if (bossTargetId) {
@@ -8708,6 +8711,7 @@ const App = () => {
                                         setSelectedItemToList({ ...item, originalIndex: idx });
                                         setListingPrice(100);
                                         setListingSellQuantity(Math.min(item.quantity || 1, 1));
+                                        setListingPassword('');
                                         setShowListItemModal(true);
                                       }}
                                       className="flex-1 py-1.5 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-black text-xs rounded-xl transition-all shadow hover:scale-105 active:scale-95 flex items-center justify-center gap-1 cursor-pointer border border-amber-400/40"
@@ -8742,6 +8746,7 @@ const App = () => {
                                         setSelectedItemToList({ ...item, originalIndex: idx });
                                         setListingPrice(100);
                                         setListingSellQuantity(1);
+                                        setListingPassword('');
                                         setShowListItemModal(true);
                                       }}
                                       className="px-2.5 py-1.5 bg-gradient-to-r from-amber-600/30 to-yellow-600/30 hover:from-amber-500 hover:to-yellow-500 text-amber-300 hover:text-white border border-amber-500/40 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
@@ -8935,6 +8940,30 @@ const App = () => {
                     </div>
                   </div>
 
+                  {/* Mục tạo mật mã khi treo bán */}
+                  <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-700/80">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                        <span>🔒 Mật mã mua hàng:</span>
+                        <span className="text-[10px] font-normal text-slate-400">(Tùy chọn)</span>
+                      </label>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${listingPassword.trim() ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'text-slate-500'}`}>
+                        {listingPassword.trim() ? 'Đã cài pass' : 'Bán công khai'}
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={30}
+                      value={listingPassword}
+                      onChange={(e) => setListingPassword(e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-slate-700 focus:border-amber-400 text-white font-medium text-xs placeholder:text-slate-500 focus:outline-none"
+                      placeholder="Nhập pass riêng cho người mua (bỏ trống nếu bán tự do)..."
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1.5 leading-normal">
+                      💡 Ai muốn mua vật phẩm này trên website bắt buộc phải <strong>nhập đúng mật mã</strong> mới được mua.
+                    </p>
+                  </div>
+
                   {/* Bảng tính chi phí minh bạch */}
                   <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-xs space-y-1.5">
                     <div className="flex justify-between items-center text-slate-300">
@@ -8972,7 +9001,8 @@ const App = () => {
                         item: item,
                         item_name: item.name,
                         price: safePrice,
-                        quantity: listingSellQuantity
+                        quantity: listingSellQuantity,
+                        password: listingPassword.trim()
                       });
                     }}
                     className="flex-[2] py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
@@ -9245,6 +9275,12 @@ const App = () => {
                                             Lv.{item.skill_level}
                                           </span>
                                         )}
+
+                                        {(listing.has_password || listing.password) && (
+                                          <span className="text-[9px] font-black text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm">
+                                            🔒 Có Pass
+                                          </span>
+                                        )}
                                       </div>
 
                                       {/* Stats tóm tắt */}
@@ -9329,12 +9365,17 @@ const App = () => {
                                       disabled={isPerformingBagAction}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleExecuteAuctionAction('buy_auction', { auction_id: listing.id, listing, price: listing.price });
+                                        if (listing.has_password || listing.password) {
+                                          setBuyingLockedListing(listing);
+                                          setBuyPasscodePrompt('');
+                                        } else {
+                                          handleExecuteAuctionAction('buy_auction', { auction_id: listing.id, listing, price: listing.price });
+                                        }
                                       }}
                                       className="px-4 py-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.4)] transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                                     >
-                                      {isLoadingThis ? <Loader2 size={12} className="animate-spin" /> : <Wallet size={12} />}
-                                      <span>Mua Ngay</span>
+                                      {isLoadingThis ? <Loader2 size={12} className="animate-spin" /> : ((listing.has_password || listing.password) ? <Lock size={12} /> : <Wallet size={12} />)}
+                                      <span>{(listing.has_password || listing.password) ? 'Mua (Có Pass)' : 'Mua Ngay'}</span>
                                     </button>
                                   )}
                                 </div>
@@ -9394,6 +9435,11 @@ const App = () => {
                                     <span style={{ color: tier.color }}>{tier.label}</span>
                                     <span>• Mã: #{listing.id.slice(-6)}</span>
                                     <span>• Đăng lúc: {new Date(listing.created_at * 1000).toLocaleTimeString('vi-VN')}</span>
+                                    {(listing.has_password || listing.password) && (
+                                      <span className="text-[9px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                        🔒 Có Pass
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -9507,6 +9553,95 @@ const App = () => {
             </div>
           );
         })()}
+
+        {/* MODAL NHẬP MẬT MÃ MUA HÀNG ĐẤU GIÁ */}
+        {buyingLockedListing && (
+          <div
+            className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+            onClick={(e) => { if (e.target === e.currentTarget) { setBuyingLockedListing(null); setBuyPasscodePrompt(''); } }}
+          >
+            <div className="bg-gradient-to-br from-[#12192c] via-[#0e1526] to-[#080d1a] border-2 border-amber-500/70 rounded-3xl w-full max-w-sm shadow-[0_0_60px_rgba(245,158,11,0.4)] p-5 text-white animate-zoom-in relative">
+              <div className="flex items-center justify-between border-b border-amber-500/20 pb-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 text-base">
+                    🔒
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-white">NHẬP MẬT MÃ MUA HÀNG</h3>
+                    <p className="text-[10px] text-amber-300/80">Vật phẩm được bảo vệ bằng mật khẩu</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setBuyingLockedListing(null); setBuyPasscodePrompt(''); }}
+                  className="w-7 h-7 rounded-full bg-slate-800 hover:bg-rose-600 text-slate-400 hover:text-white flex items-center justify-center transition-colors border border-slate-700 cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="bg-slate-900/80 rounded-2xl p-3 border border-slate-700 mb-3.5 space-y-1 text-xs">
+                <div className="text-white font-bold truncate">
+                  📦 {buyingLockedListing.item_name || buyingLockedListing.item?.name}
+                </div>
+                <div className="flex justify-between text-[11px] text-slate-400">
+                  <span>Người bán: <strong className="text-slate-300">{buyingLockedListing.seller_name}</strong></span>
+                  <span className="text-amber-300 font-bold">🪙 {Number(buyingLockedListing.price || 0).toLocaleString()} Xu</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 mb-4">
+                <label className="block text-xs font-bold text-slate-300">
+                  Mật mã giao dịch:
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  value={buyPasscodePrompt}
+                  onChange={(e) => setBuyPasscodePrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && buyPasscodePrompt.trim()) {
+                      const pass = buyPasscodePrompt.trim();
+                      const l = buyingLockedListing;
+                      setBuyingLockedListing(null);
+                      setBuyPasscodePrompt('');
+                      handleExecuteAuctionAction('buy_auction', { auction_id: l.id, listing: l, price: l.price, password: pass });
+                    }
+                  }}
+                  placeholder="Nhập mật mã do người bán cung cấp..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-amber-500/40 text-amber-300 font-black text-sm focus:border-amber-400 focus:outline-none"
+                />
+                <p className="text-[10px] text-slate-400 leading-normal">
+                  * Vui lòng liên hệ người bán để lấy mật mã mở khóa trước khi mua.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => { setBuyingLockedListing(null); setBuyPasscodePrompt(''); }}
+                  className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                >
+                  Đóng
+                </button>
+                <button
+                  type="button"
+                  disabled={!buyPasscodePrompt.trim() || isPerformingBagAction}
+                  onClick={() => {
+                    const pass = buyPasscodePrompt.trim();
+                    const l = buyingLockedListing;
+                    setBuyingLockedListing(null);
+                    setBuyPasscodePrompt('');
+                    handleExecuteAuctionAction('buy_auction', { auction_id: l.id, listing: l, price: l.price, password: pass });
+                  }}
+                  className="flex-[2] py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-[0_0_15px_rgba(245,158,11,0.4)] disabled:opacity-50 cursor-pointer"
+                >
+                  Xác Nhận Mua
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {renderFooter()}
       </div>
