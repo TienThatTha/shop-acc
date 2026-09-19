@@ -3505,21 +3505,25 @@ const App = () => {
             .eq('id', actionId)
             .maybeSingle();
 
-          if (checkAct && checkAct.status === 'completed') {
+          if (checkAct && (checkAct.status === 'completed' || checkAct.status === 'error')) {
             clearInterval(pollAction);
             setIsPerformingBagAction(false);
             setBagActionLoadingItem(null);
 
-            const msg = checkAct.result?.message || 'Giao dịch thành công!';
-            showToast(`🏛️ ${msg}`, checkAct.result?.success ? "success" : "error");
+            const isOk = checkAct.status === 'completed' && (checkAct.result?.success !== false);
+            const msg = checkAct.result?.message || (isOk ? 'Giao dịch thành công!' : (checkAct.result?.error || 'Giao dịch không thành công!'));
+            showToast(`🏛️ ${msg}`, isOk ? "success" : "error");
 
             await handleCheckBossPlayer(targetUid);
             await fetchAuctionMarketData();
-            setShowListItemModal(false);
+            if (isOk) {
+              setShowListItemModal(false);
+            }
           } else if (attempts >= 15) {
             clearInterval(pollAction);
             setIsPerformingBagAction(false);
             setBagActionLoadingItem(null);
+            showToast("Hệ thống đang xử lý, vui lòng tải lại trang để kiểm tra kết quả!", "info");
             await handleCheckBossPlayer(targetUid);
             await fetchAuctionMarketData();
           }
