@@ -3342,10 +3342,14 @@ const App = () => {
         price: 0,
         rewards: {
           action: actionType,
-          item_index: itemIndex,
+          item_index: (typeof itemIndex === 'number' && itemIndex >= 0) ? itemIndex : (item?._rawIndex ?? null),
           item_name: item?.name,
-          item_category: item?.category,
-          slot: itemIndex,
+          item_id: item?.id,
+          item_tier: item?.tier,
+          item_stars: item?.stars,
+          item_plus: item?.plus,
+          item_category: item?.category || getCategoryOfItem(item),
+          slot: actionType === 'unequip' ? (itemIndex || item?.category || getCategoryOfItem(item)) : (item?.category || getCategoryOfItem(item)),
           item: item
         },
         status: 'pending'
@@ -5986,6 +5990,13 @@ const App = () => {
     "rồng thượng cổ": "/game-assets/pet_rong_thuong_co.png",
 
     // Dây chuyền (Necklaces)
+    "quần thiết giáp": "/game-assets/pants_thuong.png",
+    "quần lam ngọc": "/game-assets/pants_hiem.png",
+    "quần thánh quang": "/game-assets/pants_epic.png",
+    "quần kim cương": "/game-assets/pants_thanthoai.png",
+    "quần vô cực tối thượng": "/game-assets/pants_toithuong.png",
+    "quần cổ đại long vương": "/game-assets/pants_codai.png",
+    "thần quần thượng cổ nữ oa": "/game-assets/pants_thuongco.png",
     "dây chuyền bạc": "/game-assets/necklace_thuong.png",
     "dây chuyền lam ngọc": "/game-assets/necklace_hiem.png",
     "dây chuyền tử tinh": "/game-assets/necklace_epic.png",
@@ -6079,6 +6090,17 @@ const App = () => {
       return '/game-assets/pet_rong_chaos.png';
     }
 
+    // Quần Chiến (Pants)
+    if (category === 'pants' || n.includes('quần') || n.includes('quan') || n.includes('giáp chân') || n.includes('pants')) {
+      if (n.includes('nữ oa') || n.includes('thượng cổ') || n.includes('vô cực')) return '/game-assets/pants_thuongco.png';
+      if (n.includes('long vương') || n.includes('chaos') || n.includes('cổ đại')) return '/game-assets/pants_codai.png';
+      if (n.includes('hắc ma') || n.includes('tối thượng')) return '/game-assets/pants_toithuong.png';
+      if (n.includes('kim cương') || n.includes('hoàng kim') || n.includes('thần thoại')) return '/game-assets/pants_thanthoai.png';
+      if (n.includes('thánh quang') || n.includes('tử tinh') || n.includes('epic')) return '/game-assets/pants_epic.png';
+      if (n.includes('lam ngọc') || n.includes('hiếm')) return '/game-assets/pants_hiem.png';
+      return '/game-assets/pants_thuong.png';
+    }
+
     // Áo giáp (Armors)
     if (category === 'armor' || n.includes('giáp') || n.includes('giap') || n.includes('armor')) {
       if (n.includes('nữ oa') || n.includes('nu oa')) return '/game-assets/armor_nu_oa.png';
@@ -6137,7 +6159,7 @@ const App = () => {
     if (item.category) return item.category;
     if (item.type) {
       const t = String(item.type).toLowerCase();
-      if (['material', 'ring', 'necklace', 'armor', 'weapon', 'pet'].includes(t)) {
+      if (['material', 'ring', 'necklace', 'pants', 'armor', 'weapon', 'pet'].includes(t)) {
         return t;
       }
     }
@@ -6145,6 +6167,7 @@ const App = () => {
     if (n.includes('huyết dược') || n.includes('bình máu') || n.includes('potion')) return 'potion';
     if (n.includes('phục sinh') || n.includes('hồi sinh') || n.includes('amulet') || n.includes('revive')) return 'revive';
     if (n.includes('tinh hoa') || n.includes('tinh thể') || n.includes('essence') || n.includes('crystal') || n.includes('đá')) return 'material';
+    if (n.includes('quần') || n.includes('pants') || n.includes('giáp chân') || n.includes('giap chan')) return 'pants';
     if (n.includes('nhẫn') || n.includes('ring')) return 'ring';
     if (n.includes('dây chuyền') || n.includes('necklace')) return 'necklace';
     if (n.includes('giáp') || n.includes('armor')) return 'armor';
@@ -6219,24 +6242,36 @@ const App = () => {
     return str;
   };
 
-  // --- HỆ THỐNG BỘ TRANG BỊ & KÍCH HOẠT HIỆU ỨNG SET (SET BONUSES) ĐỒNG BỘ 100% VỚI GAME_CORE.PY ---
+  // --- HỆ THỐNG BỘ TRANG BỊ & KÍCH HOẠT HIỆU ỨNG SET (SET BONUSES 2 - 4 - 6) ĐỒNG BỘ 100% VỚI GAME_CORE.PY ---
+  const SET_TIER_RANKS = {
+    thuong_co: 70,
+    co_dai: 60,
+    toi_thuong: 50,
+    than_thoai: 40,
+    epic: 30,
+    hiem: 20,
+    thuong: 10
+  };
+
   const SET_DEFINITIONS = {
     thuong_co: {
       name: 'Bộ Thần Trang Thượng Cổ',
       tier: 'Thượng Cổ',
-      color: '#ff00ff',
+      color: '#ff0055',
       icon: '👑',
       badge: 'CỰC PHẨM THƯỢNG CỔ',
       pieces: [
         { slot: 'weapon', label: 'Vũ Khí', name: 'Bá Vương Thần Đao Thượng Cổ', slotIcon: '⚔️' },
         { slot: 'armor', label: 'Áo Giáp', name: 'Thần Giáp Thượng Cổ Nữ Oa', slotIcon: '🛡️' },
+        { slot: 'pants', label: 'Quần Chiến', name: 'Thần Quần Thượng Cổ Nữ Oa', slotIcon: '👖' },
         { slot: 'necklace', label: 'Dây Chuyền', name: 'Thần Dây Chuyền Thượng Cổ Vô Cực', slotIcon: '📿' },
-        { slot: 'ring', label: 'Nhẫn Thần', name: 'Bát Hoang Thần Giới Vô Cực', slotIcon: '💍' },
+        { slot: 'ring', label: 'Nhẫn Thần', name: 'Bát Hoang Thần Nhẫn Thượng Cổ', slotIcon: '💍' },
         { slot: 'pet', label: 'Linh Thú', name: 'Bát Hoang Thần Rồng Thượng Cổ', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 3, desc: '+100% Máu (HP) & +70% Phòng Thủ (DEF)' },
-        { count: 5, desc: '+220% Máu (HP), +150% Phòng Thủ (DEF), +70% Sát Thương (ATK), +180% Sát Thương Bạo Kích & Kháng 16% Phản Đòn của Boss' }
+        { count: 2, desc: '🛡️ Set 2 Món: +75% Máu (HP) & +50% Phòng Thủ (DEF)' },
+        { count: 4, desc: '⚔️ Set 4 Món: +160% Máu (HP), +110% Phòng Thủ (DEF) & +50% Sát Thương (ATK)' },
+        { count: 6, desc: '👑 Full Set 6 Món: +280% HP, +180% DEF, +90% ATK, +220% Sát Thương Bạo Kích, Kháng 20% Phản Đòn & 🌈 +60% ALL THUỘC TÍNH' }
       ]
     },
     co_dai: {
@@ -6248,103 +6283,115 @@ const App = () => {
       pieces: [
         { slot: 'weapon', label: 'Vũ Khí', name: 'Thần Kiếm Cổ Đại Chaos', slotIcon: '⚔️' },
         { slot: 'armor', label: 'Áo Giáp', name: 'Giáp Cổ Đại Long Vương', slotIcon: '🛡️' },
+        { slot: 'pants', label: 'Quần Chiến', name: 'Quần Cổ Đại Long Vương', slotIcon: '👖' },
         { slot: 'necklace', label: 'Dây Chuyền', name: 'Dây Chuyền Cổ Đại Chaos', slotIcon: '📿' },
         { slot: 'ring', label: 'Nhẫn Thần', name: 'Nhẫn Thần Long Chaos', slotIcon: '💍' },
         { slot: 'pet', label: 'Linh Thú', name: 'Thần Rồng Cổ Đại Chaos', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 3, desc: '+50% Máu (HP) & +35% Phòng Thủ (DEF)' },
-        { count: 5, desc: '+110% Máu (HP), +75% Phòng Thủ (DEF), +35% Sát Thương (ATK), +90% Sát Thương Bạo Kích & Kháng 8% Phản Đòn của Boss' }
+        { count: 2, desc: '🛡️ Set 2 Món: +40% Máu (HP) & +30% Phòng Thủ (DEF)' },
+        { count: 4, desc: '⚔️ Set 4 Món: +85% Máu (HP), +55% Phòng Thủ (DEF) & +30% Sát Thương (ATK)' },
+        { count: 6, desc: '👑 Full Set 6 Món: +140% HP, +95% DEF, +45% ATK, +120% Sát Thương Bạo Kích, Kháng 12% Phản Đòn & 🌈 +40% ALL THUỘC TÍNH' }
       ]
     },
     toi_thuong: {
       name: 'Bộ Hắc Ma Tối Thượng',
       tier: 'Tối Thượng',
-      color: '#ff3366',
+      color: '#e53e3e',
       icon: '🌌',
       badge: 'HẮC MA TỐI THƯỢNG',
       pieces: [
         { slot: 'weapon', label: 'Vũ Khí', name: 'Huyền Thoại Ma Vương', slotIcon: '⚔️' },
         { slot: 'armor', label: 'Áo Giáp', name: 'Giáp Vô Cực Tối Thượng', slotIcon: '🛡️' },
+        { slot: 'pants', label: 'Quần Chiến', name: 'Quần Vô Cực Tối Thượng', slotIcon: '👖' },
         { slot: 'necklace', label: 'Dây Chuyền', name: 'Dây Chuyền Hắc Ma Vương', slotIcon: '📿' },
         { slot: 'ring', label: 'Nhẫn Thần', name: 'Nhẫn Hắc Ám Ma Vương', slotIcon: '💍' },
         { slot: 'pet', label: 'Linh Thú', name: 'Phượng Hoàng Tối Thượng', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 3, desc: '+35% Máu (HP) & +25% Phòng Thủ (DEF)' },
-        { count: 5, desc: '+75% Máu (HP), +50% Phòng Thủ (DEF), +25% Sát Thương (ATK), +60% Sát Thương Bạo Kích & Kháng 5% Phản Đòn của Boss' }
+        { count: 2, desc: '🛡️ Set 2 Món: +30% Máu (HP) & +20% Phòng Thủ (DEF)' },
+        { count: 4, desc: '⚔️ Set 4 Món: +60% Máu (HP), +40% Phòng Thủ (DEF) & +22% Sát Thương (ATK)' },
+        { count: 6, desc: '👑 Full Set 6 Món: +100% HP, +65% DEF, +35% ATK, +80% Sát Thương Bạo Kích, Kháng 8% Phản Đòn & 🌈 +25% ALL THUỘC TÍNH' }
       ]
     },
     than_thoai: {
       name: 'Bộ Hoàng Kim Thần Thoại',
       tier: 'Thần Thoại',
-      color: '#ffaa00',
+      color: '#d69e2e',
       icon: '✨',
       badge: 'HOÀNG KIM THẦN THOẠI',
       pieces: [
         { slot: 'weapon', label: 'Vũ Khí', name: 'Thần Đao Diệt Tộc', slotIcon: '⚔️' },
         { slot: 'armor', label: 'Áo Giáp', name: 'Giáp Kim Cương', slotIcon: '🛡️' },
+        { slot: 'pants', label: 'Quần Chiến', name: 'Quần Kim Cương', slotIcon: '👖' },
         { slot: 'necklace', label: 'Dây Chuyền', name: 'Dây Chuyền Hoàng Kim', slotIcon: '📿' },
         { slot: 'ring', label: 'Nhẫn Thần', name: 'Nhẫn Hoàng Kim Diệt Thế', slotIcon: '💍' },
         { slot: 'pet', label: 'Linh Thú', name: 'Rồng Thần Tí Hon', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 3, desc: '+25% Máu (HP) & +18% Phòng Thủ (DEF)' },
-        { count: 5, desc: '+50% Máu (HP), +35% Phòng Thủ (DEF), +20% Sát Thương (ATK) & +40% Sát Thương Bạo Kích' }
+        { count: 2, desc: '🛡️ Set 2 Món: +20% Máu (HP) & +15% Phòng Thủ (DEF)' },
+        { count: 4, desc: '⚔️ Set 4 Món: +40% Máu (HP), +28% Phòng Thủ (DEF) & +18% Sát Thương (ATK)' },
+        { count: 6, desc: '👑 Full Set 6 Món: +65% HP, +45% DEF, +25% ATK, +50% Sát Thương Bạo Kích, Kháng 4% Phản Đòn & 🌈 +15% ALL THUỘC TÍNH' }
       ]
     },
     epic: {
       name: 'Bộ Thánh Quang Sử Thi',
       tier: 'Epic',
-      color: '#a855f7',
+      color: '#805ad5',
       icon: '🌟',
       badge: 'THÁNH QUANG SỬ THI',
       pieces: [
         { slot: 'weapon', label: 'Vũ Khí', name: 'Song Đao Hỏa Thần', slotIcon: '⚔️' },
         { slot: 'armor', label: 'Áo Giáp', name: 'Giáp Thánh Quang', slotIcon: '🛡️' },
+        { slot: 'pants', label: 'Quần Chiến', name: 'Quần Thánh Quang', slotIcon: '👖' },
         { slot: 'necklace', label: 'Dây Chuyền', name: 'Dây Chuyền Tử Tinh', slotIcon: '📿' },
         { slot: 'ring', label: 'Nhẫn Thần', name: 'Nhẫn Huyết Ma Thạch', slotIcon: '💍' },
         { slot: 'pet', label: 'Linh Thú', name: 'Rồng Con', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 3, desc: '+18% Máu (HP) & +12% Phòng Thủ (DEF)' },
-        { count: 5, desc: '+35% Máu (HP), +25% Phòng Thủ (DEF), +15% Sát Thương (ATK) & +25% Sát Thương Bạo Kích' }
+        { count: 2, desc: '🛡️ Set 2 Món: +15% Máu (HP) & +10% Phòng Thủ (DEF)' },
+        { count: 4, desc: '⚔️ Set 4 Món: +28% Máu (HP), +18% Phòng Thủ (DEF) & +12% Sát Thương (ATK)' },
+        { count: 6, desc: '👑 Full Set 6 Món: +45% HP, +30% DEF, +20% ATK, +35% Sát Thương Bạo Kích & 🌈 +10% ALL THUỘC TÍNH' }
       ]
     },
     hiem: {
       name: 'Bộ Lam Tinh Hiếm',
       tier: 'Hiếm',
-      color: '#38bdf8',
+      color: '#3182ce',
       icon: '🔷',
       badge: 'LAM TINH HIẾM',
       pieces: [
         { slot: 'weapon', label: 'Vũ Khí', name: 'Trảm Ma Kiếm', slotIcon: '⚔️' },
         { slot: 'armor', label: 'Áo Giáp', name: 'Giáp Rồng', slotIcon: '🛡️' },
+        { slot: 'pants', label: 'Quần Chiến', name: 'Quần Lam Ngọc', slotIcon: '👖' },
         { slot: 'necklace', label: 'Dây Chuyền', name: 'Dây Chuyền Lam Ngọc', slotIcon: '📿' },
         { slot: 'ring', label: 'Nhẫn Thần', name: 'Nhẫn Lam Ngọc Tinh', slotIcon: '💍' },
         { slot: 'pet', label: 'Linh Thú', name: 'Cáo Tuyết', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 3, desc: '+12% Máu (HP) & +8% Phòng Thủ (DEF)' },
-        { count: 5, desc: '+25% Máu (HP), +15% Phòng Thủ (DEF), +10% Sát Thương (ATK) & +15% Sát Thương Bạo Kích' }
+        { count: 2, desc: '🛡️ Set 2 Món: +10% Máu (HP) & +6% Phòng Thủ (DEF)' },
+        { count: 4, desc: '⚔️ Set 4 Món: +20% Máu (HP), +12% Phòng Thủ (DEF) & +8% Sát Thương (ATK)' },
+        { count: 6, desc: '👑 Full Set 6 Món: +30% HP, +20% DEF, +15% ATK, +20% Sát Thương Bạo Kích & 🌈 +5% ALL THUỘC TÍNH' }
       ]
     },
     thuong: {
       name: 'Bộ Tân Thủ Cơ Bản',
       tier: 'Thường',
-      color: '#94a3b8',
+      color: '#a0aec0',
       icon: '🗡️',
       badge: 'TÂN THỦ CƠ BẢN',
       pieces: [
         { slot: 'weapon', label: 'Vũ Khí', name: 'Kiếm Gỗ', slotIcon: '⚔️' },
         { slot: 'armor', label: 'Áo Giáp', name: 'Giáp Sắt', slotIcon: '🛡️' },
+        { slot: 'pants', label: 'Quần Chiến', name: 'Quần Thiết Giáp', slotIcon: '👖' },
         { slot: 'necklace', label: 'Dây Chuyền', name: 'Dây Chuyền Bạc', slotIcon: '📿' },
         { slot: 'ring', label: 'Nhẫn Thần', name: 'Nhẫn Hắc Thiết', slotIcon: '💍' },
         { slot: 'pet', label: 'Linh Thú', name: 'Mèo Béo', slotIcon: '🐾' }
       ],
       bonuses: [
-        { count: 3, desc: '+5% Máu (HP) & +5% Phòng Thủ (DEF)' },
-        { count: 5, desc: '+10% Máu (HP), +10% Phòng Thủ (DEF) & +5% Sát Thương (ATK)' }
+        { count: 2, desc: '🛡️ Set 2 Món: +5% Máu (HP) & +5% Phòng Thủ (DEF)' },
+        { count: 4, desc: '⚔️ Set 4 Món: +10% Máu (HP), +10% DEF & +5% Sát Thương (ATK)' },
+        { count: 6, desc: '👑 Full Set 6 Món: +15% Máu (HP), +15% DEF, +10% ATK & 🌈 +3% ALL THUỘC TÍNH' }
       ]
     }
   };
@@ -6364,7 +6411,7 @@ const App = () => {
       setKey = 'thuong_co';
     } else if (tier.includes('cổ đại') || name.includes('cổ đại') || name.includes('long vương') || name.includes('chaos')) {
       setKey = 'co_dai';
-    } else if (tier.includes('tối thượng') || name.includes('tối thượng') || name.includes('ma vương')) {
+    } else if (tier.includes('tối thượng') || name.includes('tối thượng') || name.includes('ma vương') || name.includes('vô cực')) {
       setKey = 'toi_thuong';
     } else if (tier.includes('thần thoại') || name.includes('thần thoại') || name.includes('diệt tộc') || name.includes('kim cương') || name.includes('hoàng kim')) {
       setKey = 'than_thoai';
@@ -6372,7 +6419,7 @@ const App = () => {
       setKey = 'epic';
     } else if (tier.includes('hiếm') || tier.includes('rare') || name.includes('trảm ma') || name.includes('giáp rồng') || name.includes('lam ngọc') || name.includes('cáo tuyết')) {
       setKey = 'hiem';
-    } else if (tier.includes('thường') || tier.includes('common') || name.includes('kiếm gỗ') || name.includes('giáp sắt') || name.includes('bạc') || name.includes('hắc thiết') || name.includes('mèo béo')) {
+    } else if (tier.includes('thường') || tier.includes('common') || name.includes('kiếm gỗ') || name.includes('giáp sắt') || name.includes('thiết giáp') || name.includes('bạc') || name.includes('hắc thiết') || name.includes('mèo béo')) {
       setKey = 'thuong';
     }
 
@@ -6382,20 +6429,88 @@ const App = () => {
 
   const getEquippedSetStatus = (setKey, playerSummary) => {
     if (!setKey || !playerSummary) return { equippedCount: 0, equippedSlots: [] };
-    const slots = ['weapon', 'armor', 'necklace', 'ring', 'pet'];
+    const slots = ['weapon', 'armor', 'pants', 'necklace', 'ring', 'pet'];
     let count = 0;
     const equippedSlots = [];
+    const targetRank = SET_TIER_RANKS[setKey] || 0;
+
     slots.forEach(slotKey => {
-      const eq = playerSummary[slotKey];
-      if (eq && eq.name) {
+      const eq = playerSummary[slotKey] || playerSummary[`boss_${slotKey}`];
+      if (eq && (eq.name || eq.tier)) {
         const eqSet = getItemSetInfo(eq);
-        if (eqSet && eqSet.setKey === setKey) {
-          count++;
-          equippedSlots.push({ slot: slotKey, item: eq });
+        if (eqSet) {
+          const eqRank = SET_TIER_RANKS[eqSet.setKey] || 0;
+          if (eqRank >= targetRank) {
+            count++;
+            equippedSlots.push({ slot: slotKey, item: eq });
+          }
         }
       }
     });
     return { equippedCount: count, equippedSlots };
+  };
+
+  const getPlayerActiveSets = (playerSummary) => {
+    if (!playerSummary) return [];
+    const slots = ['weapon', 'armor', 'pants', 'necklace', 'ring', 'pet'];
+    const validItems = [];
+    slots.forEach(s => {
+      const eq = playerSummary[s] || playerSummary[`boss_${s}`];
+      if (eq && (eq.name || eq.tier)) {
+        const eqSet = getItemSetInfo(eq);
+        if (eqSet) {
+          validItems.push({ ...eq, setKey: eqSet.setKey, rank: SET_TIER_RANKS[eqSet.setKey] || 0 });
+        }
+      }
+    });
+
+    const activeList = [];
+    const tierKeys = ['thuong_co', 'co_dai', 'toi_thuong', 'than_thoai', 'epic', 'hiem'];
+
+    // 1. Full Set 6 món cao nhất
+    let best6Rank = 0;
+    for (const key of tierKeys) {
+      const r = SET_TIER_RANKS[key];
+      const count = validItems.filter(it => it.rank >= r).length;
+      if (count >= 6) {
+        best6Rank = r;
+        const setDef = SET_DEFINITIONS[key];
+        const b6 = setDef?.bonuses?.find(b => b.count === 6);
+        if (b6) activeList.push({ key, name: setDef.name, tier: setDef.tier, color: setDef.color, count: 6, desc: b6.desc });
+        break;
+      }
+    }
+
+    // 2. Set 4 món cao hơn
+    let best4Rank = 0;
+    for (const key of tierKeys) {
+      const r = SET_TIER_RANKS[key];
+      if (r <= best6Rank) break;
+      const count = validItems.filter(it => it.rank >= r).length;
+      if (count >= 4) {
+        best4Rank = r;
+        const setDef = SET_DEFINITIONS[key];
+        const b4 = setDef?.bonuses?.find(b => b.count === 4);
+        if (b4) activeList.push({ key, name: setDef.name, tier: setDef.tier, color: setDef.color, count: 4, desc: b4.desc });
+        break;
+      }
+    }
+
+    // 3. Set 2 món cao hơn
+    const minRankFor2 = Math.max(best6Rank, best4Rank);
+    for (const key of tierKeys) {
+      const r = SET_TIER_RANKS[key];
+      if (minRankFor2 > 0 && r <= minRankFor2) break;
+      const count = validItems.filter(it => it.rank >= r).length;
+      if (count >= 2) {
+        const setDef = SET_DEFINITIONS[key];
+        const b2 = setDef?.bonuses?.find(b => b.count === 2);
+        if (b2) activeList.push({ key, name: setDef.name, tier: setDef.tier, color: setDef.color, count: 2, desc: b2.desc });
+        break;
+      }
+    }
+
+    return activeList;
   };
 
   const showItemTooltip = (item, e, customCat, isPinned = false) => {
@@ -6605,20 +6720,40 @@ const App = () => {
       }
       const n = (it?.name || '').toLowerCase();
       const t = (it?.tier || '').toLowerCase();
-      if (n.includes('nữ oa') || t.includes('thượng cổ')) return { baseHp: 150000, baseDef: 15000 };
-      if (n.includes('long vương') || t.includes('cổ đại')) return { baseHp: 60000, baseDef: 6000 };
-      if (n.includes('vô cực') || t.includes('tối thượng')) return { baseHp: 25000, baseDef: 2500 };
-      if (n.includes('kim cương') || t.includes('thần thoại')) return { baseHp: 10000, baseDef: 1000 };
-      if (n.includes('thánh quang') || t.includes('epic')) return { baseHp: 4000, baseDef: 400 };
-      if (n.includes('giáp rồng') || t.includes('hiếm')) return { baseHp: 1500, baseDef: 150 };
-      return { baseHp: 500, baseDef: 50 };
+      if (n.includes('nữ oa') || t.includes('thượng cổ')) return { baseHp: 450000, baseDef: 45000 };
+      if (n.includes('long vương') || t.includes('cổ đại')) return { baseHp: 180000, baseDef: 18000 };
+      if (n.includes('vô cực') || t.includes('tối thượng')) return { baseHp: 75000, baseDef: 7500 };
+      if (n.includes('kim cương') || t.includes('thần thoại')) return { baseHp: 30000, baseDef: 3000 };
+      if (n.includes('thánh quang') || t.includes('epic')) return { baseHp: 12000, baseDef: 1200 };
+      if (n.includes('giáp rồng') || t.includes('hiếm')) return { baseHp: 4500, baseDef: 450 };
+      return { baseHp: 1500, baseDef: 150 };
+    };
+
+    const getPantsStats = (it) => {
+      if (it?.base_hp !== undefined && it?.base_def !== undefined) {
+        return { baseHp: Number(it.base_hp), baseDef: Number(it.base_def) };
+      }
+      const n = (it?.name || '').toLowerCase();
+      const t = (it?.tier || '').toLowerCase();
+      if (n.includes('nữ oa') || t.includes('thượng cổ')) return { baseHp: 240000, baseDef: 24000 };
+      if (n.includes('long vương') || t.includes('cổ đại')) return { baseHp: 105000, baseDef: 10500 };
+      if (n.includes('vô cực') || t.includes('tối thượng')) return { baseHp: 45000, baseDef: 4500 };
+      if (n.includes('kim cương') || t.includes('thần thoại')) return { baseHp: 18000, baseDef: 1800 };
+      if (n.includes('thánh quang') || t.includes('epic')) return { baseHp: 7500, baseDef: 750 };
+      if (n.includes('lam ngọc') || t.includes('hiếm')) return { baseHp: 3000, baseDef: 300 };
+      return { baseHp: 900, baseDef: 90 };
     };
 
     const armorStats = getArmorStats(item);
+    const pantsStats = getPantsStats(item);
     const starMultMath = Math.pow(2, Math.max(0, starsCount - 1));
     const totalEstHp = Math.round(armorStats.baseHp * (1 + 0.25 * plusVal) * starMultMath);
     const totalEstDef = Math.round(armorStats.baseDef * (1 + 0.20 * plusVal) * starMultMath);
     const estDmgReduc = Math.min(80, Math.round((totalEstDef / (totalEstDef + 2500)) * 100));
+
+    const totalEstPantsHp = Math.round(pantsStats.baseHp * (1 + 0.25 * plusVal) * starMultMath);
+    const totalEstPantsDef = Math.round(pantsStats.baseDef * (1 + 0.20 * plusVal) * starMultMath);
+    const estPantsDmgReduc = Math.min(80, Math.round((totalEstPantsDef / (totalEstPantsDef + 2500)) * 100));
 
     const baseDmg = Number(item.base_dmg || 0);
     const plusBonus = Math.round(baseDmg * plusVal * 0.25);
@@ -6640,6 +6775,7 @@ const App = () => {
     const getCatBadgeInfo = () => {
       if (category === 'weapon') return { label: 'VŨ KHÍ TẤN CÔNG', icon: '⚔️', color: '#10b981', border: '#059669', bg: 'rgba(16, 185, 129, 0.15)' };
       if (category === 'armor') return { label: 'ÁO GIÁP PHÒNG HỘ', icon: '🛡️', color: '#06b6d4', border: '#0891b2', bg: 'rgba(6, 182, 212, 0.15)' };
+      if (category === 'pants') return { label: 'QUẦN CHIẾN BẢO HỘ', icon: '👖', color: '#10b981', border: '#059669', bg: 'rgba(16, 185, 129, 0.15)' };
       if (category === 'necklace') return { label: 'DÂY CHUYỀN THẦN LỰC', icon: '📿', color: '#f59e0b', border: '#d97706', bg: 'rgba(245, 158, 11, 0.15)' };
       if (category === 'ring') return { label: 'NHẪN THẦN BINH TUYỆT KỸ', icon: '💍', color: '#a855f7', border: '#9333ea', bg: 'rgba(168, 85, 247, 0.15)' };
       if (category === 'pet') return { label: 'LINH THÚ TRỢ CHIẾN', icon: '🐾', color: '#f43f5e', border: '#e11d48', bg: 'rgba(244, 63, 94, 0.15)' };
@@ -6861,6 +6997,45 @@ const App = () => {
                     </>
                   )}
 
+                  {category === 'pants' && (
+                    <>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-emerald-400 font-bold">Chỉ Số Tăng % Máu:</span>
+                        <span className="font-black text-emerald-300 text-xs">+{Number(item.hp_percent || 15)}% HP ❤️</span>
+                      </div>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-cyan-400 font-bold">Chỉ Số Tăng % Thủ:</span>
+                        <span className="font-black text-cyan-300 text-xs">+{Number(item.def_percent || 15)}% DEF 🛡️</span>
+                      </div>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-slate-400">Sinh lực gốc (Base HP):</span>
+                        <span className="font-bold text-emerald-400">+{pantsStats.baseHp.toLocaleString()} HP</span>
+                      </div>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-slate-400">Phòng thủ gốc (Base DEF):</span>
+                        <span className="font-bold text-cyan-400">+{pantsStats.baseDef.toLocaleString()} DEF</span>
+                      </div>
+                      {plusVal > 0 && (
+                        <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                          <span className="text-yellow-400">Cường hóa (+{plusVal}):</span>
+                          <span className="font-bold text-yellow-300">+{plusVal * 25}% HP • +{plusVal * 20}% DEF</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-amber-400">Hệ số Sao ({starsCount}⭐):</span>
+                        <span className="font-bold text-amber-300">x{starMultMath} Chỉ Số</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="text-emerald-400 font-bold">Tổng Sinh Lực Thêm:</span>
+                        <span className="font-black text-emerald-300 text-xs">+{totalEstPantsHp.toLocaleString()} HP ❤️</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-0.5">
+                        <span className="text-cyan-400 font-bold">Tổng Phòng Thủ Thêm:</span>
+                        <span className="font-black text-cyan-300 text-xs">+{totalEstPantsDef.toLocaleString()} DEF (Giảm ~{estPantsDmgReduc}% ST Boss) 🛡️</span>
+                      </div>
+                    </>
+                  )}
+
                   {category === 'necklace' && (
                     <>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
@@ -7065,6 +7240,8 @@ const App = () => {
                   <div>• Gõ lệnh <code className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-bold font-mono">/dap kiem</code> (hoặc <code>mdap kiem</code> / <code>/cuonghoa</code>) trên <strong>Live TikTok</strong> hoặc <strong>Discord</strong> để cường hóa tăng cấp (+plus).</div>
                 ) : category === 'armor' ? (
                   <div>• Gõ lệnh <code className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-bold font-mono">/dap giap</code> (hoặc <code>mdap giap</code> / <code>/cuonghoa</code>) trên <strong>Live TikTok</strong> hoặc <strong>Discord</strong> để cường hóa tăng cấp (+plus).</div>
+                ) : category === 'pants' ? (
+                  <div>• Gõ lệnh <code className="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-300 font-bold font-mono">/dap quan</code> (hoặc <code>mdap quan</code> / <code>/cuonghoa</code>) trên <strong>Live TikTok</strong> hoặc <strong>Discord</strong> để cường hóa tăng cấp (+plus).</div>
                 ) : category === 'necklace' ? (
                   <div>• Gõ lệnh <code className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-bold font-mono">/dap chuyen</code> (hoặc <code>mdap chuyen</code> / <code>/cuonghoa</code>) trên <strong>Live TikTok</strong> hoặc <strong>Discord</strong> để cường hóa tăng cấp (+plus).</div>
                 ) : category === 'ring' ? (
@@ -7738,8 +7915,8 @@ const App = () => {
                       </>
                     )}
                     {category === 'armor' && (() => {
-                      const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 150000 : (item.tier?.toLowerCase().includes('cổ đại') ? 60000 : (item.tier?.toLowerCase().includes('tối thượng') ? 25000 : (item.tier?.toLowerCase().includes('thần thoại') ? 10000 : (item.tier?.toLowerCase().includes('epic') ? 4000 : 1500))))));
-                      const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 15000 : (item.tier?.toLowerCase().includes('cổ đại') ? 6000 : (item.tier?.toLowerCase().includes('tối thượng') ? 2500 : (item.tier?.toLowerCase().includes('thần thoại') ? 1000 : (item.tier?.toLowerCase().includes('epic') ? 400 : 150))))));
+                      const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 450000 : (item.tier?.toLowerCase().includes('cổ đại') ? 180000 : (item.tier?.toLowerCase().includes('tối thượng') ? 75000 : (item.tier?.toLowerCase().includes('thần thoại') ? 30000 : (item.tier?.toLowerCase().includes('epic') ? 12000 : 4500))))));
+                      const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 45000 : (item.tier?.toLowerCase().includes('cổ đại') ? 18000 : (item.tier?.toLowerCase().includes('tối thượng') ? 7500 : (item.tier?.toLowerCase().includes('thần thoại') ? 3000 : (item.tier?.toLowerCase().includes('epic') ? 1200 : 450))))));
                       const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
                       const totHp = Math.round(bHp * (1 + 0.25 * (item.plus || 0)) * sMult);
                       const totDef = Math.round(bDef * (1 + 0.20 * (item.plus || 0)) * sMult);
@@ -7750,6 +7927,23 @@ const App = () => {
                           </span>
                           <span className="font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 px-1.5 py-0.5 rounded">
                             🛡️ +{totDef.toLocaleString()} DEF
+                          </span>
+                        </>
+                      );
+                    })()}
+                    {category === 'pants' && (() => {
+                      const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 240000 : (item.tier?.toLowerCase().includes('cổ đại') ? 105000 : (item.tier?.toLowerCase().includes('tối thượng') ? 45000 : (item.tier?.toLowerCase().includes('thần thoại') ? 18000 : (item.tier?.toLowerCase().includes('epic') ? 7500 : (item.tier?.toLowerCase().includes('hiếm') ? 3000 : 900)))))));
+                      const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 24000 : (item.tier?.toLowerCase().includes('cổ đại') ? 10500 : (item.tier?.toLowerCase().includes('tối thượng') ? 4500 : (item.tier?.toLowerCase().includes('thần thoại') ? 1800 : (item.tier?.toLowerCase().includes('epic') ? 750 : (item.tier?.toLowerCase().includes('hiếm') ? 300 : 90)))))));
+                      const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
+                      const totHp = Math.round(bHp * (1 + 0.25 * (item.plus || 0)) * sMult);
+                      const totDef = Math.round(bDef * (1 + 0.20 * (item.plus || 0)) * sMult);
+                      return (
+                        <>
+                          <span className="font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded">
+                            ❤️ +{totHp.toLocaleString()} HP (+{Number(item.hp_percent || 15)}%)
+                          </span>
+                          <span className="font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 px-1.5 py-0.5 rounded">
+                            🛡️ +{totDef.toLocaleString()} DEF (+{Number(item.def_percent || 15)}%)
                           </span>
                         </>
                       );
@@ -7933,11 +8127,52 @@ const App = () => {
                     </div>
                   </div>
 
-                  {/* Equipment Section (5 Slots) */}
+                  {/* Kích Hoạt Hiệu Ứng Set 2 - 4 - 6 */}
+                  {(() => {
+                    const activeSets = getPlayerActiveSets(p);
+                    if (!activeSets || activeSets.length === 0) return null;
+                    return (
+                      <div className="bg-gradient-to-r from-amber-950/40 via-purple-950/30 to-slate-900/70 border border-amber-500/50 rounded-2xl p-3.5 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                        <div className="flex items-center justify-between pb-2 border-b border-amber-500/30 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base">👑</span>
+                            <span className="text-xs font-black text-amber-300 uppercase tracking-wider">
+                              Kích Hoạt Hiệu Ứng Set Đồ ({activeSets.length} Mốc)
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-bold text-amber-400 bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 rounded-full">
+                            Bộ 2 • 4 • 6 Món
+                          </span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {activeSets.map((act, aIdx) => (
+                            <div
+                              key={aIdx}
+                              className="p-2 rounded-xl border bg-black/40 flex items-start gap-2.5"
+                              style={{ borderColor: `${act.color}60` }}
+                            >
+                              <span
+                                className="text-[10px] font-black px-2 py-0.5 rounded uppercase shrink-0 mt-0.5"
+                                style={{ color: act.color, backgroundColor: `${act.color}20`, border: `1px solid ${act.color}40` }}
+                              >
+                                Set {act.count} Món
+                              </span>
+                              <div className="text-[11.5px] leading-snug font-bold text-slate-200">
+                                <span style={{ color: act.color }}>{act.name}: </span>
+                                <span className="text-amber-200">{act.desc.replace(/^.*?:\s*/, '')}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Equipment Section (6 Slots) */}
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-xs font-black text-slate-300 uppercase tracking-wider">
-                        🛡️ Trang Bị & Thần Binh Đang Mặc (5 Ô)
+                        🛡️ Trang Bị & Thần Binh Đang Mặc (6 Ô)
                       </span>
                       <span className="text-[10.5px] text-slate-500 italic hidden sm:inline">
                         Chi tiết sao, cường hóa, nhẫn & thuộc tính phụ
@@ -7946,6 +8181,7 @@ const App = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       {renderEquipSlot(p.weapon, 'weapon', '⚔️', 'Vũ Khí')}
                       {renderEquipSlot(p.armor, 'armor', '🛡️', 'Áo Giáp')}
+                      {renderEquipSlot(p.pants, 'pants', '👖', 'Quần Chiến')}
                       {renderEquipSlot(p.necklace, 'necklace', '📿', 'Dây Chuyền')}
                       {renderEquipSlot(p.ring, 'ring', '💍', 'Nhẫn Thần Binh')}
                       <div className="sm:col-span-2">
@@ -7999,13 +8235,13 @@ const App = () => {
               }
               const n = (it?.name || '').toLowerCase();
               const t = (it?.tier || '').toLowerCase();
-              if (n.includes('nữ oa') || t.includes('thượng cổ')) return { baseHp: 150000, baseDef: 15000 };
-              if (n.includes('long vương') || t.includes('cổ đại')) return { baseHp: 60000, baseDef: 6000 };
-              if (n.includes('vô cực') || t.includes('tối thượng')) return { baseHp: 25000, baseDef: 2500 };
-              if (n.includes('kim cương') || t.includes('thần thoại')) return { baseHp: 10000, baseDef: 1000 };
-              if (n.includes('thánh quang') || t.includes('epic')) return { baseHp: 4000, baseDef: 400 };
-              if (n.includes('giáp rồng') || t.includes('hiếm')) return { baseHp: 1500, baseDef: 150 };
-              return { baseHp: 500, baseDef: 50 };
+              if (n.includes('nữ oa') || t.includes('thượng cổ')) return { baseHp: 450000, baseDef: 45000 };
+              if (n.includes('long vương') || t.includes('cổ đại')) return { baseHp: 180000, baseDef: 18000 };
+              if (n.includes('vô cực') || t.includes('tối thượng')) return { baseHp: 75000, baseDef: 7500 };
+              if (n.includes('kim cương') || t.includes('thần thoại')) return { baseHp: 30000, baseDef: 3000 };
+              if (n.includes('thánh quang') || t.includes('epic')) return { baseHp: 12000, baseDef: 1200 };
+              if (n.includes('giáp rồng') || t.includes('hiếm')) return { baseHp: 4500, baseDef: 450 };
+              return { baseHp: 1500, baseDef: 150 };
             };
             const aStats = getArmorStats(p.armor);
             const aPlus = Number(p.armor.plus || 0);
@@ -8267,6 +8503,50 @@ const App = () => {
                       </div>
                     </div>
                   </div>
+                  {/* KÍCH HOẠT BỘ SET TRANG BỊ 2 - 4 - 6 */}
+                  {(() => {
+                    const activeSets = getPlayerActiveSets(p);
+                    return (
+                      <div>
+                        <div className="text-xs font-black text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <span>👑</span> Hiệu Ứng Bộ Set Trang Bị (2 - 4 - 6 Món)
+                          </div>
+                          {activeSets.length > 0 && (
+                            <span className="text-[10px] font-bold text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/40">
+                              {activeSets.length} Mốc Kích Hoạt
+                            </span>
+                          )}
+                        </div>
+                        {activeSets.length > 0 ? (
+                          <div className="space-y-2">
+                            {activeSets.map((act, aIdx) => (
+                              <div
+                                key={aIdx}
+                                className="bg-gradient-to-r from-slate-900/90 to-slate-950/90 border rounded-xl p-2.5 flex items-start gap-2.5"
+                                style={{ borderColor: `${act.color}50` }}
+                              >
+                                <span
+                                  className="text-[10px] font-black px-2 py-0.5 rounded uppercase shrink-0 mt-0.5"
+                                  style={{ color: act.color, backgroundColor: `${act.color}20`, border: `1px solid ${act.color}40` }}
+                                >
+                                  Set {act.count}
+                                </span>
+                                <div className="text-xs leading-snug">
+                                  <span className="font-black" style={{ color: act.color }}>{act.name}: </span>
+                                  <span className="text-amber-200 font-bold">{act.desc.replace(/^.*?:\s*/, '')}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-xs text-slate-400 italic">
+                            Chưa kích hoạt hiệu ứng Set nào. Mặc từ 2, 4, 6 món cùng hệ (Vũ khí, Giáp, Quần, Dây chuyền, Nhẫn, Linh thú) để kích hoạt thêm hàng chục % All Thuộc Tính!
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Footer Action */}
@@ -8278,7 +8558,7 @@ const App = () => {
                       className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 cursor-pointer"
                     >
                       <Eye size={14} />
-                      <span>Xem Profile & 5 Trang Bị</span>
+                      <span>Xem Profile & 6 Trang Bị</span>
                     </button>
                     <button
                       type="button"
@@ -8453,13 +8733,20 @@ const App = () => {
           const equippedIds = new Set([
             p.weapon?.id,
             p.armor?.id,
+            p.pants?.id,
             p.pet?.id,
             p.ring?.id,
             p.necklace?.id
           ].filter(Boolean));
 
+          // Gắn _rawIndex tương ứng với vị trí thực tế trong túi đồ của game_core
+          const rawInvWithIndex = rawInv.map((item, originalIdx) => ({
+            ...item,
+            _rawIndex: originalIdx
+          }));
+
           // Lọc bỏ triệt để trang bị đang sử dụng (chỉ giữ lại đồ chưa mặc trong túi) và sắp xếp theo Tier từ cao tới thấp
-          const unequippedInventory = rawInv.filter(item => {
+          const unequippedInventory = rawInvWithIndex.filter(item => {
             if (!item) return false;
             if (item.is_equipped || item.equipped) return false;
             if (item.id && equippedIds.has(item.id)) return false;
@@ -8563,6 +8850,7 @@ const App = () => {
                           { id: 'all', label: `Tất Cả (${unequippedInventory.length})` },
                           { id: 'weapon', label: '⚔️ Vũ Khí' },
                           { id: 'armor', label: '🛡️ Áo Giáp' },
+    { id: 'pants', label: '👖 Quần Chiến' },
                           { id: 'necklace', label: '📿 Dây Chuyền' },
                           { id: 'ring', label: '💍 Nhẫn' },
                           { id: 'pet', label: '🐾 Linh Thú' },
@@ -8663,14 +8951,28 @@ const App = () => {
                                       </span>
                                     )}
                                     {category === 'armor' && (() => {
-                                      const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 150000 : (item.tier?.toLowerCase().includes('cổ đại') ? 60000 : (item.tier?.toLowerCase().includes('tối thượng') ? 25000 : (item.tier?.toLowerCase().includes('thần thoại') ? 10000 : (item.tier?.toLowerCase().includes('epic') ? 4000 : 1500))))));
-                                      const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 15000 : (item.tier?.toLowerCase().includes('cổ đại') ? 6000 : (item.tier?.toLowerCase().includes('tối thượng') ? 2500 : (item.tier?.toLowerCase().includes('thần thoại') ? 1000 : (item.tier?.toLowerCase().includes('epic') ? 400 : 150))))));
+                                      const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 450000 : (item.tier?.toLowerCase().includes('cổ đại') ? 180000 : (item.tier?.toLowerCase().includes('tối thượng') ? 75000 : (item.tier?.toLowerCase().includes('thần thoại') ? 30000 : (item.tier?.toLowerCase().includes('epic') ? 12000 : 4500))))));
+                                      const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 45000 : (item.tier?.toLowerCase().includes('cổ đại') ? 18000 : (item.tier?.toLowerCase().includes('tối thượng') ? 7500 : (item.tier?.toLowerCase().includes('thần thoại') ? 3000 : (item.tier?.toLowerCase().includes('epic') ? 1200 : 450))))));
                                       const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
                                       const totHp = Math.round(bHp * (1 + 0.25 * (item.plus || 0)) * sMult);
                                       const totDef = Math.round(bDef * (1 + 0.20 * (item.plus || 0)) * sMult);
                                       return (
                                         <span className="text-emerald-400 block">
                                           ❤️ +{totHp.toLocaleString()} HP • 🛡️ +{totDef.toLocaleString()} DEF
+                                        </span>
+                                      );
+                                    })()}
+                                    {category === 'pants' && (() => {
+                                      const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 240000 : (item.tier?.toLowerCase().includes('cổ đại') ? 105000 : (item.tier?.toLowerCase().includes('tối thượng') ? 45000 : (item.tier?.toLowerCase().includes('thần thoại') ? 18000 : (item.tier?.toLowerCase().includes('epic') ? 7500 : (item.tier?.toLowerCase().includes('hiếm') ? 3000 : 900)))))));
+                                      const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 24000 : (item.tier?.toLowerCase().includes('cổ đại') ? 10500 : (item.tier?.toLowerCase().includes('tối thượng') ? 4500 : (item.tier?.toLowerCase().includes('thần thoại') ? 1800 : (item.tier?.toLowerCase().includes('epic') ? 750 : (item.tier?.toLowerCase().includes('hiếm') ? 300 : 90)))))));
+                                      const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
+                                      const totHp = Math.round(bHp * (1 + 0.25 * (item.plus || 0)) * sMult);
+                                      const totDef = Math.round(bDef * (1 + 0.20 * (item.plus || 0)) * sMult);
+                                      const pctHp = Number(item.hp_percent || 15);
+                                      const pctDef = Number(item.def_percent || 15);
+                                      return (
+                                        <span className="text-emerald-400 block">
+                                          🛡️ +{pctDef}% DEF • ❤️ +{pctHp}% HP (+{totHp.toLocaleString()} HP / +{totDef.toLocaleString()} DEF)
                                         </span>
                                       );
                                     })()}
@@ -8712,7 +9014,7 @@ const App = () => {
                                       disabled={isPerformingBagAction}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setSelectedItemToList({ ...item, originalIndex: idx });
+                                        setSelectedItemToList({ ...item, originalIndex: item._rawIndex !== undefined ? item._rawIndex : idx });
                                         setListingPrice(100);
                                         setListingSellQuantity(Math.min(item.quantity || 1, 1));
                                         setListingPassword('');
@@ -8734,7 +9036,7 @@ const App = () => {
                                       disabled={isPerformingBagAction}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleExecuteBagAction('equip', item, idx);
+                                        handleExecuteBagAction('equip', item, item._rawIndex !== undefined ? item._rawIndex : idx);
                                       }}
                                       className="flex-1 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs rounded-xl transition-all shadow hover:scale-105 active:scale-95 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                                     >
@@ -8747,7 +9049,7 @@ const App = () => {
                                       disabled={isPerformingBagAction}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setSelectedItemToList({ ...item, originalIndex: idx });
+                                        setSelectedItemToList({ ...item, originalIndex: item._rawIndex !== undefined ? item._rawIndex : idx });
                                         setListingPrice(100);
                                         setListingSellQuantity(1);
                                         setListingPassword('');
@@ -8764,7 +9066,7 @@ const App = () => {
                                       disabled={isPerformingBagAction}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleExecuteBagAction('delete', item, idx);
+                                        handleExecuteBagAction('delete', item, item._rawIndex !== undefined ? item._rawIndex : idx);
                                       }}
                                       className="px-2.5 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                                       title="Xóa trang bị và nhận lượt đánh boss tương ứng"
@@ -9165,6 +9467,7 @@ const App = () => {
                           { id: 'all', label: 'Tất Cả' },
                           { id: 'weapon', label: '⚔️ Vũ Khí' },
                           { id: 'armor', label: '🛡️ Áo Giáp' },
+    { id: 'pants', label: '👖 Quần Chiến' },
                           { id: 'necklace', label: '📿 Dây Chuyền' },
                           { id: 'ring', label: '💍 Nhẫn' },
                           { id: 'pet', label: '🐾 Linh Thú' },
@@ -9293,13 +9596,25 @@ const App = () => {
                                           <span className="text-emerald-400">⚡ +{Number(item.base_dmg || 0).toLocaleString()} DMG</span>
                                         )}
                                         {category === 'armor' && (() => {
-                                          const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 150000 : (item.tier?.toLowerCase().includes('cổ đại') ? 60000 : (item.tier?.toLowerCase().includes('tối thượng') ? 25000 : (item.tier?.toLowerCase().includes('thần thoại') ? 10000 : (item.tier?.toLowerCase().includes('epic') ? 4000 : 1500))))));
-                                          const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 15000 : (item.tier?.toLowerCase().includes('cổ đại') ? 6000 : (item.tier?.toLowerCase().includes('tối thượng') ? 2500 : (item.tier?.toLowerCase().includes('thần thoại') ? 1000 : (item.tier?.toLowerCase().includes('epic') ? 400 : 150))))));
+                                          const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 450000 : (item.tier?.toLowerCase().includes('cổ đại') ? 180000 : (item.tier?.toLowerCase().includes('tối thượng') ? 75000 : (item.tier?.toLowerCase().includes('thần thoại') ? 30000 : (item.tier?.toLowerCase().includes('epic') ? 12000 : 4500))))));
+                                          const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 45000 : (item.tier?.toLowerCase().includes('cổ đại') ? 18000 : (item.tier?.toLowerCase().includes('tối thượng') ? 7500 : (item.tier?.toLowerCase().includes('thần thoại') ? 3000 : (item.tier?.toLowerCase().includes('epic') ? 1200 : 450))))));
                                           const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
                                           const totHp = Math.round(bHp * (1 + 0.25 * (item.plus || 0)) * sMult);
                                           const totDef = Math.round(bDef * (1 + 0.20 * (item.plus || 0)) * sMult);
                                           return (
                                             <span className="text-emerald-400">❤️ +{totHp.toLocaleString()} HP • 🛡️ +{totDef.toLocaleString()} DEF</span>
+                                          );
+                                        })()}
+                                        {category === 'pants' && (() => {
+                                          const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 240000 : (item.tier?.toLowerCase().includes('cổ đại') ? 105000 : (item.tier?.toLowerCase().includes('tối thượng') ? 45000 : (item.tier?.toLowerCase().includes('thần thoại') ? 18000 : (item.tier?.toLowerCase().includes('epic') ? 7500 : 3000))))));
+                                          const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 24000 : (item.tier?.toLowerCase().includes('cổ đại') ? 10500 : (item.tier?.toLowerCase().includes('tối thượng') ? 4500 : (item.tier?.toLowerCase().includes('thần thoại') ? 1800 : (item.tier?.toLowerCase().includes('epic') ? 750 : 300))))));
+                                          const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
+                                          const totHp = Math.round(bHp * (1 + 0.25 * (item.plus || 0)) * sMult);
+                                          const totDef = Math.round(bDef * (1 + 0.20 * (item.plus || 0)) * sMult);
+                                          const hpPct = Number(item.hp_percent || 0);
+                                          const defPct = Number(item.def_percent || 0);
+                                          return (
+                                            <span className="text-cyan-400">👖 +{totHp.toLocaleString()} HP • 🛡️ +{totDef.toLocaleString()} DEF {hpPct > 0 ? `(+${hpPct}% HP/DEF)` : ''}</span>
                                           );
                                         })()}
                                         {category === 'necklace' && (
