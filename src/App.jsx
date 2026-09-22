@@ -53,8 +53,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-emerald-500 to-teal-500',
     coins: 200,
     royalChests: 2,
+    bossChests: 20,
     attacks: 2000,
-    extraDesc: '200 Xu + 2 Rương Hoàng Kim + 2.000 Lượt Đánh',
+    extraDesc: '200 Xu + 2 Rương Hoàng Kim + 20 Rương Boss + 2.000 Lượt Đánh',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -66,8 +67,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-blue-500 to-cyan-500',
     coins: 500,
     royalChests: 5,
+    bossChests: 50,
     attacks: 5000,
-    extraDesc: '500 Xu + 5 Rương Hoàng Kim + 5.000 Lượt Đánh',
+    extraDesc: '500 Xu + 5 Rương Hoàng Kim + 50 Rương Boss + 5.000 Lượt Đánh',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -79,8 +81,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-indigo-500 to-purple-500',
     coins: 1000,
     royalChests: 10,
+    bossChests: 100,
     attacks: 10000,
-    extraDesc: '1.000 Xu + 10 Rương Hoàng Kim + 10.000 Lượt Đánh',
+    extraDesc: '1.000 Xu + 10 Rương Hoàng Kim + 100 Rương Boss + 10.000 Lượt Đánh',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -92,8 +95,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-purple-500 to-pink-500',
     coins: 2000,
     royalChests: 20,
+    bossChests: 200,
     attacks: 20000,
-    extraDesc: '2.000 Xu + 20 Rương Hoàng Kim + 20.000 Lượt Đánh',
+    extraDesc: '2.000 Xu + 20 Rương Hoàng Kim + 200 Rương Boss + 20.000 Lượt Đánh',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -105,8 +109,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-amber-500 to-orange-500',
     coins: 6000,
     royalChests: 60,
+    bossChests: 600,
     attacks: 60000,
-    extraDesc: '6.000 Xu Game VIP + 60 Rương Hoàng Kim + 60.000 Lượt Đánh (KM +20%)',
+    extraDesc: '6.000 Xu Game VIP + 60 Rương Hoàng Kim + 600 Rương Boss + 60.000 Lượt Đánh (KM +20%)',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -118,8 +123,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-rose-500 to-red-600',
     coins: 13000,
     royalChests: 130,
+    bossChests: 1300,
     attacks: 130000,
-    extraDesc: '13.000 Xu Game VIP + 130 Rương Hoàng Kim + 130.000 Lượt Đánh (KM +30%)',
+    extraDesc: '13.000 Xu Game VIP + 130 Rương Hoàng Kim + 1.300 Rương Boss + 130.000 Lượt Đánh (KM +30%)',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -131,8 +137,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-emerald-400 to-green-600 shadow-[0_0_15px_rgba(16,185,129,0.4)]',
     coins: 20000,
     royalChests: 200,
+    bossChests: 2000,
     attacks: 200000,
-    extraDesc: '20.000 Xu + 200 Rương HK + 200.000 Lượt + 💥 1x Nhẫn Cổ Đại 5⭐',
+    extraDesc: '20.000 Xu + 200 Rương HK + 2.000 Rương Boss + 200.000 Lượt + 💥 1x Nhẫn Cổ Đại 5⭐',
     image: '/game-assets/ring_codai.png',
     items: [
       {
@@ -158,8 +165,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-yellow-400 via-amber-500 to-red-600 shadow-[0_0_20px_rgba(234,179,8,0.6)] animate-pulse',
     coins: 37500,
     royalChests: 375,
+    bossChests: 3750,
     attacks: 375000,
-    extraDesc: '37.500 Xu + 375 Rương HK + 375.000 Lượt + 🌌 1x Nhẫn Thượng Cổ 1⭐',
+    extraDesc: '37.500 Xu + 375 Rương HK + 3.750 Rương Boss + 375.000 Lượt + 🌌 1x Nhẫn Thượng Cổ 1⭐',
     image: '/game-assets/ring_thuongco.png',
     items: [
       {
@@ -2997,6 +3005,50 @@ const App = () => {
   };
 
 
+  // --- HÀM CHUẨN HÓA DỮ LIỆU NGƯỜI CHƠI TỪ BẢNG GAME_PLAYERS (SUPABASE) ---
+  const parseGamePlayerRecord = (dbPlayer) => {
+    if (!dbPlayer) return null;
+    let wp = null, ar = null, nk = null, rg = null, pt = null;
+    try { wp = dbPlayer.weapon ? (typeof dbPlayer.weapon === 'string' ? JSON.parse(dbPlayer.weapon) : dbPlayer.weapon) : null; } catch (e) { wp = { name: dbPlayer.weapon }; }
+    try { ar = dbPlayer.armor ? (typeof dbPlayer.armor === 'string' ? JSON.parse(dbPlayer.armor) : dbPlayer.armor) : null; } catch (e) { ar = { name: dbPlayer.armor }; }
+    try { nk = dbPlayer.necklace ? (typeof dbPlayer.necklace === 'string' ? JSON.parse(dbPlayer.necklace) : dbPlayer.necklace) : null; } catch (e) { nk = { name: dbPlayer.necklace }; }
+    try { rg = dbPlayer.ring ? (typeof dbPlayer.ring === 'string' ? JSON.parse(dbPlayer.ring) : dbPlayer.ring) : null; } catch (e) { rg = { name: dbPlayer.ring }; }
+    try { pt = dbPlayer.pet ? (typeof dbPlayer.pet === 'string' ? JSON.parse(dbPlayer.pet) : dbPlayer.pet) : null; } catch (e) { pt = { name: dbPlayer.pet }; }
+
+    return {
+      exists: true,
+      user_id: dbPlayer.user_id,
+      nickname: dbPlayer.nickname || dbPlayer.user_id,
+      level: dbPlayer.level || 1,
+      cp: dbPlayer.cp || 0,
+      bonus_attacks: dbPlayer.bonus_attacks || 0,
+      royal_chests: dbPlayer.royal_chests || 0,
+      boss_chests: dbPlayer.boss_chests || 0,
+      avatar_url: dbPlayer.avatar_url,
+      weapon: wp,
+      armor: ar,
+      pet: pt,
+      ring: rg,
+      necklace: nk,
+      exp: wp?.player_exp || 0,
+      bonus_coins: (wp?.player_coins !== undefined && wp?.player_coins !== null) ? Number(wp.player_coins) : (dbPlayer.bonus_coins || dbPlayer.coins || 0),
+      total_dmg: wp?.total_dmg || 0,
+      has_x2_rate: wp?.has_x2_rate || false,
+      platform: wp?.platform || 'tiktok',
+      inventory: (() => {
+        const raw = wp?.inventory || dbPlayer?.inventory;
+        if (Array.isArray(raw)) return raw;
+        if (typeof raw === 'string') {
+          try {
+            const pJson = JSON.parse(raw);
+            if (Array.isArray(pJson)) return pJson;
+          } catch (e) { }
+        }
+        return [];
+      })()
+    };
+  };
+
   // --- HÀM TRA CỨU NGƯỜI CHƠI GAME BOSS MỘNG THIÊN HUYỄN ---
   const handleCheckBossPlayer = async (targetIdInput, isSilent = true) => {
     const rawId = (targetIdInput !== undefined ? targetIdInput : bossTargetId).trim();
@@ -3019,45 +3071,7 @@ const App = () => {
           .maybeSingle();
 
         if (dbPlayer) {
-          let wp = null, ar = null, nk = null, rg = null, pt = null;
-          try { wp = dbPlayer.weapon ? (typeof dbPlayer.weapon === 'string' ? JSON.parse(dbPlayer.weapon) : dbPlayer.weapon) : null; } catch (e) { wp = { name: dbPlayer.weapon }; }
-          try { ar = dbPlayer.armor ? (typeof dbPlayer.armor === 'string' ? JSON.parse(dbPlayer.armor) : dbPlayer.armor) : null; } catch (e) { ar = { name: dbPlayer.armor }; }
-          try { nk = dbPlayer.necklace ? (typeof dbPlayer.necklace === 'string' ? JSON.parse(dbPlayer.necklace) : dbPlayer.necklace) : null; } catch (e) { nk = { name: dbPlayer.necklace }; }
-          try { rg = dbPlayer.ring ? (typeof dbPlayer.ring === 'string' ? JSON.parse(dbPlayer.ring) : dbPlayer.ring) : null; } catch (e) { rg = { name: dbPlayer.ring }; }
-          try { pt = dbPlayer.pet ? (typeof dbPlayer.pet === 'string' ? JSON.parse(dbPlayer.pet) : dbPlayer.pet) : null; } catch (e) { pt = { name: dbPlayer.pet }; }
-
-          foundPlayer = {
-            exists: true,
-            user_id: dbPlayer.user_id,
-            nickname: dbPlayer.nickname || dbPlayer.user_id,
-            level: dbPlayer.level || 1,
-            cp: dbPlayer.cp || 0,
-            bonus_attacks: dbPlayer.bonus_attacks || 0,
-            royal_chests: dbPlayer.royal_chests || 0,
-            boss_chests: dbPlayer.boss_chests || 0,
-            avatar_url: dbPlayer.avatar_url,
-            weapon: wp,
-            armor: ar,
-            pet: pt,
-            ring: rg,
-            necklace: nk,
-            exp: wp?.player_exp || 0,
-            bonus_coins: (wp?.player_coins !== undefined && wp?.player_coins !== null) ? Number(wp.player_coins) : (dbPlayer.bonus_coins || dbPlayer.coins || 0),
-            total_dmg: wp?.total_dmg || 0,
-            has_x2_rate: wp?.has_x2_rate || false,
-            platform: wp?.platform || 'tiktok',
-            inventory: (() => {
-              const raw = wp?.inventory || dbPlayer?.inventory;
-              if (Array.isArray(raw)) return raw;
-              if (typeof raw === 'string') {
-                try {
-                  const pJson = JSON.parse(raw);
-                  if (Array.isArray(pJson)) return pJson;
-                } catch (e) { }
-              }
-              return [];
-            })()
-          };
+          foundPlayer = parseGamePlayerRecord(dbPlayer);
         }
       } catch (err) {
         console.log("Supabase player lookup:", err);
@@ -3148,6 +3162,50 @@ const App = () => {
       handleCheckBossPlayer(bossTargetId);
     }
   }, [showBagModal]);
+
+  // --- TỰ ĐỘNG ĐỒNG BỘ REALTIME DỮ LIỆU GAME (GAME_PLAYERS) TỪ SUPABASE ---
+  useEffect(() => {
+    const gamePlayersChannel = supabase
+      .channel('realtime-game-players')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'game_players' },
+        (payload) => {
+          const newRec = payload.new;
+          if (!newRec) return;
+
+          // 1. Cập nhật Sàn Đấu Giá Chợ Trời nếu có thay đổi vật phẩm từ game hoặc web
+          if (newRec.user_id === '__auction_market__') {
+            if (typeof fetchAuctionMarketData === 'function') {
+              fetchAuctionMarketData();
+            }
+            return;
+          }
+
+          // 2. Nhận diện nhân vật đang hiển thị trên giao diện hoặc nhân vật đã liên kết
+          const target = (bossTargetId || '').trim().toLowerCase().replace(/^@/, '');
+          const linked = (currentUser?.linked_game_id || '').trim().toLowerCase().replace(/^@/, '');
+          const rowUid = (newRec.user_id || '').trim().toLowerCase().replace(/^@/, '');
+          const rowNick = (newRec.nickname || '').trim().toLowerCase().replace(/^@/, '');
+
+          const isCurrentTarget = target && (rowUid === target || rowNick === target);
+          const isLinkedTarget = linked && (rowUid === linked || rowNick === linked);
+
+          if (isCurrentTarget || isLinkedTarget) {
+            const parsed = parseGamePlayerRecord(newRec);
+            if (parsed) {
+              setBossPlayerSummary(parsed);
+              setBossPlayerNotFound(false);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(gamePlayersChannel);
+    };
+  }, [bossTargetId, currentUser?.linked_game_id]);
 
   // --- HÀM TẠO MÃ OTP LIÊN KẾT TÀI KHOẢN (REALTIME + POLLING + TAB FOCUS) ---
   const handleGenerateLinkOtp = async () => {
@@ -3573,7 +3631,7 @@ const App = () => {
       rewards: {
         attacks: pkg.attacks || 0,
         royal_chests: pkg.royalChests || 0,
-        boss_chests: 0,
+        boss_chests: pkg.bossChests || (pkg.royalChests ? pkg.royalChests * 10 : 0),
         coins: pkg.coins || 0,
         has_x2_rate: Boolean(pkg.hasX2Rate),
         items: pkg.items || []
@@ -3830,7 +3888,7 @@ const App = () => {
                           ⚔️ Nạp Game Mộng Thiên Huyễn (Tự Động)
                         </h4>
                         <p className="text-[10px] md:text-xs text-slate-400 mb-2 flex-grow whitespace-pre-wrap text-center px-1 line-clamp-2">
-                          Nạp Xu Game, Rương Hoàng Kim, Lượt Đánh Boss & Nhẫn Thần Binh. Tự động chuyển quà vào acc ngay sau 1 giây!
+                          Nạp Xu Game, Rương Hoàng Kim, Rương Boss, Lượt Đánh Boss & Nhẫn Thần Binh. Tự động chuyển quà vào acc ngay sau 1 giây!
                         </p>
 
                         <div className="border-t border-slate-800 pt-2 md:pt-4 mt-auto w-full">
@@ -7288,7 +7346,7 @@ const App = () => {
               ⚔️ NẠP GAME <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-rose-400 to-purple-400">MỘNG THIÊN HUYỄN</span>
             </h1>
             <p className="text-slate-300 max-w-3xl mx-auto text-sm md:text-base leading-relaxed mb-6">
-              Hệ thống tự động chuyển thẳng <strong className="text-amber-400">Lượt Đánh, Rương Hoàng Kim, Xu Nâng Cấp & Trang Bị Thần Binh</strong> vào tài khoản game của bạn ngay khi bấm Mua. Loa Livestream sẽ tự động đọc tên cảm ơn và hiệu ứng nạp VIP sẽ phát sáng rực rỡ!
+              Hệ thống tự động chuyển thẳng <strong className="text-amber-400">Lượt Đánh, Rương Hoàng Kim, Rương Boss, Xu Nâng Cấp & Trang Bị Thần Binh</strong> vào tài khoản game của bạn ngay khi bấm Mua. Loa Livestream sẽ tự động đọc tên cảm ơn và hiệu ứng nạp VIP sẽ phát sáng rực rỡ!
             </p>
 
             {/* KHU VỰC LIÊN KẾT TÀI KHOẢN & THÔNG TIN NHÂN VẬT GAME (BỎ KIỂM TRA ID) */}
@@ -7541,6 +7599,10 @@ const App = () => {
                         <Crown size={15} className="text-yellow-400 shrink-0" />
                         <span>+{pkg.royalChests} Rương Hoàng Kim VIP</span>
                       </div>
+                      <div className="flex items-center gap-2 text-amber-300 font-semibold px-1">
+                        <Package size={15} className="text-amber-400 shrink-0" />
+                        <span>+{new Intl.NumberFormat('vi-VN').format(pkg.bossChests || pkg.royalChests * 10)} Rương Boss (Tặng Kèm)</span>
+                      </div>
                       <div className="flex items-center gap-2 text-slate-200 font-semibold px-1">
                         <Swords size={15} className="text-rose-400 shrink-0" />
                         <span>+{new Intl.NumberFormat('vi-VN').format(pkg.attacks)} Lượt Đánh Boss</span>
@@ -7649,6 +7711,7 @@ const App = () => {
                       <span>+{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.coins)} Xu Game (Tiền Tệ Quý Mua Đồ Shop)</span>
                     </p>
                     <p>• +{selectedBossPackage.royalChests} Rương Hoàng Kim VIP</p>
+                    <p className="text-amber-300 font-bold">• +{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.bossChests || selectedBossPackage.royalChests * 10)} Rương Boss Chiến Tích (Tặng kèm)</p>
                     <p>• +{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.attacks)} Lượt Đánh Boss</p>
                     {selectedBossPackage.items && selectedBossPackage.items.length > 0 && (
                       <p className="text-amber-300 font-bold">• 💥 Tặng kèm: x1 {selectedBossPackage.items[0].name} ({selectedBossPackage.items[0].stars}⭐)</p>
