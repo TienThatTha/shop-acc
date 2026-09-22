@@ -8469,21 +8469,10 @@ const App = () => {
                       </div>
                     </div>
 
-                    {/* Hàng giữa: Số máu bự + Trạng thái chiến đấu */}
+                    {/* Hàng giữa: Số máu bự */}
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div className="text-2xl sm:text-3xl font-black text-white font-sans drop-shadow-[0_0_12px_rgba(244,63,94,0.85)]">
                         {currentHp.toLocaleString()} <span className="text-sm font-bold text-slate-400">/ {maxHp.toLocaleString()} HP</span>
-                      </div>
-                      <div>
-                        {isDead ? (
-                          <span className="text-xs font-black text-rose-400 bg-rose-500/15 border border-rose-500/40 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
-                            💀 Trọng Thương ({respawnTime}s hồi sinh)
-                          </span>
-                        ) : (
-                          <span className="text-xs font-black text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
-                            🟢 Khỏe Mạnh ({hpPct.toFixed(0)}% Máu)
-                          </span>
-                        )}
                       </div>
                     </div>
 
