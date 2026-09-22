@@ -441,6 +441,7 @@ const App = () => {
   const [isGeneratingOtp, setIsGeneratingOtp] = useState(false);
   const [showBagModal, setShowBagModal] = useState(false);
   const [activeBagCategory, setActiveBagCategory] = useState('all');
+  const [bagVisibleCount, setBagVisibleCount] = useState(30);
   const [isPerformingBagAction, setIsPerformingBagAction] = useState(false);
   const [bagActionLoadingItem, setBagActionLoadingItem] = useState(null);
 
@@ -8922,7 +8923,10 @@ const App = () => {
                           <button
                             key={tab.id}
                             type="button"
-                            onClick={() => setActiveBagCategory(tab.id)}
+                            onClick={() => {
+                              setActiveBagCategory(tab.id);
+                              setBagVisibleCount(30);
+                            }}
                             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${activeBagCategory === tab.id
                                 ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
                                 : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300 border border-slate-800'
@@ -8945,9 +8949,11 @@ const App = () => {
                         <p className="text-slate-400 font-bold text-sm">Không có trang bị nào trong mục này!</p>
                         <p className="text-slate-500 text-xs mt-1">Săn Boss trên Live hoặc Nạp Rương Hoàng Kim để nhận đồ khủng.</p>
                       </div>
-                    ) : (
+                    ) : (() => {
+                      const displayedInventory = filteredInventory.slice(0, bagVisibleCount);
+                      return (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {filteredInventory.map((item, idx) => {
+                        {displayedInventory.map((item, idx) => {
                           const category = getCategoryOfItem(item);
                           const tier = getBossTierStyle(item.tier);
                           const img = getBossItemAsset(item, category);
@@ -9142,8 +9148,24 @@ const App = () => {
                             </div>
                           );
                         })}
+
+                        {filteredInventory.length > bagVisibleCount && (
+                          <div className="col-span-full py-3 flex flex-col sm:flex-row items-center justify-center gap-2.5 bg-purple-950/20 border border-purple-500/30 rounded-2xl p-3 mt-1">
+                            <span className="text-xs text-slate-300">
+                              Đang hiển thị <strong>{displayedInventory.length}</strong> / <strong>{filteredInventory.length}</strong> món bậc cao nhất
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setBagVisibleCount(prev => prev + 30)}
+                              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-purple-600/30 flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <span>🔽 Xem thêm ({filteredInventory.length - bagVisibleCount} món tiếp theo)</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 </div>
 
