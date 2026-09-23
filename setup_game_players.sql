@@ -14,11 +14,15 @@ CREATE TABLE IF NOT EXISTS public.game_players (
   avatar_url text,
   weapon text,
   armor text,
+  pants text,
   pet text,
   ring text,
   necklace text,
   updated_at timestamp with time zone DEFAULT now()
 );
+
+-- Nếu bảng đã tồn tại sẵn, chạy lệnh sau để bổ sung cột pants:
+-- ALTER TABLE public.game_players ADD COLUMN IF NOT EXISTS pants text;
 
 -- Cấp quyền truy cập đọc/ghi an toàn cho Client và Bot
 ALTER TABLE public.game_players ENABLE ROW LEVEL SECURITY;

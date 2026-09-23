@@ -3009,9 +3009,17 @@ const App = () => {
   // --- HÀM CHUẨN HÓA DỮ LIỆU NGƯỜI CHƠI TỪ BẢNG GAME_PLAYERS (SUPABASE) ---
   const parseGamePlayerRecord = (dbPlayer) => {
     if (!dbPlayer) return null;
-    let wp = null, ar = null, nk = null, rg = null, pt = null;
+    let wp = null, ar = null, nk = null, rg = null, pt = null, pn = null;
     try { wp = dbPlayer.weapon ? (typeof dbPlayer.weapon === 'string' ? JSON.parse(dbPlayer.weapon) : dbPlayer.weapon) : null; } catch (e) { wp = { name: dbPlayer.weapon }; }
     try { ar = dbPlayer.armor ? (typeof dbPlayer.armor === 'string' ? JSON.parse(dbPlayer.armor) : dbPlayer.armor) : null; } catch (e) { ar = { name: dbPlayer.armor }; }
+    try { pn = dbPlayer.pants ? (typeof dbPlayer.pants === 'string' ? JSON.parse(dbPlayer.pants) : dbPlayer.pants) : null; } catch (e) { pn = { name: dbPlayer.pants }; }
+    if (!pn && wp && wp.pants) {
+      try {
+        pn = typeof wp.pants === 'string' ? JSON.parse(wp.pants) : wp.pants;
+      } catch (e) {
+        pn = { name: wp.pants };
+      }
+    }
     try { nk = dbPlayer.necklace ? (typeof dbPlayer.necklace === 'string' ? JSON.parse(dbPlayer.necklace) : dbPlayer.necklace) : null; } catch (e) { nk = { name: dbPlayer.necklace }; }
     try { rg = dbPlayer.ring ? (typeof dbPlayer.ring === 'string' ? JSON.parse(dbPlayer.ring) : dbPlayer.ring) : null; } catch (e) { rg = { name: dbPlayer.ring }; }
     try { pt = dbPlayer.pet ? (typeof dbPlayer.pet === 'string' ? JSON.parse(dbPlayer.pet) : dbPlayer.pet) : null; } catch (e) { pt = { name: dbPlayer.pet }; }
@@ -3028,6 +3036,7 @@ const App = () => {
       avatar_url: dbPlayer.avatar_url,
       weapon: wp,
       armor: ar,
+      pants: pn,
       pet: pt,
       ring: rg,
       necklace: nk,
@@ -8322,10 +8331,35 @@ const App = () => {
             armorDef = Math.round(aStats.baseDef * (1 + 0.20 * aPlus) * starMultMath);
           }
 
-          const maxHp = Number(p.max_hp !== undefined ? p.max_hp : (baseHp + armorHp));
+          let pantsHp = 0;
+          let pantsDef = 0;
+          if (p.pants) {
+            const getPantsStatsHelper = (it) => {
+              if (it?.base_hp !== undefined && it?.base_def !== undefined) {
+                return { baseHp: Number(it.base_hp), baseDef: Number(it.base_def) };
+              }
+              const n = (it?.name || '').toLowerCase();
+              const t = (it?.tier || '').toLowerCase();
+              if (n.includes('nữ oa') || t.includes('thượng cổ')) return { baseHp: 240000, baseDef: 24000 };
+              if (n.includes('long vương') || t.includes('cổ đại')) return { baseHp: 105000, baseDef: 10500 };
+              if (n.includes('vô cực') || t.includes('tối thượng')) return { baseHp: 45000, baseDef: 4500 };
+              if (n.includes('kim cương') || t.includes('thần thoại')) return { baseHp: 18000, baseDef: 1800 };
+              if (n.includes('thánh quang') || t.includes('epic')) return { baseHp: 7500, baseDef: 750 };
+              if (n.includes('lam ngọc') || t.includes('hiếm')) return { baseHp: 3000, baseDef: 300 };
+              return { baseHp: 900, baseDef: 90 };
+            };
+            const pStats = getPantsStatsHelper(p.pants);
+            const pPlus = Number(p.pants.plus || 0);
+            const pStars = Math.max(1, Math.min(5, Number(p.pants.stars || 1)));
+            const starMultMath = Math.pow(2, Math.max(0, pStars - 1));
+            pantsHp = Math.round(pStats.baseHp * (1 + 0.25 * pPlus) * starMultMath);
+            pantsDef = Math.round(pStats.baseDef * (1 + 0.20 * pPlus) * starMultMath);
+          }
+
+          const maxHp = Number(p.max_hp !== undefined ? p.max_hp : (baseHp + armorHp + pantsHp));
           const currentHp = Number(p.current_hp !== undefined ? p.current_hp : maxHp);
           const hpPct = Math.min(100, Math.max(0, (currentHp / Math.max(1, maxHp)) * 100));
-          const totalDef = Number(p.total_def !== undefined ? p.total_def : armorDef);
+          const totalDef = Number(p.total_def !== undefined ? p.total_def : (armorDef + pantsDef));
           const dmgReducPct = Number(p.dmg_reduction_pct !== undefined ? p.dmg_reduction_pct : (totalDef > 0 ? (totalDef / (totalDef + 2500) * 100) : 0));
           const isDead = Boolean(p.is_dead);
           const respawnTime = Number(p.respawn_seconds_left || 0);
