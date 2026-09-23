@@ -54,8 +54,8 @@ const BOSS_GAME_PACKAGES = [
     coins: 200,
     royalChests: 2,
     bossChests: 20,
-    attacks: 2000,
-    extraDesc: '200 Xu + 2 Rương Hoàng Kim + 20 Rương Boss + 2.000 Lượt Đánh',
+    attacks: 20000,
+    extraDesc: '200 Xu + 2 Rương Hoàng Kim + 20 Rương Boss + 20.000 Lượt Đánh',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -68,8 +68,8 @@ const BOSS_GAME_PACKAGES = [
     coins: 500,
     royalChests: 5,
     bossChests: 50,
-    attacks: 5000,
-    extraDesc: '500 Xu + 5 Rương Hoàng Kim + 50 Rương Boss + 5.000 Lượt Đánh',
+    attacks: 50000,
+    extraDesc: '500 Xu + 5 Rương Hoàng Kim + 50 Rương Boss + 50.000 Lượt Đánh',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -82,8 +82,8 @@ const BOSS_GAME_PACKAGES = [
     coins: 1000,
     royalChests: 10,
     bossChests: 100,
-    attacks: 10000,
-    extraDesc: '1.000 Xu + 10 Rương Hoàng Kim + 100 Rương Boss + 10.000 Lượt Đánh',
+    attacks: 100000,
+    extraDesc: '1.000 Xu + 10 Rương Hoàng Kim + 100 Rương Boss + 100.000 Lượt Đánh',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -96,8 +96,8 @@ const BOSS_GAME_PACKAGES = [
     coins: 2000,
     royalChests: 20,
     bossChests: 200,
-    attacks: 20000,
-    extraDesc: '2.000 Xu + 20 Rương Hoàng Kim + 200 Rương Boss + 20.000 Lượt Đánh',
+    attacks: 200000,
+    extraDesc: '2.000 Xu + 20 Rương Hoàng Kim + 200 Rương Boss + 200.000 Lượt Đánh',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -110,8 +110,8 @@ const BOSS_GAME_PACKAGES = [
     coins: 6000,
     royalChests: 60,
     bossChests: 600,
-    attacks: 60000,
-    extraDesc: '6.000 Xu Game VIP + 60 Rương Hoàng Kim + 600 Rương Boss + 60.000 Lượt Đánh (KM +20%)',
+    attacks: 600000,
+    extraDesc: '6.000 Xu Game VIP + 60 Rương Hoàng Kim + 600 Rương Boss + 600.000 Lượt Đánh (KM +20%)',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -124,8 +124,8 @@ const BOSS_GAME_PACKAGES = [
     coins: 13000,
     royalChests: 130,
     bossChests: 1300,
-    attacks: 130000,
-    extraDesc: '13.000 Xu Game VIP + 130 Rương Hoàng Kim + 1.300 Rương Boss + 130.000 Lượt Đánh (KM +30%)',
+    attacks: 1300000,
+    extraDesc: '13.000 Xu Game VIP + 130 Rương Hoàng Kim + 1.300 Rương Boss + 1.300.000 Lượt Đánh (KM +30%)',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -138,8 +138,8 @@ const BOSS_GAME_PACKAGES = [
     coins: 20000,
     royalChests: 200,
     bossChests: 2000,
-    attacks: 200000,
-    extraDesc: '20.000 Xu + 200 Rương HK + 2.000 Rương Boss + 200.000 Lượt + 💥 1x Nhẫn Cổ Đại 5⭐',
+    attacks: 2000000,
+    extraDesc: '20.000 Xu + 200 Rương HK + 2.000 Rương Boss + 2.000.000 Lượt + 💥 1x Nhẫn Cổ Đại 5⭐',
     image: '/game-assets/ring_codai.png',
     items: [
       {
@@ -166,8 +166,8 @@ const BOSS_GAME_PACKAGES = [
     coins: 37500,
     royalChests: 375,
     bossChests: 3750,
-    attacks: 375000,
-    extraDesc: '37.500 Xu + 375 Rương HK + 3.750 Rương Boss + 375.000 Lượt + 🌌 1x Nhẫn Thượng Cổ 1⭐',
+    attacks: 3750000,
+    extraDesc: '37.500 Xu + 375 Rương HK + 3.750 Rương Boss + 3.750.000 Lượt + 🌌 1x Nhẫn Thượng Cổ 1⭐',
     image: '/game-assets/ring_thuongco.png',
     items: [
       {
@@ -3177,6 +3177,13 @@ const App = () => {
 
           // 1. Cập nhật Sàn Đấu Giá Chợ Trời nếu có thay đổi vật phẩm từ game hoặc web
           if (newRec.user_id === '__auction_market__') {
+            try {
+              const parsed = typeof newRec.weapon === 'string' ? JSON.parse(newRec.weapon) : newRec.weapon;
+              if (parsed && Array.isArray(parsed.active_listings)) {
+                setAuctionMarketData(parsed);
+                return;
+              }
+            } catch (e) { }
             if (typeof fetchAuctionMarketData === 'function') {
               fetchAuctionMarketData();
             }
@@ -11122,29 +11129,13 @@ const App = () => {
                             ) : (r.info?.kycMethod === 'deposit' || r.info?.kycMethod === 'coc') ? (
                               <div className="flex flex-col items-center text-rose-500"><Wallet size={28} className="mb-2" /><span className="font-black text-sm uppercase">Đã cọc 500k</span><span className="text-[9px] text-slate-400 text-center">Sẽ hoàn khi trả nick</span></div>
                             ) : (
-                              (r.info?.kycMethod === 'cccd' || r.info?.kycMethod === 'verified_cccd' || r.info?.cccdImage) ? (
-                                <button
-                                  type="button"
-                                  onClick={async () => {
-                                    if (r.info?.cccdImage) {
-                                      setFullScreenImage(r.info.cccdImage);
-                                    } else {
-                                      showToast("Đang tải ảnh từ máy chủ phân tán...", "info");
-                                      const { data, error } = await supabase.from('users').select('cccd_image').eq('id', r.userId).single();
-                                      if (data?.cccd_image) {
-                                        setFullScreenImage(data.cccd_image);
-                                      } else {
-                                        showToast("Không tìm thấy ảnh CCCD của khách này trên hệ thống!", "error");
-                                      }
-                                    }
-                                  }}
-                                  className="w-full h-full flex flex-col items-center justify-center text-blue-400 hover:bg-blue-500/10 transition-colors group"
-                                  title="Tải & Phóng to CCCD"
-                                >
-                                  <ImageIcon size={28} className="mb-2 group-hover:scale-110 transition-transform" />
-                                  <span className="text-[10px] font-bold border border-blue-500/50 px-2 py-1 rounded bg-blue-500/10 whitespace-nowrap shadow-sm">Hiển Thị CCCD</span>
-                                </button>
-                              ) : <span className="text-xs text-slate-500">Khách chưa up ảnh</span>
+                              (r.info?.kycMethod === 'cccd' || r.info?.kycMethod === 'verified_cccd' || r.info?.cccdNumber || r.info?.cccd_number) ? (
+                                <div className="flex flex-col items-center justify-center p-2 text-blue-400 text-center">
+                                  <span className="text-[10px] text-slate-400">Số CCCD:</span>
+                                  <span className="text-xs font-bold text-white font-mono mt-0.5">{r.info?.cccdNumber || r.info?.cccd_number || 'Đã xác minh'}</span>
+                                  <span className="text-[9px] text-emerald-400 mt-1">Đã duyệt (Miễn cọc)</span>
+                                </div>
+                              ) : <span className="text-xs text-slate-500">Khách chưa xác minh</span>
                             )}
                           </div>
                           <div className="flex-1 space-y-2 text-sm w-full">
@@ -13551,10 +13542,9 @@ const App = () => {
                       const newBalance = currentUser.balance - totalCostFromMain;
                       const newFund = (currentUser.rentFund || 0) - rentCostFromFund;
 
-                      // Tự động lưu CCCD vào profile theo yêu cầu nếu khách có cung cấp
-                      if (!skipKyc && rentKycMethod === 'cccd' && finalImgBase64) {
+                      // Tự động lưu số CCCD vào profile (chỉ lưu chuỗi số, tuyệt đối không lưu ảnh Base64 nặng để bảo vệ Supabase Free Tier)
+                      if (!skipKyc && rentKycMethod === 'cccd' && capturedCccd) {
                         const { error: cccdErr } = await supabase.from('users').update({
-                          cccd_image: finalImgBase64,
                           cccd_number: capturedCccd
                         }).eq('id', currentUser.id);
                         if (cccdErr) console.error("Lỗi cập nhật CCCD:", cccdErr);
@@ -13662,19 +13652,8 @@ const App = () => {
                     } finally { isProcessingAction = false; }
                   };
 
-                  // Bắt buộc ảnh CCCD chỉ khi là Khách Thường VÀ chọn up CCCD
-                  if (!skipKyc && rentKycMethod === 'cccd' && !currentUser.is_cccd_verified) {
-                    if (!fileInput?.files[0]) {
-                      isProcessingAction = false;
-                      return showToast("Vui lòng tải lên ảnh CCCD!", "error");
-                    }
-                    const reader = new FileReader();
-                    reader.onload = () => processRent(reader.result);
-                    reader.readAsDataURL(fileInput.files[0]);
-                  } else {
-                    // VIP hoặc Khách chọn cọc 500k -> Bỏ qua khâu file ảnh
-                    processRent(null);
-                  }
+                  // Hoàn tất: Bỏ khâu file ảnh Base64 nặng để bảo vệ tuyệt đối dung lượng Supabase Cloud
+                  processRent(null);
                 }} className="space-y-4">
 
                   {/* PHẦN HIỂN THỊ ĐIỀU KIỆN */}
@@ -13726,26 +13705,15 @@ const App = () => {
                           <div className="col-span-2 bg-emerald-500/10 p-5 rounded-xl border border-emerald-500/30 text-center animate-fade-in mb-4">
                             <CheckCircle2 size={36} className="text-emerald-400 mx-auto mb-2" />
                             <p className="text-emerald-400 font-bold text-lg">CCCD của bạn đã được Admin phê duyệt!</p>
-                            <p className="text-sm text-slate-400 mt-1">Hệ thống đã lưu lại, bạn có thể ấn Thanh toán ngay mà không cần chụp lại ảnh.</p>
+                            <p className="text-sm text-slate-400 mt-1">Hệ thống đã lưu lại số CCCD, bạn có thể ấn Thanh toán ngay.</p>
                           </div>
                         ) : (
                           <div className="grid grid-cols-2 gap-3 animate-fade-in mb-4">
-                            <div className="col-span-2 grid grid-cols-1 gap-3">
-                              {/* Ô MẶT TRƯỚC CCCD */}
-                              <div className="relative border border-dashed border-slate-600 rounded-lg p-3 text-center hover:bg-slate-800/50 transition-colors min-h-[100px] flex items-center justify-center overflow-hidden">
-                                <input type="file" accept="image/*" onChange={(e) => {
-                                  const file = e.target.files[0];
-                                  if (file) { const reader = new FileReader(); reader.onload = () => setKycImagePreview(reader.result); reader.readAsDataURL(file); }
-                                  else { setKycImagePreview(null); }
-                                }} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" title="Tải ảnh mặt trước CCCD" required />
-                                {kycImagePreview ? (<img src={kycImagePreview} className="absolute inset-0 w-full h-full object-cover rounded-lg z-0" />) : (
-                                  <div className="text-slate-500 pointer-events-none flex flex-col items-center justify-center relative z-0">
-                                    <Upload size={20} className="mb-1 text-slate-400" />
-                                    <span className="text-[10px] font-bold">Up ảnh CCCD</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>                            <div className="col-span-2"><input name="cccd" placeholder="Nhập số CCCD" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white outline-none" required /></div>
+                            <div className="col-span-2">
+                              <label className="text-xs text-slate-400 block mb-1.5 font-bold">Số Căn Cước Công Dân (12 số):</label>
+                              <input name="cccd" placeholder="Nhập chính xác số CCCD của bạn" maxLength="12" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white outline-none focus:border-blue-500" required />
+                              <p className="text-[11px] text-slate-500 mt-1">Hệ thống bảo mật tối đa: Chỉ lưu số định danh, không yêu cầu tải ảnh chụp để tránh chiếm dụng bộ nhớ.</p>
+                            </div>
                           </div>
                         )
                       )}
