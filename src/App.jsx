@@ -6838,6 +6838,9 @@ const App = () => {
     const bonusDmg = Number(item.bonus_dmg || 0);
     const dmgPercent = Number(item.dmg_percent || 0);
     const baseDmgPercent = Number(item.base_dmg_percent || 0);
+    const ringStarsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
+    const ringStarMult = Math.pow(3, ringStarsCount - 1);
+    const totalEstRingDmg = Math.round(baseDmgPercent * ringStarMult);
     const skillPct = Number(item.skill_pct || 0);
     const skillLevel = Number(item.skill_level || 0);
     const skillProcStr = getRingSkillProcStr(item);
@@ -7130,8 +7133,16 @@ const App = () => {
                   {category === 'ring' && (
                     <>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
-                        <span className="text-slate-400">Sát thương cơ bản:</span>
-                        <span className="font-bold text-purple-300">+{baseDmgPercent}% DMG</span>
+                        <span className="text-slate-400">Sát thương gốc (1⭐):</span>
+                        <span className="font-bold text-slate-300">+{baseDmgPercent}% DMG</span>
+                      </div>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-amber-400">Hệ số Sao ({ringStarsCount}⭐):</span>
+                        <span className="font-bold text-amber-300">x{ringStarMult} Khuếch Đại (x3/sao)</span>
+                      </div>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-purple-400 font-bold">Tổng Sát Thương Dự Tính:</span>
+                        <span className="font-black text-purple-300 text-xs">+{totalEstRingDmg.toLocaleString()}% DMG ⚡</span>
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
                         <span className="text-purple-400 font-bold">Tuyệt kỹ rút máu Boss:</span>
@@ -8033,17 +8044,22 @@ const App = () => {
                         +{Number(item.dmg_percent || 0)}% DMG
                       </span>
                     )}
-                    {category === 'ring' && (
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="font-bold text-purple-400 bg-purple-400/10 border border-purple-400/30 px-1.5 py-0.5 rounded">
-                          +{Number(item.base_dmg_percent || 0)}% DMG {item.skill_pct ? `• ⚡ ${item.skill_pct}% HP` : ''}
-                        </span>
-                        {/* Luôn hiển thị thông tin phát động Kỹ Năng */}
-                        <span className="font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-1.5 py-0.5 rounded text-[10px]">
-                          ⚡ {item.skill_level > 0 ? `Kỹ Năng Lv.${item.skill_level} (${getRingSkillProcStr(item)})` : `Tỉ Lệ: ${getRingSkillProcStr(item)}`}
-                        </span>
-                      </div>
-                    )}
+                    {category === 'ring' && (() => {
+                      const rStars = Math.max(1, Math.min(5, Number(item.stars || 1)));
+                      const starMult = Math.pow(3, rStars - 1);
+                      const totRingDmg = Math.round(Number(item.base_dmg_percent || 0) * starMult);
+                      return (
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-bold text-purple-400 bg-purple-400/10 border border-purple-400/30 px-1.5 py-0.5 rounded">
+                            +{totRingDmg.toLocaleString()}% DMG {item.skill_pct ? `• ⚡ ${item.skill_pct}% HP` : ''}
+                          </span>
+                          {/* Luôn hiển thị thông tin phát động Kỹ Năng */}
+                          <span className="font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-1.5 py-0.5 rounded text-[10px]">
+                            ⚡ {item.skill_level > 0 ? `Kỹ Năng Lv.${item.skill_level} (${getRingSkillProcStr(item)})` : `Tỉ Lệ: ${getRingSkillProcStr(item)}`}
+                          </span>
+                        </div>
+                      );
+                    })()}
                     {category === 'pet' && (
                       <span className="font-bold text-rose-400 bg-rose-400/10 border border-rose-400/30 px-1.5 py-0.5 rounded">
                         +{Number(item.bonus_dmg || 0).toLocaleString()} DMG
@@ -9080,16 +9096,21 @@ const App = () => {
                                         📿 +{Number(item.dmg_percent || 0)}% DMG Toàn Bộ
                                       </span>
                                     )}
-                                    {category === 'ring' && (
-                                      <>
-                                        <span className="text-purple-400 block">
-                                          💍 +{Number(item.base_dmg_percent || 0)}% DMG {item.skill_pct ? `• ⚡ ${item.skill_pct}% HP` : ''}
-                                        </span>
-                                        <span className="text-amber-300 block text-[9.5px]">
-                                          ⚡ {item.skill_level > 0 ? `Tuyệt Kỹ: Lv.${item.skill_level} (Tỉ lệ: ${getRingSkillProcStr(item)})` : `Tỉ lệ phát động: ${getRingSkillProcStr(item)}`}
-                                        </span>
-                                      </>
-                                    )}
+                                    {category === 'ring' && (() => {
+                                      const rStars = Math.max(1, Math.min(5, Number(item.stars || 1)));
+                                      const starMult = Math.pow(3, rStars - 1);
+                                      const totRingDmg = Math.round(Number(item.base_dmg_percent || 0) * starMult);
+                                      return (
+                                        <>
+                                          <span className="text-purple-400 block font-semibold">
+                                            💍 +{totRingDmg.toLocaleString()}% DMG {item.skill_pct ? `• ⚡ ${item.skill_pct}% HP` : ''}
+                                          </span>
+                                          <span className="text-amber-300 block text-[9.5px]">
+                                            ⚡ {item.skill_level > 0 ? `Tuyệt Kỹ: Lv.${item.skill_level} (Tỉ lệ: ${getRingSkillProcStr(item)})` : `Tỉ lệ phát động: ${getRingSkillProcStr(item)}`}
+                                          </span>
+                                        </>
+                                      );
+                                    })()}
                                     {category === 'pet' && (
                                       <span className="text-rose-400 block">
                                         🐾 +{Number(item.bonus_dmg || 0).toLocaleString()} DMG {item.level ? `(Lv.${item.level})` : ''}
@@ -9735,12 +9756,17 @@ const App = () => {
                                         {category === 'necklace' && (
                                           <span className="text-amber-400">📿 +{Number(item.dmg_percent || 0)}% DMG</span>
                                         )}
-                                        {category === 'ring' && (
-                                          <span className="text-purple-400">
-                                            💍 +{Number(item.base_dmg_percent || 0)}% DMG {item.skill_pct ? `• ⚡${item.skill_pct}%` : ''}
-                                            {item.skill_level > 0 ? ` • ⚡Lv.${item.skill_level} (${getRingSkillProcStr(item)})` : ''}
-                                          </span>
-                                        )}
+                                        {category === 'ring' && (() => {
+                                          const rStars = Math.max(1, Math.min(5, Number(item.stars || 1)));
+                                          const starMult = Math.pow(3, rStars - 1);
+                                          const totRingDmg = Math.round(Number(item.base_dmg_percent || 0) * starMult);
+                                          return (
+                                            <span className="text-purple-400 font-semibold">
+                                              💍 +{totRingDmg.toLocaleString()}% DMG {item.skill_pct ? `• ⚡${item.skill_pct}%` : ''}
+                                              {item.skill_level > 0 ? ` • ⚡Lv.${item.skill_level} (${getRingSkillProcStr(item)})` : ''}
+                                            </span>
+                                          );
+                                        })()}
                                         {category === 'pet' && (
                                           <span className="text-rose-400">🐾 +{Number(item.bonus_dmg || 0).toLocaleString()} DMG</span>
                                         )}
