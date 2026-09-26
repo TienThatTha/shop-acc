@@ -7518,12 +7518,30 @@ const App = () => {
                 <div className="bg-gradient-to-r from-[#0B1120] via-[#151D2F] to-[#0B1120] border-2 border-emerald-500/50 rounded-2xl p-5 md:p-6 shadow-[0_0_30px_rgba(16,185,129,0.15)] backdrop-blur-md text-left animate-fade-in relative overflow-hidden">
                   <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-2 bg-gradient-to-l from-emerald-500/20 to-transparent w-48 h-16 pointer-events-none blur-xl"></div>
 
-                  {/* Badge Đã liên kết vĩnh viễn & Nút Liên Kết Đa Nền Tảng */}
+                  {/* Badge Đã liên kết theo nền tảng & Dãy nút hành động */}
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-                      <CheckCircle2 size={14} className="text-emerald-400" />
-                      <span>✓ ĐÃ LIÊN KẾT TÀI KHOẢN GAME VĨNH VIỄN</span>
-                    </div>
+                    {/* Badge trạng thái liên kết động theo từng mảng */}
+                    {isDiscordLinked && isTikTokLinked ? (
+                      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-black text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                        <CheckCircle2 size={15} className="text-emerald-400" />
+                        <span>✓ ĐÃ LIÊN KẾT CẢ DISCORD & TIKTOK LIVE VĨNH VIỄN</span>
+                      </div>
+                    ) : isDiscordLinked ? (
+                      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#5865F2]/20 border border-[#5865F2]/50 text-[#9bb0ff] font-black text-xs uppercase tracking-wider shadow-[0_0_12px_rgba(88,101,242,0.3)]">
+                        <CheckCircle2 size={15} className="text-indigo-400" />
+                        <span>✓ ĐÃ LIÊN KẾT TÀI KHOẢN DISCORD VĨNH VIỄN</span>
+                      </div>
+                    ) : isTikTokLinked ? (
+                      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/20 border border-rose-400/40 text-rose-300 font-black text-xs uppercase tracking-wider shadow-[0_0_12px_rgba(244,63,94,0.3)]">
+                        <CheckCircle2 size={15} className="text-rose-400" />
+                        <span>✓ ĐÃ LIÊN KẾT TÀI KHOẢN TIKTOK LIVE VĨNH VIỄN</span>
+                      </div>
+                    ) : (
+                      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-black text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                        <CheckCircle2 size={15} className="text-emerald-400" />
+                        <span>✓ ĐÃ LIÊN KẾT TÀI KHOẢN GAME VĨNH VIỄN</span>
+                      </div>
+                    )}
 
                     {/* Dãy nút liên kết tự xác nhận: ẩn nút nếu nền tảng đó đã được liên kết */}
                     <div className="flex flex-wrap items-center gap-2">
@@ -7556,7 +7574,7 @@ const App = () => {
                       {isDiscordLinked && isTikTokLinked && (
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-xs font-semibold">
                           <CheckCircle2 size={13} className="text-emerald-400" />
-                          <span>Đã liên kết cả Discord & TikTok Live</span>
+                          <span>Đã liên kết đủ 2 nền tảng</span>
                         </div>
                       )}
                     </div>
@@ -7898,7 +7916,15 @@ const App = () => {
                       <span className="text-slate-400 text-xs ml-2 font-mono">(@{bossPlayerSummary?.user_id || bossTargetId.trim().replace(/^@/, '')})</span>
                     </div>
                     <span className="text-emerald-400 text-xs font-bold flex items-center gap-1">
-                      <CheckCircle2 size={13} /> Đã liên kết vĩnh viễn
+                      <CheckCircle2 size={13} /> {
+                        isDiscordLinked && isTikTokLinked
+                          ? 'Đã liên kết Discord & TikTok Live'
+                          : isDiscordLinked
+                          ? 'Đã liên kết Discord'
+                          : isTikTokLinked
+                          ? 'Đã liên kết TikTok Live'
+                          : 'Đã liên kết vĩnh viễn'
+                      }
                     </span>
                   </div>
                 </div>
@@ -8307,9 +8333,19 @@ const App = () => {
                         @{p.user_id}
                       </div>
                       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded bg-gradient-to-r from-rose-600 to-red-600 text-white">
-                          TikTok Live [TT]
-                        </span>
+                        {isDiscordLinked && isTikTokLinked ? (
+                          <span className="text-[9px] font-black px-2 py-0.5 rounded bg-gradient-to-r from-indigo-600 via-purple-600 to-rose-600 text-white shadow-sm">
+                            Discord & TikTok Live
+                          </span>
+                        ) : isDiscordLinked ? (
+                          <span className="text-[9px] font-black px-2 py-0.5 rounded bg-[#5865F2] text-white shadow-sm">
+                            Discord
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-black px-2 py-0.5 rounded bg-gradient-to-r from-rose-600 to-red-600 text-white">
+                            TikTok Live [TT]
+                          </span>
+                        )}
                         {p.has_x2_rate && (
                           <span className="text-[9px] font-black px-2 py-0.5 rounded bg-gradient-to-r from-yellow-400 to-amber-500 text-black shadow-[0_0_8px_rgba(255,215,0,0.6)]">
                             👑 x2 TỈ LỆ VIP
