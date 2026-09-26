@@ -831,7 +831,7 @@ const App = () => {
                 .select('result, user_id')
                 .eq('package_id', 'account_link_otp')
                 .eq('status', 'completed')
-                .or(`web_user.eq."${user.name || user.id}",rewards->>web_user_id.eq."${user.id}"`)
+                .or(`web_user.eq."${user.id}",rewards->>web_user_id.eq."${user.id}"`)
                 .order('completed_at', { ascending: false })
                 .limit(1)
                 .maybeSingle();
@@ -2201,8 +2201,23 @@ const App = () => {
                   setShowBagModal(true);
                 }
               },
+              {
+                name: '🎮 Liên Kết Discord (OTP)',
+                view: 'bossgame',
+                auth: true,
+                icon: (
+                  <svg className="w-5 h-5 fill-current text-indigo-400" viewBox="0 0 127.14 96.36">
+                    <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
+                  </svg>
+                ),
+                action: () => {
+                  requireAuth('bossgame');
+                  setCurrentView('bossgame');
+                  handleGenerateLinkOtp();
+                }
+              },
               ...(!bossPlayerSummary ? [{
-                name: '🔗 Liên Kết OTP Game',
+                name: '🔗 Lấy Mã OTP Game',
                 view: 'bossgame',
                 auth: true,
                 icon: <Zap size={20} className="text-yellow-400 animate-pulse" />,
@@ -2350,6 +2365,23 @@ const App = () => {
                 },
                 auth: true
               },
+              {
+                name: (
+                  <span className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 font-bold">
+                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 127.14 96.36">
+                      <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
+                    </svg>
+                    <span>Liên Kết Disc</span>
+                  </span>
+                ),
+                view: 'bossgame',
+                action: () => {
+                  requireAuth('bossgame');
+                  setCurrentView('bossgame');
+                  handleGenerateLinkOtp();
+                },
+                auth: true
+              },
               { name: 'Cày Thuê', view: 'caythue', auth: false },
               ...(hasActiveWheelRewards ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false }] : []),
               { name: 'Lịch Sử', view: 'lichsu', auth: true }
@@ -2396,6 +2428,21 @@ const App = () => {
                         onClick={() => {
                           requireAuth('bossgame');
                           setCurrentView('bossgame');
+                          handleGenerateLinkOtp();
+                        }}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#5865F2]/20 hover:bg-[#5865F2]/30 border border-[#5865F2]/50 hover:border-[#5865F2] text-[#9bb0ff] hover:text-white font-bold text-xs rounded-xl shadow-[0_0_15px_rgba(88,101,242,0.2)] transition-all hover:scale-105 cursor-pointer"
+                        title="Bấm để lấy mã OTP 6 số liên kết tài khoản Discord"
+                      >
+                        <svg className="w-3.5 h-3.5 fill-current text-[#5865F2]" viewBox="0 0 127.14 96.36">
+                          <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
+                        </svg>
+                        <span>Liên Kết Disc</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          requireAuth('bossgame');
+                          setCurrentView('bossgame');
                           setShowBagModal(true);
                         }}
                         className="flex items-center gap-1 px-2.5 py-1.5 bg-purple-500/15 hover:bg-purple-500/25 border border-purple-400/40 text-purple-300 font-bold text-xs rounded-xl transition-all shadow-sm cursor-pointer"
@@ -2426,11 +2473,13 @@ const App = () => {
                         setCurrentView('bossgame');
                         handleGenerateLinkOtp();
                       }}
-                      className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white font-extrabold text-xs rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.4)] animate-pulse transition-all hover:scale-105 shrink-0 cursor-pointer"
-                      title="Bấm để nhận mã OTP liên kết với nhân vật game"
+                      className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-amber-500 hover:from-indigo-500 hover:to-amber-400 text-white font-extrabold text-xs rounded-xl shadow-[0_0_15px_rgba(88,101,242,0.4)] animate-pulse transition-all hover:scale-105 shrink-0 cursor-pointer"
+                      title="Bấm để nhận mã OTP 6 số liên kết tài khoản Discord / Game"
                     >
-                      <Zap size={14} className="text-yellow-300" />
-                      <span>🔗 Liên Kết OTP Game</span>
+                      <svg className="w-3.5 h-3.5 fill-current text-white" viewBox="0 0 127.14 96.36">
+                        <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
+                      </svg>
+                      <span>🎮 Liên Kết Disc (OTP)</span>
                     </button>
                   )}
 
@@ -2514,11 +2563,25 @@ const App = () => {
                             setShowUserDropdown(false);
                             requireAuth('bossgame');
                             setCurrentView('bossgame');
+                            handleGenerateLinkOtp();
+                          }}
+                          className="w-full px-4 py-2.5 text-left text-xs font-bold text-indigo-400 hover:bg-indigo-500/20 transition-colors flex items-center gap-2.5"
+                        >
+                          <svg className="w-4 h-4 fill-current text-indigo-400 shrink-0" viewBox="0 0 127.14 96.36">
+                            <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
+                          </svg>
+                          <span>🎮 Liên Kết Discord (OTP 6 Số)</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowUserDropdown(false);
+                            requireAuth('bossgame');
+                            setCurrentView('bossgame');
                             if (!bossPlayerSummary) handleGenerateLinkOtp();
                           }}
                           className="w-full px-4 py-2.5 text-left text-xs font-bold text-amber-400 hover:bg-amber-500/20 transition-colors flex items-center gap-2.5"
                         >
-                          <Link size={16} className="text-amber-400" /> {bossPlayerSummary ? `Game: @${bossPlayerSummary.user_id}` : '🔗 Liên Kết OTP Game'}
+                          <Link size={16} className="text-amber-400" /> {bossPlayerSummary ? `Game: @${bossPlayerSummary.user_id}` : '🔗 Lấy Mã OTP Game'}
                         </button>
                         {bossPlayerSummary && (
                           <>
@@ -3074,14 +3137,27 @@ const App = () => {
 
       // 1. Tra cứu trực tiếp từ Supabase Cloud (24/7, hoạt động mọi lúc kể cả khi tắt máy tính/tắt game)
       try {
-        const { data: dbPlayer } = await supabase
+        // Ưu tiên tra cứu TUYỆT ĐỐI theo user_id trước để tránh trùng nickname giữa các người chơi
+        const { data: dbPlayerById } = await supabase
           .from('game_players')
           .select('*')
-          .or(`user_id.ilike.${cleanId},nickname.ilike.${cleanId}`)
+          .eq('user_id', cleanId)
           .maybeSingle();
 
-        if (dbPlayer) {
-          foundPlayer = parseGamePlayerRecord(dbPlayer);
+        if (dbPlayerById) {
+          foundPlayer = parseGamePlayerRecord(dbPlayerById);
+        } else {
+          // Chỉ tra cứu theo nickname nếu không tìm thấy user_id
+          const { data: dbPlayersByNick } = await supabase
+            .from('game_players')
+            .select('*')
+            .ilike('nickname', cleanId)
+            .order('cp', { ascending: false })
+            .limit(1);
+
+          if (dbPlayersByNick && dbPlayersByNick.length > 0) {
+            foundPlayer = parseGamePlayerRecord(dbPlayersByNick[0]);
+          }
         }
       } catch (err) {
         console.log("Supabase player lookup:", err);
@@ -3137,7 +3213,7 @@ const App = () => {
           .select('result, user_id, web_user, rewards')
           .eq('package_id', 'account_link_otp')
           .eq('status', 'completed')
-          .or(`web_user.eq."${currentUser.name || currentUser.id}",rewards->>web_user_id.eq."${currentUser.id}"`)
+          .or(`web_user.eq."${currentUser.id}",rewards->>web_user_id.eq."${currentUser.id}"`)
           .order('completed_at', { ascending: false })
           .limit(1);
 
@@ -3199,14 +3275,13 @@ const App = () => {
             return;
           }
 
-          // 2. Nhận diện nhân vật đang hiển thị trên giao diện hoặc nhân vật đã liên kết
+          // 2. Nhận diện nhân vật đang hiển thị trên giao diện hoặc nhân vật đã liên kết (Chỉ khớp chính xác ID, không khớp theo tên)
           const target = (bossTargetId || '').trim().toLowerCase().replace(/^@/, '');
           const linked = (currentUser?.linked_game_id || '').trim().toLowerCase().replace(/^@/, '');
           const rowUid = (newRec.user_id || '').trim().toLowerCase().replace(/^@/, '');
-          const rowNick = (newRec.nickname || '').trim().toLowerCase().replace(/^@/, '');
 
-          const isCurrentTarget = target && (rowUid === target || rowNick === target);
-          const isLinkedTarget = linked && (rowUid === linked || rowNick === linked);
+          const isCurrentTarget = target && rowUid === target;
+          const isLinkedTarget = linked && rowUid === linked;
 
           if (isCurrentTarget || isLinkedTarget) {
             const parsed = parseGamePlayerRecord(newRec);
@@ -3237,7 +3312,7 @@ const App = () => {
         id: orderId,
         user_id: code,
         nickname: currentUser.name || 'Khách Web',
-        web_user: currentUser.name || currentUser.id,
+        web_user: currentUser.id,
         package_id: 'account_link_otp',
         package_name: 'Liên kết tài khoản game qua OTP',
         price: 0,
@@ -3411,7 +3486,7 @@ const App = () => {
         id: actionId,
         user_id: targetUid,
         nickname: bossPlayerSummary.nickname,
-        web_user: currentUser.name || currentUser.id,
+        web_user: currentUser.id,
         package_id: `game_action_${actionType}`,
         package_name: actionType === 'equip' ? `Trang bị ${item?.name || ''}` : (actionType === 'unequip' ? `Tháo ${item?.name || itemIndex || ''}` : (actionType === 'delete' ? `Xóa ${item?.name || ''}` : 'Dọn sạch đồ rác')),
         price: 0,
@@ -3562,7 +3637,7 @@ const App = () => {
         id: actionId,
         user_id: targetUid,
         nickname: bossPlayerSummary.nickname,
-        web_user: currentUser.name || currentUser.id,
+        web_user: currentUser.id,
         package_id: `game_action_${actionType}`,
         package_name: pkgName,
         price: 0,
@@ -3653,7 +3728,7 @@ const App = () => {
         has_x2_rate: Boolean(pkg.hasX2Rate),
         items: pkg.items || []
       },
-      web_user: currentUser.name || currentUser.id
+      web_user: currentUser.id
     };
 
     const txPayload = {
@@ -3696,7 +3771,7 @@ const App = () => {
           id: orderId,
           user_id: targetUid,
           nickname: bossPlayerSummary?.nickname || bossTargetId.trim(),
-          web_user: currentUser.name,
+          web_user: currentUser.id,
           package_id: pkg.id,
           package_name: pkg.name,
           price: pkg.price,
@@ -6250,6 +6325,128 @@ const App = () => {
     return 'weapon';
   };
 
+  // --- BẢNG THÔNG SỐ CHUẨN CỦA VẬT PHẨM (ĐỒNG BỘ 100% VỚI CONFIGS/GAME_ITEMS.JSON) ---
+  const getWeaponStats = (it) => {
+    let baseDmg = (it?.base_dmg != null && Number(it.base_dmg) > 0) ? Number(it.base_dmg) : 0;
+    if (!baseDmg) {
+      const n = (it?.name || '').toLowerCase();
+      const t = (it?.tier || '').toLowerCase();
+      if (n.includes('bá vương') || t.includes('thượng cổ')) baseDmg = 15000;
+      else if (n.includes('chaos') || t.includes('cổ đại')) baseDmg = 6000;
+      else if (n.includes('ma vương') || t.includes('tối thượng')) baseDmg = 2500;
+      else if (n.includes('thần đao') || t.includes('thần thoại')) baseDmg = 1000;
+      else if (n.includes('trảm ma') || t.includes('epic')) baseDmg = 400;
+      else if (n.includes('song đao') || t.includes('hiếm')) baseDmg = 150;
+      else baseDmg = 50;
+    }
+    return { baseDmg };
+  };
+
+  const getArmorStats = (it) => {
+    let baseHp = (it?.base_hp != null && Number(it.base_hp) > 0) ? Number(it.base_hp) : 0;
+    let baseDef = (it?.base_def != null && Number(it.base_def) > 0) ? Number(it.base_def) : 0;
+    if (!baseHp || !baseDef) {
+      const n = (it?.name || '').toLowerCase();
+      const t = (it?.tier || '').toLowerCase();
+      if (n.includes('nữ oa') || t.includes('thượng cổ')) { baseHp = 450000; baseDef = 45000; }
+      else if (n.includes('long vương') || t.includes('cổ đại')) { baseHp = 180000; baseDef = 18000; }
+      else if (n.includes('vô cực') || t.includes('tối thượng')) { baseHp = 75000; baseDef = 7500; }
+      else if (n.includes('kim cương') || t.includes('thần thoại')) { baseHp = 30000; baseDef = 3000; }
+      else if (n.includes('thánh quang') || t.includes('epic')) { baseHp = 12000; baseDef = 1200; }
+      else if (n.includes('giáp rồng') || t.includes('hiếm')) { baseHp = 4500; baseDef = 450; }
+      else { baseHp = 1500; baseDef = 150; }
+    }
+    return { baseHp, baseDef };
+  };
+
+  const getPantsStats = (it) => {
+    let baseHp = (it?.base_hp != null && Number(it.base_hp) > 0) ? Number(it.base_hp) : 0;
+    let baseDef = (it?.base_def != null && Number(it.base_def) > 0) ? Number(it.base_def) : 0;
+    let hpPercent = (it?.hp_percent != null && Number(it.hp_percent) > 0) ? Number(it.hp_percent) : 0;
+    let defPercent = (it?.def_percent != null && Number(it.def_percent) > 0) ? Number(it.def_percent) : 0;
+
+    const n = (it?.name || '').toLowerCase();
+    const t = (it?.tier || '').toLowerCase();
+
+    if (!baseHp || !baseDef) {
+      if (n.includes('nữ oa') || t.includes('thượng cổ')) { baseHp = 240000; baseDef = 24000; }
+      else if (n.includes('long vương') || t.includes('cổ đại')) { baseHp = 105000; baseDef = 10500; }
+      else if (n.includes('vô cực') || t.includes('tối thượng')) { baseHp = 45000; baseDef = 4500; }
+      else if (n.includes('kim cương') || t.includes('thần thoại')) { baseHp = 18000; baseDef = 1800; }
+      else if (n.includes('thánh quang') || t.includes('epic')) { baseHp = 7500; baseDef = 750; }
+      else if (n.includes('lam ngọc') || t.includes('hiếm')) { baseHp = 3000; baseDef = 300; }
+      else { baseHp = 900; baseDef = 90; }
+    }
+
+    if (!hpPercent || !defPercent) {
+      if (n.includes('nữ oa') || t.includes('thượng cổ')) { hpPercent = 900; defPercent = 900; }
+      else if (n.includes('long vương') || t.includes('cổ đại')) { hpPercent = 450; defPercent = 450; }
+      else if (n.includes('vô cực') || t.includes('tối thượng')) { hpPercent = 270; defPercent = 270; }
+      else if (n.includes('kim cương') || t.includes('thần thoại')) { hpPercent = 150; defPercent = 150; }
+      else if (n.includes('thánh quang') || t.includes('epic')) { hpPercent = 75; defPercent = 75; }
+      else if (n.includes('lam ngọc') || t.includes('hiếm')) { hpPercent = 36; defPercent = 36; }
+      else { hpPercent = 15; defPercent = 15; }
+    }
+    return { baseHp, baseDef, hpPercent, defPercent };
+  };
+
+  const getNecklaceStats = (it) => {
+    let dmgPercent = (it?.dmg_percent != null && Number(it.dmg_percent) > 0) ? Number(it.dmg_percent) : 0;
+    if (!dmgPercent) {
+      const n = (it?.name || '').toLowerCase();
+      const t = (it?.tier || '').toLowerCase();
+      if (n.includes('vô cực') || t.includes('thượng cổ')) dmgPercent = 300;
+      else if (n.includes('chaos') || t.includes('cổ đại')) dmgPercent = 150;
+      else if (n.includes('hắc ma') || t.includes('tối thượng')) dmgPercent = 90;
+      else if (n.includes('hoàng kim') || t.includes('thần thoại')) dmgPercent = 50;
+      else if (n.includes('tử tinh') || t.includes('epic')) dmgPercent = 25;
+      else if (n.includes('lam ngọc') || t.includes('hiếm')) dmgPercent = 12;
+      else dmgPercent = 5;
+    }
+    return { dmgPercent };
+  };
+
+  const getRingStats = (it) => {
+    let baseDmgPercent = (it?.base_dmg_percent != null && Number(it.base_dmg_percent) > 0) ? Number(it.base_dmg_percent) : 0;
+    let skillPct = (it?.skill_pct != null && Number(it.skill_pct) > 0) ? Number(it.skill_pct) : 0;
+    let capMult = (it?.cap_mult != null && Number(it.cap_mult) > 0) ? Number(it.cap_mult) : 0;
+
+    if (!baseDmgPercent) {
+      const n = (it?.name || '').toLowerCase();
+      const t = (it?.tier || '').toLowerCase();
+      if (n.includes('bát hoang') || n.includes('vô cực') || t.includes('thượng cổ')) { baseDmgPercent = 150; skillPct = 50.0; capMult = 2000; }
+      else if (n.includes('thần long') || n.includes('chaos') || t.includes('cổ đại')) { baseDmgPercent = 80; skillPct = 40.0; capMult = 1000; }
+      else if (n.includes('hắc ám') || n.includes('ma vương') || t.includes('tối thượng')) { baseDmgPercent = 50; skillPct = 30.0; capMult = 500; }
+      else if (n.includes('hoàng kim') || t.includes('thần thoại')) { baseDmgPercent = 30; skillPct = 25.0; capMult = 400; }
+      else if (n.includes('huyết ma') || t.includes('epic')) { baseDmgPercent = 18; skillPct = 20.0; capMult = 300; }
+      else if (n.includes('lam ngọc') || t.includes('hiếm')) { baseDmgPercent = 10; skillPct = 15.0; capMult = 200; }
+      else { baseDmgPercent = 5; skillPct = 10.0; capMult = 100; }
+    }
+    return {
+      baseDmgPercent,
+      skillPct: skillPct || Number(it?.skill_pct || 10.0),
+      capMult: capMult || Number(it?.cap_mult || 100)
+    };
+  };
+
+  const getPetStats = (it) => {
+    let bonusDmg = (it?.bonus_dmg != null && Number(it.bonus_dmg) > 0) ? Number(it.bonus_dmg) : 0;
+    let critRate = (it?.crit_rate != null && Number(it.crit_rate) > 0) ? Number(it.crit_rate) : 0;
+
+    if (!bonusDmg) {
+      const n = (it?.name || '').toLowerCase();
+      const t = (it?.tier || '').toLowerCase();
+      if (n.includes('bát hoang') || t.includes('thượng cổ')) { bonusDmg = 8000; critRate = 0.5; }
+      else if (n.includes('thần rồng') || n.includes('chaos') || t.includes('cổ đại')) { bonusDmg = 3500; critRate = 0.35; }
+      else if (n.includes('phượng hoàng') || t.includes('tối thượng')) { bonusDmg = 1800; critRate = 0.25; }
+      else if (n.includes('rồng thần') || t.includes('thần thoại')) { bonusDmg = 800; critRate = 0.2; }
+      else if (n.includes('rồng con') || t.includes('epic')) { bonusDmg = 350; critRate = 0.15; }
+      else if (n.includes('cáo tuyết') || t.includes('hiếm')) { bonusDmg = 120; critRate = 0.1; }
+      else { bonusDmg = 40; critRate = 0.05; }
+    }
+    return { bonusDmg, critRate: critRate || 0.05 };
+  };
+
   // --- HÀM TÍNH TOÁN VỊ TRÍ & ĐIỀU KHIỂN POPUP TOOLTIP CHI TIẾT VẬT PHẨM THÔNG MINH ---
   const calculateTooltipPosition = (clientX, clientY) => {
     if (typeof window === 'undefined') {
@@ -6789,38 +6986,13 @@ const App = () => {
     }
 
     // DÀNH CHO TRANG BỊ (EQUIPMENT)
-    const getArmorStats = (it) => {
-      if (it?.base_hp !== undefined && it?.base_def !== undefined) {
-        return { baseHp: Number(it.base_hp), baseDef: Number(it.base_def) };
-      }
-      const n = (it?.name || '').toLowerCase();
-      const t = (it?.tier || '').toLowerCase();
-      if (n.includes('nữ oa') || t.includes('thượng cổ')) return { baseHp: 450000, baseDef: 45000 };
-      if (n.includes('long vương') || t.includes('cổ đại')) return { baseHp: 180000, baseDef: 18000 };
-      if (n.includes('vô cực') || t.includes('tối thượng')) return { baseHp: 75000, baseDef: 7500 };
-      if (n.includes('kim cương') || t.includes('thần thoại')) return { baseHp: 30000, baseDef: 3000 };
-      if (n.includes('thánh quang') || t.includes('epic')) return { baseHp: 12000, baseDef: 1200 };
-      if (n.includes('giáp rồng') || t.includes('hiếm')) return { baseHp: 4500, baseDef: 450 };
-      return { baseHp: 1500, baseDef: 150 };
-    };
-
-    const getPantsStats = (it) => {
-      if (it?.base_hp !== undefined && it?.base_def !== undefined) {
-        return { baseHp: Number(it.base_hp), baseDef: Number(it.base_def) };
-      }
-      const n = (it?.name || '').toLowerCase();
-      const t = (it?.tier || '').toLowerCase();
-      if (n.includes('nữ oa') || t.includes('thượng cổ')) return { baseHp: 240000, baseDef: 24000 };
-      if (n.includes('long vương') || t.includes('cổ đại')) return { baseHp: 105000, baseDef: 10500 };
-      if (n.includes('vô cực') || t.includes('tối thượng')) return { baseHp: 45000, baseDef: 4500 };
-      if (n.includes('kim cương') || t.includes('thần thoại')) return { baseHp: 18000, baseDef: 1800 };
-      if (n.includes('thánh quang') || t.includes('epic')) return { baseHp: 7500, baseDef: 750 };
-      if (n.includes('lam ngọc') || t.includes('hiếm')) return { baseHp: 3000, baseDef: 300 };
-      return { baseHp: 900, baseDef: 90 };
-    };
-
     const armorStats = getArmorStats(item);
     const pantsStats = getPantsStats(item);
+    const necklaceStats = getNecklaceStats(item);
+    const ringStats = getRingStats(item);
+    const petStats = getPetStats(item);
+    const weaponStats = getWeaponStats(item);
+
     const starMultMath = Math.pow(2, Math.max(0, starsCount - 1));
     const totalEstHp = Math.round(armorStats.baseHp * (1 + 0.25 * plusVal) * starMultMath);
     const totalEstDef = Math.round(armorStats.baseDef * (1 + 0.20 * plusVal) * starMultMath);
@@ -6830,18 +7002,18 @@ const App = () => {
     const totalEstPantsDef = Math.round(pantsStats.baseDef * (1 + 0.20 * plusVal) * starMultMath);
     const estPantsDmgReduc = Math.min(80, Math.round((totalEstPantsDef / (totalEstPantsDef + 2500)) * 100));
 
-    const baseDmg = Number(item.base_dmg || 0);
+    const baseDmg = weaponStats.baseDmg;
     const plusBonus = Math.round(baseDmg * plusVal * 0.25);
     const totalBasePlus = baseDmg + plusBonus;
     const starMult = (starsCount === 5 ? 2.5 : (starsCount === 4 ? 2.0 : (starsCount === 3 ? 1.6 : (starsCount === 2 ? 1.3 : 1.0))));
     const totalEstDmg = Math.round(totalBasePlus * starMult);
-    const bonusDmg = Number(item.bonus_dmg || 0);
-    const dmgPercent = Number(item.dmg_percent || 0);
-    const baseDmgPercent = Number(item.base_dmg_percent || 0);
+    const bonusDmg = petStats.bonusDmg;
+    const dmgPercent = necklaceStats.dmgPercent;
+    const baseDmgPercent = ringStats.baseDmgPercent;
     const ringStarsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
     const ringStarMult = Math.pow(3, ringStarsCount - 1);
     const totalEstRingDmg = Math.round(baseDmgPercent * ringStarMult);
-    const skillPct = Number(item.skill_pct || 0);
+    const skillPct = ringStats.skillPct;
     const skillLevel = Number(item.skill_level || 0);
     const skillProcStr = getRingSkillProcStr(item);
     const petLevel = Number(item.level || 1);
@@ -7079,11 +7251,11 @@ const App = () => {
                     <>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
                         <span className="text-emerald-400 font-bold">Chỉ Số Tăng % Máu:</span>
-                        <span className="font-black text-emerald-300 text-xs">+{Number(item.hp_percent || 15)}% HP ❤️</span>
+                        <span className="font-black text-emerald-300 text-xs">+{pantsStats.hpPercent}% HP ❤️</span>
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
                         <span className="text-cyan-400 font-bold">Chỉ Số Tăng % Thủ:</span>
-                        <span className="font-black text-cyan-300 text-xs">+{Number(item.def_percent || 15)}% DEF 🛡️</span>
+                        <span className="font-black text-cyan-300 text-xs">+{pantsStats.defPercent}% DEF 🛡️</span>
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
                         <span className="text-slate-400">Sinh lực gốc (Base HP):</span>
@@ -7384,14 +7556,36 @@ const App = () => {
                 <div className="bg-gradient-to-r from-[#0B1120] via-[#151D2F] to-[#0B1120] border-2 border-emerald-500/50 rounded-2xl p-5 md:p-6 shadow-[0_0_30px_rgba(16,185,129,0.15)] backdrop-blur-md text-left animate-fade-in relative overflow-hidden">
                   <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-2 bg-gradient-to-l from-emerald-500/20 to-transparent w-48 h-16 pointer-events-none blur-xl"></div>
 
-                  {/* Badge Đã liên kết vĩnh viễn */}
+                  {/* Badge Đã liên kết vĩnh viễn & Nút Liên Kết Đa Nền Tảng */}
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.2)]">
                       <CheckCircle2 size={14} className="text-emerald-400" />
                       <span>✓ ĐÃ LIÊN KẾT TÀI KHOẢN GAME VĨNH VIỄN</span>
                     </div>
-                    <div className="text-[11px] text-slate-400 font-medium">
-                      Tự động nạp vào nhân vật này 24/7
+
+                    {/* Nút Liên Kết Discord & TikTok Lives */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleGenerateLinkOtp}
+                        className="px-3.5 py-1.5 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(88,101,242,0.4)] hover:scale-105 active:scale-95"
+                        title="Bấm để lấy mã OTP 6 số liên kết Discord"
+                      >
+                        <svg className="w-3.5 h-3.5 fill-current text-white" viewBox="0 0 127.14 96.36">
+                          <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
+                        </svg>
+                        <span>🎮 Liên Kết Discord (OTP)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleGenerateLinkOtp}
+                        className="px-3.5 py-1.5 bg-gradient-to-r from-rose-600 via-pink-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(244,63,94,0.35)] hover:scale-105 active:scale-95"
+                        title="Bấm để lấy mã OTP 6 số liên kết TikTok Lives"
+                      >
+                        <span className="text-sm">🎵</span>
+                        <span>Liên Kết TikTok Lives (OTP)</span>
+                      </button>
                     </div>
                   </div>
 
@@ -7443,7 +7637,7 @@ const App = () => {
                       </div>
                     </div>
 
-                    {/* Các Nút hành động: Túi Đồ, Sàn Đấu Giá & Xem Profile */}
+                    {/* Các Nút hành động: Túi Đồ, Sàn Đấu Giá, Xem Profile & Nút OTP */}
                     <div className="flex flex-row md:flex-col gap-2.5 w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
                       <button
                         type="button"
@@ -7487,6 +7681,31 @@ const App = () => {
                           <span>Xem Profile</span>
                         </button>
                       </div>
+
+                      {/* Phím tắt lấy OTP nhanh dưới nút Stat/Profile */}
+                      <div className="flex gap-2 w-full md:w-auto">
+                        <button
+                          type="button"
+                          onClick={handleGenerateLinkOtp}
+                          className="flex-1 px-3 py-2 bg-[#5865F2]/20 hover:bg-[#5865F2]/30 border border-[#5865F2]/50 text-indigo-300 hover:text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+                          title="Bấm để lấy mã OTP 6 số liên kết Discord"
+                        >
+                          <svg className="w-3.5 h-3.5 fill-current text-indigo-400" viewBox="0 0 127.14 96.36">
+                            <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
+                          </svg>
+                          <span>🎮 OTP Discord</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleGenerateLinkOtp}
+                          className="flex-1 px-3 py-2 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 hover:text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+                          title="Bấm để lấy mã OTP 6 số liên kết TikTok Lives"
+                        >
+                          <span>🎵</span>
+                          <span>OTP TikTok</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -7509,10 +7728,21 @@ const App = () => {
                       type="button"
                       onClick={handleGenerateLinkOtp}
                       disabled={isGeneratingOtp}
-                      className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                      className="w-full sm:w-auto px-7 py-3.5 bg-[#5865F2] hover:bg-[#4752C4] text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-[0_0_25px_rgba(88,101,242,0.45)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
                     >
-                      {isGeneratingOtp ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} className="text-yellow-300" />}
-                      <span>🔗 LẤY MÃ OTP ĐỂ LIÊN KẾT NGAY</span>
+                      <svg className="w-5 h-5 fill-current text-white shrink-0" viewBox="0 0 127.14 96.36">
+                        <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
+                      </svg>
+                      <span>🎮 LIÊN KẾT DISCORD (OTP 6 SỐ)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleGenerateLinkOtp}
+                      disabled={isGeneratingOtp}
+                      className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-rose-600 via-pink-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-[0_0_30px_rgba(244,63,94,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      <span className="text-lg">🎵</span>
+                      <span>LIÊN KẾT TIKTOK LIVES (OTP 6 SỐ)</span>
                     </button>
                   </div>
 
@@ -7877,21 +8107,21 @@ const App = () => {
           }
           let petDmg = 0;
           if (p.pet) {
-            const pBase = Number(p.pet.bonus_dmg || 0);
+            const pBase = getPetStats(p.pet).bonusDmg;
             const pStars = Math.max(1, Math.min(5, Number(p.pet.stars || 1)));
             petDmg = Math.round(pBase * Math.pow(2, pStars - 1));
           }
           let baseTotalDmg = baseUserDmg + wpDmg + arDmg + petDmg;
           let nkPct = 0;
           if (p.necklace) {
-            const bPct = Number(p.necklace.dmg_percent || 0);
+            const bPct = getNecklaceStats(p.necklace).dmgPercent;
             const uPct = Math.max(Number(p.necklace.plus || 0), Math.round(bPct * (p.necklace.plus || 0) * 0.20));
             const nStars = Math.max(1, Math.min(5, Number(p.necklace.stars || 1)));
             nkPct = (bPct + uPct) * Math.pow(2, nStars - 1);
           }
           let ringDmgPct = 0;
           if (p.ring) {
-            const rBase = Number(p.ring.base_dmg_percent || 0);
+            const rBase = getRingStats(p.ring).baseDmgPercent;
             const rS = Math.max(1, Math.min(5, Number(p.ring.stars || 1)));
             ringDmgPct = Math.round(rBase * Math.pow(3, rS - 1));
           }
@@ -8023,35 +8253,39 @@ const App = () => {
                       );
                     })()}
                     {category === 'pants' && (() => {
-                      const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 240000 : (item.tier?.toLowerCase().includes('cổ đại') ? 105000 : (item.tier?.toLowerCase().includes('tối thượng') ? 45000 : (item.tier?.toLowerCase().includes('thần thoại') ? 18000 : (item.tier?.toLowerCase().includes('epic') ? 7500 : (item.tier?.toLowerCase().includes('hiếm') ? 3000 : 900)))))));
-                      const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 24000 : (item.tier?.toLowerCase().includes('cổ đại') ? 10500 : (item.tier?.toLowerCase().includes('tối thượng') ? 4500 : (item.tier?.toLowerCase().includes('thần thoại') ? 1800 : (item.tier?.toLowerCase().includes('epic') ? 750 : (item.tier?.toLowerCase().includes('hiếm') ? 300 : 90)))))));
+                      const pStats = getPantsStats(item);
                       const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
-                      const totHp = Math.round(bHp * (1 + 0.25 * (item.plus || 0)) * sMult);
-                      const totDef = Math.round(bDef * (1 + 0.20 * (item.plus || 0)) * sMult);
+                      const totHp = Math.round(pStats.baseHp * (1 + 0.25 * (item.plus || 0)) * sMult);
+                      const totDef = Math.round(pStats.baseDef * (1 + 0.20 * (item.plus || 0)) * sMult);
                       return (
                         <>
                           <span className="font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded">
-                            ❤️ +{totHp.toLocaleString()} HP (+{Number(item.hp_percent || 15)}%)
+                            ❤️ +{totHp.toLocaleString()} HP (+{pStats.hpPercent}%)
                           </span>
                           <span className="font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 px-1.5 py-0.5 rounded">
-                            🛡️ +{totDef.toLocaleString()} DEF (+{Number(item.def_percent || 15)}%)
+                            🛡️ +{totDef.toLocaleString()} DEF (+{pStats.defPercent}%)
                           </span>
                         </>
                       );
                     })()}
-                    {category === 'necklace' && (
-                      <span className="font-bold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.5 rounded">
-                        +{Number(item.dmg_percent || 0)}% DMG
-                      </span>
-                    )}
+                    {category === 'necklace' && (() => {
+                      const nStats = getNecklaceStats(item);
+                      return (
+                        <span className="font-bold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.5 rounded">
+                          +{nStats.dmgPercent}% DMG
+                        </span>
+                      );
+                    })()}
                     {category === 'ring' && (() => {
+                      const rStats = getRingStats(item);
                       const rStars = Math.max(1, Math.min(5, Number(item.stars || 1)));
                       const starMult = Math.pow(3, rStars - 1);
-                      const totRingDmg = Math.round(Number(item.base_dmg_percent || 0) * starMult);
+                      const totRingDmg = Math.round(rStats.baseDmgPercent * starMult);
+                      const skPct = rStats.skillPct;
                       return (
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className="font-bold text-purple-400 bg-purple-400/10 border border-purple-400/30 px-1.5 py-0.5 rounded">
-                            +{totRingDmg.toLocaleString()}% DMG {item.skill_pct ? `• ⚡ ${item.skill_pct}% HP` : ''}
+                            +{totRingDmg.toLocaleString()}% DMG {skPct ? `• ⚡ ${skPct}% HP` : ''}
                           </span>
                           {/* Luôn hiển thị thông tin phát động Kỹ Năng */}
                           <span className="font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-1.5 py-0.5 rounded text-[10px]">
@@ -8060,11 +8294,14 @@ const App = () => {
                         </div>
                       );
                     })()}
-                    {category === 'pet' && (
-                      <span className="font-bold text-rose-400 bg-rose-400/10 border border-rose-400/30 px-1.5 py-0.5 rounded">
-                        +{Number(item.bonus_dmg || 0).toLocaleString()} DMG
-                      </span>
-                    )}
+                    {category === 'pet' && (() => {
+                      const pStats = getPetStats(item);
+                      return (
+                        <span className="font-bold text-rose-400 bg-rose-400/10 border border-rose-400/30 px-1.5 py-0.5 rounded">
+                          +{pStats.bonusDmg.toLocaleString()} DMG
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   {/* Sub-stats */}
@@ -8325,20 +8562,6 @@ const App = () => {
           let armorHp = 0;
           let armorDef = 0;
           if (p.armor) {
-            const getArmorStats = (it) => {
-              if (it?.base_hp !== undefined && it?.base_def !== undefined) {
-                return { baseHp: Number(it.base_hp), baseDef: Number(it.base_def) };
-              }
-              const n = (it?.name || '').toLowerCase();
-              const t = (it?.tier || '').toLowerCase();
-              if (n.includes('nữ oa') || t.includes('thượng cổ')) return { baseHp: 450000, baseDef: 45000 };
-              if (n.includes('long vương') || t.includes('cổ đại')) return { baseHp: 180000, baseDef: 18000 };
-              if (n.includes('vô cực') || t.includes('tối thượng')) return { baseHp: 75000, baseDef: 7500 };
-              if (n.includes('kim cương') || t.includes('thần thoại')) return { baseHp: 30000, baseDef: 3000 };
-              if (n.includes('thánh quang') || t.includes('epic')) return { baseHp: 12000, baseDef: 1200 };
-              if (n.includes('giáp rồng') || t.includes('hiếm')) return { baseHp: 4500, baseDef: 450 };
-              return { baseHp: 1500, baseDef: 150 };
-            };
             const aStats = getArmorStats(p.armor);
             const aPlus = Number(p.armor.plus || 0);
             const aStars = Math.max(1, Math.min(5, Number(p.armor.stars || 1)));
@@ -8350,21 +8573,7 @@ const App = () => {
           let pantsHp = 0;
           let pantsDef = 0;
           if (p.pants) {
-            const getPantsStatsHelper = (it) => {
-              if (it?.base_hp !== undefined && it?.base_def !== undefined) {
-                return { baseHp: Number(it.base_hp), baseDef: Number(it.base_def) };
-              }
-              const n = (it?.name || '').toLowerCase();
-              const t = (it?.tier || '').toLowerCase();
-              if (n.includes('nữ oa') || t.includes('thượng cổ')) return { baseHp: 240000, baseDef: 24000 };
-              if (n.includes('long vương') || t.includes('cổ đại')) return { baseHp: 105000, baseDef: 10500 };
-              if (n.includes('vô cực') || t.includes('tối thượng')) return { baseHp: 45000, baseDef: 4500 };
-              if (n.includes('kim cương') || t.includes('thần thoại')) return { baseHp: 18000, baseDef: 1800 };
-              if (n.includes('thánh quang') || t.includes('epic')) return { baseHp: 7500, baseDef: 750 };
-              if (n.includes('lam ngọc') || t.includes('hiếm')) return { baseHp: 3000, baseDef: 300 };
-              return { baseHp: 900, baseDef: 90 };
-            };
-            const pStats = getPantsStatsHelper(p.pants);
+            const pStats = getPantsStats(p.pants);
             const pPlus = Number(p.pants.plus || 0);
             const pStars = Math.max(1, Math.min(5, Number(p.pants.stars || 1)));
             const starMultMath = Math.pow(2, Math.max(0, pStars - 1));
@@ -8398,21 +8607,21 @@ const App = () => {
           }
           let petDmg = 0;
           if (p.pet) {
-            const pBase = Number(p.pet.bonus_dmg || 0);
+            const pBase = getPetStats(p.pet).bonusDmg;
             const pStars = Math.max(1, Math.min(5, Number(p.pet.stars || 1)));
             petDmg = Math.round(pBase * Math.pow(2, pStars - 1));
           }
           let baseTotalDmg = baseUserDmg + wpDmg + arDmg + petDmg;
           let nkPct = 0;
           if (p.necklace) {
-            const bPct = Number(p.necklace.dmg_percent || 0);
+            const bPct = getNecklaceStats(p.necklace).dmgPercent;
             const uPct = Math.max(Number(p.necklace.plus || 0), Math.round(bPct * (p.necklace.plus || 0) * 0.20));
             const nStars = Math.max(1, Math.min(5, Number(p.necklace.stars || 1)));
             nkPct = (bPct + uPct) * Math.pow(2, nStars - 1);
           }
           let ringDmgPct = 0;
           if (p.ring) {
-            const rBase = Number(p.ring.base_dmg_percent || 0);
+            const rBase = getRingStats(p.ring).baseDmgPercent;
             const rS = Math.max(1, Math.min(5, Number(p.ring.stars || 1)));
             ringDmgPct = Math.round(rBase * Math.pow(3, rS - 1));
           }
@@ -8756,41 +8965,81 @@ const App = () => {
                 {/* 2 Cách xác nhận */}
                 <div className="space-y-3">
                   <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wide">
-                    Chọn 1 trong 2 cách sau để xác nhận:
+                    Chọn 1 trong 2 cách sau để xác nhận liên kết:
                   </h4>
 
-                  {/* Cách 1: TikTok Live */}
-                  <div className="p-3.5 rounded-xl bg-[#0B1120] border border-slate-800 flex items-start gap-3 hover:border-slate-700 transition-colors">
-                    <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center font-black text-xs shrink-0 mt-0.5">
-                      TT
+                  {/* Cách 1: Discord */}
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#0B1120] to-[#121936] border-2 border-indigo-500/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_0_20px_rgba(99,102,241,0.15)] hover:border-indigo-500 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-indigo-500/25 text-indigo-400 border border-indigo-500/40 flex items-center justify-center font-black text-xs shrink-0 mt-0.5">
+                        <svg className="w-5 h-5 fill-current" viewBox="0 0 127.14 96.36">
+                          <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0 text-xs text-slate-300">
+                        <p className="font-bold text-white mb-1 flex items-center gap-1.5">
+                          <span>Cách 1: Gõ lệnh trong Discord</span>
+                          <span className="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-1.5 py-0.2 rounded font-mono font-bold">Khuyên Dùng</span>
+                        </p>
+                        <p className="leading-relaxed">
+                          Vào bất kỳ kênh chat Discord của máy chủ, gõ lệnh:
+                          <code className="mx-1 px-2 py-0.5 rounded bg-slate-900 text-cyan-300 font-mono font-bold border border-indigo-500/40">
+                            /link {linkOtpCode}
+                          </code>
+                          hoặc <code className="px-1.5 py-0.5 rounded bg-slate-900 text-cyan-300 font-mono font-bold">mlink {linkOtpCode}</code>
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0 text-xs text-slate-300">
-                      <p className="font-bold text-white mb-1">Cách 1: Bình luận trên Live TikTok</p>
-                      <p className="leading-relaxed">
-                        Vào xem livestream đang phát, gõ bình luận chat:
-                        <code className="mx-1 px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-mono font-bold border border-slate-700">
-                          lk {linkOtpCode}
-                        </code>
-                        hoặc <code className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono font-bold">link {linkOtpCode}</code>
-                      </p>
-                    </div>
+                    <button
+                      type="button"
+                      disabled={linkOtpCountdown <= 0}
+                      onClick={() => {
+                        if (linkOtpCode && linkOtpCountdown > 0) {
+                          navigator.clipboard.writeText(`/link ${linkOtpCode}`);
+                          showToast(`Đã sao chép: /link ${linkOtpCode}`, "success");
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Copy size={13} />
+                      <span>Sao Chép Lệnh</span>
+                    </button>
                   </div>
 
-                  {/* Cách 2: Discord */}
-                  <div className="p-3.5 rounded-xl bg-[#0B1120] border border-slate-800 flex items-start gap-3 hover:border-slate-700 transition-colors">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-black text-xs shrink-0 mt-0.5">
-                      DC
+                  {/* Cách 2: TikTok Live */}
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#0B1120] to-[#1F111E] border-2 border-rose-500/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_0_20px_rgba(244,63,94,0.15)] hover:border-rose-500 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-rose-500/25 text-rose-400 border border-rose-500/40 flex items-center justify-center font-black text-xs shrink-0 mt-0.5 shadow-sm">
+                        <span className="text-sm">🎵</span>
+                      </div>
+                      <div className="flex-1 min-w-0 text-xs text-slate-300">
+                        <p className="font-bold text-white mb-1 flex items-center gap-1.5">
+                          <span>Cách 2: Bình luận trên Live TikTok</span>
+                          <span className="text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40 px-1.5 py-0.2 rounded font-mono font-bold">TikTok Live</span>
+                        </p>
+                        <p className="leading-relaxed">
+                          Vào xem livestream đang phát, gõ bình luận chat:
+                          <code className="mx-1 px-2 py-0.5 rounded bg-slate-900 text-amber-300 font-mono font-bold border border-rose-500/40">
+                            link {linkOtpCode}
+                          </code>
+                          hoặc <code className="px-1.5 py-0.5 rounded bg-slate-900 text-amber-300 font-mono font-bold">lk {linkOtpCode}</code> (hoặc comment 6 số)
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0 text-xs text-slate-300">
-                      <p className="font-bold text-white mb-1">Cách 2: Gõ lệnh trong Discord</p>
-                      <p className="leading-relaxed">
-                        Vào bất kỳ kênh chat Discord của máy chủ, gõ lệnh:
-                        <code className="mx-1 px-2 py-0.5 rounded bg-slate-800 text-cyan-300 font-mono font-bold border border-slate-700">
-                          mlink {linkOtpCode}
-                        </code>
-                        hoặc <code className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 font-mono font-bold">/link {linkOtpCode}</code>
-                      </p>
-                    </div>
+                    <button
+                      type="button"
+                      disabled={linkOtpCountdown <= 0}
+                      onClick={() => {
+                        if (linkOtpCode && linkOtpCountdown > 0) {
+                          navigator.clipboard.writeText(`link ${linkOtpCode}`);
+                          showToast(`Đã sao chép: link ${linkOtpCode}`, "success");
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Copy size={13} />
+                      <span>Sao Chép Lệnh</span>
+                    </button>
                   </div>
                 </div>
 
@@ -9078,32 +9327,34 @@ const App = () => {
                                       );
                                     })()}
                                     {category === 'pants' && (() => {
-                                      const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 240000 : (item.tier?.toLowerCase().includes('cổ đại') ? 105000 : (item.tier?.toLowerCase().includes('tối thượng') ? 45000 : (item.tier?.toLowerCase().includes('thần thoại') ? 18000 : (item.tier?.toLowerCase().includes('epic') ? 7500 : (item.tier?.toLowerCase().includes('hiếm') ? 3000 : 900)))))));
-                                      const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 24000 : (item.tier?.toLowerCase().includes('cổ đại') ? 10500 : (item.tier?.toLowerCase().includes('tối thượng') ? 4500 : (item.tier?.toLowerCase().includes('thần thoại') ? 1800 : (item.tier?.toLowerCase().includes('epic') ? 750 : (item.tier?.toLowerCase().includes('hiếm') ? 300 : 90)))))));
+                                      const pStats = getPantsStats(item);
                                       const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
-                                      const totHp = Math.round(bHp * (1 + 0.25 * (item.plus || 0)) * sMult);
-                                      const totDef = Math.round(bDef * (1 + 0.20 * (item.plus || 0)) * sMult);
-                                      const pctHp = Number(item.hp_percent || 15);
-                                      const pctDef = Number(item.def_percent || 15);
+                                      const totHp = Math.round(pStats.baseHp * (1 + 0.25 * (item.plus || 0)) * sMult);
+                                      const totDef = Math.round(pStats.baseDef * (1 + 0.20 * (item.plus || 0)) * sMult);
                                       return (
                                         <span className="text-emerald-400 block">
-                                          🛡️ +{pctDef}% DEF • ❤️ +{pctHp}% HP (+{totHp.toLocaleString()} HP / +{totDef.toLocaleString()} DEF)
+                                          🛡️ +{pStats.defPercent}% DEF • ❤️ +{pStats.hpPercent}% HP (+{totHp.toLocaleString()} HP / +{totDef.toLocaleString()} DEF)
                                         </span>
                                       );
                                     })()}
-                                    {category === 'necklace' && (
-                                      <span className="text-amber-400 block">
-                                        📿 +{Number(item.dmg_percent || 0)}% DMG Toàn Bộ
-                                      </span>
-                                    )}
+                                    {category === 'necklace' && (() => {
+                                      const nStats = getNecklaceStats(item);
+                                      return (
+                                        <span className="text-amber-400 block">
+                                          📿 +{nStats.dmgPercent}% DMG Toàn Bộ
+                                        </span>
+                                      );
+                                    })()}
                                     {category === 'ring' && (() => {
+                                      const rStats = getRingStats(item);
                                       const rStars = Math.max(1, Math.min(5, Number(item.stars || 1)));
                                       const starMult = Math.pow(3, rStars - 1);
-                                      const totRingDmg = Math.round(Number(item.base_dmg_percent || 0) * starMult);
+                                      const totRingDmg = Math.round(rStats.baseDmgPercent * starMult);
+                                      const skPct = rStats.skillPct;
                                       return (
                                         <>
                                           <span className="text-purple-400 block font-semibold">
-                                            💍 +{totRingDmg.toLocaleString()}% DMG {item.skill_pct ? `• ⚡ ${item.skill_pct}% HP` : ''}
+                                            💍 +{totRingDmg.toLocaleString()}% DMG {skPct ? `• ⚡ ${skPct}% HP` : ''}
                                           </span>
                                           <span className="text-amber-300 block text-[9.5px]">
                                             ⚡ {item.skill_level > 0 ? `Tuyệt Kỹ: Lv.${item.skill_level} (Tỉ lệ: ${getRingSkillProcStr(item)})` : `Tỉ lệ phát động: ${getRingSkillProcStr(item)}`}
@@ -9111,11 +9362,14 @@ const App = () => {
                                         </>
                                       );
                                     })()}
-                                    {category === 'pet' && (
-                                      <span className="text-rose-400 block">
-                                        🐾 +{Number(item.bonus_dmg || 0).toLocaleString()} DMG {item.level ? `(Lv.${item.level})` : ''}
-                                      </span>
-                                    )}
+                                    {category === 'pet' && (() => {
+                                      const pStats = getPetStats(item);
+                                      return (
+                                        <span className="text-rose-400 block">
+                                          🐾 +{pStats.bonusDmg.toLocaleString()} DMG {item.level ? `(Lv.${item.level})` : ''}
+                                        </span>
+                                      );
+                                    })()}
                                     {category === 'material' && (
                                       <span className="text-cyan-400 block font-bold">
                                         💎 Số lượng: x{Number(item.quantity || 1).toLocaleString()} {item.id === 'item_essence_stone' || (item.name || '').toLowerCase().includes('tinh hoa') ? 'Viên' : 'Tinh Thể'}
@@ -9728,48 +9982,49 @@ const App = () => {
 
                                       {/* Stats tóm tắt */}
                                       <div className="text-[10px] text-slate-300 font-bold mt-1">
-                                        {category === 'weapon' && (
-                                          <span className="text-emerald-400">⚡ +{Number(item.base_dmg || 0).toLocaleString()} DMG</span>
-                                        )}
+                                        {category === 'weapon' && (() => {
+                                          const wStats = getWeaponStats(item);
+                                          return <span className="text-emerald-400">⚡ +{wStats.baseDmg.toLocaleString()} DMG</span>;
+                                        })()}
                                         {category === 'armor' && (() => {
-                                          const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 450000 : (item.tier?.toLowerCase().includes('cổ đại') ? 180000 : (item.tier?.toLowerCase().includes('tối thượng') ? 75000 : (item.tier?.toLowerCase().includes('thần thoại') ? 30000 : (item.tier?.toLowerCase().includes('epic') ? 12000 : 4500))))));
-                                          const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 45000 : (item.tier?.toLowerCase().includes('cổ đại') ? 18000 : (item.tier?.toLowerCase().includes('tối thượng') ? 7500 : (item.tier?.toLowerCase().includes('thần thoại') ? 3000 : (item.tier?.toLowerCase().includes('epic') ? 1200 : 450))))));
+                                          const aStats = getArmorStats(item);
                                           const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
-                                          const totHp = Math.round(bHp * (1 + 0.25 * (item.plus || 0)) * sMult);
-                                          const totDef = Math.round(bDef * (1 + 0.20 * (item.plus || 0)) * sMult);
+                                          const totHp = Math.round(aStats.baseHp * (1 + 0.25 * (item.plus || 0)) * sMult);
+                                          const totDef = Math.round(aStats.baseDef * (1 + 0.20 * (item.plus || 0)) * sMult);
                                           return (
                                             <span className="text-emerald-400">❤️ +{totHp.toLocaleString()} HP • 🛡️ +{totDef.toLocaleString()} DEF</span>
                                           );
                                         })()}
                                         {category === 'pants' && (() => {
-                                          const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 240000 : (item.tier?.toLowerCase().includes('cổ đại') ? 105000 : (item.tier?.toLowerCase().includes('tối thượng') ? 45000 : (item.tier?.toLowerCase().includes('thần thoại') ? 18000 : (item.tier?.toLowerCase().includes('epic') ? 7500 : 3000))))));
-                                          const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 24000 : (item.tier?.toLowerCase().includes('cổ đại') ? 10500 : (item.tier?.toLowerCase().includes('tối thượng') ? 4500 : (item.tier?.toLowerCase().includes('thần thoại') ? 1800 : (item.tier?.toLowerCase().includes('epic') ? 750 : 300))))));
+                                          const pStats = getPantsStats(item);
                                           const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
-                                          const totHp = Math.round(bHp * (1 + 0.25 * (item.plus || 0)) * sMult);
-                                          const totDef = Math.round(bDef * (1 + 0.20 * (item.plus || 0)) * sMult);
-                                          const hpPct = Number(item.hp_percent || 0);
-                                          const defPct = Number(item.def_percent || 0);
+                                          const totHp = Math.round(pStats.baseHp * (1 + 0.25 * (item.plus || 0)) * sMult);
+                                          const totDef = Math.round(pStats.baseDef * (1 + 0.20 * (item.plus || 0)) * sMult);
                                           return (
-                                            <span className="text-cyan-400">👖 +{totHp.toLocaleString()} HP • 🛡️ +{totDef.toLocaleString()} DEF {hpPct > 0 ? `(+${hpPct}% HP/DEF)` : ''}</span>
+                                            <span className="text-cyan-400">👖 +{totHp.toLocaleString()} HP • 🛡️ +{totDef.toLocaleString()} DEF (+{pStats.hpPercent}% HP/DEF)</span>
                                           );
                                         })()}
-                                        {category === 'necklace' && (
-                                          <span className="text-amber-400">📿 +{Number(item.dmg_percent || 0)}% DMG</span>
-                                        )}
+                                        {category === 'necklace' && (() => {
+                                          const nStats = getNecklaceStats(item);
+                                          return <span className="text-amber-400">📿 +{nStats.dmgPercent}% DMG</span>;
+                                        })()}
                                         {category === 'ring' && (() => {
+                                          const rStats = getRingStats(item);
                                           const rStars = Math.max(1, Math.min(5, Number(item.stars || 1)));
                                           const starMult = Math.pow(3, rStars - 1);
-                                          const totRingDmg = Math.round(Number(item.base_dmg_percent || 0) * starMult);
+                                          const totRingDmg = Math.round(rStats.baseDmgPercent * starMult);
+                                          const skPct = rStats.skillPct;
                                           return (
                                             <span className="text-purple-400 font-semibold">
-                                              💍 +{totRingDmg.toLocaleString()}% DMG {item.skill_pct ? `• ⚡${item.skill_pct}%` : ''}
+                                              💍 +{totRingDmg.toLocaleString()}% DMG {skPct ? `• ⚡${skPct}%` : ''}
                                               {item.skill_level > 0 ? ` • ⚡Lv.${item.skill_level} (${getRingSkillProcStr(item)})` : ''}
                                             </span>
                                           );
                                         })()}
-                                        {category === 'pet' && (
-                                          <span className="text-rose-400">🐾 +{Number(item.bonus_dmg || 0).toLocaleString()} DMG</span>
-                                        )}
+                                        {category === 'pet' && (() => {
+                                          const pStats = getPetStats(item);
+                                          return <span className="text-rose-400">🐾 +{pStats.bonusDmg.toLocaleString()} DMG</span>;
+                                        })()}
                                         {category === 'material' && (
                                           <span className="text-cyan-400">💎 x{Number(item.quantity || 1).toLocaleString()} {item.id === 'item_essence_stone' || (item.name || '').toLowerCase().includes('tinh hoa') ? 'Viên' : 'Tinh Thể'}</span>
                                         )}
