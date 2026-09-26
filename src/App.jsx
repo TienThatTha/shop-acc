@@ -439,6 +439,20 @@ const App = () => {
   const [linkOtpCountdown, setLinkOtpCountdown] = useState(120);
   const [isWaitingOtp, setIsWaitingOtp] = useState(false);
   const [isGeneratingOtp, setIsGeneratingOtp] = useState(false);
+  const [userLinkedPlatforms, setUserLinkedPlatforms] = useState({ discord: false, tiktok: false });
+
+  // Tự động nhận diện nền tảng đã liên kết của tài khoản
+  const isDiscordLinked = Boolean(
+    bossPlayerSummary?.linked_discord ||
+    userLinkedPlatforms.discord ||
+    (bossPlayerSummary?.user_id && String(bossPlayerSummary.user_id).toLowerCase().startsWith('discord_'))
+  );
+
+  const isTikTokLinked = Boolean(
+    bossPlayerSummary?.linked_tiktok ||
+    userLinkedPlatforms.tiktok ||
+    (bossPlayerSummary?.user_id && !String(bossPlayerSummary.user_id).toLowerCase().startsWith('discord_'))
+  );
   const [showBagModal, setShowBagModal] = useState(false);
   const [activeBagCategory, setActiveBagCategory] = useState('all');
   const [bagVisibleCount, setBagVisibleCount] = useState(30);
@@ -2201,21 +2215,6 @@ const App = () => {
                   setShowBagModal(true);
                 }
               },
-              {
-                name: '🎮 Liên Kết Discord (OTP)',
-                view: 'bossgame',
-                auth: true,
-                icon: (
-                  <svg className="w-5 h-5 fill-current text-indigo-400" viewBox="0 0 127.14 96.36">
-                    <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
-                  </svg>
-                ),
-                action: () => {
-                  requireAuth('bossgame');
-                  setCurrentView('bossgame');
-                  handleGenerateLinkOtp();
-                }
-              },
               ...(!bossPlayerSummary ? [{
                 name: '🔗 Lấy Mã OTP Game',
                 view: 'bossgame',
@@ -2365,23 +2364,6 @@ const App = () => {
                 },
                 auth: true
               },
-              {
-                name: (
-                  <span className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 font-bold">
-                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 127.14 96.36">
-                      <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
-                    </svg>
-                    <span>Liên Kết Disc</span>
-                  </span>
-                ),
-                view: 'bossgame',
-                action: () => {
-                  requireAuth('bossgame');
-                  setCurrentView('bossgame');
-                  handleGenerateLinkOtp();
-                },
-                auth: true
-              },
               { name: 'Cày Thuê', view: 'caythue', auth: false },
               ...(hasActiveWheelRewards ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false }] : []),
               { name: 'Lịch Sử', view: 'lichsu', auth: true }
@@ -2420,24 +2402,9 @@ const App = () => {
               <>
                 {/* --- KHU VỰC HIỂN THỊ SỐ DƯ & PHÍM TẮT GAME --- */}
                 <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                  {/* Phím tắt Liên Kết OTP hoặc Túi Đồ / Chợ Xu */}
-                  {bossPlayerSummary ? (
+                  {/* Phím tắt Túi Đồ / Chợ Xu cho người đã liên kết */}
+                  {bossPlayerSummary && (
                     <div className="hidden md:flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          requireAuth('bossgame');
-                          setCurrentView('bossgame');
-                          handleGenerateLinkOtp();
-                        }}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#5865F2]/20 hover:bg-[#5865F2]/30 border border-[#5865F2]/50 hover:border-[#5865F2] text-[#9bb0ff] hover:text-white font-bold text-xs rounded-xl shadow-[0_0_15px_rgba(88,101,242,0.2)] transition-all hover:scale-105 cursor-pointer"
-                        title="Bấm để lấy mã OTP 6 số liên kết tài khoản Discord"
-                      >
-                        <svg className="w-3.5 h-3.5 fill-current text-[#5865F2]" viewBox="0 0 127.14 96.36">
-                          <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
-                        </svg>
-                        <span>Liên Kết Disc</span>
-                      </button>
                       <button
                         type="button"
                         onClick={() => {
@@ -2465,22 +2432,6 @@ const App = () => {
                         <span>🏛️ Chợ Xu</span>
                       </button>
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        requireAuth('bossgame');
-                        setCurrentView('bossgame');
-                        handleGenerateLinkOtp();
-                      }}
-                      className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-amber-500 hover:from-indigo-500 hover:to-amber-400 text-white font-extrabold text-xs rounded-xl shadow-[0_0_15px_rgba(88,101,242,0.4)] animate-pulse transition-all hover:scale-105 shrink-0 cursor-pointer"
-                      title="Bấm để nhận mã OTP 6 số liên kết tài khoản Discord / Game"
-                    >
-                      <svg className="w-3.5 h-3.5 fill-current text-white" viewBox="0 0 127.14 96.36">
-                        <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
-                      </svg>
-                      <span>🎮 Liên Kết Disc (OTP)</span>
-                    </button>
                   )}
 
                   {/* Số Dư Ví */}
@@ -2558,20 +2509,6 @@ const App = () => {
 
                         <div className="border-t border-slate-700 my-1"></div>
                         {/* Mục game Mộng Thiên Huyễn */}
-                        <button
-                          onClick={() => {
-                            setShowUserDropdown(false);
-                            requireAuth('bossgame');
-                            setCurrentView('bossgame');
-                            handleGenerateLinkOtp();
-                          }}
-                          className="w-full px-4 py-2.5 text-left text-xs font-bold text-indigo-400 hover:bg-indigo-500/20 transition-colors flex items-center gap-2.5"
-                        >
-                          <svg className="w-4 h-4 fill-current text-indigo-400 shrink-0" viewBox="0 0 127.14 96.36">
-                            <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
-                          </svg>
-                          <span>🎮 Liên Kết Discord (OTP 6 Số)</span>
-                        </button>
                         <button
                           onClick={() => {
                             setShowUserDropdown(false);
@@ -3108,6 +3045,8 @@ const App = () => {
       total_dmg: wp?.total_dmg || 0,
       has_x2_rate: wp?.has_x2_rate || false,
       platform: wp?.platform || 'tiktok',
+      linked_discord: Boolean(wp?.linked_discord !== undefined ? wp.linked_discord : dbPlayer.linked_discord),
+      linked_tiktok: Boolean(wp?.linked_tiktok !== undefined ? wp.linked_tiktok : dbPlayer.linked_tiktok),
       inventory: (() => {
         const raw = wp?.inventory || dbPlayer?.inventory;
         if (Array.isArray(raw)) return raw;
@@ -3215,16 +3154,28 @@ const App = () => {
           .eq('status', 'completed')
           .or(`web_user.eq."${currentUser.id}",rewards->>web_user_id.eq."${currentUser.id}"`)
           .order('completed_at', { ascending: false })
-          .limit(1);
+          .limit(20);
 
         if (isSubscribed && pastOrders && pastOrders.length > 0) {
-          const ord = pastOrders[0];
-          const uid = ord.result?.game_user_id || ord.user_id;
-          if (uid) {
-            localStorage.setItem(`shop_linked_game_id_${currentUser.id}`, uid);
-            setCurrentUser(prev => prev && prev.linked_game_id !== uid ? ({ ...prev, linked_game_id: uid }) : prev);
-            setBossTargetId(uid);
-            handleCheckBossPlayer(uid);
+          let hasDc = false;
+          let hasTt = false;
+          let latestUid = null;
+          pastOrders.forEach(ord => {
+            const res = ord.result || {};
+            const uid = res.game_user_id || ord.user_id;
+            if (!latestUid && uid) latestUid = uid;
+            const isDc = res.platform === 'discord' || (uid && String(uid).toLowerCase().startsWith('discord_'));
+            const isTt = res.platform === 'tiktok' || (uid && !String(uid).toLowerCase().startsWith('discord_'));
+            if (isDc) hasDc = true;
+            if (isTt) hasTt = true;
+          });
+          setUserLinkedPlatforms({ discord: hasDc, tiktok: hasTt });
+
+          if (latestUid) {
+            localStorage.setItem(`shop_linked_game_id_${currentUser.id}`, latestUid);
+            setCurrentUser(prev => prev && prev.linked_game_id !== latestUid ? ({ ...prev, linked_game_id: latestUid }) : prev);
+            setBossTargetId(latestUid);
+            handleCheckBossPlayer(latestUid);
             return;
           }
         }
@@ -3352,6 +3303,14 @@ const App = () => {
 
         const res = completedOrder.result || {};
         const linkedUid = res.game_user_id || completedOrder.user_id;
+        const isDc = res.platform === 'discord' || String(linkedUid).toLowerCase().startsWith('discord_');
+        const isTt = res.platform === 'tiktok' || !String(linkedUid).toLowerCase().startsWith('discord_');
+
+        setUserLinkedPlatforms(prev => ({
+          ...prev,
+          discord: prev.discord || isDc,
+          tiktok: prev.tiktok || isTt
+        }));
 
         if (currentUser?.id) {
           localStorage.setItem(`shop_linked_game_id_${currentUser.id}`, linkedUid);
@@ -3360,28 +3319,31 @@ const App = () => {
         setBossTargetId(linkedUid);
 
         // Hiển thị ngay profile nhân vật tạm thời để UI cập nhật tức thì 100% không bị treo
-        setBossPlayerSummary({
+        setBossPlayerSummary(prev => ({
+          ...(prev || {}),
           exists: true,
           user_id: linkedUid,
           nickname: res.game_nickname || linkedUid,
-          level: res.level || 1,
-          cp: res.cp || 0,
-          bonus_attacks: 0,
-          royal_chests: 0,
-          boss_chests: 0,
-          avatar_url: res.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(linkedUid)}`,
-          weapon: null,
-          armor: null,
-          pet: null,
-          ring: null,
-          necklace: null,
-          exp: 0,
-          bonus_coins: 0,
-          total_dmg: 0,
-          has_x2_rate: false,
-          platform: res.platform || 'discord',
-          inventory: []
-        });
+          level: res.level || prev?.level || 1,
+          cp: res.cp || prev?.cp || 0,
+          bonus_attacks: prev?.bonus_attacks || 0,
+          royal_chests: prev?.royal_chests || 0,
+          boss_chests: prev?.boss_chests || 0,
+          avatar_url: res.avatar_url || prev?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(linkedUid)}`,
+          weapon: prev?.weapon || null,
+          armor: prev?.armor || null,
+          pet: prev?.pet || null,
+          ring: prev?.ring || null,
+          necklace: prev?.necklace || null,
+          exp: prev?.exp || 0,
+          bonus_coins: prev?.bonus_coins || 0,
+          total_dmg: prev?.total_dmg || 0,
+          has_x2_rate: prev?.has_x2_rate || false,
+          platform: res.platform || (isDc ? 'discord' : 'tiktok'),
+          linked_discord: (prev?.linked_discord || isDc),
+          linked_tiktok: (prev?.linked_tiktok || isTt),
+          inventory: prev?.inventory || []
+        }));
 
         showToast(`🎉 Liên kết thành công với nhân vật ${res.game_nickname || linkedUid}!`, "success");
 
@@ -7563,29 +7525,40 @@ const App = () => {
                       <span>✓ ĐÃ LIÊN KẾT TÀI KHOẢN GAME VĨNH VIỄN</span>
                     </div>
 
-                    {/* Nút Liên Kết Discord & TikTok Lives */}
+                    {/* Dãy nút liên kết tự xác nhận: ẩn nút nếu nền tảng đó đã được liên kết */}
                     <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={handleGenerateLinkOtp}
-                        className="px-3.5 py-1.5 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(88,101,242,0.4)] hover:scale-105 active:scale-95"
-                        title="Bấm để lấy mã OTP 6 số liên kết Discord"
-                      >
-                        <svg className="w-3.5 h-3.5 fill-current text-white" viewBox="0 0 127.14 96.36">
-                          <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
-                        </svg>
-                        <span>🎮 Liên Kết Discord (OTP)</span>
-                      </button>
+                      {!isDiscordLinked && (
+                        <button
+                          type="button"
+                          onClick={handleGenerateLinkOtp}
+                          className="px-3.5 py-1.5 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(88,101,242,0.4)] hover:scale-105 active:scale-95"
+                          title="Bấm để lấy mã OTP 6 số liên kết Discord"
+                        >
+                          <svg className="w-3.5 h-3.5 fill-current text-white" viewBox="0 0 127.14 96.36">
+                            <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
+                          </svg>
+                          <span>🎮 Liên Kết Discord (OTP)</span>
+                        </button>
+                      )}
 
-                      <button
-                        type="button"
-                        onClick={handleGenerateLinkOtp}
-                        className="px-3.5 py-1.5 bg-gradient-to-r from-rose-600 via-pink-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(244,63,94,0.35)] hover:scale-105 active:scale-95"
-                        title="Bấm để lấy mã OTP 6 số liên kết TikTok Lives"
-                      >
-                        <span className="text-sm">🎵</span>
-                        <span>Liên Kết TikTok Lives (OTP)</span>
-                      </button>
+                      {!isTikTokLinked && (
+                        <button
+                          type="button"
+                          onClick={handleGenerateLinkOtp}
+                          className="px-3.5 py-1.5 bg-gradient-to-r from-rose-600 via-pink-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(244,63,94,0.35)] hover:scale-105 active:scale-95"
+                          title="Bấm để lấy mã OTP 6 số liên kết TikTok Lives"
+                        >
+                          <span className="text-sm">🎵</span>
+                          <span>Liên Kết TikTok Lives (OTP)</span>
+                        </button>
+                      )}
+
+                      {isDiscordLinked && isTikTokLinked && (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-xs font-semibold">
+                          <CheckCircle2 size={13} className="text-emerald-400" />
+                          <span>Đã liên kết cả Discord & TikTok Live</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -7679,31 +7652,6 @@ const App = () => {
                         >
                           <Eye size={15} />
                           <span>Xem Profile</span>
-                        </button>
-                      </div>
-
-                      {/* Phím tắt lấy OTP nhanh dưới nút Stat/Profile */}
-                      <div className="flex gap-2 w-full md:w-auto">
-                        <button
-                          type="button"
-                          onClick={handleGenerateLinkOtp}
-                          className="flex-1 px-3 py-2 bg-[#5865F2]/20 hover:bg-[#5865F2]/30 border border-[#5865F2]/50 text-indigo-300 hover:text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm hover:scale-105 active:scale-95"
-                          title="Bấm để lấy mã OTP 6 số liên kết Discord"
-                        >
-                          <svg className="w-3.5 h-3.5 fill-current text-indigo-400" viewBox="0 0 127.14 96.36">
-                            <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
-                          </svg>
-                          <span>🎮 OTP Discord</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={handleGenerateLinkOtp}
-                          className="flex-1 px-3 py-2 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 hover:text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm hover:scale-105 active:scale-95"
-                          title="Bấm để lấy mã OTP 6 số liên kết TikTok Lives"
-                        >
-                          <span>🎵</span>
-                          <span>OTP TikTok</span>
                         </button>
                       </div>
                     </div>
