@@ -11018,7 +11018,18 @@ const App = () => {
                     <tbody className="divide-y divide-slate-800">
                       {filteredUsersList.slice(0, visibleUsersCount).map(u => (
                         <tr key={u.id} className="hover:bg-slate-800/30 transition-colors">
-                          <td className="p-4 font-bold text-white flex items-center gap-2">{u.name} {u.role === 'admin' && <span className="px-2 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-400 uppercase">Admin</span>} {u.isLocked && <Lock size={12} className="text-rose-500" />}</td>
+                          <td className="p-4 font-bold text-white flex flex-col gap-1 items-start">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span>{u.name}</span>
+                              {u.role === 'admin' && <span className="px-2 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-400 uppercase">Admin</span>}
+                              {u.isLocked && <Lock size={12} className="text-rose-500" />}
+                            </div>
+                            {u.linked_game_id && (
+                              <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1 shadow-sm" title={`Nick Game liên kết: ${u.linked_game_id}`}>
+                                🎮 {String(u.linked_game_id).startsWith('discord_') ? 'DC: ' + u.linked_game_id.replace('discord_', '') : '@' + u.linked_game_id}
+                              </span>
+                            )}
+                          </td>
                           <td className="p-4 text-blue-400">
                             <div className="text-xs"><Phone size={10} className="inline mr-1" />{u.phone}</div>
                             <div className="text-xs mt-1 flex flex-col gap-1">
