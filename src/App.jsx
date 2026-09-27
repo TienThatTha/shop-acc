@@ -718,7 +718,7 @@ const App = () => {
       defaultValue: 50000,
       defaultRate: '15%',
       defaultColor: '#3b82f6',
-      image: null,
+      image: '/game-assets/weapon_song_dao.png',
       desc: '⚔️ Tự động cộng số lượt đánh Boss vào nhân vật game (vĩnh viễn).'
     },
     game_boss_chests: {
@@ -754,7 +754,7 @@ const App = () => {
       defaultValue: 20,
       defaultRate: '5%',
       defaultColor: '#eab308',
-      image: null,
+      image: '/game-assets/gold_coin.png',
       desc: '🪙 Tự động cộng Xu Nâng Cấp Boss vào nhân vật game.'
     }
   };
@@ -1021,9 +1021,22 @@ const App = () => {
           const moneyItems = wheelRes.data.filter(w => w.wheel_type === 'money');
           const spinItems = wheelRes.data.filter(w => w.wheel_type === 'spin').map(w => {
             const n = String(w.name || '').toLowerCase();
+            const t = String(w.type || '').toLowerCase();
+            let img = w.image;
+            if (!img) {
+              if (t === 'game_coins' || n.includes('xu')) img = '/game-assets/gold_coin.png';
+              else if (t === 'game_attacks' || n.includes('lượt đánh') || n.includes('đánh boss')) img = '/game-assets/weapon_song_dao.png';
+              else if (t === 'game_boss_chests' || n.includes('hòm boss')) img = '/game-assets/mystery_box_closed.png';
+              else if (t === 'game_royal_chests' || n.includes('hoàng kim')) img = '/game-assets/royal_chest.png';
+              else if (t === 'game_essence_stone' || n.includes('tinh hoa')) img = '/game-assets/da_tinh_hoa.png';
+              else if (t === 'game_ring_crystal' || n.includes('tinh thể')) img = '/game-assets/ring_crystal.png';
+              else if (t === 'game_shoes_legendary' || n.includes('giày')) img = LEGENDARY_SHOES_IMG;
+            }
+
             if (w.id === 'WHEEL_GAME_COINS' || (n.includes('xu') && (w.type === 'other' || w.type === 'game_coins'))) {
               return {
                 ...w,
+                image: img,
                 type: 'game_coins',
                 name: (w.name && w.name.includes('50,000')) ? '+20 Xu Nâng Cấp' : (w.name || '+20 Xu Nâng Cấp'),
                 value: (w.value === 50000 || !w.value) ? 20 : Number(w.value),
@@ -1031,9 +1044,9 @@ const App = () => {
               };
             }
             if (w.id === 'WHEEL_GAME_NONE' && w.rate === '24.5%') {
-              return { ...w, rate: '44.5%' };
+              return { ...w, image: img, rate: '44.5%' };
             }
-            return w;
+            return { ...w, image: img };
           });
           setWheelItemsMoneyDb(moneyItems);
           setWheelItemsSpinDb(spinItems);
@@ -6653,13 +6666,18 @@ const App = () => {
       const itName = String(w.name || '').toLowerCase();
 
       let displayImg = w.image;
-      if (isShoes || itType === 'game_shoes_legendary') {
+      if (displayImg === 'null' || displayImg === 'undefined' || !displayImg) {
+        displayImg = null;
+      }
+      if (isShoes || itType === 'game_shoes_legendary' || itName.includes('giày')) {
         displayImg = getShoesImage(displayImg);
       } else if (!displayImg) {
-        if (itType === 'game_boss_chests') displayImg = '/game-assets/mystery_box_closed.png';
-        else if (itType === 'game_royal_chests') displayImg = '/game-assets/royal_chest.png';
+        if (itType === 'game_boss_chests' || itName.includes('hòm boss')) displayImg = '/game-assets/mystery_box_closed.png';
+        else if (itType === 'game_royal_chests' || itName.includes('hoàng kim')) displayImg = '/game-assets/royal_chest.png';
         else if (itType === 'game_essence_stone' || itName.includes('tinh hoa')) displayImg = '/game-assets/da_tinh_hoa.png';
         else if (itType === 'game_ring_crystal' || itName.includes('tinh thể')) displayImg = '/game-assets/ring_crystal.png';
+        else if (itType === 'game_coins' || itType === 'coins' || itType === 'xu' || itName.includes('xu')) displayImg = '/game-assets/gold_coin.png';
+        else if (itType === 'game_attacks' || itName.includes('lượt đánh') || itName.includes('đánh boss')) displayImg = '/game-assets/weapon_song_dao.png';
       }
 
       if (isShoes || itName.includes('giày')) {
@@ -6753,7 +6771,7 @@ const App = () => {
           tagBg: 'rgba(59, 130, 246, 0.3)',
           tagBorder: '#3b82f6',
           tagText: '#93c5fd',
-          displayImg,
+          displayImg: displayImg || '/game-assets/weapon_song_dao.png',
           shortTitle: 'LƯỢT ĐÁNH BOSS',
           valText: `+${w.value || 5} LƯỢT`
         };
@@ -6769,7 +6787,7 @@ const App = () => {
           tagBg: 'rgba(234, 179, 8, 0.3)',
           tagBorder: '#eab308',
           tagText: '#fef08a',
-          displayImg,
+          displayImg: displayImg || '/game-assets/gold_coin.png',
           shortTitle: 'XU NÂNG CẤP',
           valText: `+${Number(w.value) >= 1000 ? (Number(w.value) / 1000) + 'K' : w.value} XU`
         };
@@ -7311,6 +7329,7 @@ const App = () => {
                             {vis.displayImg ? (
                               <image
                                 href={vis.displayImg}
+                                xlinkHref={vis.displayImg}
                                 x={cx - (N >= 8 ? 20 : 24)}
                                 y={86}
                                 width={N >= 8 ? 40 : 48}
@@ -7485,32 +7504,73 @@ const App = () => {
                     const isShoes = displayAction.toLowerCase().includes('giày');
                     const isRoyal = displayAction.toLowerCase().includes('hoàng kim');
                     const isBoss = displayAction.toLowerCase().includes('hòm boss');
+                    const isAttacks = displayAction.toLowerCase().includes('lượt đánh') || displayAction.toLowerCase().includes('lượt boss') || displayAction.toLowerCase().includes('đánh boss');
+                    const isCoins = displayAction.toLowerCase().includes('xu') && !displayAction.toLowerCase().includes('chợ xu');
+                    const isStone = displayAction.toLowerCase().includes('tinh hoa');
+                    const isCrystal = displayAction.toLowerCase().includes('tinh thể');
+                    const isSpins = tx.isSpinCost || displayAction.toLowerCase().includes('lượt quay') || displayAction.toLowerCase().includes('vé quay');
+                    const isX10 = displayAction.includes('Quay x10');
 
                     let resultLabel = 'Trượt';
                     let resultColor = 'text-slate-500';
                     let borderClass = 'border-slate-800/80';
+                    let iconPrefix = '💨 ';
 
                     if (isShoes) {
                       resultLabel = '👟 GIÀY HT';
                       resultColor = 'text-amber-400 font-black';
                       borderClass = 'border-amber-500/50 bg-amber-950/20';
+                      iconPrefix = '👟 ';
                     } else if (isRoyal) {
                       resultLabel = '👑 HÒM HK';
                       resultColor = 'text-purple-400 font-extrabold';
                       borderClass = 'border-purple-500/40 bg-purple-950/20';
+                      iconPrefix = '👑 ';
                     } else if (isBoss) {
                       resultLabel = '📦 HÒM BOSS';
                       resultColor = 'text-emerald-400 font-extrabold';
                       borderClass = 'border-emerald-500/40 bg-emerald-950/20';
-                    } else if (tx.amount === 0) {
+                      iconPrefix = '📦 ';
+                    } else if (isAttacks) {
+                      const amountStr = tx.amount ? new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount)) : '';
+                      resultLabel = `⚔️ ${amountStr ? `+${amountStr}` : ''} LƯỢT`;
+                      resultColor = 'text-cyan-400 font-bold';
+                      borderClass = 'border-cyan-500/40 bg-cyan-950/20';
+                      iconPrefix = '⚔️ ';
+                    } else if (isCoins) {
+                      const amountStr = tx.amount ? new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount)) : '';
+                      resultLabel = `🪙 ${amountStr ? `+${amountStr}` : ''} XU`;
+                      resultColor = 'text-yellow-400 font-bold';
+                      borderClass = 'border-yellow-500/40 bg-yellow-950/20';
+                      iconPrefix = '🪙 ';
+                    } else if (isStone) {
+                      resultLabel = `💎 +${Math.abs(tx.amount || 1)} VIÊN`;
+                      resultColor = 'text-purple-400 font-bold';
+                      borderClass = 'border-purple-500/40 bg-purple-950/20';
+                      iconPrefix = '💎 ';
+                    } else if (isCrystal) {
+                      resultLabel = `🔮 +${Math.abs(tx.amount || 1)} VIÊN`;
+                      resultColor = 'text-pink-400 font-bold';
+                      borderClass = 'border-pink-500/40 bg-pink-950/20';
+                      iconPrefix = '🔮 ';
+                    } else if (isSpins) {
+                      resultLabel = `🎟️ +${Math.abs(tx.amount || 1)} Vé`;
+                      resultColor = 'text-rose-400 font-bold';
+                      borderClass = 'border-rose-500/40 bg-rose-950/20';
+                      iconPrefix = '🎟️ ';
+                    } else if (isX10) {
+                      resultLabel = '🎁 x10 Quà';
+                      resultColor = 'text-amber-400 font-bold';
+                      borderClass = 'border-amber-500/40 bg-amber-950/20';
+                      iconPrefix = '🎁 ';
+                    } else if (tx.amount === 0 || !isWin) {
                       resultLabel = 'Trượt';
                       resultColor = 'text-slate-500';
-                    } else if (tx.isSpinCost) {
-                      resultLabel = `+${Math.abs(tx.amount)} Lượt`;
-                      resultColor = 'text-cyan-400 font-bold';
+                      iconPrefix = '💨 ';
                     } else {
                       resultLabel = `+${new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ`;
                       resultColor = 'text-emerald-400 font-bold';
+                      iconPrefix = '🎁 ';
                     }
 
                     return (
@@ -7520,7 +7580,7 @@ const App = () => {
                       >
                         <div className="flex-1 pr-2">
                           <p className={`font-bold text-xs sm:text-sm line-clamp-1 ${isWin ? (isShoes ? 'text-amber-300' : 'text-white') : 'text-slate-400'}`}>
-                            {isShoes ? '👟 ' : isRoyal ? '👑 ' : isBoss ? '📦 ' : isWin ? '🎁 ' : '💨 '}
+                            {iconPrefix}
                             {displayAction}
                           </p>
                           <p className="text-[10px] text-slate-500 mt-1 font-mono">{tx.date}</p>
@@ -7642,22 +7702,31 @@ const App = () => {
             <div className={`w-full max-w-sm rounded-3xl p-6 md:p-8 text-center animate-zoom-in relative z-10 border-4 shadow-2xl ${giftModalData.isLost ? 'bg-[#151D2F] border-slate-700 shadow-slate-900' : 'bg-gradient-to-b from-[#1e293b] to-[#0f172a] border-yellow-500 shadow-[0_0_100px_rgba(234,179,8,0.3)]'}`}>
 
               <div className={`w-28 h-28 md:w-32 md:h-32 mx-auto -mt-20 md:-mt-24 mb-6 rounded-full flex items-center justify-center border-4 border-[#0B1120] relative ${giftModalData.isLost ? 'bg-slate-700 shadow-xl' : 'bg-gradient-to-br from-yellow-400 to-amber-600 shadow-[0_0_50px_rgba(234,179,8,0.8)]'}`}>
-                {giftModalData.item.image && !giftModalData.isLost ? (
-                  <img
-                    src={giftModalData.isShoes ? getShoesImage(giftModalData.item.image) : giftModalData.item.image}
-                    className="w-16 h-16 md:w-20 md:h-20 object-contain animate-bounce"
-                    alt={giftModalData.item.name}
-                    onError={(e) => {
-                      if (giftModalData.isShoes) {
-                        e.target.src = LEGENDARY_SHOES_IMG;
-                      } else {
-                        e.target.style.display = 'none';
-                      }
-                    }}
-                  />
-                ) : (
-                  <Gift className={`text-white w-14 h-14 md:w-[60px] md:h-[60px] ${giftModalData.isLost ? 'opacity-50' : 'animate-pulse'}`} />
-                )}
+                {(() => {
+                  const modalImg = giftModalData.item?.image || (
+                    (giftModalData.prizeType === 'game_coins' || giftModalData.item?.name?.toLowerCase().includes('xu')) ? '/game-assets/gold_coin.png' :
+                    (giftModalData.prizeType === 'game_attacks' || giftModalData.item?.name?.toLowerCase().includes('lượt đánh')) ? '/game-assets/weapon_song_dao.png' : null
+                  );
+                  if (modalImg && !giftModalData.isLost) {
+                    return (
+                      <img
+                        src={giftModalData.isShoes ? getShoesImage(modalImg) : modalImg}
+                        className="w-16 h-16 md:w-20 md:h-20 object-contain animate-bounce"
+                        alt={giftModalData.item.name}
+                        onError={(e) => {
+                          if (giftModalData.isShoes) {
+                            e.target.src = LEGENDARY_SHOES_IMG;
+                          } else {
+                            e.target.style.display = 'none';
+                          }
+                        }}
+                      />
+                    );
+                  }
+                  return (
+                    <Gift className={`text-white w-14 h-14 md:w-[60px] md:h-[60px] ${giftModalData.isLost ? 'opacity-50' : 'animate-pulse'}`} />
+                  );
+                })()}
                 {!giftModalData.isLost && <div className="absolute inset-0 rounded-full border-4 border-yellow-300/30 animate-ping"></div>}
               </div>
 
@@ -12923,6 +12992,16 @@ const App = () => {
           showToast("Đang xử lý phần thưởng...", "info");
         }
 
+        if (!finalImage) {
+          const checkType = e.target.type.value;
+          const checkName = (e.target.name.value || '').toLowerCase();
+          if (checkType === 'game_coins' || checkName.includes('xu')) {
+            finalImage = '/game-assets/gold_coin.png';
+          } else if (checkType === 'game_attacks' || checkName.includes('lượt đánh')) {
+            finalImage = '/game-assets/weapon_song_dao.png';
+          }
+        }
+
         const wheelData = {
           id: editingWheel ? editingWheel.id : `WHEEL${Date.now()}`,
           name: e.target.name.value,
@@ -14267,10 +14346,10 @@ const App = () => {
                               { id: `WHEEL_SHOES_${Date.now()}`, name: 'Giày Thần Tốc (Huyền Thoại)', type: 'game_shoes_legendary', value: 1, rate: '0.5%', quantity: 999, color: '#f59e0b', image: LEGENDARY_SHOES_IMG, wheel_type: 'spin' },
                               { id: `WHEEL_STONE_${Date.now() + 1}`, name: '+5 Đá Tinh Hoa', type: 'game_essence_stone', value: 5, rate: '10%', quantity: 999, color: '#a855f7', image: '/game-assets/da_tinh_hoa.png', wheel_type: 'spin' },
                               { id: `WHEEL_CRYSTAL_${Date.now() + 2}`, name: '+10 Viên Tinh Thể', type: 'game_ring_crystal', value: 10, rate: '10%', quantity: 999, color: '#ec4899', image: '/game-assets/ring_crystal.png', wheel_type: 'spin' },
-                              { id: `WHEEL_ATK_${Date.now() + 3}`, name: '+50.000 Lượt Đánh Boss', type: 'game_attacks', value: 50000, rate: '15%', quantity: 999, color: '#3b82f6', image: null, wheel_type: 'spin' },
+                              { id: `WHEEL_ATK_${Date.now() + 3}`, name: '+50.000 Lượt Đánh Boss', type: 'game_attacks', value: 50000, rate: '15%', quantity: 999, color: '#3b82f6', image: '/game-assets/weapon_song_dao.png', wheel_type: 'spin' },
                               { id: `WHEEL_CHEST_B_${Date.now() + 4}`, name: '+3 Hòm Boss', type: 'game_boss_chests', value: 3, rate: '20%', quantity: 999, color: '#10b981', image: '/game-assets/mystery_box_closed.png', wheel_type: 'spin' },
                               { id: `WHEEL_CHEST_R_${Date.now() + 5}`, name: '+1 Hòm Hoàng Kim', type: 'game_royal_chests', value: 1, rate: '5%', quantity: 999, color: '#8b5cf6', image: '/game-assets/royal_chest.png', wheel_type: 'spin' },
-                              { id: `WHEEL_COINS_${Date.now() + 6}`, name: '+20 Xu Nâng Cấp', type: 'game_coins', value: 20, rate: '5%', quantity: 999, color: '#eab308', image: null, wheel_type: 'spin' },
+                              { id: `WHEEL_COINS_${Date.now() + 6}`, name: '+20 Xu Nâng Cấp', type: 'game_coins', value: 20, rate: '5%', quantity: 999, color: '#eab308', image: '/game-assets/gold_coin.png', wheel_type: 'spin' },
                               { id: `WHEEL_NONE_${Date.now() + 7}`, name: 'Chúc may mắn lần sau', type: 'none', value: 0, rate: '34.5%', quantity: 999, color: '#475569', image: null, wheel_type: 'spin' }
                             ];
 
@@ -14316,11 +14395,19 @@ const App = () => {
                                   e.target.src = '/game-assets/da_tinh_hoa.png';
                                 } else if (w.type === 'game_ring_crystal' || w.name?.toLowerCase().includes('tinh thể')) {
                                   e.target.src = '/game-assets/ring_crystal.png';
+                                } else if (w.type === 'game_coins' || w.name?.toLowerCase().includes('xu')) {
+                                  e.target.src = '/game-assets/gold_coin.png';
+                                } else if (w.type === 'game_attacks' || w.name?.toLowerCase().includes('lượt đánh')) {
+                                  e.target.src = '/game-assets/weapon_song_dao.png';
                                 } else {
                                   e.target.style.display = 'none';
                                 }
                               }}
                             />
+                          ) : (w.type === 'game_coins' || w.name?.toLowerCase().includes('xu')) ? (
+                            <img src="/game-assets/gold_coin.png" className="w-full h-full object-cover" alt={w.name} />
+                          ) : (w.type === 'game_attacks' || w.name?.toLowerCase().includes('lượt đánh')) ? (
+                            <img src="/game-assets/weapon_song_dao.png" className="w-full h-full object-cover" alt={w.name} />
                           ) : (
                             <Gift size={24} className="text-slate-500" />
                           )}
@@ -14363,7 +14450,17 @@ const App = () => {
                         <div className="flex-1 bg-slate-900 px-2 py-1.5 rounded text-xs text-blue-400 font-bold border border-slate-800 text-center">Tỉ lệ: {w.rate}</div>
                         <div className="flex-1 bg-slate-900 px-2 py-1.5 rounded text-xs text-emerald-400 font-bold border border-slate-800 text-center">Còn: {w.quantity ?? 999}</div>
                       </div>                        <div className="flex gap-2">
-                        <button onClick={() => { setEditingWheel(w); setAdminWheelImage(w.image || null); setAdminWheelRewardType(w.type || (adminWheelType === 'spin' ? 'game_attacks' : 'money')); setShowWheelModal(true); }} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors"><Edit size={14} className="mx-auto" /></button>
+                        <button onClick={() => {
+                          let editImg = w.image;
+                          if (!editImg) {
+                            if (w.type === 'game_coins' || (w.name && w.name.toLowerCase().includes('xu'))) editImg = '/game-assets/gold_coin.png';
+                            else if (w.type === 'game_attacks' || (w.name && w.name.toLowerCase().includes('lượt đánh'))) editImg = '/game-assets/weapon_song_dao.png';
+                          }
+                          setEditingWheel(w);
+                          setAdminWheelImage(editImg || null);
+                          setAdminWheelRewardType(w.type || (adminWheelType === 'spin' ? 'game_attacks' : 'money'));
+                          setShowWheelModal(true);
+                        }} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors"><Edit size={14} className="mx-auto" /></button>
                         <button onClick={() => {
                           setConfirmDialog({
                             title: 'Xoá phần thưởng', message: 'Xoá vật phẩm này khỏi vòng quay?', onConfirm: async () => {
@@ -15507,12 +15604,22 @@ const App = () => {
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-xs text-slate-300 font-bold">Ảnh đại diện vật phẩm (Tùy chọn)</label>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <button
                           type="button"
                           onClick={() => setAdminWheelImage(LEGENDARY_SHOES_IMG)}
                           className="text-[10px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded border border-amber-500/30 transition-colors"
                         >👟 Giày</button>
+                        <button
+                          type="button"
+                          onClick={() => setAdminWheelImage('/game-assets/gold_coin.png')}
+                          className="text-[10px] bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded border border-yellow-500/30 transition-colors"
+                        >🪙 Xu</button>
+                        <button
+                          type="button"
+                          onClick={() => setAdminWheelImage('/game-assets/weapon_song_dao.png')}
+                          className="text-[10px] bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded border border-blue-500/30 transition-colors"
+                        >⚔️ Lượt Đánh</button>
                         <button
                           type="button"
                           onClick={() => setAdminWheelImage('/game-assets/da_tinh_hoa.png')}
