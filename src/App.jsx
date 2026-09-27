@@ -7,7 +7,8 @@ import {
   History, Target, Gift, Save, Upload, Plus, Unlock, QrCode,
   Download, Copy, Check, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ZoomIn,
   Sparkles, TrendingUp, Users, Ticket, Settings2, MessageCircle, Send, Eye, EyeOff,
-  ArrowLeftRight, RotateCcw, MoreVertical, AlertTriangle, ArrowLeft, Loader2, Swords, Crown, Zap, Shield, Gem, Package, Link, BarChart2
+  ArrowLeftRight, RotateCcw, MoreVertical, AlertTriangle, ArrowLeft, Loader2, Swords, Crown, Zap, Shield, Gem, Package, Link, BarChart2,
+  ShoppingCart
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import emailjs from '@emailjs/browser';
