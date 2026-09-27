@@ -599,6 +599,7 @@ const App = () => {
   });
   const [vouchersDb, setVouchersDb] = useState([]);
   const [adminSearchUser, setAdminSearchUser] = useState('');
+  const [adminMessageSearch, setAdminMessageSearch] = useState('');
   const [historyTab, setHistoryTab] = useState(() => localStorage.getItem('shop_history_tab') || 'buy'); // Quản lý Tab đang mở
   useEffect(() => { localStorage.setItem('shop_history_tab', historyTab); }, [historyTab]);
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(5); // Số lượng hiển thị mỗi lần cuộn
@@ -727,6 +728,28 @@ const App = () => {
   const [cardAmount, setCardAmount] = useState('10000');
   const [cardCode, setCardCode] = useState('');
   const [cardSerial, setCardSerial] = useState('');
+
+  const handleCancelDepositClient = async (id) => {
+    setConfirmDialog({
+      title: 'Hủy đơn nạp',
+      message: 'Bạn có chắc chắn muốn hủy đơn nạp tiền này không?',
+      onConfirm: async () => {
+        const { error } = await supabase.from('deposit_requests').update({ status: 'Đã hủy' }).eq('id', id);
+        if (error) {
+          showToast("Lỗi khi hủy đơn: " + error.message, 'error');
+        } else {
+          setDepositRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'Đã hủy' } : req));
+          setPayosPaymentData(null);
+          showToast("Đã hủy đơn nạp thành công!", 'success');
+
+          // Xóa tin nhắn Telegram
+          supabase.functions.invoke('telegram-bot', {
+            body: { type: 'delete_request', requestId: id }
+          }).catch(err => console.error("Lỗi xóa tin nhắn Telegram:", err));
+        }
+      }
+    });
+  };
 
   const [expandedTx, setExpandedTx] = useState(null);
 
@@ -5180,28 +5203,6 @@ const App = () => {
       setIsDepositing(false);
     };
 
-    const handleCancelDepositClient = async (id) => {
-      setConfirmDialog({
-        title: 'Hủy đơn nạp',
-        message: 'Bạn có chắc chắn muốn hủy đơn nạp tiền này không?',
-        onConfirm: async () => {
-          const { error } = await supabase.from('deposit_requests').update({ status: 'Đã hủy' }).eq('id', id);
-          if (error) {
-            showToast("Lỗi khi hủy đơn: " + error.message, 'error');
-          } else {
-            setDepositRequests(depositRequests.map(req => req.id === id ? { ...req, status: 'Đã hủy' } : req));
-            setPayosPaymentData(null);
-            showToast("Đã hủy đơn nạp thành công!", 'success');
-
-            // Xóa tin nhắn Telegram
-            supabase.functions.invoke('telegram-bot', {
-              body: { type: 'delete_request', requestId: id }
-            }).catch(err => console.error("Lỗi xóa tin nhắn Telegram:", err));
-          }
-        }
-      });
-    };
-
     const handleCardSubmit = async (e) => {
       e.preventDefault();
       if (isDepositing || window.isSubmittingCard) return;
@@ -5992,7 +5993,7 @@ const App = () => {
       if (isUsingMoney && (currentUser.balance || 0) < requiredCost) {
         setIsSpinning(false);
         showToast("Số dư ví không đủ để quay! Vui lòng nạp tiền vào ví.", "error");
-        setShowDepositModal(true);
+        setCurrentView('naptien');
         return;
       }
 
@@ -6198,7 +6199,7 @@ const App = () => {
 
       if (isUsingMoney && (currentUser.balance || 0) < totalCost) {
         showToast(`Số dư ví không đủ 10 lượt quay (${new Intl.NumberFormat('vi-VN').format(totalCost)}đ)! Vui lòng nạp tiền vào ví.`, "error");
-        setShowDepositModal(true);
+        setCurrentView('naptien');
         return;
       }
 
@@ -10049,7 +10050,7 @@ const App = () => {
                             type="button"
                             onClick={() => {
                               setShowBuyTicketModal(false);
-                              setShowDepositModal(true);
+                              setCurrentView('naptien');
                             }}
                             className="text-xs font-bold text-emerald-400 hover:text-emerald-300 underline flex items-center gap-1"
                           >
