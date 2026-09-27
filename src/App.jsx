@@ -5985,9 +5985,8 @@ const App = () => {
       // Kiểm tra số lượt quay hoặc số dư trước khi kích hoạt
       if (!isUsingMoney && (currentUser.spins || 0) < requiredCost) {
         setIsSpinning(false);
-        showToast("Bạn chưa có đủ lượt quay! Mua Vé Quay hoặc nạp tiền để nhận thêm lượt nhé.", "info");
-        setBuyTicketQty(1);
-        setShowBuyTicketModal(true);
+        showToast("Bạn đã hết lượt quay! Cứ mỗi 20.000đ nạp tiền sẽ được tặng 1 lượt quay miễn phí. Nạp ngay để quay tiếp nhé!", "info");
+        setCurrentView('naptien');
         return;
       }
 
@@ -6192,9 +6191,9 @@ const App = () => {
 
       // Kiểm tra số lượt quay hoặc số dư trước khi kích hoạt x10
       if (!isUsingMoney && (currentUser.spins || 0) < totalCost) {
-        showToast(`Bạn chưa đủ 10 lượt quay! Hiện có ${currentUser.spins || 0} lượt.`, "info");
-        setBuyTicketQty(Math.max(10, totalCost - (currentUser.spins || 0)));
-        setShowBuyTicketModal(true);
+        setIsSpinning(false);
+        showToast(`Bạn chưa đủ 10 lượt quay! Hiện có ${currentUser.spins || 0} lượt. Cứ mỗi 20.000đ nạp tiền sẽ được tặng 1 lượt quay miễn phí.`, "info");
+        setCurrentView('naptien');
         return;
       }
 
@@ -6724,26 +6723,24 @@ const App = () => {
               )}
             </div>
 
-            {/* Thông tin số vé & nút mua vé nhanh */}
+            {/* Thông tin số lượt & Nạp tiền nhận lượt */}
             <div className="flex items-center gap-2 bg-[#0b1120] px-3.5 py-1.5 rounded-xl border border-amber-500/30">
               <Ticket size={17} className="text-amber-400 shrink-0" />
               <div className="text-xs sm:text-sm font-bold text-slate-300">
                 Lượt của bạn: <strong className="text-amber-400 font-mono text-sm sm:text-base font-black ml-1">{currentUser ? (currentUser.spins || 0) : 0}</strong>
               </div>
-              {wheelConfig.ticketSaleEnabled !== false && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!currentUser) return requireAuth('login');
-                    setBuyTicketQty(1);
-                    setShowBuyTicketModal(true);
-                  }}
-                  className="ml-2 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-white font-extrabold text-xs px-3 py-1.5 rounded-lg shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 shrink-0"
-                >
-                  <ShoppingCart size={13} />
-                  <span>Mua Vé ({new Intl.NumberFormat('vi-VN').format(wheelConfig.ticketPrice || 20000)}đ)</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!currentUser) return requireAuth('login');
+                  setCurrentView('naptien');
+                }}
+                className="ml-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs px-3 py-1.5 rounded-lg shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 shrink-0 border border-emerald-400/30"
+              >
+                <Wallet size={13} />
+                <span>Nạp Tiền Nhận Lượt</span>
+                <span className="bg-emerald-950/60 text-emerald-300 text-[10px] font-black px-1.5 py-0.5 rounded border border-emerald-500/40">20k = +1 Lượt</span>
+              </button>
             </div>
 
             {/* Thông tin tài khoản game liên kết */}
@@ -6776,74 +6773,104 @@ const App = () => {
             )}
           </div>
 
+          {/* THANH TIẾN TRÌNH BẢO HIỂM 120 LẦN CHO GIÀY HUYỀN THOẠI - THIẾT KẾ RỘNG RÃI & SANG TRỌNG */}
+          {playMode === 'spin' && (
+            <div className={`w-full max-w-5xl mx-auto mb-8 p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-[#0d1424] via-[#141d33] to-[#0d1424] border transition-all relative overflow-hidden text-left shadow-2xl ${
+              shoesPity >= 120
+                ? 'pity-glow-active border-rose-500 shadow-[0_0_40px_rgba(244,63,94,0.6)]'
+                : 'border-amber-500/40 shadow-[0_0_25px_rgba(245,158,11,0.2)]'
+            }`}>
+              {/* Ánh sáng nền background hiệu ứng */}
+              <div className="absolute -top-24 -left-24 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+              {/* Hàng 1: Tiêu đề + Icon + Tiến trình số lượng */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 relative z-10">
+                <div className="flex items-center gap-3.5 sm:gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/30 via-yellow-500/15 to-rose-500/20 border border-amber-500/50 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20 text-3xl">
+                    👟
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <h3 className="font-black text-base sm:text-lg lg:text-xl uppercase tracking-wider bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent">
+                        Bảo Hiểm Giày Thần Tốc (Huyền Thoại)
+                      </h3>
+                      <span className="bg-amber-500/20 text-amber-300 text-xs font-black px-2.5 py-0.5 rounded-full border border-amber-500/40 shadow-sm">
+                        Mốc 120 Lượt
+                      </span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-300 mt-1 flex items-center gap-1.5 flex-wrap">
+                      <span>Nếu 120 lần quay không ra Giày, lần thứ 121</span>
+                      <strong className="text-yellow-400 font-extrabold bg-yellow-400/10 px-2 py-0.5 rounded border border-yellow-400/30">
+                        100% Chắc Chắn Trúng Giày Huyền Thoại
+                      </strong>
+                      <span className="text-slate-400 text-xs">(Chỉ số: +120 Tốc độ)</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="sm:text-right shrink-0 bg-slate-900/60 sm:bg-transparent p-3 sm:p-0 rounded-xl border sm:border-0 border-slate-800">
+                  <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Tiến Trình Bảo Hiểm</div>
+                  <div className="font-mono text-2xl sm:text-3xl font-black text-amber-400 flex items-baseline sm:justify-end gap-1.5">
+                    {shoesPity} <span className="text-sm font-bold text-slate-400">/ 120 lượt</span>
+                  </div>
+                  <div className="text-xs font-extrabold mt-0.5">
+                    {shoesPity >= 120 ? (
+                      <span className="text-rose-400 font-black flex items-center sm:justify-end gap-1 animate-pulse">
+                        <Flame size={15} className="text-rose-500 animate-bounce" /> LẦN 121: 100% TRÚNG!
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 font-medium">
+                        Còn <strong className="text-yellow-400 font-bold">{120 - shoesPity}</strong> lượt nữa
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Hàng 2: Thanh Progress Bar rộng rãi và vạch mốc */}
+              <div className="relative my-3">
+                <div className="w-full h-4 sm:h-5 bg-slate-950/90 rounded-full overflow-hidden border border-slate-700/80 p-0.5 shadow-inner">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 relative ${
+                      shoesPity >= 120
+                        ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-yellow-300 shadow-[0_0_25px_rgba(244,63,94,0.9)] animate-pulse'
+                        : 'bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]'
+                    }`}
+                    style={{ width: `${Math.min(100, Math.max(3, Math.round((shoesPity / 120) * 100)))}%` }}
+                  >
+                    <div className="absolute inset-0 bg-white/20 animate-[pulse_2s_infinite]"></div>
+                  </div>
+                </div>
+
+                {/* Vạch mốc chia mốc 0 - 30 - 60 - 90 - 120 */}
+                <div className="flex justify-between items-center px-1 mt-1.5 text-[10px] sm:text-xs text-slate-400 font-mono font-bold">
+                  <span>0 lượt</span>
+                  <span>30 lượt</span>
+                  <span>60 lượt</span>
+                  <span>90 lượt</span>
+                  <span className="text-amber-400 font-black">120 lượt (Mốc Nổ)</span>
+                </div>
+              </div>
+
+              {/* Hàng 3: Ghi chú bảo hiểm */}
+              <div className="text-[11px] sm:text-xs text-slate-300 mt-2 pt-2.5 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5 text-slate-300">
+                  <Sparkles size={14} className="text-amber-400 shrink-0" />
+                  <span>Điểm bảo hiểm tự động tăng +1 mỗi lần quay Vòng Quay Lượt. Khi trúng Giày sẽ tự động làm mới về 0.</span>
+                </span>
+                <span className="text-amber-400 font-extrabold bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/30 shrink-0 text-center">
+                  {shoesPity >= 120 ? '🔥 SẴN SÀNG NỔ TRANG BỊ' : `Tiến độ: ${Math.round((shoesPity / 120) * 100)}%`}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* BỐ CỤC 2 CỘT: TRÁI LÀ VÒNG QUAY & BẢN ĐIỀU KHIỂN - PHẢI LÀ LỊCH SỬ QUAY */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start mb-12">
 
             {/* CỘT TRÁI (8/12 phần): CHỨA VÒNG QUAY HOÀNG KIM & BÀN ĐIỀU KHIỂN */}
             <div className="lg:col-span-8 flex flex-col items-center">
-
-              {/* THANH TIẾN TRÌNH BẢO HIỂM 120 LẦN CHO GIÀY HUYỀN THOẠI */}
-              {playMode === 'spin' && (
-                <div className={`w-full max-w-xl mx-auto mb-6 p-4 rounded-2xl bg-gradient-to-r from-slate-900/95 via-[#131b2e] to-slate-900/95 border transition-all relative overflow-hidden text-left ${
-                  shoesPity >= 120
-                    ? 'pity-glow-active border-rose-500 shadow-[0_0_35px_rgba(244,63,94,0.6)]'
-                    : 'border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
-                }`}>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-2xl filter drop-shadow">👟</span>
-                      <div>
-                        <div className="font-black text-xs sm:text-sm uppercase tracking-wider bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
-                          Bảo Hiểm Giày Thần Tốc (Huyền Thoại)
-                          <span className="bg-amber-500/20 text-amber-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-amber-500/40">
-                            Mốc 120 Lượt
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="font-mono font-black text-xs sm:text-sm">
-                      {shoesPity >= 120 ? (
-                        <span className="text-rose-400 font-black flex items-center gap-1 animate-pulse">
-                          <Flame size={16} className="text-rose-500 animate-bounce" /> ĐÃ ĐẠT 120/120 (LẦN 121: 100% TRÚNG!)
-                        </span>
-                      ) : (
-                        <span className="text-amber-400 font-extrabold">
-                          {shoesPity} / 120 <span className="text-[11px] text-slate-400 font-normal">lượt</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Thanh Progress Bar */}
-                  <div className="w-full h-3.5 bg-slate-950/80 rounded-full overflow-hidden border border-slate-700/80 p-0.5 shadow-inner">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${
-                        shoesPity >= 120
-                          ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-yellow-300 shadow-[0_0_18px_rgba(244,63,94,0.9)] animate-pulse'
-                          : 'bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500'
-                      }`}
-                      style={{ width: `${Math.min(100, Math.round((shoesPity / 120) * 100))}%` }}
-                    ></div>
-                  </div>
-
-                  {/* Chú thích thông minh */}
-                  <div className="text-[11px] text-slate-300 mt-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                    {shoesPity >= 120 ? (
-                      <span className="text-amber-300 font-extrabold flex items-center gap-1">
-                        ✨ Lượt quay thứ 121 CHẮC CHẮN 100% ra Giày Thần Tốc Huyền Thoại (+120 Tốc độ)!
-                      </span>
-                    ) : (
-                      <span>
-                        Nếu 120 lần quay không trúng Giày, lần thứ 121 <b className="text-yellow-400 font-bold">100% chắc chắn ra Giày Huyền Thoại</b>.
-                      </span>
-                    )}
-                    <span className="text-slate-400 text-[10px] shrink-0 font-bold">
-                      {shoesPity >= 120 ? '🔥 SẴN SÀNG NỔ' : `Còn ${120 - shoesPity} lượt`}
-                    </span>
-                  </div>
-                </div>
-              )}
 
               {/* THANH MARQUEE NGƯỜI TRÚNG THƯỞNG MỚI NHẤT */}
               {recentWinners.length > 0 && (
@@ -9899,188 +9926,6 @@ const App = () => {
                   className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-600 hover:to-rose-700 text-white text-xs font-black uppercase rounded-xl transition-all shadow-lg"
                 >
                   Tiếp Tục Nạp
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL MUA VÉ QUAY VÒNG QUAY */}
-        {showBuyTicketModal && (
-          <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-[#151D2F] border-2 border-amber-500/50 w-full max-w-md rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(245,158,11,0.3)] animate-scale-up text-left">
-              {/* Header */}
-              <div className="p-5 border-b border-slate-800 bg-gradient-to-r from-[#1A233A] via-[#1f2b48] to-[#1A233A] flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white shadow-md">
-                    <Ticket size={22} />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-black text-white flex items-center gap-1.5">
-                      Mua Vé Quay Vòng Quay
-                    </h3>
-                    <p className="text-[11px] text-amber-400 font-semibold">Tăng lượt quay nhận Giày Huyền Thoại</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowBuyTicketModal(false)}
-                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Body */}
-              <div className="p-5 sm:p-6 space-y-4">
-                {/* Visual card */}
-                <div className="p-4 rounded-2xl bg-[#0B1120] border border-amber-500/30 flex items-center gap-4">
-                  <img
-                    src="/spin_ticket.jpg"
-                    alt="Vé Quay"
-                    className="w-20 h-20 rounded-2xl object-cover border-2 border-amber-400/80 shadow-[0_0_20px_rgba(245,158,11,0.4)] shrink-0"
-                    onError={(e) => { e.target.src = '/spin_ticket.png'; }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30 mb-1">
-                      Vật Phẩm Quay Thưởng
-                    </div>
-                    <h4 className="text-sm font-black text-white truncate">Vé Vòng Quay Nhân Phẩm</h4>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Đơn giá: <strong className="text-amber-400 font-bold">{new Intl.NumberFormat('vi-VN').format(wheelConfig.ticketPrice || 20000)}đ / vé</strong>
-                    </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Mỗi vé quy đổi = +1 Lượt Quay</p>
-                  </div>
-                </div>
-
-                {/* Chọn số lượng */}
-                <div>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label className="text-xs text-slate-300 font-bold">Số lượng vé muốn mua:</label>
-                    <span className="text-xs text-amber-400 font-extrabold">+{buyTicketQty} Lượt quay</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 mb-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setBuyTicketQty(Math.max(1, buyTicketQty - 1))}
-                      className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-lg flex items-center justify-center transition-colors"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      min="1"
-                      max="1000"
-                      value={buyTicketQty}
-                      onChange={(e) => setBuyTicketQty(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="flex-1 h-10 bg-[#0B1120] border border-amber-500/40 rounded-xl text-center text-white font-mono font-bold text-base outline-none focus:border-amber-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setBuyTicketQty(buyTicketQty + 1)}
-                      className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-lg flex items-center justify-center transition-colors"
-                    >
-                      +
-                    </button>
-                  </div>
-
-                  {/* Preset quick buttons */}
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {[1, 5, 10, 20].map((num) => (
-                      <button
-                        key={num}
-                        type="button"
-                        onClick={() => setBuyTicketQty(num)}
-                        className={`py-1.5 text-xs font-bold rounded-lg border transition-all ${
-                          buyTicketQty === num
-                            ? 'bg-amber-500/20 text-amber-300 border-amber-500 shadow-sm'
-                            : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:border-slate-500'
-                        }`}
-                      >
-                        +{num} Vé
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Nút combo 120 vé kích hoạt chắc chắn 100% Giày Huyền Thoại */}
-                  <button
-                    type="button"
-                    onClick={() => setBuyTicketQty(121)}
-                    className="w-full mt-2 py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-rose-500/20 to-amber-500/10 border border-amber-500/50 hover:border-amber-400 text-left flex items-center justify-between transition-all group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Sparkles size={15} className="text-amber-400 group-hover:scale-125 transition-transform" />
-                      <div>
-                        <span className="text-xs font-black text-amber-300 block">Gói 121 Vé - 100% Nhận Giày Huyền Thoại</span>
-                        <span className="text-[10px] text-slate-400">Đạt mốc bảo hiểm 120 lần, lần 121 chắc chắn nổ</span>
-                      </div>
-                    </div>
-                    <span className="text-xs font-mono font-bold text-amber-400">121 Vé</span>
-                  </button>
-                </div>
-
-                {/* Tổng thanh toán & kiểm tra số dư */}
-                {(() => {
-                  const unitPrice = wheelConfig.ticketPrice || 20000;
-                  const totalCost = buyTicketQty * unitPrice;
-                  const userBal = currentUser?.balance || 0;
-                  const isInsufficient = userBal < totalCost;
-
-                  return (
-                    <div className="p-3.5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-2">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-400">Số dư ví của bạn:</span>
-                        <span className="font-bold text-emerald-400 font-mono">
-                          {new Intl.NumberFormat('vi-VN').format(userBal)}đ
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-400">Tổng thanh toán ({buyTicketQty} vé):</span>
-                        <span className="font-black text-amber-400 text-base font-mono">
-                          {new Intl.NumberFormat('vi-VN').format(totalCost)}đ
-                        </span>
-                      </div>
-
-                      {isInsufficient && (
-                        <div className="mt-2 pt-2 border-t border-rose-500/20 flex items-center justify-between">
-                          <span className="text-xs text-rose-400 font-semibold">
-                            Thiếu {new Intl.NumberFormat('vi-VN').format(totalCost - userBal)}đ
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowBuyTicketModal(false);
-                              setCurrentView('naptien');
-                            }}
-                            className="text-xs font-bold text-emerald-400 hover:text-emerald-300 underline flex items-center gap-1"
-                          >
-                            <Wallet size={13} /> Nạp Thêm Ngay
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Footer */}
-              <div className="p-4 sm:p-5 border-t border-slate-800 bg-[#1A233A] flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowBuyTicketModal(false)}
-                  className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-colors"
-                >
-                  Đóng
-                </button>
-                <button
-                  type="button"
-                  disabled={isProcessingBuyTicket || (currentUser?.balance || 0) < (buyTicketQty * (wheelConfig.ticketPrice || 20000))}
-                  onClick={handleBuySpinTickets}
-                  className="flex-1 py-3 bg-gradient-to-r from-amber-500 via-rose-500 to-amber-500 hover:from-amber-400 hover:to-rose-400 text-white text-xs font-black uppercase rounded-xl transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isProcessingBuyTicket ? <Loader2 size={16} className="animate-spin" /> : <ShoppingCart size={16} />}
-                  <span>Xác Nhận Mua</span>
                 </button>
               </div>
             </div>
