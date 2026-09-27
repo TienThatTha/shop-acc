@@ -8,11 +8,31 @@ import {
   Download, Copy, Check, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ZoomIn,
   Sparkles, TrendingUp, Users, Ticket, Settings2, MessageCircle, Send, Eye, EyeOff,
   ArrowLeftRight, RotateCcw, MoreVertical, AlertTriangle, ArrowLeft, Loader2, Swords, Crown, Zap, Shield, Gem, Package, Link, BarChart2,
-  ShoppingCart
+  ShoppingCart, Bell, BellOff
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import emailjs from '@emailjs/browser';
 import { LEGENDARY_SHOES_IMG, getShoesImage } from './shoesAsset';
+
+// Helper lưu cấu hình bật/tắt thông báo cho từng món vòng quay (chống lỗi schema & sync realtime)
+const getWheelNotifyFallback = (itemId) => {
+  if (!itemId) return false;
+  try {
+    const map = JSON.parse(localStorage.getItem('wheel_notify_map') || '{}');
+    return Boolean(map[itemId]);
+  } catch (e) {
+    return false;
+  }
+};
+
+const saveWheelNotifyFallback = (itemId, val) => {
+  if (!itemId) return;
+  try {
+    const map = JSON.parse(localStorage.getItem('wheel_notify_map') || '{}');
+    map[itemId] = Boolean(val);
+    localStorage.setItem('wheel_notify_map', JSON.stringify(map));
+  } catch (e) {}
+};
 
 const getRecordTime = (item) => {
   if (item.created_at) return new Date(item.created_at).getTime();
@@ -917,6 +937,7 @@ const App = () => {
   const [editingWheel, setEditingWheel] = useState(null);
   const [adminWheelImage, setAdminWheelImage] = useState(null);
   const [adminWheelRewardType, setAdminWheelRewardType] = useState('game_attacks');
+  const [adminWheelNotify, setAdminWheelNotify] = useState(false);
   const [showVoucherModal, setShowVoucherModal] = useState(false);
   const [editingVoucher, setEditingVoucher] = useState(null);
   const [editRentModal, setEditRentModal] = useState(null);
@@ -1018,7 +1039,10 @@ const App = () => {
           localStorage.setItem('shop_boosting_db', JSON.stringify(boostRes.data));
         }
         if (wheelRes.data) {
-          const moneyItems = wheelRes.data.filter(w => w.wheel_type === 'money');
+          const moneyItems = wheelRes.data.filter(w => w.wheel_type === 'money').map(w => ({
+            ...w,
+            notify_on_win: w.notify_on_win !== undefined && w.notify_on_win !== null ? Boolean(w.notify_on_win) : getWheelNotifyFallback(w.id)
+          }));
           const spinItems = wheelRes.data.filter(w => w.wheel_type === 'spin').map(w => {
             const n = String(w.name || '').toLowerCase();
             const t = String(w.type || '').toLowerCase();
@@ -1033,6 +1057,8 @@ const App = () => {
               else if (t === 'game_shoes_legendary' || n.includes('giày')) img = LEGENDARY_SHOES_IMG;
             }
 
+            const itemNotify = w.notify_on_win !== undefined && w.notify_on_win !== null ? Boolean(w.notify_on_win) : getWheelNotifyFallback(w.id);
+
             if (w.id === 'WHEEL_GAME_COINS' || (n.includes('xu') && (w.type === 'other' || w.type === 'game_coins'))) {
               return {
                 ...w,
@@ -1040,13 +1066,14 @@ const App = () => {
                 type: 'game_coins',
                 name: (w.name && w.name.includes('50,000')) ? '+20 Xu Nâng Cấp' : (w.name || '+20 Xu Nâng Cấp'),
                 value: (w.value === 50000 || !w.value) ? 20 : Number(w.value),
-                rate: (w.rate === '25%' && (w.value === 20 || w.value === 50000)) ? '5%' : w.rate
+                rate: (w.rate === '25%' && (w.value === 20 || w.value === 50000)) ? '5%' : w.rate,
+                notify_on_win: itemNotify
               };
             }
             if (w.id === 'WHEEL_GAME_NONE' && w.rate === '24.5%') {
-              return { ...w, image: img, rate: '44.5%' };
+              return { ...w, image: img, rate: '44.5%', notify_on_win: itemNotify };
             }
-            return { ...w, image: img };
+            return { ...w, image: img, notify_on_win: itemNotify };
           });
           setWheelItemsMoneyDb(moneyItems);
           setWheelItemsSpinDb(spinItems);
@@ -3351,17 +3378,23 @@ const App = () => {
         pn = { name: wp.pants };
       }
     }
+    if (Array.isArray(pn)) pn = pn.length > 0 ? pn[0] : null;
+    if (pn && !pn.name) pn = null;
+
     try { nk = dbPlayer.necklace ? (typeof dbPlayer.necklace === 'string' ? JSON.parse(dbPlayer.necklace) : dbPlayer.necklace) : null; } catch (e) { nk = { name: dbPlayer.necklace }; }
     try { rg = dbPlayer.ring ? (typeof dbPlayer.ring === 'string' ? JSON.parse(dbPlayer.ring) : dbPlayer.ring) : null; } catch (e) { rg = { name: dbPlayer.ring }; }
     try { pt = dbPlayer.pet ? (typeof dbPlayer.pet === 'string' ? JSON.parse(dbPlayer.pet) : dbPlayer.pet) : null; } catch (e) { pt = { name: dbPlayer.pet }; }
     try { sh = dbPlayer.shoes ? (typeof dbPlayer.shoes === 'string' ? JSON.parse(dbPlayer.shoes) : dbPlayer.shoes) : null; } catch (e) { sh = { name: dbPlayer.shoes }; }
+    if (Array.isArray(sh)) sh = sh.length > 0 ? sh[0] : null;
     if (!sh && wp && wp.shoes) {
       try {
         sh = typeof wp.shoes === 'string' ? JSON.parse(wp.shoes) : wp.shoes;
       } catch (e) {
         sh = { name: wp.shoes };
       }
+      if (Array.isArray(sh)) sh = sh.length > 0 ? sh[0] : null;
     }
+    if (sh && !sh.name) sh = null;
 
     return {
       exists: true,
@@ -3370,10 +3403,22 @@ const App = () => {
       level: dbPlayer.level || 1,
       cp: dbPlayer.cp || 0,
       bonus_attacks: dbPlayer.bonus_attacks || 0,
-      royal_chests: dbPlayer.royal_chests || 0,
-      boss_chests: dbPlayer.boss_chests || 0,
-      avatar_url: dbPlayer.avatar_url,
-      weapon: wp,
+      avatar_url: (() => {
+        let av = dbPlayer.avatar_url;
+        if (av && typeof av === 'string') {
+          const expMatch = av.match(/[?&]x-expires=(\d+)/);
+          if (expMatch && expMatch[1]) {
+            const expTime = parseInt(expMatch[1], 10);
+            if (!isNaN(expTime) && Date.now() / 1000 >= expTime) {
+              av = null; // Expired TikTok avatar
+            }
+          }
+        }
+        if (!av && currentUser?.id && (currentUser.linked_game_id === dbPlayer.user_id || currentUser.name === dbPlayer.nickname) && currentUser.avatar_url) {
+          av = currentUser.avatar_url;
+        }
+        return av;
+      })(),
       armor: ar,
       pants: pn,
       pet: pt,
@@ -6283,6 +6328,8 @@ const App = () => {
             };
           }
 
+          const shouldNotify = Boolean(winningItem.notify_on_win ?? getWheelNotifyFallback(winningItem.id));
+
           try {
             supabase.from('game_orders').insert([{
               id: orderId,
@@ -6292,7 +6339,11 @@ const App = () => {
               package_id: pkgId,
               package_name: pkgName,
               price: 0,
-              rewards: orderRewards,
+              rewards: {
+                ...orderRewards,
+                notify: shouldNotify,
+                source_type: 'wheel'
+              },
               status: 'pending'
             }]).then(({ error: gErr }) => {
               if (gErr) console.warn("Lỗi đồng bộ game_orders:", gErr);
@@ -6601,6 +6652,12 @@ const App = () => {
           if (sumRoyalChests > 0) orderRewards.royal_chests = sumRoyalChests;
           if (sumCoins > 0) orderRewards.coins = sumCoins;
 
+          // Kiểm tra xem trong các phần thưởng quay trúng có món nào được bật thông báo hay không
+          const shouldNotifyX10 = itemsResult.some(it => {
+            const rawItem = activeDb.find(dbIt => dbIt.id === it.id) || it;
+            return Boolean(rawItem?.notify_on_win ?? getWheelNotifyFallback(rawItem?.id));
+          });
+
           try {
             await supabase.from('game_orders').insert([{
               id: orderId,
@@ -6610,7 +6667,11 @@ const App = () => {
               package_id: 'wheel_spin_x10',
               package_name: 'Vòng Quay May Mắn (Gói x10 Lượt)',
               price: 0,
-              rewards: orderRewards,
+              rewards: {
+                ...orderRewards,
+                notify: shouldNotifyX10,
+                source_type: 'wheel'
+              },
               status: 'pending'
             }]);
           } catch (e) {
@@ -9785,11 +9846,11 @@ const App = () => {
                     <div className="flex items-center gap-4 min-w-0 flex-1">
                       <div className="relative shrink-0">
                         <img
-                          src={bossPlayerSummary.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(bossPlayerSummary.user_id)}`}
+                          src={bossPlayerSummary.avatar_url || currentUser?.avatar_url || `https://api.dicebear.com/7.x/bottts/png?seed=${encodeURIComponent(bossPlayerSummary.user_id)}`}
                           alt="Avatar"
                           onError={(e) => {
                             e.currentTarget.onerror = null;
-                            e.currentTarget.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(bossPlayerSummary.user_id || 'player')}`;
+                            e.currentTarget.src = currentUser?.avatar_url || `https://api.dicebear.com/7.x/bottts/png?seed=${encodeURIComponent(bossPlayerSummary.user_id || 'player')}`;
                           }}
                           onClick={() => setShowBossProfileModal(true)}
                           className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-amber-400 object-cover shadow-[0_0_20px_rgba(245,158,11,0.4)] cursor-pointer hover:scale-105 transition-transform"
@@ -11076,11 +11137,35 @@ const App = () => {
                     <div className="text-xs font-black text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       🔮 Kỹ Năng Thần Binh & Đặc Quyền Tích Lũy
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">💍 Nhẫn Thần Binh</div>
                         <div className="text-sm font-extrabold text-purple-400 mt-1 truncate">
                           {ringProcStr}
+                        </div>
+                      </div>
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase flex items-center justify-between">
+                          <span>👟 Giày Thần Tốc</span>
+                          {p.shoes && <span className="text-[9px] text-cyan-400 font-bold">{p.shoes.name}</span>}
+                        </div>
+                        <div className="text-sm font-extrabold text-cyan-300 mt-1 truncate">
+                          {p.shoes ? (() => {
+                            const sTier = (p.shoes.tier || '').toLowerCase();
+                            const sPlus = Number(p.shoes.plus || 0);
+                            const baseAgi = Number(p.shoes.base_agility || (sTier.includes('huyền thoại') || sTier.includes('legendary') ? 60 : 30));
+                            let shoeBonusPct = 0;
+                            const subs = p.shoes.sub_stats || [];
+                            for (const sub of subs) {
+                              if (sub && (sub.includes('Nhanh Nhẹn') || sub.includes('Nhanh Nhen') || sub.includes('Agility') || sub.includes('Tốc Độ'))) {
+                                const m = sub.match(/(\d+)%/);
+                                if (m) shoeBonusPct += parseInt(m[1], 10);
+                              }
+                            }
+                            const plusMult = 1.0 + (sPlus * 0.25);
+                            const totAgi = Math.round(baseAgi * plusMult * (1.0 + shoeBonusPct / 100.0));
+                            return `🌪️ +${totAgi} Tốc Độ (Tiên Cơ)`;
+                          })() : 'Chưa trang bị'}
                         </div>
                       </div>
                       <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
@@ -13085,6 +13170,7 @@ const App = () => {
           }
         }
 
+        const isNotifyChecked = Boolean(adminWheelNotify);
         const wheelData = {
           id: editingWheel ? editingWheel.id : `WHEEL${Date.now()}`,
           name: e.target.name.value,
@@ -13094,8 +13180,12 @@ const App = () => {
           quantity: parseInt(e.target.quantity.value) || 0,
           color: e.target.color.value || '#f43f5e',
           image: finalImage,
-          wheel_type: adminWheelType // Phân biệt tiền hay lượt
+          wheel_type: adminWheelType, // Phân biệt tiền hay lượt
+          notify_on_win: isNotifyChecked
         };
+        // Lưu cấu hình fallback ngay để đảm bảo dù db có hay chưa có cột thì app vẫn hoạt động 100%
+        saveWheelNotifyFallback(wheelData.id, isNotifyChecked);
+
         // Đẩy lên Supabase
         let queryError = null;
         if (editingWheel) {
@@ -13104,6 +13194,18 @@ const App = () => {
         } else {
           const { error } = await supabase.from('wheel_items').insert([wheelData]);
           queryError = error;
+        }
+
+        // Tự động bỏ qua lỗi nếu database Supabase chưa kịp chạy lệnh thêm cột notify_on_win
+        if (queryError && queryError.message && (queryError.message.includes('notify_on_win') || queryError.code === '42703')) {
+          const { notify_on_win, ...safeWheelData } = wheelData;
+          if (editingWheel) {
+            const { error: errRetry } = await supabase.from('wheel_items').update(safeWheelData).eq('id', editingWheel.id);
+            queryError = errRetry;
+          } else {
+            const { error: errRetry } = await supabase.from('wheel_items').insert([safeWheelData]);
+            queryError = errRetry;
+          }
         }
 
         if (queryError) {
@@ -13130,6 +13232,33 @@ const App = () => {
         showToast(editingWheel ? "Sửa phần thưởng thành công!" : "Thêm phần thưởng thành công!");
       } finally {
         setIsGlobalProcessing(false);
+      }
+    };
+
+    const handleToggleWheelNotify = async (item) => {
+      const currentVal = Boolean(item.notify_on_win ?? getWheelNotifyFallback(item.id));
+      const nextVal = !currentVal;
+      saveWheelNotifyFallback(item.id, nextVal);
+      const updatedItem = { ...item, notify_on_win: nextVal };
+
+      if (adminWheelType === 'money') {
+        setWheelItemsMoneyDb(wheelItemsMoneyDb.map(w => w.id === item.id ? updatedItem : w));
+      } else {
+        setWheelItemsSpinDb(wheelItemsSpinDb.map(w => w.id === item.id ? updatedItem : w));
+      }
+
+      try {
+        const { error } = await supabase.from('wheel_items').update({ notify_on_win: nextVal }).eq('id', item.id);
+        if (error) {
+          if (error.message && (error.message.includes('notify_on_win') || error.code === '42703')) {
+            showToast(nextVal ? `Đã bật thông báo cho "${item.name}"!` : `Đã tắt thông báo cho "${item.name}"!`, "info");
+            return;
+          }
+          console.warn("Lỗi update notify_on_win:", error);
+        }
+        showToast(nextVal ? `🔔 Đã bật thông báo Discord cho "${item.name}"!` : `🔕 Đã tắt thông báo Discord cho "${item.name}"!`, "success");
+      } catch (err) {
+        showToast(nextVal ? `Đã bật thông báo cho "${item.name}"!` : `Đã tắt thông báo cho "${item.name}"!`, "info");
       }
     };
 
@@ -14417,24 +14546,26 @@ const App = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-3 mb-6">
-                  <button onClick={() => { setEditingWheel(null); setAdminWheelImage(null); setAdminWheelRewardType(adminWheelType === 'spin' ? 'game_attacks' : 'money'); setShowWheelModal(true); }} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18} /> Thêm Phần thưởng ({adminWheelType === 'money' ? 'Vòng Quay Tiền' : 'Vòng Quay Lượt'})</button>
+                  <button onClick={() => { setEditingWheel(null); setAdminWheelImage(null); setAdminWheelNotify(false); setAdminWheelRewardType(adminWheelType === 'spin' ? 'game_attacks' : 'money'); setShowWheelModal(true); }} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-transform hover:scale-105"><PlusCircle size={18} /> Thêm Phần thưởng ({adminWheelType === 'money' ? 'Vòng Quay Tiền' : 'Vòng Quay Lượt'})</button>
                   {adminWheelType === 'spin' && (
                     <button
                       onClick={() => {
                         setConfirmDialog({
                           title: 'Cài Đặt Mẫu Quà In-Game & Giày Huyền Thoại',
-                          message: 'Bạn có muốn tự động cài đặt 8 phần thưởng chuẩn cho Vòng Quay Lượt gồm: Giày Thần Tốc (Huyền Thoại 0.5% - Bảo hiểm 121), Đá Tinh Hoa (10%), Viên Tinh Thể (10%), Lượt Đánh Boss (15%), Hòm Boss (20%), Hòm Hoàng Kim (5%), 20 Xu Nâng Cấp (5%), và Trượt (34.5%) không?',
+                          message: 'Bạn có muốn tự động cài đặt 8 phần thưởng chuẩn cho Vòng Quay Lượt gồm: Giày Thần Tốc (Huyền Thoại 0.5% - Bảo hiểm 121), Đá Tinh Hoa (10%), Viên Tinh Thể (10%), Lượt Đánh Boss (15%), Hòm Boss (20%), Hòm Hoàng Kim (5%), 20 Xu Nâng Cấp (5%), và Trượt (34.5%) không? (Mặc định chỉ Giày Thần Tốc mới bật thông báo Discord, các món còn lại tắt thông báo để tránh spam).',
                           onConfirm: async () => {
                             const sampleItems = [
-                              { id: `WHEEL_SHOES_${Date.now()}`, name: 'Giày Thần Tốc (Huyền Thoại)', type: 'game_shoes_legendary', value: 1, rate: '0.5%', quantity: 999, color: '#f59e0b', image: LEGENDARY_SHOES_IMG, wheel_type: 'spin' },
-                              { id: `WHEEL_STONE_${Date.now() + 1}`, name: '+5 Đá Tinh Hoa', type: 'game_essence_stone', value: 5, rate: '10%', quantity: 999, color: '#a855f7', image: '/game-assets/da_tinh_hoa.png', wheel_type: 'spin' },
-                              { id: `WHEEL_CRYSTAL_${Date.now() + 2}`, name: '+10 Viên Tinh Thể', type: 'game_ring_crystal', value: 10, rate: '10%', quantity: 999, color: '#ec4899', image: '/game-assets/ring_crystal.png', wheel_type: 'spin' },
-                              { id: `WHEEL_ATK_${Date.now() + 3}`, name: '+50.000 Lượt Đánh Boss', type: 'game_attacks', value: 50000, rate: '15%', quantity: 999, color: '#3b82f6', image: '/game-assets/weapon_song_dao.png', wheel_type: 'spin' },
-                              { id: `WHEEL_CHEST_B_${Date.now() + 4}`, name: '+3 Hòm Boss', type: 'game_boss_chests', value: 3, rate: '20%', quantity: 999, color: '#10b981', image: '/game-assets/mystery_box_closed.png', wheel_type: 'spin' },
-                              { id: `WHEEL_CHEST_R_${Date.now() + 5}`, name: '+1 Hòm Hoàng Kim', type: 'game_royal_chests', value: 1, rate: '5%', quantity: 999, color: '#8b5cf6', image: '/game-assets/royal_chest.png', wheel_type: 'spin' },
-                              { id: `WHEEL_COINS_${Date.now() + 6}`, name: '+20 Xu Nâng Cấp', type: 'game_coins', value: 20, rate: '5%', quantity: 999, color: '#eab308', image: '/game-assets/gold_coin.png', wheel_type: 'spin' },
-                              { id: `WHEEL_NONE_${Date.now() + 7}`, name: 'Chúc may mắn lần sau', type: 'none', value: 0, rate: '34.5%', quantity: 999, color: '#475569', image: null, wheel_type: 'spin' }
+                              { id: `WHEEL_SHOES_${Date.now()}`, name: 'Giày Thần Tốc (Huyền Thoại)', type: 'game_shoes_legendary', value: 1, rate: '0.5%', quantity: 999, color: '#f59e0b', image: LEGENDARY_SHOES_IMG, wheel_type: 'spin', notify_on_win: true },
+                              { id: `WHEEL_STONE_${Date.now() + 1}`, name: '+5 Đá Tinh Hoa', type: 'game_essence_stone', value: 5, rate: '10%', quantity: 999, color: '#a855f7', image: '/game-assets/da_tinh_hoa.png', wheel_type: 'spin', notify_on_win: false },
+                              { id: `WHEEL_CRYSTAL_${Date.now() + 2}`, name: '+10 Viên Tinh Thể', type: 'game_ring_crystal', value: 10, rate: '10%', quantity: 999, color: '#ec4899', image: '/game-assets/ring_crystal.png', wheel_type: 'spin', notify_on_win: false },
+                              { id: `WHEEL_ATK_${Date.now() + 3}`, name: '+50.000 Lượt Đánh Boss', type: 'game_attacks', value: 50000, rate: '15%', quantity: 999, color: '#3b82f6', image: '/game-assets/weapon_song_dao.png', wheel_type: 'spin', notify_on_win: false },
+                              { id: `WHEEL_CHEST_B_${Date.now() + 4}`, name: '+3 Hòm Boss', type: 'game_boss_chests', value: 3, rate: '20%', quantity: 999, color: '#10b981', image: '/game-assets/mystery_box_closed.png', wheel_type: 'spin', notify_on_win: false },
+                              { id: `WHEEL_CHEST_R_${Date.now() + 5}`, name: '+1 Hòm Hoàng Kim', type: 'game_royal_chests', value: 1, rate: '5%', quantity: 999, color: '#8b5cf6', image: '/game-assets/royal_chest.png', wheel_type: 'spin', notify_on_win: false },
+                              { id: `WHEEL_COINS_${Date.now() + 6}`, name: '+20 Xu Nâng Cấp', type: 'game_coins', value: 20, rate: '5%', quantity: 999, color: '#eab308', image: '/game-assets/gold_coin.png', wheel_type: 'spin', notify_on_win: false },
+                              { id: `WHEEL_NONE_${Date.now() + 7}`, name: 'Chúc may mắn lần sau', type: 'none', value: 0, rate: '34.5%', quantity: 999, color: '#475569', image: null, wheel_type: 'spin', notify_on_win: false }
                             ];
+
+                            sampleItems.forEach(it => saveWheelNotifyFallback(it.id, it.notify_on_win));
 
                             try {
                               try {
@@ -14442,8 +14573,13 @@ const App = () => {
                               } catch (delErr) {}
                               const { error } = await supabase.from('wheel_items').insert(sampleItems);
                               if (error) {
-                                showToast("Lỗi khi thêm mẫu: " + error.message, 'error');
-                                return;
+                                if (error.message && (error.message.includes('notify_on_win') || error.code === '42703')) {
+                                  const safeSample = sampleItems.map(({ notify_on_win, ...rest }) => rest);
+                                  await supabase.from('wheel_items').insert(safeSample);
+                                } else {
+                                  showToast("Lỗi khi thêm mẫu: " + error.message, 'error');
+                                  return;
+                                }
                               }
                               setWheelItemsSpinDb(sampleItems);
                               localStorage.setItem('shop_wheel_spin', JSON.stringify(sampleItems));
@@ -14462,7 +14598,9 @@ const App = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-                  {currentAdminWheelDb.map(w => (
+                  {currentAdminWheelDb.map(w => {
+                    const isNotified = Boolean(w.notify_on_win ?? getWheelNotifyFallback(w.id));
+                    return (
                     <div key={w.id} className="bg-[#0B1120] p-4 rounded-xl border border-slate-700 flex flex-col">
                       <div className="flex items-center gap-3 mb-3">
                         <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-slate-800 border border-slate-600`}>
@@ -14529,10 +14667,32 @@ const App = () => {
                           </p>
                         </div>
                       </div>
-                      <div className="flex gap-2 mb-3">
+                      <div className="flex gap-2 mb-2">
                         <div className="flex-1 bg-slate-900 px-2 py-1.5 rounded text-xs text-blue-400 font-bold border border-slate-800 text-center">Tỉ lệ: {w.rate}</div>
                         <div className="flex-1 bg-slate-900 px-2 py-1.5 rounded text-xs text-emerald-400 font-bold border border-slate-800 text-center">Còn: {w.quantity ?? 999}</div>
-                      </div>                        <div className="flex gap-2">
+                      </div>
+
+                      {/* Nút tích chọn / chuyển đổi thông báo trực tiếp trên thẻ */}
+                      <div className="flex items-center justify-between mb-3 px-2.5 py-1.5 bg-slate-900/90 rounded-lg border border-slate-800 text-xs">
+                        <span className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
+                          <Bell size={12} className={isNotified ? "text-amber-400" : "text-slate-600"} />
+                          Thông báo trúng:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleWheelNotify(w)}
+                          title="Bấm để bật/tắt nhanh thông báo Discord khi quay trúng món này"
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all flex items-center gap-1 ${
+                            isNotified
+                              ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30'
+                              : 'bg-slate-800 text-slate-500 border border-slate-700 hover:text-slate-400'
+                          }`}
+                        >
+                          {isNotified ? '🔔 Có Báo' : '🔕 Không Báo'}
+                        </button>
+                      </div>
+
+                      <div className="flex gap-2">
                         <button onClick={() => {
                           let editImg = w.image;
                           if (!editImg) {
@@ -14541,6 +14701,7 @@ const App = () => {
                           }
                           setEditingWheel(w);
                           setAdminWheelImage(editImg || null);
+                          setAdminWheelNotify(Boolean(w.notify_on_win ?? getWheelNotifyFallback(w.id)));
                           setAdminWheelRewardType(w.type || (adminWheelType === 'spin' ? 'game_attacks' : 'money'));
                           setShowWheelModal(true);
                         }} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors"><Edit size={14} className="mx-auto" /></button>
@@ -14562,7 +14723,8 @@ const App = () => {
                         }} className="flex-1 py-1.5 bg-rose-500/10 text-rose-400 rounded hover:bg-rose-500 hover:text-white transition-colors"><Trash2 size={14} className="mx-auto" /></button>
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
 
                 <div className="border-t border-slate-800 pt-8 overflow-x-auto">
@@ -15750,6 +15912,42 @@ const App = () => {
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  {/* 6. TÙY CHỌN THÔNG BÁO DISCORD KHI QUAY TRÚNG */}
+                  <div className="bg-[#0B1120] border border-slate-700/80 rounded-xl p-3.5 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg shrink-0 ${adminWheelNotify ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-500'}`}>
+                        <Bell size={20} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white flex items-center gap-2">
+                          Thông Báo Discord Khi Trúng
+                          {adminWheelNotify ? (
+                            <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold flex items-center gap-1">
+                              🔔 Đang Bật
+                            </span>
+                          ) : (
+                            <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700 font-semibold flex items-center gap-1">
+                              🔕 Đang Tắt
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Tích chọn để Bot Discord tự động gửi thông báo khi người chơi quay dính món này. Bỏ tích sẽ không thông báo để tránh spam chat.
+                        </p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        name="notify_on_win"
+                        checked={adminWheelNotify}
+                        onChange={(e) => setAdminWheelNotify(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
                   </div>
 
                   <button
