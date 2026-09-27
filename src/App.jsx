@@ -8832,8 +8832,9 @@ const App = () => {
   const getItemSetInfo = (it) => {
     if (!it) return null;
     const cat = String(it.category || '').toLowerCase();
-    if (cat === 'material' || cat === 'nguyenlieu' || cat === 'crystal') return null;
+    if (cat === 'material' || cat === 'nguyenlieu' || cat === 'crystal' || cat === 'shoes') return null;
     const name = String(it.name || '').toLowerCase();
+    if (name.includes('giày') || name.includes('bảo vật')) return null;
     const tier = String(it.tier || '').toLowerCase();
 
     // Bỏ qua nếu là nguyên liệu đá
@@ -8852,7 +8853,7 @@ const App = () => {
       setKey = 'epic';
     } else if (tier.includes('hiếm') || tier.includes('rare') || name.includes('trảm ma') || name.includes('giáp rồng') || name.includes('lam ngọc') || name.includes('cáo tuyết')) {
       setKey = 'hiem';
-    } else if (tier.includes('thường') || tier.includes('common') || name.includes('kiếm gỗ') || name.includes('giáp sắt') || name.includes('thiết giáp') || name.includes('bạc') || name.includes('hắc thiết') || name.includes('mèo béo') || name.includes('giày thường')) {
+    } else if (tier.includes('thường') || tier.includes('common') || name.includes('kiếm gỗ') || name.includes('giáp sắt') || name.includes('thiết giáp') || name.includes('bạc') || name.includes('hắc thiết') || name.includes('mèo béo')) {
       setKey = 'thuong';
     }
 
@@ -8862,7 +8863,7 @@ const App = () => {
 
   const getEquippedSetStatus = (setKey, playerSummary) => {
     if (!setKey || !playerSummary) return { equippedCount: 0, equippedSlots: [] };
-    const slots = ['weapon', 'armor', 'pants', 'necklace', 'ring', 'shoes', 'pet'];
+    const slots = ['weapon', 'armor', 'pants', 'necklace', 'ring', 'pet'];
     let count = 0;
     const equippedSlots = [];
     const targetRank = SET_TIER_RANKS[setKey] || 0;
@@ -8885,7 +8886,7 @@ const App = () => {
 
   const getPlayerActiveSets = (playerSummary) => {
     if (!playerSummary) return [];
-    const slots = ['weapon', 'armor', 'pants', 'necklace', 'ring', 'shoes', 'pet'];
+    const slots = ['weapon', 'armor', 'pants', 'necklace', 'ring', 'pet'];
     const validItems = [];
     slots.forEach(s => {
       const eq = playerSummary[s] || playerSummary[`boss_${s}`];
