@@ -1059,7 +1059,7 @@ const App = () => {
 
             const itemNotify = w.notify_on_win !== undefined && w.notify_on_win !== null ? Boolean(w.notify_on_win) : getWheelNotifyFallback(w.id);
 
-            if (w.id === 'WHEEL_GAME_COINS' || (n.includes('xu') && (w.type === 'other' || w.type === 'game_coins'))) {
+            if (n.includes('xu') && (w.type === 'other' || w.type === 'game_coins' || w.id === 'WHEEL_GAME_COINS')) {
               return {
                 ...w,
                 image: img,
@@ -1123,7 +1123,7 @@ const App = () => {
 
         if (session) {
           // Tìm xem ai đang đăng nhập
-          const { data: user } = await supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').eq('id', session.user.id).single();
+          const { data: user } = await supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at, linked_game_id').eq('id', session.user.id).single();
 
           if (user && !user.is_locked) {
             // Tra cứu linked_game_id từ Supabase game_orders (OTP completed) - ưu tiên server để tránh cache sai lệch giữa các tài khoản
@@ -1145,8 +1145,18 @@ const App = () => {
               console.log("OTP link lookup:", e);
             }
 
+            if (!linkedGameId && user.linked_game_id) {
+              linkedGameId = user.linked_game_id;
+            }
+            if (!linkedGameId) {
+              linkedGameId = localStorage.getItem(`shop_linked_game_id_${user.id}`);
+            }
+
             if (linkedGameId) {
               localStorage.setItem(`shop_linked_game_id_${user.id}`, linkedGameId);
+              if (!user.linked_game_id) {
+                supabase.from('users').update({ linked_game_id: linkedGameId }).eq('id', user.id).then(() => {});
+              }
             } else {
               localStorage.removeItem(`shop_linked_game_id_${user.id}`);
             }
@@ -1516,8 +1526,10 @@ const App = () => {
         // TẤT CẢ: Nếu data thay đổi là của chính mình → tự cập nhật số dư, lượt quay, v.v.
         // (Giải quyết bug: Duyệt qua Telegram nhưng khách phải F5 mới thấy số dư mới)
         if (payload.new.id === me?.id) {
-          setCurrentUser(payload.new);
-          localStorage.setItem('shop_cached_user', JSON.stringify(payload.new));
+          const preservedLinked = payload.new.linked_game_id || me?.linked_game_id || localStorage.getItem(`shop_linked_game_id_${me?.id}`);
+          const mergedMe = { ...payload.new, linked_game_id: preservedLinked };
+          setCurrentUser(mergedMe);
+          localStorage.setItem('shop_cached_user', JSON.stringify(mergedMe));
         }
       })
       .subscribe();
@@ -1548,6 +1560,31 @@ const App = () => {
               }
             }
           }
+        }
+      })
+      .subscribe();
+
+    // Lắng nghe CẬP NHẬT CẤU HÌNH VÒNG QUAY REALTIME (Bật/tắt chuông thông báo, tỉ lệ, phần thưởng)
+    const wheelItemsChannel = supabase.channel('realtime-wheel-items')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wheel_items' }, async () => {
+        try {
+          const { data } = await supabase.from('wheel_items').select('*');
+          if (data) {
+            const moneyItems = data.filter(w => w.wheel_type === 'money').map(w => ({
+              ...w,
+              notify_on_win: w.notify_on_win !== undefined && w.notify_on_win !== null ? Boolean(w.notify_on_win) : getWheelNotifyFallback(w.id)
+            }));
+            const spinItems = data.filter(w => w.wheel_type === 'spin').map(w => ({
+              ...w,
+              notify_on_win: w.notify_on_win !== undefined && w.notify_on_win !== null ? Boolean(w.notify_on_win) : getWheelNotifyFallback(w.id)
+            }));
+            setWheelItemsMoneyDb(moneyItems);
+            setWheelItemsSpinDb(spinItems);
+            try { localStorage.setItem('shop_wheel_money', JSON.stringify(moneyItems)); } catch (e) { }
+            try { localStorage.setItem('shop_wheel_spin', JSON.stringify(spinItems)); } catch (e) { }
+          }
+        } catch (e) {
+          console.warn("Lỗi sync realtime wheel_items:", e);
         }
       })
       .subscribe();
@@ -6223,11 +6260,13 @@ const App = () => {
         }
 
         // Đồng bộ lại tiền từ Server trả về lên giao diện Web
+        const currentLinked = currentUser?.linked_game_id || localStorage.getItem(`shop_linked_game_id_${currentUser?.id}`);
         const updatedUser = {
           ...currentUser,
           balance: data.new_balance,
           spins: data.new_spins,
-          rentFund: data.new_fund
+          rentFund: data.new_fund,
+          linked_game_id: currentLinked
         };
         setCurrentUser(updatedUser);
         localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
@@ -6251,8 +6290,11 @@ const App = () => {
 
         // TỰ ĐỘNG GỬI VẬT PHẨM GAME VÀO SUPABASE GAME_ORDERS NẾU TRÚNG QUÀ IN-GAME
         const isGameReward = isGameItem(winningItem) || wonShoes;
-        if (isGameReward && currentUser?.linked_game_id) {
-          const targetGameUid = currentUser.linked_game_id;
+        const targetGameUid = currentLinked
+          || (currentUser?.name ? currentUser.name.trim() : null)
+          || currentUser?.id;
+
+        if (isGameReward && targetGameUid) {
           const orderId = `WO_WHEEL_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
           let orderRewards = {};
           let pkgId = `wheel_${winningItem.type || 'reward'}`;
@@ -6328,7 +6370,11 @@ const App = () => {
             };
           }
 
-          const shouldNotify = Boolean(winningItem.notify_on_win ?? getWheelNotifyFallback(winningItem.id));
+          const shouldNotify = Boolean(
+            winningItem.notify_on_win 
+            ?? getWheelNotifyFallback(winningItem.id) 
+            ?? (wonShoes || winningItem.type === 'game_shoes_legendary')
+          );
 
           try {
             supabase.from('game_orders').insert([{
@@ -6339,6 +6385,7 @@ const App = () => {
               package_id: pkgId,
               package_name: pkgName,
               price: 0,
+              notify: shouldNotify,
               rewards: {
                 ...orderRewards,
                 notify: shouldNotify,
@@ -6372,7 +6419,7 @@ const App = () => {
           isGameReward: isGameReward,
           isPityWin: isPityTriggered,
           pityCount: nextPity,
-          hasLinkedGame: Boolean(currentUser?.linked_game_id)
+          hasLinkedGame: Boolean(currentLinked)
         });
         setIsGiftOpened(true);
       }, 4000);
@@ -6559,11 +6606,13 @@ const App = () => {
         const winAudio = document.getElementById('winSound');
         if (winAudio) { winAudio.currentTime = 0; winAudio.volume = 0.85; winAudio.play().catch(e => { }); }
 
+        const currentLinked = currentUser?.linked_game_id || localStorage.getItem(`shop_linked_game_id_${currentUser?.id}`);
         const updatedUser = {
           ...currentUser,
           balance: finalNewBalance,
           spins: finalNewSpins,
-          rentFund: finalNewFund
+          rentFund: finalNewFund,
+          linked_game_id: currentLinked
         };
         setCurrentUser(updatedUser);
         localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
@@ -6604,8 +6653,11 @@ const App = () => {
 
         // TỰ ĐỘNG GỬI VẬT PHẨM GAME VÀO GAME_ORDERS
         const hasAnyGameReward = hasShoes || sumAttacks > 0 || sumBossChests > 0 || sumRoyalChests > 0 || sumCoins > 0 || sumEssenceStones > 0 || sumRingCrystals > 0;
-        if (currentUser?.linked_game_id && hasAnyGameReward) {
-          const targetGameUid = currentUser.linked_game_id;
+        const targetGameUid = currentLinked
+          || (currentUser?.name ? currentUser.name.trim() : null)
+          || currentUser?.id;
+
+        if (hasAnyGameReward && targetGameUid) {
           const orderId = `WO_X10_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
           const orderRewards = {};
           const itemsList = [];
@@ -6655,7 +6707,11 @@ const App = () => {
           // Kiểm tra xem trong các phần thưởng quay trúng có món nào được bật thông báo hay không
           const shouldNotifyX10 = itemsResult.some(it => {
             const rawItem = activeDb.find(dbIt => dbIt.id === it.id) || it;
-            return Boolean(rawItem?.notify_on_win ?? getWheelNotifyFallback(rawItem?.id));
+            return Boolean(
+              rawItem?.notify_on_win 
+              ?? getWheelNotifyFallback(rawItem?.id)
+              ?? (rawItem?.isShoes || rawItem?.type === 'game_shoes_legendary')
+            );
           });
 
           try {
@@ -6667,6 +6723,7 @@ const App = () => {
               package_id: 'wheel_spin_x10',
               package_name: 'Vòng Quay May Mắn (Gói x10 Lượt)',
               price: 0,
+              notify: shouldNotifyX10,
               rewards: {
                 ...orderRewards,
                 notify: shouldNotifyX10,
@@ -6725,8 +6782,8 @@ const App = () => {
             sumRingCrystals,
             totalCost,
             finalPity,
-            hasLinkedGame: Boolean(currentUser?.linked_game_id),
-            linkedGameId: currentUser?.linked_game_id
+            hasLinkedGame: Boolean(currentLinked),
+            linkedGameId: currentLinked
           }
         });
         setIsSpin10Opened(true);
@@ -13216,17 +13273,17 @@ const App = () => {
 
         // Cập nhật màn hình
         if (adminWheelType === 'money') {
-          if (editingWheel) {
-            setWheelItemsMoneyDb(wheelItemsMoneyDb.map(w => w.id === editingWheel.id ? wheelData : w));
-          } else {
-            setWheelItemsMoneyDb([...wheelItemsMoneyDb, wheelData]);
-          }
+          const nextList = editingWheel 
+            ? wheelItemsMoneyDb.map(w => w.id === editingWheel.id ? wheelData : w)
+            : [...wheelItemsMoneyDb, wheelData];
+          setWheelItemsMoneyDb(nextList);
+          try { localStorage.setItem('shop_wheel_money', JSON.stringify(nextList)); } catch (e) { }
         } else {
-          if (editingWheel) {
-            setWheelItemsSpinDb(wheelItemsSpinDb.map(w => w.id === editingWheel.id ? wheelData : w));
-          } else {
-            setWheelItemsSpinDb([...wheelItemsSpinDb, wheelData]);
-          }
+          const nextList = editingWheel 
+            ? wheelItemsSpinDb.map(w => w.id === editingWheel.id ? wheelData : w)
+            : [...wheelItemsSpinDb, wheelData];
+          setWheelItemsSpinDb(nextList);
+          try { localStorage.setItem('shop_wheel_spin', JSON.stringify(nextList)); } catch (e) { }
         }
 
         showToast(editingWheel ? "Sửa phần thưởng thành công!" : "Thêm phần thưởng thành công!");
@@ -13242,9 +13299,13 @@ const App = () => {
       const updatedItem = { ...item, notify_on_win: nextVal };
 
       if (adminWheelType === 'money') {
-        setWheelItemsMoneyDb(wheelItemsMoneyDb.map(w => w.id === item.id ? updatedItem : w));
+        const nextList = wheelItemsMoneyDb.map(w => w.id === item.id ? updatedItem : w);
+        setWheelItemsMoneyDb(nextList);
+        try { localStorage.setItem('shop_wheel_money', JSON.stringify(nextList)); } catch (e) { }
       } else {
-        setWheelItemsSpinDb(wheelItemsSpinDb.map(w => w.id === item.id ? updatedItem : w));
+        const nextList = wheelItemsSpinDb.map(w => w.id === item.id ? updatedItem : w);
+        setWheelItemsSpinDb(nextList);
+        try { localStorage.setItem('shop_wheel_spin', JSON.stringify(nextList)); } catch (e) { }
       }
 
       try {
