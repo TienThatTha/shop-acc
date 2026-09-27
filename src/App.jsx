@@ -665,10 +665,98 @@ const App = () => {
     const name = String(item.name || '').toLowerCase();
     if (type.startsWith('game_')) return true;
     if (type === 'coins' || type === 'xu') return true;
-    if (name.includes('xu nâng cấp') || name.includes('xu game') || name.includes('hòm boss') || name.includes('hòm hoàng kim') || name.includes('lượt đánh')) {
+    if (name.includes('xu nâng cấp') || name.includes('xu game') || name.includes('hòm boss') || name.includes('hòm hoàng kim') || name.includes('lượt đánh') || name.includes('đá tinh hoa') || name.includes('tinh thể') || name.includes('tinh hoa')) {
       return true;
     }
     return false;
+  };
+
+  // CATALOG VẬT PHẨM TRONG GAME CHO VÒNG QUAY & TỰ ĐỘNG LẤY DỮ LIỆU
+  const IN_GAME_REWARD_CATALOG = {
+    game_shoes_legendary: {
+      id: 'game_shoes_legendary',
+      name: 'Giày Thần Tốc (Huyền Thoại)',
+      badge: '👟 Giày HT (Pity 121)',
+      label: 'Số lượng Giày tặng',
+      unit: 'Đôi',
+      defaultValue: 1,
+      defaultRate: '0.5%',
+      defaultColor: '#f59e0b',
+      image: LEGENDARY_SHOES_IMG,
+      desc: '👟 Trang bị Huyền Thoại (+300 Tốc độ). Áp dụng cơ chế Bảo hiểm 121 lần quay.'
+    },
+    game_essence_stone: {
+      id: 'game_essence_stone',
+      name: '+5 Đá Tinh Hoa',
+      badge: '💎 Đá Tinh Hoa',
+      label: 'Số lượng Đá Tinh Hoa tặng',
+      unit: 'Viên',
+      defaultValue: 5,
+      defaultRate: '10%',
+      defaultColor: '#a855f7',
+      image: '/game-assets/da_tinh_hoa.png',
+      desc: '💎 Đá quý chứa tinh hoa trời đất, tự động chuyển vào túi đồ nhân vật game để nâng cấp Level Kỹ Năng Nhẫn Thần Binh.'
+    },
+    game_ring_crystal: {
+      id: 'game_ring_crystal',
+      name: '+10 Viên Tinh Thể',
+      badge: '🔮 Viên Tinh Thể',
+      label: 'Số lượng Tinh Thể tặng',
+      unit: 'Viên',
+      defaultValue: 10,
+      defaultRate: '10%',
+      defaultColor: '#ec4899',
+      image: '/game-assets/ring_crystal.png',
+      desc: '🔮 Tinh thể tinh khiết tự động chuyển vào túi đồ nhân vật game để cường hóa, tăng sao và đột phá Nhẫn Thần Binh.'
+    },
+    game_attacks: {
+      id: 'game_attacks',
+      name: '+50.000 Lượt Đánh Boss',
+      badge: '⚔️ Lượt Đánh',
+      label: 'Số lượng lượt đánh tặng',
+      unit: 'Lượt',
+      defaultValue: 50000,
+      defaultRate: '15%',
+      defaultColor: '#3b82f6',
+      image: null,
+      desc: '⚔️ Tự động cộng số lượt đánh Boss vào nhân vật game (vĩnh viễn).'
+    },
+    game_boss_chests: {
+      id: 'game_boss_chests',
+      name: '+3 Hòm Boss',
+      badge: '📦 Hòm Boss',
+      label: 'Số lượng Hòm Boss tặng',
+      unit: 'Hòm',
+      defaultValue: 3,
+      defaultRate: '20%',
+      defaultColor: '#10b981',
+      image: '/game-assets/mystery_box_closed.png',
+      desc: '📦 Tự động gửi Hòm Boss thường vào túi đồ nhân vật game.'
+    },
+    game_royal_chests: {
+      id: 'game_royal_chests',
+      name: '+1 Hòm Hoàng Kim',
+      badge: '👑 Hòm HK',
+      label: 'Số lượng Hòm HK tặng',
+      unit: 'Hòm HK',
+      defaultValue: 1,
+      defaultRate: '5%',
+      defaultColor: '#8b5cf6',
+      image: '/game-assets/royal_chest.png',
+      desc: '👑 Tự động gửi Hòm Hoàng Kim cao cấp vào túi đồ nhân vật game.'
+    },
+    game_coins: {
+      id: 'game_coins',
+      name: '+20 Xu Nâng Cấp',
+      badge: '🪙 Xu Game',
+      label: 'Số lượng Xu Nâng Cấp tặng',
+      unit: 'Xu',
+      defaultValue: 20,
+      defaultRate: '5%',
+      defaultColor: '#eab308',
+      image: null,
+      desc: '🪙 Tự động cộng Xu Nâng Cấp Boss vào nhân vật game.'
+    }
   };
 
   const [shoesPity, setShoesPity] = useState(() => {
@@ -710,6 +798,33 @@ const App = () => {
       setCurrentView('dashboard');
     }
   }, [currentView, hasActiveWheelRewards]);
+
+  // Tự động tải các giao dịch quay thưởng mới nhất từ cộng đồng để hiển thị lên thanh vinh danh
+  useEffect(() => {
+    let isSubscribed = true;
+    const fetchPublicSpinWins = async () => {
+      try {
+        const { data: publicWins } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('type', 'spin_win')
+          .order('created_at', { ascending: false })
+          .limit(30);
+
+        if (publicWins && isSubscribed) {
+          setTransactionsDb(prev => {
+            const existingIds = new Set(prev.map(p => p.id));
+            const newItems = publicWins.filter(w => !existingIds.has(w.id));
+            if (newItems.length === 0) return prev;
+            return [...newItems, ...prev];
+          });
+        }
+      } catch (e) {}
+    };
+
+    fetchPublicSpinWins();
+    return () => { isSubscribed = false; };
+  }, [currentView]);
 
   // --- LIFTED STATES TỪ CÁC TAB ĐỂ TRÁNH MẤT FOCUS KHI COMPONENT RENDER LẠI ---
   const [profileTab, setProfileTab] = useState('info');
@@ -1371,7 +1486,7 @@ const App = () => {
     const spinTicketChannel = supabase.channel('realtime-spin-ticket-orders')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_orders' }, async (payload) => {
         const ord = payload.new;
-        if (ord && ord.package_id === 'add_spin_tickets' && ord.status === 'pending') {
+        if (ord && ord.package_id === 'add_spin_tickets') {
           const me = currentUserRef.current;
           if (!me) return;
           const cleanLinked = (me.linked_game_id || '').toLowerCase().replace(/^@/, '');
@@ -1380,11 +1495,15 @@ const App = () => {
           if (isMatch) {
             const addedSpins = parseInt(ord.rewards?.spins || ord.rewards?.tickets || 0, 10);
             if (addedSpins > 0) {
-              const newSpins = (me.spins || 0) + addedSpins;
-              const { error: updErr } = await supabase.from('users').update({ spins: newSpins }).eq('id', me.id);
-              if (!updErr) {
-                await supabase.from('game_orders').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', ord.id);
-                setCurrentUser(prev => prev ? ({ ...prev, spins: newSpins }) : prev);
+              if (ord.status === 'pending') {
+                const newSpins = (me.spins || 0) + addedSpins;
+                const { error: updErr } = await supabase.from('users').update({ spins: newSpins }).eq('id', me.id);
+                if (!updErr) {
+                  await supabase.from('game_orders').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', ord.id);
+                  setCurrentUser(prev => prev ? ({ ...prev, spins: newSpins }) : prev);
+                  showToast(`🎉 Nhận thành công +${addedSpins} Lượt Quay Vòng Quay từ nhân vật game!`, 'success');
+                }
+              } else {
                 showToast(`🎉 Nhận thành công +${addedSpins} Lượt Quay Vòng Quay từ nhân vật game!`, 'success');
               }
             }
@@ -2632,37 +2751,6 @@ const App = () => {
               <>
                 {/* --- KHU VỰC HIỂN THỊ SỐ DƯ & PHÍM TẮT GAME --- */}
                 <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                  {/* Phím tắt Túi Đồ / Chợ Xu cho người đã liên kết */}
-                  {bossPlayerSummary && (
-                    <div className="hidden md:flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          requireAuth('bossgame');
-                          setCurrentView('bossgame');
-                          setShowBagModal(true);
-                        }}
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-purple-500/15 hover:bg-purple-500/25 border border-purple-400/40 text-purple-300 font-bold text-xs rounded-xl transition-all shadow-sm cursor-pointer"
-                        title="Bấm để mở Túi Đồ & Trang Bị"
-                      >
-                        <Package size={14} className="text-purple-400" />
-                        <span>🎒 Túi Đồ</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          requireAuth('bossgame');
-                          setCurrentView('bossgame');
-                          fetchAuctionMarketData();
-                          setShowAuctionModal(true);
-                        }}
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 font-bold text-xs rounded-xl transition-all shadow-sm cursor-pointer"
-                        title="Bấm để mở Sàn Đấu Giá"
-                      >
-                        <span>🏛️ Chợ Xu</span>
-                      </button>
-                    </div>
-                  )}
 
                   {/* Số Dư Ví */}
                   <div
@@ -6110,9 +6198,39 @@ const App = () => {
                 category: 'shoes',
                 type: 'shoes',
                 tier: 'Huyền Thoại',
-                base_agility: 120,
-                agility: 120,
-                description: 'Giày Huyền Thoại Thần Tốc (+120 Tốc độ) nhận từ Vòng Quay May Mắn (Bảo hiểm 121)'
+                base_agility: 300,
+                agility: 300,
+                description: 'Giày Huyền Thoại Thần Tốc (+300 Tốc độ) nhận từ Vòng Quay May Mắn (Bảo hiểm 121)'
+              }]
+            };
+          } else if (winningItem.type === 'game_essence_stone' || winningItem.name?.toLowerCase().includes('tinh hoa')) {
+            pkgId = 'wheel_game_essence_stone';
+            pkgName = `Vòng Quay: ${winningItem.name}`;
+            orderRewards = {
+              items: [{
+                id: 'item_essence_stone',
+                name: 'Đá Tinh Hoa',
+                category: 'material',
+                type: 'material',
+                tier: 'Thượng Cổ',
+                quantity: Number(winningItem.value) || 5,
+                image: 'da_tinh_hoa.png',
+                desc: 'Đá quý thăng cấp kỹ năng Nhẫn Thần Binh'
+              }]
+            };
+          } else if (winningItem.type === 'game_ring_crystal' || winningItem.name?.toLowerCase().includes('tinh thể')) {
+            pkgId = 'wheel_game_ring_crystal';
+            pkgName = `Vòng Quay: ${winningItem.name}`;
+            orderRewards = {
+              items: [{
+                id: 'item_ring_crystal',
+                name: 'Tinh Thể Cường Hóa',
+                category: 'material',
+                type: 'material',
+                tier: 'Thượng Cổ',
+                quantity: Number(winningItem.value) || 10,
+                image: 'ring_crystal.png',
+                desc: 'Tinh thể cường hóa, nâng sao và đột phá Nhẫn Thần Binh'
               }]
             };
           } else if (winningItem.type === 'game_attacks' || winningItem.name?.toLowerCase().includes('lượt đánh')) {
@@ -6127,6 +6245,17 @@ const App = () => {
           } else if (winningItem.type === 'game_coins' || winningItem.type === 'coins' || winningItem.type === 'xu' || winningItem.name?.toLowerCase().includes('xu')) {
             pkgId = 'wheel_game_coins';
             orderRewards = { coins: Number(winningItem.value) || 20 };
+          } else if (winningItem.type?.startsWith('game_')) {
+            pkgId = `wheel_${winningItem.type}`;
+            pkgName = `Vòng Quay: ${winningItem.name}`;
+            orderRewards = {
+              items: [{
+                id: winningItem.type.replace(/^game_/, 'item_'),
+                name: winningItem.name,
+                category: 'material',
+                quantity: Number(winningItem.value) || 1
+              }]
+            };
           }
 
           try {
@@ -6378,12 +6507,16 @@ const App = () => {
         let sumMoney = 0;
         let sumSpins = 0;
         let sumFund = 0;
+        let sumEssenceStones = 0;
+        let sumRingCrystals = 0;
         let hasShoes = false;
 
         itemsResult.forEach(it => {
           const itType = String(it.type || '').toLowerCase();
           const itName = String(it.name || '').toLowerCase();
           if (it.isShoes || itType === 'game_shoes_legendary' || itName.includes('giày')) hasShoes = true;
+          else if (itType === 'game_essence_stone' || itName.includes('tinh hoa')) sumEssenceStones += (Number(it.value) || 5);
+          else if (itType === 'game_ring_crystal' || itName.includes('tinh thể')) sumRingCrystals += (Number(it.value) || 10);
           else if (itType === 'game_attacks' || itName.includes('lượt đánh')) sumAttacks += (Number(it.value) || 5);
           else if (itType === 'game_boss_chests' || itName.includes('hòm boss')) sumBossChests += (Number(it.value) || 3);
           else if (itType === 'game_royal_chests' || itName.includes('hoàng kim')) sumRoyalChests += (Number(it.value) || 1);
@@ -6394,23 +6527,50 @@ const App = () => {
         });
 
         // TỰ ĐỘNG GỬI VẬT PHẨM GAME VÀO GAME_ORDERS
-        if (currentUser?.linked_game_id && (hasShoes || sumAttacks > 0 || sumBossChests > 0 || sumRoyalChests > 0 || sumCoins > 0)) {
+        const hasAnyGameReward = hasShoes || sumAttacks > 0 || sumBossChests > 0 || sumRoyalChests > 0 || sumCoins > 0 || sumEssenceStones > 0 || sumRingCrystals > 0;
+        if (currentUser?.linked_game_id && hasAnyGameReward) {
           const targetGameUid = currentUser.linked_game_id;
           const orderId = `WO_X10_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
           const orderRewards = {};
+          const itemsList = [];
 
           if (hasShoes) {
-            orderRewards.items = [{
+            itemsList.push({
               id: `SHOES_LEGENDARY_${Date.now()}`,
               name: 'Giày Thần Tốc',
               category: 'shoes',
               type: 'shoes',
               tier: 'Huyền Thoại',
-              base_agility: 120,
-              agility: 120,
-              description: 'Giày Huyền Thoại Thần Tốc (+120 Tốc độ) nhận từ Vòng Quay x10'
-            }];
+              base_agility: 300,
+              agility: 300,
+              description: 'Giày Huyền Thoại Thần Tốc (+300 Tốc độ) nhận từ Vòng Quay x10'
+            });
           }
+          if (sumEssenceStones > 0) {
+            itemsList.push({
+              id: 'item_essence_stone',
+              name: 'Đá Tinh Hoa',
+              category: 'material',
+              type: 'material',
+              tier: 'Thượng Cổ',
+              quantity: sumEssenceStones,
+              image: 'da_tinh_hoa.png',
+              desc: 'Đá quý thăng cấp kỹ năng Nhẫn Thần Binh'
+            });
+          }
+          if (sumRingCrystals > 0) {
+            itemsList.push({
+              id: 'item_ring_crystal',
+              name: 'Tinh Thể Cường Hóa',
+              category: 'material',
+              type: 'material',
+              tier: 'Thượng Cổ',
+              quantity: sumRingCrystals,
+              image: 'ring_crystal.png',
+              desc: 'Tinh thể cường hóa, nâng sao và đột phá Nhẫn Thần Binh'
+            });
+          }
+          if (itemsList.length > 0) orderRewards.items = itemsList;
           if (sumAttacks > 0) orderRewards.attacks = sumAttacks;
           if (sumBossChests > 0) orderRewards.boss_chests = sumBossChests;
           if (sumRoyalChests > 0) orderRewards.royal_chests = sumRoyalChests;
@@ -6436,6 +6596,25 @@ const App = () => {
         try {
           const { data: newTxs } = await supabase.from('transactions').select('*').eq('user', currentUser.name).order('created_at', { ascending: false }).limit(5);
           if (newTxs) {
+            // Nếu có trúng vật phẩm in-game quan trọng trong lượt x10, cập nhật mô tả chi tiết để cộng đồng thấy trên ticker
+            const wonPrizesList = [];
+            if (hasShoes) wonPrizesList.push('Giày Thần Tốc');
+            if (sumEssenceStones > 0) wonPrizesList.push(`${sumEssenceStones} Đá Tinh Hoa`);
+            if (sumRingCrystals > 0) wonPrizesList.push(`${sumRingCrystals} Viên Tinh Thể`);
+            if (sumBossChests > 0) wonPrizesList.push(`${sumBossChests} Hòm Boss`);
+            if (sumRoyalChests > 0) wonPrizesList.push(`${sumRoyalChests} Hòm Hoàng Kim`);
+            if (sumAttacks > 0) wonPrizesList.push(`+${sumAttacks} Lượt Boss`);
+            if (sumCoins > 0) wonPrizesList.push(`+${sumCoins} Xu`);
+
+            if (wonPrizesList.length > 0) {
+              const x10Tx = newTxs.find(t => t.id?.startsWith('SPIN10_') || t.action?.includes('Quay Vòng Quay x10'));
+              if (x10Tx) {
+                const updatedAction = `Trúng phần thưởng (Quay x10): ${wonPrizesList.join(', ')}`;
+                x10Tx.action = updatedAction;
+                supabase.from('transactions').update({ action: updatedAction }).eq('id', x10Tx.id).then(() => {});
+              }
+            }
+
             setTransactionsDb(prev => {
               const filtered = prev.filter(p => !newTxs.find(n => n.id === p.id));
               return [...newTxs, ...filtered];
@@ -6456,6 +6635,8 @@ const App = () => {
             sumMoney,
             sumSpins,
             sumFund,
+            sumEssenceStones,
+            sumRingCrystals,
             totalCost,
             finalPity,
             hasLinkedGame: Boolean(currentUser?.linked_game_id),
@@ -6477,6 +6658,8 @@ const App = () => {
       } else if (!displayImg) {
         if (itType === 'game_boss_chests') displayImg = '/game-assets/mystery_box_closed.png';
         else if (itType === 'game_royal_chests') displayImg = '/game-assets/royal_chest.png';
+        else if (itType === 'game_essence_stone' || itName.includes('tinh hoa')) displayImg = '/game-assets/da_tinh_hoa.png';
+        else if (itType === 'game_ring_crystal' || itName.includes('tinh thể')) displayImg = '/game-assets/ring_crystal.png';
       }
 
       if (isShoes || itName.includes('giày')) {
@@ -6492,7 +6675,39 @@ const App = () => {
           tagText: '#fde047',
           displayImg,
           shortTitle: 'GIÀY THẦN TỐC',
-          valText: '+120 TỐC ĐỘ'
+          valText: '+300 TỐC ĐỘ'
+        };
+      }
+      if (itType === 'game_essence_stone' || itName.includes('tinh hoa')) {
+        return {
+          theme: 'essence_stone',
+          fillGrad: 'url(#grad-slice-royal)',
+          stroke: '#c084fc',
+          strokeGlow: 'rgba(168, 85, 247, 0.85)',
+          glowColor: '#a855f7',
+          tag: 'ĐÁ TINH HOA',
+          tagBg: 'rgba(168, 85, 247, 0.35)',
+          tagBorder: '#a855f7',
+          tagText: '#f3e8ff',
+          displayImg: displayImg || '/game-assets/da_tinh_hoa.png',
+          shortTitle: 'ĐÁ TINH HOA',
+          valText: `+${w.value || 5} VIÊN`
+        };
+      }
+      if (itType === 'game_ring_crystal' || itName.includes('tinh thể')) {
+        return {
+          theme: 'ring_crystal',
+          fillGrad: 'url(#grad-slice-shoes)',
+          stroke: '#f472b6',
+          strokeGlow: 'rgba(236, 72, 153, 0.85)',
+          glowColor: '#ec4899',
+          tag: 'VIÊN TINH THỂ',
+          tagBg: 'rgba(236, 72, 153, 0.35)',
+          tagBorder: '#ec4899',
+          tagText: '#fce7f3',
+          displayImg: displayImg || '/game-assets/ring_crystal.png',
+          shortTitle: 'VIÊN TINH THỂ',
+          valText: `+${w.value || 10} VIÊN`
         };
       }
       if (itType === 'game_royal_chests' || itName.includes('hoàng kim')) {
@@ -6632,12 +6847,62 @@ const App = () => {
     const cy = 260;
     const rOuter = 216;
 
-    // LỌC RA 5 NGƯỜI QUAY TRÚNG MỚI NHẤT ĐỂ CHẠY CHỮ
-    const recentWinners = transactionsDb.filter(t =>
-      t.type === 'spin_win' &&
-      t.amount !== 0 &&
-      !t.isSpinCost
-    ).slice(0, 5);
+    // LỌC RA NHỮNG NGƯỜI QUAY TRÚNG VẬT PHẨM IN-GAME MỚI NHẤT ĐỂ CHẠY CHỮ
+    // (Bỏ qua hoàn toàn các quà tiền mặt VNĐ cũ như Sunnalucy 20k VNĐ và lượt trượt; nếu chưa ai trúng vật phẩm game thì để trống)
+    const isGameRewardTx = (t) => {
+      if (!t) return false;
+      const tType = t.type || '';
+      if (tType !== 'spin_win' && !t.id?.startsWith('WO_WHEEL')) return false;
+
+      const act = (t.action || t.package_name || '').trim();
+      const actLower = act.toLowerCase();
+
+      // Loại bỏ hoàn toàn kết quả trượt
+      if (actLower.includes('chúc may mắn') || actLower.includes('không trúng') || actLower.includes('that bai')) {
+        return false;
+      }
+
+      // Loại bỏ hoàn toàn tiền mặt / VNĐ cũ (như Sunnalucy vừa nhận 20k VNĐ, 10k VNĐ...)
+      if (actLower.includes('vnđ') || actLower.includes('vnd') || actLower.includes('tiền') || actLower.includes('quỹ')) {
+        return false;
+      }
+
+      // Loại bỏ lượt quay web thông thường (+1 Lượt, +2 Lượt) trừ khi là lượt đánh boss
+      if ((actLower.includes('cộng 1 lượt') || actLower.includes('cộng 2 lượt') || actLower.includes('lượt quay')) &&
+          !actLower.includes('đánh') && !actLower.includes('boss')) {
+        return false;
+      }
+
+      // Nhận diện các phần thưởng vật phẩm Game:
+      // - Giày Thần Tốc / Giày Huyền Thoại
+      // - Đá Tinh Hoa
+      // - Viên Tinh Thể / Tinh Thể Cường Hóa
+      // - Lượt Đánh Boss
+      // - Hòm Boss / Rương Boss
+      // - Hòm Hoàng Kim / Rương Hoàng Kim
+      // - Xu Nâng Cấp
+      // - Hoặc bất kỳ item nào bắt đầu bằng game_
+      const isGameItem =
+        actLower.includes('giày') ||
+        actLower.includes('thần tốc') ||
+        actLower.includes('huyền thoại') ||
+        actLower.includes('tinh hoa') ||
+        actLower.includes('tinh thể') ||
+        actLower.includes('boss') ||
+        actLower.includes('hoàng kim') ||
+        actLower.includes('lượt đánh') ||
+        actLower.includes('xu nâng cấp') ||
+        actLower.includes('hòm') ||
+        actLower.includes('rương') ||
+        (t.item_type && String(t.item_type).startsWith('game_'));
+
+      return isGameItem;
+    };
+
+    const recentWinners = [...transactionsDb]
+      .filter(isGameRewardTx)
+      .sort((a, b) => getRecordTime(b) - getRecordTime(a))
+      .slice(0, 5);
 
     // 24 ĐÈN LED CHẠY VIỀN KHUNG HOÀNG GIA
     const numLeds = 24;
@@ -6691,180 +6956,136 @@ const App = () => {
             </p>
           </div>
 
-          {/* THANH ĐIỀU KHIỂN & TRẠNG THÁI NGƯỜI CHƠI (UNIFIED CONTROL BAR) */}
-          <div className="w-full max-w-4xl mx-auto bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl p-2.5 sm:p-3 mb-6 shadow-2xl flex flex-wrap items-center justify-between gap-3">
-            {/* Chuyển đổi chế độ quay (Lượt vs Tiền) */}
-            <div className="flex bg-[#0b1120] p-1 rounded-xl border border-slate-800/80 shadow-inner">
-              {wheelItemsSpinDb.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setPlayMode('spin')}
-                  className={`px-4 sm:px-5 py-2 text-xs sm:text-sm font-black rounded-lg transition-all flex items-center gap-2 ${
-                    playMode === 'spin'
-                      ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-lg shadow-rose-600/30'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Ticket size={16} /> <span>Vòng Quay Lượt</span>
-                </button>
-              )}
-              {wheelItemsMoneyDb.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setPlayMode('money')}
-                  className={`px-4 sm:px-5 py-2 text-xs sm:text-sm font-black rounded-lg transition-all flex items-center gap-2 ${
-                    playMode === 'money'
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/30'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Wallet size={16} /> <span>Vòng Quay Tiền</span>
-                </button>
-              )}
-            </div>
-
-            {/* Thông tin số lượt & Nạp tiền nhận lượt */}
-            <div className="flex items-center gap-2 bg-[#0b1120] px-3.5 py-1.5 rounded-xl border border-amber-500/30">
-              <Ticket size={17} className="text-amber-400 shrink-0" />
-              <div className="text-xs sm:text-sm font-bold text-slate-300">
-                Lượt của bạn: <strong className="text-amber-400 font-mono text-sm sm:text-base font-black ml-1">{currentUser ? (currentUser.spins || 0) : 0}</strong>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!currentUser) return requireAuth('login');
-                  setCurrentView('naptien');
-                }}
-                className="ml-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs px-3 py-1.5 rounded-lg shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 shrink-0 border border-emerald-400/30"
-              >
-                <Wallet size={13} />
-                <span>Nạp Tiền Nhận Lượt</span>
-                <span className="bg-emerald-950/60 text-emerald-300 text-[10px] font-black px-1.5 py-0.5 rounded border border-emerald-500/40">20k = +1 Lượt</span>
-              </button>
-            </div>
-
-            {/* Thông tin tài khoản game liên kết */}
-            {playMode === 'spin' && (
-              <div className="flex items-center gap-2 bg-[#0b1120] px-3.5 py-1.5 rounded-xl border border-slate-800 text-xs">
-                {currentUser?.linked_game_id ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-400 font-extrabold flex items-center gap-1.5">
-                      🎮 <span className="font-mono text-white">@{currentUser.linked_game_id}</span>
-                    </span>
-                    <span className="text-slate-600">|</span>
-                    <span className="text-amber-300 font-black flex items-center gap-1">
-                      🪙 <span>{new Intl.NumberFormat('vi-VN').format(bossPlayerSummary?.bonus_coins || 0)}</span> Xu
-                    </span>
+          {/* THANH ĐIỀU KHIỂN & TIẾN TRÌNH BẢO HIỂM TÍCH HỢP TẤT CẢ TRONG 1 (ALL-IN-ONE COMPACT CONSOLE) */}
+          <div className="w-full max-w-2xl mx-auto bg-gradient-to-b from-[#0d1424] via-[#090f1d] to-[#060a14] border border-amber-500/35 rounded-2xl p-3 sm:p-3.5 mb-6 shadow-xl relative text-left">
+            {/* Hàng 1: Chế độ quay, ID Game, Lượt & Nạp tiền */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5 mb-2.5">
+              {/* Cụm Trái: Chế độ & ID Game */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Nút chế độ quay */}
+                {wheelItemsMoneyDb.length > 0 ? (
+                  <div className="flex bg-[#070b14] p-0.5 rounded-lg border border-slate-800">
+                    {wheelItemsSpinDb.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setPlayMode('spin')}
+                        className={`px-3 py-1 text-xs font-black rounded-md transition-all flex items-center gap-1.5 ${
+                          playMode === 'spin'
+                            ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-sm'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <Ticket size={13} /> <span>Vòng Quay Lượt</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setPlayMode('money')}
+                      className={`px-3 py-1 text-xs font-black rounded-md transition-all flex items-center gap-1.5 ${
+                        playMode === 'money'
+                          ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Wallet size={13} /> <span>Vòng Quay Tiền</span>
+                    </button>
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!currentUser) return requireAuth('login');
-                      setShowLinkOtpModal(true);
-                    }}
-                    className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1.5 transition-colors"
-                  >
-                    <span>⚠️ Chưa liên kết ID Game</span>
-                    <span className="underline text-[11px] text-slate-400">(Liên kết ngay)</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* THANH TIẾN TRÌNH BẢO HIỂM 120 LẦN CHO GIÀY HUYỀN THOẠI - THIẾT KẾ RỘNG RÃI & SANG TRỌNG */}
-          {playMode === 'spin' && (
-            <div className={`w-full max-w-5xl mx-auto mb-8 p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-[#0d1424] via-[#141d33] to-[#0d1424] border transition-all relative overflow-hidden text-left shadow-2xl ${
-              shoesPity >= 120
-                ? 'pity-glow-active border-rose-500 shadow-[0_0_40px_rgba(244,63,94,0.6)]'
-                : 'border-amber-500/40 shadow-[0_0_25px_rgba(245,158,11,0.2)]'
-            }`}>
-              {/* Ánh sáng nền background hiệu ứng */}
-              <div className="absolute -top-24 -left-24 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-              <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-              {/* Hàng 1: Tiêu đề + Icon + Tiến trình số lượng */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 relative z-10">
-                <div className="flex items-center gap-3.5 sm:gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/30 via-yellow-500/15 to-rose-500/20 border border-amber-500/50 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20 text-3xl">
-                    👟
+                  <div className="flex items-center gap-1.5 bg-rose-500/15 text-rose-300 border border-rose-500/30 px-2.5 py-1 rounded-lg text-xs font-black">
+                    <Ticket size={13} /> <span>Vòng Quay Lượt</span>
                   </div>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <h3 className="font-black text-base sm:text-lg lg:text-xl uppercase tracking-wider bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent">
-                        Bảo Hiểm Giày Thần Tốc (Huyền Thoại)
-                      </h3>
-                      <span className="bg-amber-500/20 text-amber-300 text-xs font-black px-2.5 py-0.5 rounded-full border border-amber-500/40 shadow-sm">
-                        Mốc 120 Lượt
+                )}
+
+                {/* ID Game liên kết */}
+                {playMode === 'spin' && (
+                  currentUser?.linked_game_id ? (
+                    <div className="flex items-center gap-1.5 bg-[#070b14] border border-slate-800 px-2.5 py-1 rounded-lg text-xs">
+                      <span className="text-emerald-400 font-extrabold flex items-center gap-1">
+                        🎮 <span className="font-mono text-white">@{currentUser.linked_game_id}</span>
+                      </span>
+                      <span className="text-slate-600">|</span>
+                      <span className="text-amber-300 font-bold flex items-center gap-1">
+                        🪙 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary?.bonus_coins || 0)} Xu
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-slate-300 mt-1 flex items-center gap-1.5 flex-wrap">
-                      <span>Nếu 120 lần quay không ra Giày, lần thứ 121</span>
-                      <strong className="text-yellow-400 font-extrabold bg-yellow-400/10 px-2 py-0.5 rounded border border-yellow-400/30">
-                        100% Chắc Chắn Trúng Giày Huyền Thoại
-                      </strong>
-                      <span className="text-slate-400 text-xs">(Chỉ số: +120 Tốc độ)</span>
-                    </p>
-                  </div>
-                </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!currentUser) return requireAuth('login');
+                        setShowLinkOtpModal(true);
+                      }}
+                      className="text-amber-400 hover:text-amber-300 text-xs font-bold bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-colors"
+                    >
+                      <span>⚠️ Liên kết ID Game</span>
+                    </button>
+                  )
+                )}
+              </div>
 
-                <div className="sm:text-right shrink-0 bg-slate-900/60 sm:bg-transparent p-3 sm:p-0 rounded-xl border sm:border-0 border-slate-800">
-                  <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Tiến Trình Bảo Hiểm</div>
-                  <div className="font-mono text-2xl sm:text-3xl font-black text-amber-400 flex items-baseline sm:justify-end gap-1.5">
-                    {shoesPity} <span className="text-sm font-bold text-slate-400">/ 120 lượt</span>
+              {/* Cụm Phải: Số lượt & Nút Nạp tiền */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 bg-[#070b14] border border-amber-500/30 px-2.5 py-1 rounded-lg text-xs">
+                  <Ticket size={14} className="text-amber-400" />
+                  <span className="text-slate-300 font-medium">Lượt:</span>
+                  <strong className="text-amber-400 font-mono font-black text-sm">
+                    {currentUser ? (currentUser.spins || 0) : 0}
+                  </strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!currentUser) return requireAuth('login');
+                    setCurrentView('naptien');
+                  }}
+                  className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs px-2.5 py-1 rounded-lg shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1 shrink-0 border border-emerald-400/30"
+                >
+                  <Wallet size={12} />
+                  <span>Nạp Lượt</span>
+                  <span className="bg-emerald-950/70 text-emerald-200 text-[10px] px-1 py-0.2 rounded font-bold">20k</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Hàng 2: Thanh Bảo Hiểm Giày Thần Tốc (Tích hợp liền mạch) */}
+            {playMode === 'spin' && (
+              <div className="pt-2 border-t border-slate-800/80">
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-sm">👟</span>
+                    <span className="font-extrabold text-amber-300 truncate">
+                      Bảo Hiểm Giày Thần Tốc <span className="text-[10px] text-amber-400/90 font-bold bg-amber-500/10 px-1 py-0.2 rounded border border-amber-500/20">(+300 Tốc độ)</span>
+                    </span>
+                    <span className="text-[11px] text-slate-400 hidden sm:inline">• Lần 121 chắc chắn trúng</span>
                   </div>
-                  <div className="text-xs font-extrabold mt-0.5">
+
+                  <div className="font-mono font-black text-right shrink-0">
+                    <span className="text-amber-400 text-xs sm:text-sm">{shoesPity}</span>
+                    <span className="text-slate-500 text-[11px]">/120</span>
                     {shoesPity >= 120 ? (
-                      <span className="text-rose-400 font-black flex items-center sm:justify-end gap-1 animate-pulse">
-                        <Flame size={15} className="text-rose-500 animate-bounce" /> LẦN 121: 100% TRÚNG!
-                      </span>
+                      <span className="text-rose-400 text-[10px] font-black ml-1.5 animate-pulse">🔥 NỔ LẦN 121!</span>
                     ) : (
-                      <span className="text-slate-400 font-medium">
-                        Còn <strong className="text-yellow-400 font-bold">{120 - shoesPity}</strong> lượt nữa
+                      <span className="text-slate-400 text-[10px] font-medium ml-1.5 hidden sm:inline">
+                        (Còn <strong className="text-yellow-400">{120 - shoesPity}</strong> lượt)
                       </span>
                     )}
                   </div>
                 </div>
-              </div>
 
-              {/* Hàng 2: Thanh Progress Bar rộng rãi và vạch mốc */}
-              <div className="relative my-3">
-                <div className="w-full h-4 sm:h-5 bg-slate-950/90 rounded-full overflow-hidden border border-slate-700/80 p-0.5 shadow-inner">
+                {/* Progress bar siêu gọn gàng */}
+                <div className="w-full h-1.5 sm:h-2 bg-[#050811] rounded-full overflow-hidden border border-slate-800">
                   <div
-                    className={`h-full rounded-full transition-all duration-700 relative ${
+                    className={`h-full rounded-full transition-all duration-500 ${
                       shoesPity >= 120
-                        ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-yellow-300 shadow-[0_0_25px_rgba(244,63,94,0.9)] animate-pulse'
-                        : 'bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]'
+                        ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-yellow-300 shadow-[0_0_10px_rgba(244,63,94,0.9)] animate-pulse'
+                        : 'bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500'
                     }`}
                     style={{ width: `${Math.min(100, Math.max(3, Math.round((shoesPity / 120) * 100)))}%` }}
-                  >
-                    <div className="absolute inset-0 bg-white/20 animate-[pulse_2s_infinite]"></div>
-                  </div>
-                </div>
-
-                {/* Vạch mốc chia mốc 0 - 30 - 60 - 90 - 120 */}
-                <div className="flex justify-between items-center px-1 mt-1.5 text-[10px] sm:text-xs text-slate-400 font-mono font-bold">
-                  <span>0 lượt</span>
-                  <span>30 lượt</span>
-                  <span>60 lượt</span>
-                  <span>90 lượt</span>
-                  <span className="text-amber-400 font-black">120 lượt (Mốc Nổ)</span>
+                  ></div>
                 </div>
               </div>
-
-              {/* Hàng 3: Ghi chú bảo hiểm */}
-              <div className="text-[11px] sm:text-xs text-slate-300 mt-2 pt-2.5 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <span className="flex items-center gap-1.5 text-slate-300">
-                  <Sparkles size={14} className="text-amber-400 shrink-0" />
-                  <span>Điểm bảo hiểm tự động tăng +1 mỗi lần quay Vòng Quay Lượt. Khi trúng Giày sẽ tự động làm mới về 0.</span>
-                </span>
-                <span className="text-amber-400 font-extrabold bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/30 shrink-0 text-center">
-                  {shoesPity >= 120 ? '🔥 SẴN SÀNG NỔ TRANG BỊ' : `Tiến độ: ${Math.round((shoesPity / 120) * 100)}%`}
-                </span>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* BỐ CỤC 2 CỘT: TRÁI LÀ VÒNG QUAY & BẢN ĐIỀU KHIỂN - PHẢI LÀ LỊCH SỬ QUAY */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start mb-12">
@@ -6872,24 +7093,36 @@ const App = () => {
             {/* CỘT TRÁI (8/12 phần): CHỨA VÒNG QUAY HOÀNG KIM & BÀN ĐIỀU KHIỂN */}
             <div className="lg:col-span-8 flex flex-col items-center">
 
-              {/* THANH MARQUEE NGƯỜI TRÚNG THƯỞNG MỚI NHẤT */}
+              {/* THANH MARQUEE NGƯỜI TRÚNG VẬT PHẨM GAME MỚI NHẤT (NẾU CHƯA AI TRÚNG THÌ ĐỂ TRỐNG / ẨN ĐI) */}
               {recentWinners.length > 0 && (
                 <div className="w-full max-w-xl mx-auto overflow-hidden bg-rose-950/20 border border-rose-500/30 rounded-full py-2 mb-6 relative flex items-center shadow-inner group">
                   <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[#070b14] to-transparent z-10 pointer-events-none"></div>
                   <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#070b14] to-transparent z-10 pointer-events-none"></div>
                   <div className="flex whitespace-nowrap animate-marquee w-max group-hover:pause">
                     {recentWinners.concat(recentWinners).map((tx, idx) => {
-                      const cleanPrizeName = tx.action
-                        .replace(/Trúng phần thưởng:/gi, '')
-                        .replace(/Trúng thưởng:/gi, '')
-                        .replace(/Cộng/gi, '')
+                      let cleanPrizeName = (tx.action || tx.package_name || '')
+                        .replace(/^Quay Vòng Quay x10 \(10 Lượt\)\s*-\s*/gi, '')
+                        .replace(/^Trúng phần thưởng \(Quay x10\):\s*/gi, '')
+                        .replace(/^Trúng phần thưởng:\s*/gi, '')
+                        .replace(/^Trúng thưởng:\s*/gi, '')
+                        .replace(/^Cộng\s+/gi, '')
                         .trim();
+
+                      const lowerPrize = cleanPrizeName.toLowerCase();
+                      let prizeEmoji = '✨';
+                      if (lowerPrize.includes('giày') || lowerPrize.includes('thần tốc')) prizeEmoji = '👟';
+                      else if (lowerPrize.includes('tinh hoa')) prizeEmoji = '💎';
+                      else if (lowerPrize.includes('tinh thể')) prizeEmoji = '🔮';
+                      else if (lowerPrize.includes('hoàng kim')) prizeEmoji = '👑';
+                      else if (lowerPrize.includes('boss') || lowerPrize.includes('hòm') || lowerPrize.includes('rương')) prizeEmoji = '🎁';
+                      else if (lowerPrize.includes('lượt đánh')) prizeEmoji = '⚔️';
+                      else if (lowerPrize.includes('xu')) prizeEmoji = '🪙';
 
                       return (
                         <span key={idx} className="text-white text-xs sm:text-sm mx-6 flex items-center gap-2">
-                          <Sparkles size={14} className="text-yellow-400 animate-pulse" />
+                          <span className="text-sm select-none">{prizeEmoji}</span>
                           <span className="text-slate-400">[{tx.date}]</span>
-                          <span className="font-bold text-blue-400">{tx.user}</span> vừa nhận
+                          <span className="font-bold text-blue-400">{tx.user || tx.nickname || 'Người chơi'}</span> vừa nhận
                           <span className="font-black text-rose-400">{cleanPrizeName}</span>
                         </span>
                       );
@@ -7451,10 +7684,16 @@ const App = () => {
                 {/* HIỂN THỊ PHẦN THƯỞNG IN-GAME */}
                 {giftModalData.isShoes && (
                   <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/40 rounded-xl text-center">
-                    <p className="text-amber-400 font-black text-lg md:text-xl">👟 +120 TỐC ĐỘ (NHANH NHẸN)</p>
+                    <p className="text-amber-400 font-black text-lg md:text-xl">👟 +300 TỐC ĐỘ</p>
                     <p className="text-xs text-amber-200/80 mt-1">Giày Huyền Thoại Thần Tốc tăng tốc độ vượt trội trong mọi trận đấu!</p>
                     <p className="text-[11px] text-emerald-400 font-bold mt-1">🛡️ Bảo hiểm vòng quay đã làm mới: 0/120</p>
                   </div>
+                )}
+                {!giftModalData.isShoes && (giftModalData.prizeType === 'game_essence_stone' || giftModalData.item?.name?.toLowerCase().includes('tinh hoa')) && (
+                  <p className="text-purple-400 font-black text-xl md:text-2xl mt-2">💎 +{giftModalData.prizeValue} Đá Tinh Hoa</p>
+                )}
+                {!giftModalData.isShoes && (giftModalData.prizeType === 'game_ring_crystal' || giftModalData.item?.name?.toLowerCase().includes('tinh thể')) && (
+                  <p className="text-pink-400 font-black text-xl md:text-2xl mt-2">🔮 +{giftModalData.prizeValue} Viên Tinh Thể</p>
                 )}
                 {!giftModalData.isShoes && giftModalData.prizeType === 'game_attacks' && (
                   <p className="text-cyan-400 font-black text-xl md:text-2xl mt-2">⚔️ +{giftModalData.prizeValue} Lượt Đánh Boss</p>
@@ -7571,7 +7810,7 @@ const App = () => {
                         👟 CHÚC MỪNG BẠN ĐÃ TRÚNG GIÀY THẦN TỐC (HUYỀN THOẠI)!
                       </h4>
                       <p className="text-xs text-amber-100">
-                        Cộng <strong>+120 Tốc Độ (Nhanh Nhẹn)</strong> tạo Tiên Cơ xuất chiêu đầu tiên trong mọi trận PvP!
+                        Cộng <strong>+300 Tốc Độ</strong> tạo Tiên Cơ xuất chiêu đầu tiên trong mọi trận PvP!
                       </p>
                     </div>
                   </div>
@@ -7597,6 +7836,14 @@ const App = () => {
                         badgeText = '👑 HUYỀN THOẠI';
                         badgeColor = 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black';
                         cardBorder = 'border-amber-400/80 bg-gradient-to-b from-amber-950/40 to-[#151D2F] shadow-[0_0_20px_rgba(245,158,11,0.3)] ring-1 ring-amber-400/50';
+                      } else if (it.type === 'game_essence_stone' || it.name?.toLowerCase().includes('tinh hoa')) {
+                        badgeText = '💎 ĐÁ TINH HOA';
+                        badgeColor = 'bg-purple-600 text-white font-bold';
+                        cardBorder = 'border-purple-500/50 bg-[#151D2F]';
+                      } else if (it.type === 'game_ring_crystal' || it.name?.toLowerCase().includes('tinh thể')) {
+                        badgeText = '🔮 VIÊN TINH THỂ';
+                        badgeColor = 'bg-pink-600 text-white font-bold';
+                        cardBorder = 'border-pink-500/50 bg-[#151D2F]';
                       } else if (isRoyal) {
                         badgeText = '👑 HOÀNG KIM';
                         badgeColor = 'bg-purple-500 text-white font-bold';
@@ -7625,6 +7872,8 @@ const App = () => {
                       } else if (!displayImg) {
                         if (isRoyal) displayImg = '/game-assets/royal_chest.png';
                         else if (it.type === 'game_boss_chests') displayImg = '/game-assets/mystery_box_closed.png';
+                        else if (it.type === 'game_essence_stone' || it.name?.toLowerCase().includes('tinh hoa')) displayImg = '/game-assets/da_tinh_hoa.png';
+                        else if (it.type === 'game_ring_crystal' || it.name?.toLowerCase().includes('tinh thể')) displayImg = '/game-assets/ring_crystal.png';
                       }
 
                       return (
@@ -7669,7 +7918,13 @@ const App = () => {
                               {it.name}
                             </h5>
                             {isShoes && (
-                              <p className="text-[10px] text-amber-400 font-bold mt-0.5">+120 Tốc Độ</p>
+                              <p className="text-[10px] text-amber-400 font-bold mt-0.5">+300 Tốc Độ</p>
+                            )}
+                            {!isShoes && it.value > 0 && (it.type === 'game_essence_stone' || it.name?.toLowerCase().includes('tinh hoa')) && (
+                              <p className="text-[10px] text-purple-400 font-bold mt-0.5">+{it.value} Đá Tinh Hoa</p>
+                            )}
+                            {!isShoes && it.value > 0 && (it.type === 'game_ring_crystal' || it.name?.toLowerCase().includes('tinh thể')) && (
+                              <p className="text-[10px] text-pink-400 font-bold mt-0.5">+{it.value} Tinh Thể</p>
                             )}
                             {!isShoes && it.value > 0 && it.type === 'game_attacks' && (
                               <p className="text-[10px] text-cyan-400 font-bold mt-0.5">+{it.value} Lượt Đánh</p>
@@ -7706,6 +7961,16 @@ const App = () => {
                     {spin10ModalData.summary.hasShoes && (
                       <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-300 font-black">
                         👟 Giày Huyền Thoại: <strong>+{spin10ModalData.summary.shoesWonCount}</strong>
+                      </div>
+                    )}
+                    {spin10ModalData.summary.sumEssenceStones > 0 && (
+                      <div className="p-2.5 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-300 font-bold">
+                        💎 Đá Tinh Hoa: <strong>+{spin10ModalData.summary.sumEssenceStones}</strong>
+                      </div>
+                    )}
+                    {spin10ModalData.summary.sumRingCrystals > 0 && (
+                      <div className="p-2.5 rounded-xl bg-pink-500/15 border border-pink-500/30 text-pink-300 font-bold">
+                        🔮 Viên Tinh Thể: <strong>+{spin10ModalData.summary.sumRingCrystals}</strong>
                       </div>
                     )}
                     {spin10ModalData.summary.sumAttacks > 0 && (
@@ -14009,15 +14274,17 @@ const App = () => {
                       onClick={() => {
                         setConfirmDialog({
                           title: 'Cài Đặt Mẫu Quà In-Game & Giày Huyền Thoại',
-                          message: 'Bạn có muốn tự động cài đặt 6 phần thưởng chuẩn cho Vòng Quay Lượt gồm: Giày Thần Tốc (Huyền Thoại 0.5% - Bảo hiểm 121), Lượt Đánh Boss (20%), Hòm Boss (25%), Hòm Hoàng Kim (5%), 20 Xu Nâng Cấp (5%), và Trượt (44.5%) không?',
+                          message: 'Bạn có muốn tự động cài đặt 8 phần thưởng chuẩn cho Vòng Quay Lượt gồm: Giày Thần Tốc (Huyền Thoại 0.5% - Bảo hiểm 121), Đá Tinh Hoa (10%), Viên Tinh Thể (10%), Lượt Đánh Boss (15%), Hòm Boss (20%), Hòm Hoàng Kim (5%), 20 Xu Nâng Cấp (5%), và Trượt (34.5%) không?',
                           onConfirm: async () => {
                             const sampleItems = [
                               { id: `WHEEL_SHOES_${Date.now()}`, name: 'Giày Thần Tốc (Huyền Thoại)', type: 'game_shoes_legendary', value: 1, rate: '0.5%', quantity: 999, color: '#f59e0b', image: LEGENDARY_SHOES_IMG, wheel_type: 'spin' },
-                              { id: `WHEEL_ATK_${Date.now() + 1}`, name: '+5 Lượt Đánh Boss', type: 'game_attacks', value: 5, rate: '20%', quantity: 999, color: '#3b82f6', image: null, wheel_type: 'spin' },
-                              { id: `WHEEL_CHEST_B_${Date.now() + 2}`, name: '+3 Hòm Boss', type: 'game_boss_chests', value: 3, rate: '25%', quantity: 999, color: '#10b981', image: '/game-assets/mystery_box_closed.png', wheel_type: 'spin' },
-                              { id: `WHEEL_CHEST_R_${Date.now() + 3}`, name: '+1 Hòm Hoàng Kim', type: 'game_royal_chests', value: 1, rate: '5%', quantity: 999, color: '#8b5cf6', image: '/game-assets/royal_chest.png', wheel_type: 'spin' },
-                              { id: `WHEEL_COINS_${Date.now() + 4}`, name: '+20 Xu Nâng Cấp', type: 'game_coins', value: 20, rate: '5%', quantity: 999, color: '#eab308', image: null, wheel_type: 'spin' },
-                              { id: `WHEEL_NONE_${Date.now() + 5}`, name: 'Chúc may mắn lần sau', type: 'none', value: 0, rate: '44.5%', quantity: 999, color: '#475569', image: null, wheel_type: 'spin' }
+                              { id: `WHEEL_STONE_${Date.now() + 1}`, name: '+5 Đá Tinh Hoa', type: 'game_essence_stone', value: 5, rate: '10%', quantity: 999, color: '#a855f7', image: '/game-assets/da_tinh_hoa.png', wheel_type: 'spin' },
+                              { id: `WHEEL_CRYSTAL_${Date.now() + 2}`, name: '+10 Viên Tinh Thể', type: 'game_ring_crystal', value: 10, rate: '10%', quantity: 999, color: '#ec4899', image: '/game-assets/ring_crystal.png', wheel_type: 'spin' },
+                              { id: `WHEEL_ATK_${Date.now() + 3}`, name: '+50.000 Lượt Đánh Boss', type: 'game_attacks', value: 50000, rate: '15%', quantity: 999, color: '#3b82f6', image: null, wheel_type: 'spin' },
+                              { id: `WHEEL_CHEST_B_${Date.now() + 4}`, name: '+3 Hòm Boss', type: 'game_boss_chests', value: 3, rate: '20%', quantity: 999, color: '#10b981', image: '/game-assets/mystery_box_closed.png', wheel_type: 'spin' },
+                              { id: `WHEEL_CHEST_R_${Date.now() + 5}`, name: '+1 Hòm Hoàng Kim', type: 'game_royal_chests', value: 1, rate: '5%', quantity: 999, color: '#8b5cf6', image: '/game-assets/royal_chest.png', wheel_type: 'spin' },
+                              { id: `WHEEL_COINS_${Date.now() + 6}`, name: '+20 Xu Nâng Cấp', type: 'game_coins', value: 20, rate: '5%', quantity: 999, color: '#eab308', image: null, wheel_type: 'spin' },
+                              { id: `WHEEL_NONE_${Date.now() + 7}`, name: 'Chúc may mắn lần sau', type: 'none', value: 0, rate: '34.5%', quantity: 999, color: '#475569', image: null, wheel_type: 'spin' }
                             ];
 
                             try {
@@ -14031,7 +14298,7 @@ const App = () => {
                               }
                               setWheelItemsSpinDb(sampleItems);
                               localStorage.setItem('shop_wheel_spin', JSON.stringify(sampleItems));
-                              showToast("Đã cài đặt 6 phần thưởng mẫu In-Game & Giày Huyền Thoại thành công!", "success");
+                              showToast("Đã cài đặt 8 phần thưởng mẫu In-Game & Giày Huyền Thoại thành công!", "success");
                             } catch (err) {
                               showToast("Lỗi: " + err.message, 'error');
                             }
@@ -14058,6 +14325,10 @@ const App = () => {
                               onError={(e) => {
                                 if (isLegendaryShoes(w)) {
                                   e.target.src = LEGENDARY_SHOES_IMG;
+                                } else if (w.type === 'game_essence_stone' || w.name?.toLowerCase().includes('tinh hoa')) {
+                                  e.target.src = '/game-assets/da_tinh_hoa.png';
+                                } else if (w.type === 'game_ring_crystal' || w.name?.toLowerCase().includes('tinh thể')) {
+                                  e.target.src = '/game-assets/ring_crystal.png';
                                 } else {
                                   e.target.style.display = 'none';
                                 }
@@ -14072,6 +14343,8 @@ const App = () => {
                           <p className="text-[10px] text-slate-400 uppercase flex flex-wrap gap-2">
                             <span className="font-bold text-amber-400">{
                               w.type === 'game_shoes_legendary' ? '👟 Giày HT (Pity 121)' :
+                              w.type === 'game_essence_stone' ? '💎 Đá Tinh Hoa' :
+                              w.type === 'game_ring_crystal' ? '🔮 Viên Tinh Thể' :
                               w.type === 'game_attacks' ? '⚔️ Lượt Đánh' :
                               w.type === 'game_boss_chests' ? '📦 Hòm Boss' :
                               w.type === 'game_royal_chests' ? '👑 Hòm HK' :
@@ -14083,7 +14356,9 @@ const App = () => {
                             }</span>
                             {w.value > 0 && (
                               <span className="text-emerald-400 font-bold">
-                                {w.type === 'game_attacks' ? `Số lượng: ${w.value} Lượt` :
+                                {w.type === 'game_attacks' ? `Số lượng: ${new Intl.NumberFormat('vi-VN').format(w.value)} Lượt` :
+                                 w.type === 'game_essence_stone' ? `Số lượng: ${w.value} Viên` :
+                                 w.type === 'game_ring_crystal' ? `Số lượng: ${w.value} Viên` :
                                  w.type === 'game_boss_chests' ? `Số lượng: ${w.value} Hòm` :
                                  w.type === 'game_royal_chests' ? `Số lượng: ${w.value} Hòm HK` :
                                  w.type === 'game_coins' ? `Số lượng: ${new Intl.NumberFormat('vi-VN').format(w.value)} Xu` :
@@ -15017,17 +15292,56 @@ const App = () => {
                       onChange={(e) => {
                         const newType = e.target.value;
                         setAdminWheelRewardType(newType);
-                        if (!adminWheelImage) {
-                          if (newType === 'game_shoes_legendary') setAdminWheelImage(LEGENDARY_SHOES_IMG);
-                          else if (newType === 'game_boss_chests') setAdminWheelImage('/game-assets/mystery_box_closed.png');
-                          else if (newType === 'game_royal_chests') setAdminWheelImage('/game-assets/royal_chest.png');
-                          else if (newType === 'spin') setAdminWheelImage('/game-assets/spin_ticket.png');
+                        const preset = IN_GAME_REWARD_CATALOG[newType];
+                        const form = e.target.form;
+                        if (preset) {
+                          setAdminWheelImage(preset.image);
+                          if (form && !editingWheel) {
+                            if (form.name) form.name.value = preset.name;
+                            if (form.value) form.value.value = preset.defaultValue;
+                            if (form.rate) form.rate.value = preset.defaultRate;
+                            if (form.color) form.color.value = preset.defaultColor;
+                          }
+                        } else if (newType === 'spin') {
+                          setAdminWheelImage('/game-assets/spin_ticket.png');
+                          if (form && !editingWheel) {
+                            if (form.name) form.name.value = '+1 Lượt Quay';
+                            if (form.value) form.value.value = 1;
+                            if (form.rate) form.rate.value = '10%';
+                            if (form.color) form.color.value = '#ec4899';
+                          }
+                        } else if (newType === 'money') {
+                          setAdminWheelImage(null);
+                          if (form && !editingWheel) {
+                            if (form.name) form.name.value = '+50.000 VNĐ';
+                            if (form.value) form.value.value = 50000;
+                            if (form.rate) form.rate.value = '10%';
+                            if (form.color) form.color.value = '#10b981';
+                          }
+                        } else if (newType === 'fund') {
+                          setAdminWheelImage(null);
+                          if (form && !editingWheel) {
+                            if (form.name) form.name.value = '+20.000đ Quỹ Thuê';
+                            if (form.value) form.value.value = 20000;
+                            if (form.rate) form.rate.value = '10%';
+                            if (form.color) form.color.value = '#06b6d4';
+                          }
+                        } else if (newType === 'none') {
+                          setAdminWheelImage(null);
+                          if (form && !editingWheel) {
+                            if (form.name) form.name.value = 'Chúc may mắn lần sau';
+                            if (form.value) form.value.value = 0;
+                            if (form.rate) form.rate.value = '34.5%';
+                            if (form.color) form.color.value = '#475569';
+                          }
                         }
                       }}
                       className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-xl text-white text-sm font-medium outline-none focus:border-blue-500 transition-colors"
                     >
                       <optgroup label="🎮 VẬT PHẨM TRONG GAME (MỘNG THIÊN HUYỄN)">
                         <option value="game_attacks">⚔️ Lượt Đánh Boss (In-Game)</option>
+                        <option value="game_essence_stone">💎 Đá Tinh Hoa (Nâng Cấp Kỹ Năng Nhẫn)</option>
+                        <option value="game_ring_crystal">🔮 Viên Tinh Thể (Nâng Sao Nhẫn Thần Binh)</option>
                         <option value="game_boss_chests">📦 Hòm Boss Thường (In-Game)</option>
                         <option value="game_royal_chests">👑 Hòm Hoàng Kim (In-Game)</option>
                         <option value="game_coins">🪙 Xu Nâng Cấp Boss (In-Game)</option>
@@ -15043,10 +15357,12 @@ const App = () => {
                     </select>
                     <p className="text-[11px] text-slate-400 mt-1.5 italic">
                       {adminWheelRewardType === 'game_attacks' && '⚔️ Tự động cộng số lượt đánh Boss vào nhân vật game (vĩnh viễn).'}
+                      {adminWheelRewardType === 'game_essence_stone' && '💎 Đá Tinh Hoa tự động cộng vào túi đồ nhân vật game để nâng cấp Level Kỹ Năng Nhẫn Thần Binh.'}
+                      {adminWheelRewardType === 'game_ring_crystal' && '🔮 Viên Tinh Thể tự động cộng vào túi đồ nhân vật game để cường hóa, tăng sao và đột phá Nhẫn Thần Binh.'}
                       {adminWheelRewardType === 'game_boss_chests' && '📦 Tự động gửi Hòm Boss thường vào túi đồ nhân vật game.'}
                       {adminWheelRewardType === 'game_royal_chests' && '👑 Tự động gửi Hòm Hoàng Kim cao cấp vào túi đồ nhân vật game.'}
                       {adminWheelRewardType === 'game_coins' && '🪙 Tự động cộng Xu Nâng Cấp Boss vào nhân vật game.'}
-                      {adminWheelRewardType === 'game_shoes_legendary' && '👟 Trang bị Huyền Thoại (+120 Tốc độ). Áp dụng cơ chế Bảo hiểm 121 lần quay.'}
+                      {adminWheelRewardType === 'game_shoes_legendary' && '👟 Trang bị Huyền Thoại (+300 Tốc độ). Áp dụng cơ chế Bảo hiểm 121 lần quay.'}
                       {adminWheelRewardType === 'spin' && '🎟️ Tự động cộng thêm lượt quay Vòng Quay cho tài khoản web.'}
                       {adminWheelRewardType === 'money' && '💵 Tự động cộng tiền VNĐ vào số dư ví chính trên web.'}
                       {adminWheelRewardType === 'fund' && '🏦 Tự động cộng tiền vào Quỹ Thuê Acc trên web.'}
@@ -15064,7 +15380,9 @@ const App = () => {
                     <input
                       name="name"
                       defaultValue={editingWheel?.name || (
-                        adminWheelRewardType === 'game_attacks' ? '+5 Lượt Đánh Boss' :
+                        adminWheelRewardType === 'game_attacks' ? '+50.000 Lượt Đánh Boss' :
+                        adminWheelRewardType === 'game_essence_stone' ? '+5 Đá Tinh Hoa' :
+                        adminWheelRewardType === 'game_ring_crystal' ? '+10 Viên Tinh Thể' :
                         adminWheelRewardType === 'game_boss_chests' ? '+3 Hòm Boss' :
                         adminWheelRewardType === 'game_royal_chests' ? '+1 Hòm Hoàng Kim' :
                         adminWheelRewardType === 'game_coins' ? '+20 Xu Nâng Cấp' :
@@ -15074,7 +15392,7 @@ const App = () => {
                         adminWheelRewardType === 'fund' ? '+20.000đ Quỹ Thuê' :
                         adminWheelRewardType === 'none' ? 'Chúc may mắn lần sau' : 'Vật Phẩm May Mắn'
                       )}
-                      placeholder="VD: +5 Lượt Đánh Boss, +1 Hòm Hoàng Kim..."
+                      placeholder="VD: +5 Đá Tinh Hoa, +10 Viên Tinh Thể..."
                       className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-xl text-white text-sm outline-none focus:border-blue-500 transition-colors font-medium"
                       required
                     />
@@ -15086,6 +15404,8 @@ const App = () => {
                       <label className="text-xs text-emerald-400 font-bold flex items-center gap-1 mb-1.5">
                         <span>
                           {adminWheelRewardType === 'game_attacks' ? 'Số lượng lượt đánh tặng' :
+                           adminWheelRewardType === 'game_essence_stone' ? 'Số lượng Đá Tinh Hoa tặng' :
+                           adminWheelRewardType === 'game_ring_crystal' ? 'Số lượng Tinh Thể tặng' :
                            adminWheelRewardType === 'game_boss_chests' ? 'Số lượng Hòm Boss tặng' :
                            adminWheelRewardType === 'game_royal_chests' ? 'Số lượng Hòm HK tặng' :
                            adminWheelRewardType === 'game_coins' ? 'Số lượng Xu Nâng Cấp tặng' :
@@ -15101,7 +15421,9 @@ const App = () => {
                         name="value"
                         type="number"
                         defaultValue={editingWheel?.value ?? (
-                          adminWheelRewardType === 'game_attacks' ? 5 :
+                          adminWheelRewardType === 'game_attacks' ? 50000 :
+                          adminWheelRewardType === 'game_essence_stone' ? 5 :
+                          adminWheelRewardType === 'game_ring_crystal' ? 10 :
                           adminWheelRewardType === 'game_boss_chests' ? 3 :
                           adminWheelRewardType === 'game_royal_chests' ? 1 :
                           adminWheelRewardType === 'game_coins' ? 20 :
@@ -15117,6 +15439,8 @@ const App = () => {
                       />
                       <span className="text-[10px] text-slate-400 mt-1 block">
                         {adminWheelRewardType === 'game_attacks' ? 'Người chơi trúng sẽ nhận đúng số lượt này.' :
+                         adminWheelRewardType === 'game_essence_stone' ? 'Số lượng Đá Tinh Hoa gửi thẳng vào túi đồ game.' :
+                         adminWheelRewardType === 'game_ring_crystal' ? 'Số lượng Tinh Thể gửi thẳng vào túi đồ game.' :
                          adminWheelRewardType === 'game_boss_chests' || adminWheelRewardType === 'game_royal_chests' ? 'Số lượng rương gửi thẳng vào túi đồ.' :
                          adminWheelRewardType === 'game_coins' ? 'Số xu cộng vào tài khoản game.' :
                          adminWheelRewardType === 'game_shoes_legendary' ? 'Mặc định 1 đôi Giày Huyền Thoại.' :
@@ -15134,11 +15458,13 @@ const App = () => {
                         name="rate"
                         defaultValue={editingWheel?.rate || (
                           adminWheelRewardType === 'game_shoes_legendary' ? '0.5%' :
-                          adminWheelRewardType === 'game_attacks' ? '20%' :
-                          adminWheelRewardType === 'game_boss_chests' ? '25%' :
+                          adminWheelRewardType === 'game_essence_stone' ? '10%' :
+                          adminWheelRewardType === 'game_ring_crystal' ? '10%' :
+                          adminWheelRewardType === 'game_attacks' ? '15%' :
+                          adminWheelRewardType === 'game_boss_chests' ? '20%' :
                           adminWheelRewardType === 'game_royal_chests' ? '5%' :
                           adminWheelRewardType === 'game_coins' ? '5%' :
-                          adminWheelRewardType === 'none' ? '44.5%' : '10%'
+                          adminWheelRewardType === 'none' ? '34.5%' : '10%'
                         )}
                         placeholder="VD: 20% hoặc 5%"
                         className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-xl text-white text-sm outline-none focus:border-blue-500 font-bold"
@@ -15175,6 +15501,8 @@ const App = () => {
                           type="color"
                           defaultValue={editingWheel?.color || (
                             adminWheelRewardType === 'game_shoes_legendary' ? '#f59e0b' :
+                            adminWheelRewardType === 'game_essence_stone' ? '#a855f7' :
+                            adminWheelRewardType === 'game_ring_crystal' ? '#ec4899' :
                             adminWheelRewardType === 'game_attacks' ? '#3b82f6' :
                             adminWheelRewardType === 'game_boss_chests' ? '#10b981' :
                             adminWheelRewardType === 'game_royal_chests' ? '#8b5cf6' :
@@ -15200,13 +15528,23 @@ const App = () => {
                         >👟 Giày</button>
                         <button
                           type="button"
+                          onClick={() => setAdminWheelImage('/game-assets/da_tinh_hoa.png')}
+                          className="text-[10px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded border border-purple-500/30 transition-colors"
+                        >💎 Đá Tinh Hoa</button>
+                        <button
+                          type="button"
+                          onClick={() => setAdminWheelImage('/game-assets/ring_crystal.png')}
+                          className="text-[10px] bg-pink-500/10 hover:bg-pink-500/20 text-pink-400 px-2 py-0.5 rounded border border-pink-500/30 transition-colors"
+                        >🔮 Tinh Thể</button>
+                        <button
+                          type="button"
                           onClick={() => setAdminWheelImage('/game-assets/mystery_box_closed.png')}
                           className="text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 transition-colors"
                         >📦 Hòm Boss</button>
                         <button
                           type="button"
                           onClick={() => setAdminWheelImage('/game-assets/royal_chest.png')}
-                          className="text-[10px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded border border-purple-500/30 transition-colors"
+                          className="text-[10px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/30 transition-colors"
                         >👑 Hòm HK</button>
                         {adminWheelImage && (
                           <button
