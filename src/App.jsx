@@ -3340,7 +3340,7 @@ const App = () => {
   // --- HÀM CHUẨN HÓA DỮ LIỆU NGƯỜI CHƠI TỪ BẢNG GAME_PLAYERS (SUPABASE) ---
   const parseGamePlayerRecord = (dbPlayer) => {
     if (!dbPlayer) return null;
-    let wp = null, ar = null, nk = null, rg = null, pt = null, pn = null;
+    let wp = null, ar = null, nk = null, rg = null, pt = null, pn = null, sh = null;
     try { wp = dbPlayer.weapon ? (typeof dbPlayer.weapon === 'string' ? JSON.parse(dbPlayer.weapon) : dbPlayer.weapon) : null; } catch (e) { wp = { name: dbPlayer.weapon }; }
     try { ar = dbPlayer.armor ? (typeof dbPlayer.armor === 'string' ? JSON.parse(dbPlayer.armor) : dbPlayer.armor) : null; } catch (e) { ar = { name: dbPlayer.armor }; }
     try { pn = dbPlayer.pants ? (typeof dbPlayer.pants === 'string' ? JSON.parse(dbPlayer.pants) : dbPlayer.pants) : null; } catch (e) { pn = { name: dbPlayer.pants }; }
@@ -3354,6 +3354,14 @@ const App = () => {
     try { nk = dbPlayer.necklace ? (typeof dbPlayer.necklace === 'string' ? JSON.parse(dbPlayer.necklace) : dbPlayer.necklace) : null; } catch (e) { nk = { name: dbPlayer.necklace }; }
     try { rg = dbPlayer.ring ? (typeof dbPlayer.ring === 'string' ? JSON.parse(dbPlayer.ring) : dbPlayer.ring) : null; } catch (e) { rg = { name: dbPlayer.ring }; }
     try { pt = dbPlayer.pet ? (typeof dbPlayer.pet === 'string' ? JSON.parse(dbPlayer.pet) : dbPlayer.pet) : null; } catch (e) { pt = { name: dbPlayer.pet }; }
+    try { sh = dbPlayer.shoes ? (typeof dbPlayer.shoes === 'string' ? JSON.parse(dbPlayer.shoes) : dbPlayer.shoes) : null; } catch (e) { sh = { name: dbPlayer.shoes }; }
+    if (!sh && wp && wp.shoes) {
+      try {
+        sh = typeof wp.shoes === 'string' ? JSON.parse(wp.shoes) : wp.shoes;
+      } catch (e) {
+        sh = { name: wp.shoes };
+      }
+    }
 
     return {
       exists: true,
@@ -3371,8 +3379,10 @@ const App = () => {
       pet: pt,
       ring: rg,
       necklace: nk,
+      shoes: sh,
       exp: wp?.player_exp || 0,
       bonus_coins: (wp?.player_coins !== undefined && wp?.player_coins !== null) ? Number(wp.player_coins) : (dbPlayer.bonus_coins || dbPlayer.coins || 0),
+      honor_points: Number(wp?.honor_points !== undefined && wp?.honor_points !== null ? wp.honor_points : (dbPlayer.honor_points || dbPlayer.honor || 0)),
       total_dmg: wp?.total_dmg || 0,
       has_x2_rate: wp?.has_x2_rate || false,
       platform: wp?.platform || 'tiktok',
@@ -3665,9 +3675,11 @@ const App = () => {
           avatar_url: res.avatar_url || prev?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(linkedUid)}`,
           weapon: prev?.weapon || null,
           armor: prev?.armor || null,
+          pants: prev?.pants || null,
           pet: prev?.pet || null,
           ring: prev?.ring || null,
           necklace: prev?.necklace || null,
+          shoes: prev?.shoes || null,
           exp: prev?.exp || 0,
           bonus_coins: prev?.bonus_coins || 0,
           total_dmg: prev?.total_dmg || 0,
@@ -7025,6 +7037,10 @@ const App = () => {
                       <span className="text-amber-300 font-bold flex items-center gap-1">
                         🪙 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary?.bonus_coins || 0)} Xu
                       </span>
+                      <span className="text-slate-600">|</span>
+                      <span className="text-rose-400 font-bold flex items-center gap-1" title="Điểm Vinh Dự Chiến Trường (PvP)">
+                        🏆 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary?.honor_points || 0)} Vinh Dự
+                      </span>
                     </div>
                   ) : (
                     <button
@@ -8437,6 +8453,14 @@ const App = () => {
       return '/game-assets/necklace_thuong.png';
     }
 
+    // Giày (Shoes)
+    if (category === 'shoes' || n.includes('giày') || n.includes('giay') || n.includes('shoes')) {
+      if (n.includes('huyền thoại') || n.includes('legendary') || n.includes('tối thượng') || n.includes('thượng cổ')) {
+        return '/game-assets/shoes_huyen_thoai.png';
+      }
+      return '/game-assets/shoes_thuong.png';
+    }
+
     return '/game-assets/ring_crystal.png';
   };
 
@@ -8445,7 +8469,7 @@ const App = () => {
     if (item.category) return item.category;
     if (item.type) {
       const t = String(item.type).toLowerCase();
-      if (['material', 'ring', 'necklace', 'pants', 'armor', 'weapon', 'pet'].includes(t)) {
+      if (['material', 'ring', 'necklace', 'pants', 'armor', 'weapon', 'pet', 'shoes'].includes(t)) {
         return t;
       }
     }
@@ -8457,6 +8481,7 @@ const App = () => {
     if (n.includes('nhẫn') || n.includes('ring')) return 'ring';
     if (n.includes('dây chuyền') || n.includes('necklace')) return 'necklace';
     if (n.includes('giáp') || n.includes('armor')) return 'armor';
+    if (n.includes('giày') || n.includes('giay') || n.includes('shoes')) return 'shoes';
     if (n.includes('rồng') || n.includes('phượng') || n.includes('pet') || n.includes('thú')) return 'pet';
     return 'weapon';
   };
@@ -8815,7 +8840,7 @@ const App = () => {
     if (name.includes('tinh hoa') || name.includes('tinh thể') || name.includes('đá') || name.includes('bùa')) return null;
 
     let setKey = null;
-    if (tier.includes('thượng cổ') || name.includes('thượng cổ') || name.includes('bá vương') || name.includes('nữ oa') || name.includes('bát hoang')) {
+    if (tier.includes('thượng cổ') || name.includes('thượng cổ') || name.includes('bá vương') || name.includes('nữ oa') || name.includes('bát hoang') || tier.includes('huyền thoại') || name.includes('huyền thoại') || tier.includes('legendary')) {
       setKey = 'thuong_co';
     } else if (tier.includes('cổ đại') || name.includes('cổ đại') || name.includes('long vương') || name.includes('chaos')) {
       setKey = 'co_dai';
@@ -8827,7 +8852,7 @@ const App = () => {
       setKey = 'epic';
     } else if (tier.includes('hiếm') || tier.includes('rare') || name.includes('trảm ma') || name.includes('giáp rồng') || name.includes('lam ngọc') || name.includes('cáo tuyết')) {
       setKey = 'hiem';
-    } else if (tier.includes('thường') || tier.includes('common') || name.includes('kiếm gỗ') || name.includes('giáp sắt') || name.includes('thiết giáp') || name.includes('bạc') || name.includes('hắc thiết') || name.includes('mèo béo')) {
+    } else if (tier.includes('thường') || tier.includes('common') || name.includes('kiếm gỗ') || name.includes('giáp sắt') || name.includes('thiết giáp') || name.includes('bạc') || name.includes('hắc thiết') || name.includes('mèo béo') || name.includes('giày thường')) {
       setKey = 'thuong';
     }
 
@@ -8837,7 +8862,7 @@ const App = () => {
 
   const getEquippedSetStatus = (setKey, playerSummary) => {
     if (!setKey || !playerSummary) return { equippedCount: 0, equippedSlots: [] };
-    const slots = ['weapon', 'armor', 'pants', 'necklace', 'ring', 'pet'];
+    const slots = ['weapon', 'armor', 'pants', 'necklace', 'ring', 'shoes', 'pet'];
     let count = 0;
     const equippedSlots = [];
     const targetRank = SET_TIER_RANKS[setKey] || 0;
@@ -8860,7 +8885,7 @@ const App = () => {
 
   const getPlayerActiveSets = (playerSummary) => {
     if (!playerSummary) return [];
-    const slots = ['weapon', 'armor', 'pants', 'necklace', 'ring', 'pet'];
+    const slots = ['weapon', 'armor', 'pants', 'necklace', 'ring', 'shoes', 'pet'];
     const validItems = [];
     slots.forEach(s => {
       const eq = playerSummary[s] || playerSummary[`boss_${s}`];
@@ -9761,6 +9786,10 @@ const App = () => {
                         <img
                           src={bossPlayerSummary.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(bossPlayerSummary.user_id)}`}
                           alt="Avatar"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(bossPlayerSummary.user_id || 'player')}`;
+                          }}
                           onClick={() => setShowBossProfileModal(true)}
                           className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-amber-400 object-cover shadow-[0_0_20px_rgba(245,158,11,0.4)] cursor-pointer hover:scale-105 transition-transform"
                           title="👉 Bấm để xem chi tiết Profile & Trang bị"
@@ -9797,6 +9826,9 @@ const App = () => {
                           </span>
                           <span className="text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-lg">
                             👑 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.royal_chests || 0)} Rương VIP
+                          </span>
+                          <span className="text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-lg" title="Điểm Vinh Dự Chiến Trường (PvP)">
+                            🏆 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.honor_points || 0)} Vinh Dự
                           </span>
                         </div>
                       </div>
@@ -10487,6 +10519,38 @@ const App = () => {
                         </span>
                       );
                     })()}
+                    {category === 'shoes' && (() => {
+                      const sTier = (item.tier || '').toLowerCase();
+                      const sPlus = Number(item.plus || 0);
+                      const baseAgi = Number(item.base_agility || (sTier.includes('huyền thoại') || sTier.includes('legendary') ? 60 : 30));
+                      let shoeBonusPct = 0;
+                      const subs = item.sub_stats || [];
+                      for (const sub of subs) {
+                        if (sub && (sub.includes('Nhanh Nhẹn') || sub.includes('Nhanh Nhen') || sub.includes('Agility') || sub.includes('Tốc Độ'))) {
+                          const m = sub.match(/(\d+)%/);
+                          if (m) shoeBonusPct += parseInt(m[1], 10);
+                        }
+                      }
+                      const plusMult = 1.0 + (sPlus * 0.25);
+                      const totAgi = Math.round(baseAgi * plusMult * (1.0 + shoeBonusPct / 100.0));
+                      return (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 px-1.5 py-0.5 rounded">
+                            🌪️ Cơ Bản: +{baseAgi.toLocaleString()} Tốc Độ
+                          </span>
+                          {totAgi > baseAgi && (
+                            <span className="font-bold text-amber-300 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.5 rounded">
+                              +{(totAgi - baseAgi).toLocaleString()} Tốc Độ
+                            </span>
+                          )}
+                          {shoeBonusPct > 0 && (
+                            <span className="font-bold text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-1.5 py-0.5 rounded text-[10px]">
+                              ⚡ +{shoeBonusPct}% Giày
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Sub-stats */}
@@ -10529,6 +10593,10 @@ const App = () => {
                     <img
                       src={p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id)}`}
                       alt="Avatar"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id || 'player')}`;
+                      }}
                       className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-[2.5px] border-yellow-400 shadow-[0_0_16px_rgba(255,215,0,0.7)] object-cover bg-slate-900 shrink-0"
                     />
                     <div className="min-w-0">
@@ -10696,11 +10764,11 @@ const App = () => {
                     );
                   })()}
 
-                  {/* Equipment Section (6 Slots) */}
+                  {/* Equipment Section (7 Slots) */}
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-xs font-black text-slate-300 uppercase tracking-wider">
-                        🛡️ Trang Bị & Thần Binh Đang Mặc (6 Ô)
+                        🛡️ Trang Bị & Thần Binh Đang Mặc (7 Ô)
                       </span>
                       <span className="text-[10.5px] text-slate-500 italic hidden sm:inline">
                         Chi tiết sao, cường hóa, nhẫn & thuộc tính phụ
@@ -10712,6 +10780,7 @@ const App = () => {
                       {renderEquipSlot(p.pants, 'pants', '👖', 'Quần Chiến')}
                       {renderEquipSlot(p.necklace, 'necklace', '📿', 'Dây Chuyền')}
                       {renderEquipSlot(p.ring, 'ring', '💍', 'Nhẫn Thần Binh')}
+                      {renderEquipSlot(p.shoes, 'shoes', '👟', 'Bảo Vật Đôi Giày')}
                       <div className="sm:col-span-2">
                         {renderEquipSlot(p.pet, 'pet', '🐾', 'Linh Thú')}
                       </div>
@@ -10864,6 +10933,10 @@ const App = () => {
                     <img
                       src={p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id)}`}
                       alt="Avatar"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id || 'player')}`;
+                      }}
                       className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-[2.5px] border-cyan-400 shadow-[0_0_16px_rgba(0,229,255,0.7)] object-cover bg-slate-900 shrink-0"
                     />
                     <div className="min-w-0">
@@ -11310,7 +11383,8 @@ const App = () => {
             p.pants?.id,
             p.pet?.id,
             p.ring?.id,
-            p.necklace?.id
+            p.necklace?.id,
+            p.shoes?.id
           ].filter(Boolean));
 
           // Gắn _rawIndex tương ứng với vị trí thực tế trong túi đồ của game_core
@@ -11427,6 +11501,7 @@ const App = () => {
     { id: 'pants', label: '👖 Quần Chiến' },
                           { id: 'necklace', label: '📿 Dây Chuyền' },
                           { id: 'ring', label: '💍 Nhẫn' },
+                          { id: 'shoes', label: '👟 Giày' },
                           { id: 'pet', label: '🐾 Linh Thú' },
                           { id: 'material', label: '💎 Nguyên Liệu' },
                         ].map(tab => (
@@ -12001,11 +12076,17 @@ const App = () => {
                   </div>
 
                   <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-                    {/* Xu của người chơi */}
+                    {/* Xu & Điểm Vinh Dự của người chơi */}
                     {bossPlayerSummary && (
-                      <div className="px-3 py-1.5 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center gap-1.5 text-xs font-black text-yellow-400">
-                        <span>🪙</span>
-                        <span>{new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.bonus_coins || 0)} Xu</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <div className="px-3 py-1.5 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center gap-1.5 text-xs font-black text-yellow-400">
+                          <span>🪙</span>
+                          <span>{new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.bonus_coins || 0)} Xu</span>
+                        </div>
+                        <div className="px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center gap-1.5 text-xs font-black text-rose-400" title="Điểm Vinh Dự Chiến Trường (PvP)">
+                          <span>🏆</span>
+                          <span>{new Intl.NumberFormat('vi-VN').format(bossPlayerSummary.honor_points || 0)} Vinh Dự</span>
+                        </div>
                       </div>
                     )}
 
@@ -12075,6 +12156,7 @@ const App = () => {
     { id: 'pants', label: '👖 Quần Chiến' },
                           { id: 'necklace', label: '📿 Dây Chuyền' },
                           { id: 'ring', label: '💍 Nhẫn' },
+                          { id: 'shoes', label: '👟 Giày' },
                           { id: 'pet', label: '🐾 Linh Thú' },
                           { id: 'material', label: '💎 Nguyên Liệu' },
                         ].map(f => (
