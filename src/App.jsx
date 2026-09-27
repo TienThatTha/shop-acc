@@ -14214,29 +14214,24 @@ const App = () => {
                 <div className="bg-[#0B1120] border border-blue-500/30 p-5 rounded-2xl mb-8 shadow-lg">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                     <h3 className="text-blue-400 font-bold flex items-center gap-2">
-                      <Settings2 size={18} /> Cài đặt Chi Phí & Giá Bán Vé Quay Vòng Quay
+                      <Settings2 size={18} /> Cài đặt Chi Phí Vòng Quay
                     </h3>
-                    <div className="flex items-center gap-2 bg-[#151D2F] px-3 py-1 rounded-xl border border-amber-500/30 text-xs">
-                      <img src="/spin_ticket.jpg" alt="Vé" className="w-5 h-5 rounded object-cover" onError={(e) => { e.target.src = '/spin_ticket.png'; }} />
-                      <span className="text-amber-400 font-bold">Vé Quay: {new Intl.NumberFormat('vi-VN').format(wheelConfig.ticketPrice || 20000)}đ</span>
-                    </div>
                   </div>
 
                   <form onSubmit={async (e) => {
                     e.preventDefault();
                     const newConfig = {
+                      ...wheelConfig,
                       moneyCost: parseInt(e.target.moneyCost.value) || 20000,
                       spinCost: parseInt(e.target.spinCost.value) || 1,
-                      ticketPrice: parseInt(e.target.ticketPrice.value) || 20000,
-                      ticketSaleEnabled: e.target.ticketSaleEnabled ? e.target.ticketSaleEnabled.checked : true
                     };
                     setWheelConfig(newConfig);
                     localStorage.setItem('shop_wheel_config', JSON.stringify(newConfig));
                     try {
                       await supabase.from('site_config').upsert({ id: 'wheel_config', value: newConfig });
                     } catch (err) {}
-                    showToast("Lưu cài đặt chi phí và giá bán Vé Quay thành công!");
-                  }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                    showToast("Lưu cài đặt chi phí Vòng Quay thành công!");
+                  }} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                     <div>
                       <label className="text-xs text-slate-400 font-bold block mb-1">Giá Quay Tiền (VNĐ/lần)</label>
                       <input name="moneyCost" type="number" defaultValue={wheelConfig.moneyCost} className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-emerald-400 font-bold outline-none focus:border-emerald-500" required />
@@ -14246,14 +14241,6 @@ const App = () => {
                       <input name="spinCost" type="number" defaultValue={wheelConfig.spinCost} className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-rose-400 font-bold outline-none focus:border-rose-500" required />
                     </div>
                     <div>
-                      <label className="text-xs text-amber-300 font-bold block mb-1">🎫 Giá Bán Vé Quay (VNĐ/Vé)</label>
-                      <input name="ticketPrice" type="number" defaultValue={wheelConfig.ticketPrice || 20000} className="w-full p-3 bg-[#151D2F] border border-amber-500/50 rounded-lg text-sm text-amber-400 font-bold outline-none focus:border-amber-400" required />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <label className="text-xs text-slate-400 font-bold flex items-center gap-2 cursor-pointer">
-                        <input name="ticketSaleEnabled" type="checkbox" defaultChecked={wheelConfig.ticketSaleEnabled !== false} className="accent-amber-500 w-4 h-4 cursor-pointer" />
-                        <span className="text-slate-200">Mở bán Vé trong Shop</span>
-                      </label>
                       <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-lg font-bold text-sm transition-colors shadow-lg shadow-blue-600/20">
                         Lưu Cài Đặt
                       </button>
