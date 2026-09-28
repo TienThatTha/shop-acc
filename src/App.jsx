@@ -3463,6 +3463,30 @@ const App = () => {
     }
     if (sh && !sh.name) sh = null;
 
+    const normalizeEquipSubStats = (item) => {
+      if (!item || typeof item !== 'object') return item;
+      if (typeof item.sub_stats === 'string' && item.sub_stats.trim()) {
+        try {
+          const parsed = JSON.parse(item.sub_stats);
+          if (Array.isArray(parsed)) item.sub_stats = parsed;
+          else item.sub_stats = [item.sub_stats];
+        } catch (e) {
+          item.sub_stats = [item.sub_stats];
+        }
+      }
+      if (typeof item.star_sub_stats === 'string' && item.star_sub_stats.trim()) {
+        try {
+          const parsed = JSON.parse(item.star_sub_stats);
+          if (Array.isArray(parsed)) item.star_sub_stats = parsed;
+          else item.star_sub_stats = [item.star_sub_stats];
+        } catch (e) {
+          item.star_sub_stats = [item.star_sub_stats];
+        }
+      }
+      return item;
+    };
+    [wp, ar, pn, nk, rg, pt, sh].forEach(normalizeEquipSubStats);
+
     return {
       exists: true,
       user_id: dbPlayer.user_id,
@@ -3486,6 +3510,7 @@ const App = () => {
         }
         return av;
       })(),
+      weapon: wp,
       armor: ar,
       pants: pn,
       pet: pt,
@@ -10793,14 +10818,24 @@ const App = () => {
 
                   {/* Sub-stats */}
                   {(() => {
+                    let itemSubs = [];
+                    if (Array.isArray(item.sub_stats)) itemSubs = item.sub_stats;
+                    else if (typeof item.sub_stats === 'string' && item.sub_stats.trim()) {
+                      try { const pJson = JSON.parse(item.sub_stats); if (Array.isArray(pJson)) itemSubs = pJson; else itemSubs = [item.sub_stats]; } catch (e) { itemSubs = [item.sub_stats]; }
+                    }
+                    let itemStarSubs = [];
+                    if (Array.isArray(item.star_sub_stats)) itemStarSubs = item.star_sub_stats;
+                    else if (typeof item.star_sub_stats === 'string' && item.star_sub_stats.trim()) {
+                      try { const pJson = JSON.parse(item.star_sub_stats); if (Array.isArray(pJson)) itemStarSubs = pJson; else itemStarSubs = [item.star_sub_stats]; } catch (e) { itemStarSubs = [item.star_sub_stats]; }
+                    }
                     const allSubs = Array.from(new Set([
-                      ...(Array.isArray(item.sub_stats) ? item.sub_stats : []),
-                      ...(Array.isArray(item.star_sub_stats) ? item.star_sub_stats : [])
+                      ...itemSubs,
+                      ...itemStarSubs
                     ].filter(Boolean)));
                     if (allSubs.length === 0) return null;
                     return (
                       <div className="flex flex-wrap gap-1 mt-1.5">
-                        {allSubs.slice(0, 3).map((sub, sIdx) => {
+                        {allSubs.map((sub, sIdx) => {
                           const cleanSub = formatSubStatText(sub);
                           return (
                             <span
