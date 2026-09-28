@@ -4,8 +4,17 @@ export const LEGENDARY_SHOES_IMG = "data:image/webp;base64,UklGRv49AABXRUJQVlA4I
 
 export const getShoesImage = (imgSrc) => {
   if (!imgSrc) return LEGENDARY_SHOES_IMG;
-  if (typeof imgSrc === 'string' && (imgSrc.includes('shoes_huyen_thoai') || imgSrc.includes('giay'))) {
-    return LEGENDARY_SHOES_IMG;
+  if (typeof imgSrc === 'string') {
+    const lower = imgSrc.toLowerCase();
+    if (
+      lower.includes('shoes') ||
+      lower.includes('giay') ||
+      lower.includes('giày') ||
+      lower.includes('huyen_thoai') ||
+      lower.includes('than_toc')
+    ) {
+      return LEGENDARY_SHOES_IMG;
+    }
   }
-  return imgSrc;
+  return imgSrc || LEGENDARY_SHOES_IMG;
 };

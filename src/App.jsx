@@ -797,10 +797,12 @@ const App = () => {
   useEffect(() => {
     if (currentUser?.id) {
       const local = localStorage.getItem(`shop_shoes_pity_${currentUser.id}`);
-      if (local !== null) {
+      if (currentUser.shoes_pity !== undefined && currentUser.shoes_pity !== null) {
+        const dbPity = parseInt(currentUser.shoes_pity) || 0;
+        setShoesPity(dbPity);
+        try { localStorage.setItem(`shop_shoes_pity_${currentUser.id}`, dbPity.toString()); } catch (e) { }
+      } else if (local !== null) {
         setShoesPity(parseInt(local) || 0);
-      } else if (currentUser.shoes_pity !== undefined) {
-        setShoesPity(parseInt(currentUser.shoes_pity) || 0);
       }
     } else {
       setShoesPity(0);
@@ -1047,14 +1049,15 @@ const App = () => {
             const n = String(w.name || '').toLowerCase();
             const t = String(w.type || '').toLowerCase();
             let img = w.image;
-            if (!img) {
+            if (t === 'game_shoes_legendary' || n.includes('giày')) {
+              img = getShoesImage(img) || LEGENDARY_SHOES_IMG;
+            } else if (!img) {
               if (t === 'game_coins' || n.includes('xu')) img = '/game-assets/gold_coin.png';
               else if (t === 'game_attacks' || n.includes('lượt đánh') || n.includes('đánh boss')) img = '/game-assets/weapon_song_dao.png';
               else if (t === 'game_boss_chests' || n.includes('hòm boss')) img = '/game-assets/mystery_box_closed.png';
               else if (t === 'game_royal_chests' || n.includes('hoàng kim')) img = '/game-assets/royal_chest.png';
               else if (t === 'game_essence_stone' || n.includes('tinh hoa')) img = '/game-assets/da_tinh_hoa.png';
               else if (t === 'game_ring_crystal' || n.includes('tinh thể')) img = '/game-assets/ring_crystal.png';
-              else if (t === 'game_shoes_legendary' || n.includes('giày')) img = LEGENDARY_SHOES_IMG;
             }
 
             const itemNotify = w.notify_on_win !== undefined && w.notify_on_win !== null ? Boolean(w.notify_on_win) : getWheelNotifyFallback(w.id);
@@ -1123,7 +1126,7 @@ const App = () => {
 
         if (session) {
           // Tìm xem ai đang đăng nhập
-          const { data: user } = await supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at, linked_game_id').eq('id', session.user.id).single();
+          const { data: user } = await supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at, linked_game_id, shoes_pity').eq('id', session.user.id).single();
 
           if (user && !user.is_locked) {
             // Tra cứu linked_game_id từ Supabase game_orders (OTP completed) - ưu tiên server để tránh cache sai lệch giữa các tài khoản
@@ -1217,7 +1220,7 @@ const App = () => {
             if (role === 'admin') {
               // QUYỀN ADMIN: TẢI TOÀN BỘ DATABASE VỀ PANEL
               const [usersRes, txRes, depRes, rentRes, msgRes, boostReqRes] = await Promise.all([
-                supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').order('id', { ascending: false }),
+                supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at, linked_game_id, shoes_pity').order('id', { ascending: false }),
                 supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(300),
                 supabase.from('deposit_requests').select('*').order('created_at', { ascending: false }).limit(300),
                 supabase.from('rent_requests').select('*').order('created_at', { ascending: false }).limit(200),
@@ -1262,7 +1265,7 @@ const App = () => {
                 supabase.from('rent_requests').select('*').eq('userId', session.user.id).order('created_at', { ascending: false }).limit(100),
                 supabase.from('messages').select('*').or(`senderId.eq.${session.user.id},receiverId.eq.${session.user.id}`).order('timestamp', { ascending: true }).limit(2000),
                 supabase.from('boosting_requests').select('*').eq('user', user.name).order('created_at', { ascending: false }).limit(100), // <--- Đã thêm lệnh lấy Cày Thuê
-                supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').eq('role', 'admin').limit(1).maybeSingle()
+                supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at, linked_game_id, shoes_pity').eq('role', 'admin').limit(1).maybeSingle()
               ]);
 
               if (myTx.data) { setTransactionsDb(myTx.data); try { localStorage.setItem('shop_tx_db', JSON.stringify(myTx.data)); } catch (e) { } }
@@ -1574,10 +1577,37 @@ const App = () => {
               ...w,
               notify_on_win: w.notify_on_win !== undefined && w.notify_on_win !== null ? Boolean(w.notify_on_win) : getWheelNotifyFallback(w.id)
             }));
-            const spinItems = data.filter(w => w.wheel_type === 'spin').map(w => ({
-              ...w,
-              notify_on_win: w.notify_on_win !== undefined && w.notify_on_win !== null ? Boolean(w.notify_on_win) : getWheelNotifyFallback(w.id)
-            }));
+            const spinItems = data.filter(w => w.wheel_type === 'spin').map(w => {
+              const n = String(w.name || '').toLowerCase();
+              const t = String(w.type || '').toLowerCase();
+              let img = w.image;
+              if (t === 'game_shoes_legendary' || n.includes('giày')) {
+                img = getShoesImage(img) || LEGENDARY_SHOES_IMG;
+              } else if (!img) {
+                if (t === 'game_coins' || n.includes('xu')) img = '/game-assets/gold_coin.png';
+                else if (t === 'game_attacks' || n.includes('lượt đánh') || n.includes('đánh boss')) img = '/game-assets/weapon_song_dao.png';
+                else if (t === 'game_boss_chests' || n.includes('hòm boss')) img = '/game-assets/mystery_box_closed.png';
+                else if (t === 'game_royal_chests' || n.includes('hoàng kim')) img = '/game-assets/royal_chest.png';
+                else if (t === 'game_essence_stone' || n.includes('tinh hoa')) img = '/game-assets/da_tinh_hoa.png';
+                else if (t === 'game_ring_crystal' || n.includes('tinh thể')) img = '/game-assets/ring_crystal.png';
+              }
+              const itemNotify = w.notify_on_win !== undefined && w.notify_on_win !== null ? Boolean(w.notify_on_win) : getWheelNotifyFallback(w.id);
+              if (n.includes('xu') && (w.type === 'other' || w.type === 'game_coins' || w.id === 'WHEEL_GAME_COINS')) {
+                return {
+                  ...w,
+                  image: img,
+                  type: 'game_coins',
+                  name: (w.name && w.name.includes('50,000')) ? '+20 Xu Nâng Cấp' : (w.name || '+20 Xu Nâng Cấp'),
+                  value: (w.value === 50000 || !w.value) ? 20 : Number(w.value),
+                  rate: (w.rate === '25%' && (w.value === 20 || w.value === 50000)) ? '5%' : w.rate,
+                  notify_on_win: itemNotify
+                };
+              }
+              if (w.id === 'WHEEL_GAME_NONE' && w.rate === '24.5%') {
+                return { ...w, image: img, rate: '44.5%', notify_on_win: itemNotify };
+              }
+              return { ...w, image: img, notify_on_win: itemNotify };
+            });
             setWheelItemsMoneyDb(moneyItems);
             setWheelItemsSpinDb(spinItems);
             try { localStorage.setItem('shop_wheel_money', JSON.stringify(moneyItems)); } catch (e) { }
@@ -6215,26 +6245,29 @@ const App = () => {
 
       // 2. ĐỌC KẾT QUẢ TỪ SERVER TRẢ VỀ ĐỂ DỰNG HIỆU ỨNG (Animation)
       let winningIndex = activeDb.findIndex(item => item.id === data.item_id);
+      const isServerShoesWin = Boolean(
+        data.is_shoes ||
+        data.is_pity_trigger ||
+        data.item_id === 'WHEEL_SHOES_LEGENDARY' ||
+        (data.item_name && data.item_name.toLowerCase().includes('giày'))
+      );
+
+      const currentPityCount = Number(shoesPity || 0);
+      const isPityTriggered = (playMode === 'spin' && (currentPityCount >= 120 || Boolean(data.is_pity_trigger)));
+
+      if (isPityTriggered || isServerShoesWin) {
+        const shoesIdx = activeDb.findIndex(isLegendaryShoes);
+        if (shoesIdx !== -1) {
+          winningIndex = shoesIdx;
+        }
+      }
+
       if (winningIndex === -1) {
         setIsSpinning(false);
         return showToast("Lỗi đồng bộ vòng quay!", 'error');
       }
 
       let winningItem = activeDb[winningIndex];
-
-      // BẢO HIỂM 120 LẦN CHO VÒNG QUAY LƯỢT:
-      // Nếu là vòng quay bằng lượt (playMode === 'spin') và đã quay 120 lần chưa ra giày (shoesPity >= 120):
-      // Lần quay thứ 121 CHẮC CHẮN 100% kích hoạt bảo hiểm trúng Giày Huyền Thoại!
-      const currentPityCount = Number(shoesPity || 0);
-      const isPityTriggered = (playMode === 'spin' && currentPityCount >= 120);
-
-      if (isPityTriggered) {
-        const shoesIdx = activeDb.findIndex(isLegendaryShoes);
-        if (shoesIdx !== -1) {
-          winningIndex = shoesIdx;
-          winningItem = activeDb[shoesIdx];
-        }
-      }
 
       // Tính góc quay sao cho kim chỉ đúng vào ô trúng
       const N = activeDb.length;
@@ -6273,15 +6306,21 @@ const App = () => {
         setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
 
         // CẬP NHẬT CHỈ SỐ BẢO HIỂM GIÀY HUYỀN THOẠI (PITY)
-        const wonShoes = isLegendaryShoes(winningItem);
+        const wonShoes = isLegendaryShoes(winningItem) || isServerShoesWin;
         let nextPity = currentPityCount;
         if (playMode === 'spin') {
           // Trúng Giày Huyền Thoại (dù tự nhiên hay bảo hiểm 121) -> Reset bảo hiểm về 0
-          // Không trúng Giày Huyền Thoại -> Tăng bảo hiểm lên 1
-          nextPity = wonShoes ? 0 : (currentPityCount + 1);
+          // Không trúng Giày Huyền Thoại -> Tăng bảo hiểm lên 1 (nếu server có shoes_pity thì đồng bộ theo server)
+          if (wonShoes) {
+            nextPity = 0;
+          } else if (data.shoes_pity !== undefined && data.shoes_pity !== null) {
+            nextPity = Number(data.shoes_pity);
+          } else {
+            nextPity = currentPityCount + 1;
+          }
           setShoesPity(nextPity);
           if (currentUser?.id) {
-            localStorage.setItem(`shop_shoes_pity_${currentUser.id}`, nextPity.toString());
+            try { localStorage.setItem(`shop_shoes_pity_${currentUser.id}`, nextPity.toString()); } catch (e) { }
             try {
               supabase.from('users').update({ shoes_pity: nextPity }).eq('id', currentUser.id).then(() => {});
             } catch (e) { }
@@ -7837,18 +7876,30 @@ const App = () => {
 
               <div className={`w-28 h-28 md:w-32 md:h-32 mx-auto -mt-20 md:-mt-24 mb-6 rounded-full flex items-center justify-center border-4 border-[#0B1120] relative ${giftModalData.isLost ? 'bg-slate-700 shadow-xl' : 'bg-gradient-to-br from-yellow-400 to-amber-600 shadow-[0_0_50px_rgba(234,179,8,0.8)]'}`}>
                 {(() => {
-                  const modalImg = giftModalData.item?.image || (
-                    (giftModalData.prizeType === 'game_coins' || giftModalData.item?.name?.toLowerCase().includes('xu')) ? '/game-assets/gold_coin.png' :
-                    (giftModalData.prizeType === 'game_attacks' || giftModalData.item?.name?.toLowerCase().includes('lượt đánh')) ? '/game-assets/weapon_song_dao.png' : null
+                  const isShoesReward = Boolean(
+                    giftModalData.isShoes ||
+                    isLegendaryShoes(giftModalData.item) ||
+                    giftModalData.item?.type === 'game_shoes_legendary' ||
+                    giftModalData.item?.name?.toLowerCase().includes('giày')
                   );
+                  const modalImg = isShoesReward
+                    ? (getShoesImage(giftModalData.item?.image) || LEGENDARY_SHOES_IMG)
+                    : (giftModalData.item?.image || (
+                        (giftModalData.prizeType === 'game_coins' || giftModalData.item?.name?.toLowerCase().includes('xu')) ? '/game-assets/gold_coin.png' :
+                        (giftModalData.prizeType === 'game_attacks' || giftModalData.item?.name?.toLowerCase().includes('lượt đánh')) ? '/game-assets/weapon_song_dao.png' :
+                        (giftModalData.prizeType === 'game_boss_chests' || giftModalData.item?.name?.toLowerCase().includes('hòm boss')) ? '/game-assets/mystery_box_closed.png' :
+                        (giftModalData.prizeType === 'game_royal_chests' || giftModalData.item?.name?.toLowerCase().includes('hoàng kim')) ? '/game-assets/royal_chest.png' :
+                        (giftModalData.prizeType === 'game_essence_stone' || giftModalData.item?.name?.toLowerCase().includes('tinh hoa')) ? '/game-assets/da_tinh_hoa.png' :
+                        (giftModalData.prizeType === 'game_ring_crystal' || giftModalData.item?.name?.toLowerCase().includes('tinh thể')) ? '/game-assets/ring_crystal.png' : null
+                      ));
                   if (modalImg && !giftModalData.isLost) {
                     return (
                       <img
-                        src={giftModalData.isShoes ? getShoesImage(modalImg) : modalImg}
+                        src={isShoesReward ? (getShoesImage(modalImg) || LEGENDARY_SHOES_IMG) : modalImg}
                         className="w-16 h-16 md:w-20 md:h-20 object-contain animate-bounce"
-                        alt={giftModalData.item.name}
+                        alt={giftModalData.item?.name || 'Vật phẩm'}
                         onError={(e) => {
-                          if (giftModalData.isShoes) {
+                          if (isShoesReward) {
                             e.target.src = LEGENDARY_SHOES_IMG;
                           } else {
                             e.target.style.display = 'none';
@@ -7885,7 +7936,7 @@ const App = () => {
                 )}
 
                 {/* HIỂN THỊ PHẦN THƯỞNG IN-GAME */}
-                {giftModalData.isShoes && (
+                {(giftModalData.isShoes || isLegendaryShoes(giftModalData.item) || giftModalData.item?.name?.toLowerCase().includes('giày')) && (
                   <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/40 rounded-xl text-center">
                     <p className="text-amber-400 font-black text-lg md:text-xl">👟 +300 TỐC ĐỘ</p>
                     <p className="text-xs text-amber-200/80 mt-1">Giày Huyền Thoại Thần Tốc tăng tốc độ vượt trội trong mọi trận đấu!</p>
@@ -8331,7 +8382,7 @@ const App = () => {
     if (t.includes('cổ đại')) return { color: '#00ffaa', border: '#00ffaa', bg: 'rgba(0, 255, 170, 0.15)', label: 'CỔ ĐẠI' };
     if (t.includes('tối thượng')) return { color: '#ff3366', border: '#ff3366', bg: 'rgba(255, 51, 102, 0.15)', label: 'TỐI THƯỢNG' };
     if (t.includes('thần thoại')) return { color: '#ffaa00', border: '#ffaa00', bg: 'rgba(255, 170, 0, 0.15)', label: 'THẦN THOẠI' };
-    if (t.includes('huyền thoại')) return { color: '#ffcc00', border: '#ffcc00', bg: 'rgba(255, 204, 0, 0.15)', label: 'HUYỀN THOẠI' };
+    if (t.includes('huyền thoại') || t.includes('legendary') || t.includes('thần tốc')) return { color: '#ff007f', border: '#ff007f', bg: 'rgba(255, 0, 127, 0.2)', label: '🌈 HUYỀN THOẠI 🌈' };
     if (t.includes('sử thi') || t.includes('epic')) return { color: '#a855f7', border: '#a855f7', bg: 'rgba(168, 85, 247, 0.15)', label: 'SỬ THI' };
     if (t.includes('hiếm') || t.includes('rare')) return { color: '#38bdf8', border: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', label: 'HIẾM' };
     return { color: '#94a3b8', border: '#475569', bg: 'rgba(148, 163, 184, 0.15)', label: 'THƯỜNG' };
@@ -8450,7 +8501,15 @@ const App = () => {
     "item_health_potion": "/game-assets/item_health_potion.png",
     "bùa phục sinh": "/game-assets/item_revive_amulet.png",
     "bùa hồi sinh": "/game-assets/item_revive_amulet.png",
-    "item_revive_amulet": "/game-assets/item_revive_amulet.png"
+    "item_revive_amulet": "/game-assets/item_revive_amulet.png",
+
+    // Bảo Vật Đôi Giày (Shoes)
+    "giày thần tốc": "/game-assets/shoes_huyen_thoai.png",
+    "giày huyền thoại": "/game-assets/shoes_huyen_thoai.png",
+    "giày huyền thoại thần tốc": "/game-assets/shoes_huyen_thoai.png",
+    "giày thần tốc (huyền thoại)": "/game-assets/shoes_huyen_thoai.png",
+    "giày da": "/game-assets/shoes_thuong.png",
+    "giày thường": "/game-assets/shoes_thuong.png"
   };
 
   const getBossItemAsset = (itemOrName, maybeCategory) => {
@@ -8572,8 +8631,20 @@ const App = () => {
     }
 
     // Giày (Shoes)
-    if (category === 'shoes' || n.includes('giày') || n.includes('giay') || n.includes('shoes')) {
-      if (n.includes('huyền thoại') || n.includes('legendary') || n.includes('tối thượng') || n.includes('thượng cổ')) {
+    const tierStr = String(itemOrName?.tier || '').toLowerCase();
+    if (category === 'shoes' || n.includes('giày') || n.includes('giay') || n.includes('shoes') || n.includes('boot')) {
+      if (
+        tierStr.includes('huyền thoại') ||
+        tierStr.includes('legendary') ||
+        n.includes('huyền thoại') ||
+        n.includes('legendary') ||
+        n.includes('thần tốc') ||
+        n.includes('thất sắc') ||
+        n.includes('cầu vồng') ||
+        n.includes('bảo vật') ||
+        n.includes('tối thượng') ||
+        n.includes('thượng cổ')
+      ) {
         return '/game-assets/shoes_huyen_thoai.png';
       }
       return '/game-assets/shoes_thuong.png';
