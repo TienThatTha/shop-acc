@@ -8912,6 +8912,8 @@ const App = () => {
     let str = String(sub).trim();
     // Loại bỏ các icon ✨ đứng trước một emoji khác (ví dụ: "✨ ⚡" -> "⚡", "✨ 💥" -> "💥")
     str = str.replace(/^(?:✨\s*)+(?=[\p{Extended_Pictographic}\u2600-\u27bf])/u, '').trim();
+    // Rút gọn "Tốc Độ Đôi Giày" -> "Tốc Độ" cho ngắn gọn, đồng bộ thẩm mỹ
+    str = str.replace(/Tốc\s*Độ\s*Đôi\s*Giày/gi, 'Tốc Độ');
     return str;
   };
 
@@ -10782,11 +10784,6 @@ const App = () => {
                           {totAgi > baseAgi && (
                             <span className="font-bold text-amber-300 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.5 rounded">
                               +{(totAgi - baseAgi).toLocaleString()} Tốc Độ
-                            </span>
-                          )}
-                          {shoeBonusPct > 0 && (
-                            <span className="font-bold text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-1.5 py-0.5 rounded text-[10px]">
-                              ⚡ +{shoeBonusPct}% Giày
                             </span>
                           )}
                         </div>
