@@ -6351,9 +6351,32 @@ const App = () => {
                 tier: 'Huyền Thoại',
                 base_agility: 300,
                 agility: 300,
+                stars: 0,
+                plus: 0,
+                sub_stats: ['⚡ +30% Tốc Độ Đôi Giày'],
                 description: 'Giày Huyền Thoại Thần Tốc (+300 Tốc độ) nhận từ Vòng Quay May Mắn (Bảo hiểm 121)'
-              }]
+              }],
+              auto_equip: true
             };
+            if (bossPlayerSummary) {
+              const newShoesObj = {
+                id: `SHOES_LEGENDARY_${Date.now()}`,
+                name: 'Giày Thần Tốc',
+                category: 'shoes',
+                type: 'shoes',
+                tier: 'Huyền Thoại',
+                base_agility: 300,
+                agility: 300,
+                stars: 0,
+                plus: 0,
+                sub_stats: ['⚡ +30% Tốc Độ Đôi Giày']
+              };
+              setBossPlayerSummary(prev => {
+                if (!prev) return prev;
+                const newInv = prev.shoes ? [...(prev.inventory || []), prev.shoes] : (prev.inventory || []);
+                return { ...prev, shoes: newShoesObj, inventory: newInv };
+              });
+            }
           } else if (winningItem.type === 'game_essence_stone' || winningItem.name?.toLowerCase().includes('tinh hoa')) {
             pkgId = 'wheel_game_essence_stone';
             pkgName = `Vòng Quay: ${winningItem.name}`;
@@ -6710,8 +6733,31 @@ const App = () => {
               tier: 'Huyền Thoại',
               base_agility: 300,
               agility: 300,
+              stars: 0,
+              plus: 0,
+              sub_stats: ['⚡ +30% Tốc Độ Đôi Giày'],
               description: 'Giày Huyền Thoại Thần Tốc (+300 Tốc độ) nhận từ Vòng Quay x10'
             });
+            orderRewards.auto_equip = true;
+            if (bossPlayerSummary) {
+              const newShoesObj = {
+                id: `SHOES_LEGENDARY_${Date.now()}`,
+                name: 'Giày Thần Tốc',
+                category: 'shoes',
+                type: 'shoes',
+                tier: 'Huyền Thoại',
+                base_agility: 300,
+                agility: 300,
+                stars: 0,
+                plus: 0,
+                sub_stats: ['⚡ +30% Tốc Độ Đôi Giày']
+              };
+              setBossPlayerSummary(prev => {
+                if (!prev) return prev;
+                const newInv = prev.shoes ? [...(prev.inventory || []), prev.shoes] : (prev.inventory || []);
+                return { ...prev, shoes: newShoesObj, inventory: newInv };
+              });
+            }
           }
           if (sumEssenceStones > 0) {
             itemsList.push({
