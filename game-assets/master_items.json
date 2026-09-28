@@ -1,0 +1,650 @@
+{
+  "kiếm gỗ": {
+    "name": "Kiếm Gỗ",
+    "image": "weapon_wooden_sword.png",
+    "category": "weapon",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "trảm ma kiếm": {
+    "name": "Trảm Ma Kiếm",
+    "image": "weapon_tram_ma.png",
+    "category": "weapon",
+    "tier": "Hiếm",
+    "color": "#3182ce",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "song đao hỏa thần": {
+    "name": "Song Đao Hỏa Thần",
+    "image": "weapon_song_dao.png",
+    "category": "weapon",
+    "tier": "Epic",
+    "color": "#805ad5",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "thần đao diệt tộc": {
+    "name": "Thần Đao Diệt Tộc",
+    "image": "weapon_than_dao.png",
+    "category": "weapon",
+    "tier": "Thần Thoại",
+    "color": "#d69e2e",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "huyền thoại ma vương": {
+    "name": "Huyền Thoại Ma Vương",
+    "image": "weapon_ma_vuong.png",
+    "category": "weapon",
+    "tier": "Tối Thượng",
+    "color": "#e53e3e",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "thần kiếm cổ đại chaos": {
+    "name": "Thần Kiếm Cổ Đại Chaos",
+    "image": "weapon_chaos.png",
+    "category": "weapon",
+    "tier": "Cổ Đại",
+    "color": "#00ffaa",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "bá vương thần đao thượng cổ": {
+    "name": "Bá Vương Thần Đao Thượng Cổ",
+    "image": "weapon_ba_vuong.png",
+    "category": "weapon",
+    "tier": "Thượng Cổ",
+    "color": "#ff0055",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "giáp sắt": {
+    "name": "Giáp Sắt",
+    "image": "armor_giap_sat.png",
+    "category": "armor",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "giáp rồng": {
+    "name": "Giáp Rồng",
+    "image": "armor_giap_rong.png",
+    "category": "armor",
+    "tier": "Hiếm",
+    "color": "#3182ce",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "giáp thánh quang": {
+    "name": "Giáp Thánh Quang",
+    "image": "armor_thanh_quang.png",
+    "category": "armor",
+    "tier": "Epic",
+    "color": "#805ad5",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "giáp kim cương": {
+    "name": "Giáp Kim Cương",
+    "image": "armor_kim_cuong.png",
+    "category": "armor",
+    "tier": "Thần Thoại",
+    "color": "#d69e2e",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "giáp vô cực tối thượng": {
+    "name": "Giáp Vô Cực Tối Thượng",
+    "image": "armor_vo_cuc.png",
+    "category": "armor",
+    "tier": "Tối Thượng",
+    "color": "#e53e3e",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "giáp cổ đại long vương": {
+    "name": "Giáp Cổ Đại Long Vương",
+    "image": "armor_long_vuong.png",
+    "category": "armor",
+    "tier": "Cổ Đại",
+    "color": "#00ffaa",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "thần giáp thượng cổ nữ oa": {
+    "name": "Thần Giáp Thượng Cổ Nữ Oa",
+    "image": "armor_nu_oa.png",
+    "category": "armor",
+    "tier": "Thượng Cổ",
+    "color": "#ff0055",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "quần thiết giáp": {
+    "name": "Quần Thiết Giáp",
+    "image": "pants_thuong.png",
+    "category": "pants",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "quần lam ngọc": {
+    "name": "Quần Lam Ngọc",
+    "image": "pants_hiem.png",
+    "category": "pants",
+    "tier": "Hiếm",
+    "color": "#3182ce",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "quần thánh quang": {
+    "name": "Quần Thánh Quang",
+    "image": "pants_epic.png",
+    "category": "pants",
+    "tier": "Epic",
+    "color": "#805ad5",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "quần kim cương": {
+    "name": "Quần Kim Cương",
+    "image": "pants_thanthoai.png",
+    "category": "pants",
+    "tier": "Thần Thoại",
+    "color": "#d69e2e",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "quần vô cực tối thượng": {
+    "name": "Quần Vô Cực Tối Thượng",
+    "image": "pants_toithuong.png",
+    "category": "pants",
+    "tier": "Tối Thượng",
+    "color": "#e53e3e",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "quần cổ đại long vương": {
+    "name": "Quần Cổ Đại Long Vương",
+    "image": "pants_codai.png",
+    "category": "pants",
+    "tier": "Cổ Đại",
+    "color": "#00ffaa",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "thần quần thượng cổ nữ oa": {
+    "name": "Thần Quần Thượng Cổ Nữ Oa",
+    "image": "pants_thuongco.png",
+    "category": "pants",
+    "tier": "Thượng Cổ",
+    "color": "#ff0055",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "mèo béo": {
+    "name": "Mèo Béo",
+    "image": "pet_meo_beo.png",
+    "category": "pet",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "cáo tuyết": {
+    "name": "Cáo Tuyết",
+    "image": "pet_cao_tuyet.png",
+    "category": "pet",
+    "tier": "Hiếm",
+    "color": "#3182ce",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "rồng con": {
+    "name": "Rồng Con",
+    "image": "pet_rong_con.png",
+    "category": "pet",
+    "tier": "Epic",
+    "color": "#805ad5",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "rồng thần tí hon": {
+    "name": "Rồng Thần Tí Hon",
+    "image": "pet_rong_than.png",
+    "category": "pet",
+    "tier": "Thần Thoại",
+    "color": "#d69e2e",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "phượng hoàng tối thượng": {
+    "name": "Phượng Hoàng Tối Thượng",
+    "image": "pet_phuong_hoang.png",
+    "category": "pet",
+    "tier": "Tối Thượng",
+    "color": "#e53e3e",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "thần rồng cổ đại chaos": {
+    "name": "Thần Rồng Cổ Đại Chaos",
+    "image": "pet_rong_chaos.png",
+    "category": "pet",
+    "tier": "Cổ Đại",
+    "color": "#00ffaa",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "bát hoang thần rồng thượng cổ": {
+    "name": "Bát Hoang Thần Rồng Thượng Cổ",
+    "image": "pet_rong_thuong_co.png",
+    "category": "pet",
+    "tier": "Thượng Cổ",
+    "color": "#ff0055",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "dây chuyền bạc": {
+    "name": "Dây Chuyền Bạc",
+    "image": "necklace_thuong.png",
+    "category": "necklace",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "dây chuyền lam ngọc": {
+    "name": "Dây Chuyền Lam Ngọc",
+    "image": "necklace_hiem.png",
+    "category": "necklace",
+    "tier": "Hiếm",
+    "color": "#3182ce",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "dây chuyền tử tinh": {
+    "name": "Dây Chuyền Tử Tinh",
+    "image": "necklace_epic.png",
+    "category": "necklace",
+    "tier": "Epic",
+    "color": "#805ad5",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "dây chuyền hoàng kim": {
+    "name": "Dây Chuyền Hoàng Kim",
+    "image": "necklace_thanthoai.png",
+    "category": "necklace",
+    "tier": "Thần Thoại",
+    "color": "#d69e2e",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "dây chuyền hắc ma vương": {
+    "name": "Dây Chuyền Hắc Ma Vương",
+    "image": "necklace_toithuong.png",
+    "category": "necklace",
+    "tier": "Tối Thượng",
+    "color": "#e53e3e",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "dây chuyền cổ đại chaos": {
+    "name": "Dây Chuyền Cổ Đại Chaos",
+    "image": "necklace_codai.png",
+    "category": "necklace",
+    "tier": "Cổ Đại",
+    "color": "#00ffaa",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "thần dây chuyền thượng cổ vô cực": {
+    "name": "Thần Dây Chuyền Thượng Cổ Vô Cực",
+    "image": "necklace_thuongco.png",
+    "category": "necklace",
+    "tier": "Thượng Cổ",
+    "color": "#ff0055",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "nhẫn hắc thiết": {
+    "name": "Nhẫn Hắc Thiết",
+    "image": "ring_thuong.png",
+    "category": "ring",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "nhẫn lam ngọc tinh": {
+    "name": "Nhẫn Lam Ngọc Tinh",
+    "image": "ring_hiem.png",
+    "category": "ring",
+    "tier": "Hiếm",
+    "color": "#3182ce",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "nhẫn huyết ma thạch": {
+    "name": "Nhẫn Huyết Ma Thạch",
+    "image": "ring_epic.png",
+    "category": "ring",
+    "tier": "Epic",
+    "color": "#805ad5",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "nhẫn hoàng kim diệt thế": {
+    "name": "Nhẫn Hoàng Kim Diệt Thế",
+    "image": "ring_thanthoai.png",
+    "category": "ring",
+    "tier": "Thần Thoại",
+    "color": "#d69e2e",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "nhẫn hắc ám ma vương": {
+    "name": "Nhẫn Hắc Ám Ma Vương",
+    "image": "ring_toithuong.png",
+    "category": "ring",
+    "tier": "Tối Thượng",
+    "color": "#e53e3e",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "nhẫn thần long chaos": {
+    "name": "Nhẫn Thần Long Chaos",
+    "image": "ring_codai.png",
+    "category": "ring",
+    "tier": "Cổ Đại",
+    "color": "#00ffaa",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "bát hoang thần giới vô cực": {
+    "name": "Bát Hoang Thần Giới Vô Cực",
+    "image": "ring_thuongco.png",
+    "category": "ring",
+    "tier": "Thượng Cổ",
+    "color": "#ff0055",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "giày thường": {
+    "name": "Giày Thường",
+    "image": "shoes_thuong.png",
+    "category": "shoes",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "glow_color": null,
+    "border_class": "tier-thuong"
+  },
+  "giày da": {
+    "name": "Giày Thường",
+    "image": "shoes_thuong.png",
+    "category": "shoes",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "glow_color": null,
+    "border_class": "tier-thuong"
+  },
+  "giay thuong": {
+    "name": "Giày Thường",
+    "image": "shoes_thuong.png",
+    "category": "shoes",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "glow_color": null,
+    "border_class": "tier-thuong"
+  },
+  "giày thần tốc": {
+    "name": "Giày Thần Tốc",
+    "image": "shoes_huyen_thoai.png",
+    "category": "shoes",
+    "tier": "Huyền Thoại",
+    "color": "#ff00ff",
+    "glow_color": "#ff00ff",
+    "border_class": "rainbow-aura-box"
+  },
+  "giày huyền thoại thần tốc": {
+    "name": "Giày Thần Tốc",
+    "image": "shoes_huyen_thoai.png",
+    "category": "shoes",
+    "tier": "Huyền Thoại",
+    "color": "#ff00ff",
+    "glow_color": "#ff00ff",
+    "border_class": "rainbow-aura-box"
+  },
+  "giày huyền thoại": {
+    "name": "Giày Thần Tốc",
+    "image": "shoes_huyen_thoai.png",
+    "category": "shoes",
+    "tier": "Huyền Thoại",
+    "color": "#ff00ff",
+    "glow_color": "#ff00ff",
+    "border_class": "rainbow-aura-box"
+  },
+  "bảo vật giày huyền thoại thất sắc": {
+    "name": "Bảo Vật Giày Huyền Thoại Thất Sắc",
+    "image": "shoes_huyen_thoai.png",
+    "category": "shoes",
+    "tier": "Huyền Thoại",
+    "color": "#ff00ff",
+    "glow_color": "#ff00ff",
+    "border_class": "rainbow-aura-box"
+  },
+  "bảo vật giày thần tốc": {
+    "name": "Giày Thần Tốc",
+    "image": "shoes_huyen_thoai.png",
+    "category": "shoes",
+    "tier": "Huyền Thoại",
+    "color": "#ff00ff",
+    "glow_color": "#ff00ff",
+    "border_class": "rainbow-aura-box"
+  },
+  "giay than toc": {
+    "name": "Giày Thần Tốc",
+    "image": "shoes_huyen_thoai.png",
+    "category": "shoes",
+    "tier": "Huyền Thoại",
+    "color": "#ff00ff",
+    "glow_color": "#ff00ff",
+    "border_class": "rainbow-aura-box"
+  },
+  "giày thất sắc": {
+    "name": "Bảo Vật Giày Huyền Thoại Thất Sắc",
+    "image": "shoes_huyen_thoai.png",
+    "category": "shoes",
+    "tier": "Huyền Thoại",
+    "color": "#ff00ff",
+    "glow_color": "#ff00ff",
+    "border_class": "rainbow-aura-box"
+  },
+  "giay that sac": {
+    "name": "Bảo Vật Giày Huyền Thoại Thất Sắc",
+    "image": "shoes_huyen_thoai.png",
+    "category": "shoes",
+    "tier": "Huyền Thoại",
+    "color": "#ff00ff",
+    "glow_color": "#ff00ff",
+    "border_class": "rainbow-aura-box"
+  },
+  "tinh thể cường hóa": {
+    "name": "Tinh Thể Cường Hóa",
+    "image": "ring_crystal.png",
+    "category": "material",
+    "tier": "Thượng Cổ",
+    "color": "#ff00ff",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "đá tinh hoa": {
+    "name": "Đá Tinh Hoa",
+    "image": "da_tinh_hoa.png",
+    "category": "material",
+    "tier": "Thượng Cổ",
+    "color": "#ff00ff",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "gói 5 lượt đánh boss": {
+    "name": "Gói 5 Lượt Đánh Boss",
+    "image": "top1_gift_icon.png",
+    "category": "bonus_attacks",
+    "tier": null,
+    "color": "#00e5ff",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "gói 20 lượt đánh boss": {
+    "name": "Gói 20 Lượt Đánh Boss",
+    "image": "top1_gift_icon.png",
+    "category": "bonus_attacks",
+    "tier": null,
+    "color": "#00e5ff",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "1 rương chiến tích boss": {
+    "name": "1 Rương Chiến Tích Boss",
+    "image": "boss_chest_closed_trans.png",
+    "category": "boss_chests",
+    "tier": null,
+    "color": "#38bdf8",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "5 rương chiến tích boss": {
+    "name": "5 Rương Chiến Tích Boss",
+    "image": "boss_chest_closed_trans.png",
+    "category": "boss_chests",
+    "tier": null,
+    "color": "#38bdf8",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "1 rương hoàng gia vip": {
+    "name": "1 Rương Hoàng Gia VIP",
+    "image": "royal_chest_closed_trans.png",
+    "category": "royal_chests",
+    "tier": null,
+    "color": "#ffd700",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "3 rương hoàng gia vip": {
+    "name": "3 Rương Hoàng Gia VIP",
+    "image": "royal_chest_closed_trans.png",
+    "category": "royal_chests",
+    "tier": null,
+    "color": "#ffd700",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "bùa x2 sát thương (10 phút)": {
+    "name": "Bùa x2 Sát Thương (10 Phút)",
+    "image": "top1_gift_icon.png",
+    "category": "buff_dmg",
+    "tier": null,
+    "color": "#ff5500",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "bùa x2 sát thương (30 phút)": {
+    "name": "Bùa x2 Sát Thương (30 Phút)",
+    "image": "top1_gift_icon.png",
+    "category": "buff_dmg",
+    "tier": null,
+    "color": "#ff0055",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "túi 20,000 exp": {
+    "name": "Túi 20,000 EXP",
+    "image": "reward_exp.png",
+    "category": "exp",
+    "tier": null,
+    "color": "#00ff88",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "túi 100,000 exp khủng": {
+    "name": "Túi 100,000 EXP Khủng",
+    "image": "reward_exp.png",
+    "category": "exp",
+    "tier": null,
+    "color": "#00ff88",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "bùa reset boss": {
+    "name": "Bùa Reset Boss",
+    "image": "item_reset_boss.png",
+    "category": "reset_boss",
+    "tier": null,
+    "color": "#00ffcc",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "bùa triệu hồi thỏ": {
+    "name": "Bùa Triệu Hồi Thỏ",
+    "image": "boss_lucky_rabbit_trans.png",
+    "category": "summon_rabbit",
+    "tier": "Thần Thoại",
+    "color": "#ffd700",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "bình huyết dược": {
+    "name": "Bình Huyết Dược",
+    "image": "item_health_potion.png",
+    "category": "potion",
+    "tier": "Hiếm",
+    "color": "#ef4444",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "bùa phục sinh": {
+    "name": "Bùa Phục Sinh",
+    "image": "item_revive_amulet.png",
+    "category": "revive",
+    "tier": "Thần Thoại",
+    "color": "#ffd700",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "1 vé vòng quay may mắn": {
+    "name": "1 Vé Vòng Quay May Mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "5 vé vòng quay may mắn": {
+    "name": "5 Vé Vòng Quay May Mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "10 vé vòng quay may mắn": {
+    "name": "10 Vé Vòng Quay May Mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  }
+}
