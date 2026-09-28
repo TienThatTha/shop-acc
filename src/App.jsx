@@ -11,8 +11,8 @@ import {
   ShoppingCart, Bell, BellOff
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
-import emailjs from '@emailjs/browser';
 import { LEGENDARY_SHOES_IMG, getShoesImage } from './shoesAsset';
+import masterItemsConfig from './master_items.json';
 
 // Helper lưu cấu hình bật/tắt thông báo cho từng món vòng quay (chống lỗi schema & sync realtime)
 const getWheelNotifyFallback = (itemId) => {
@@ -8572,19 +8572,24 @@ const App = () => {
       category = String(maybeCategory || '');
     }
 
-    // 0. Nếu item đã có ảnh định danh trực tiếp hợp lệ
+    // 0. NGUYÊN TẮC DNA TỰ THÂN: Nếu item đã có trường image hợp lệ trong database -> DÙNG NGAY 100%!
     if (directImg && typeof directImg === 'string') {
       const cleanImg = directImg.split('/').pop().split('?')[0];
-      if (cleanImg && !cleanImg.includes('none') && cleanImg.endsWith('.png')) {
+      if (cleanImg && !cleanImg.includes('none') && (cleanImg.endsWith('.png') || cleanImg.endsWith('.jpg'))) {
         return `/game-assets/${cleanImg}`;
       }
     }
 
     const rawName = (name || '').trim();
-    // Bỏ qua cấp cường hóa như +1, +2, +15 nếu nằm trong chuỗi tên
-    const n = rawName.replace(/\s*\+\d+$/, '').trim().toLowerCase();
+    // Bỏ qua cấp cường hóa như +1, +2, +15, sao và ngoặc đơn
+    const n = rawName.replace(/[⭐★]/g, '').replace(/\s*\([^)]*\).*$/, '').replace(/\s*\[[^\]]*\].*$/, '').replace(/\s*\+\d+$/, '').trim().toLowerCase();
     
-    // 1. Tra cứu chính xác theo tên chuẩn (Canonical SSOT)
+    // 1. Tra cứu trực tiếp từ Master Items Registry (Đồng bộ từ configs/game_items.json)
+    if (masterItemsConfig && masterItemsConfig[n] && masterItemsConfig[n].image) {
+      return `/game-assets/${masterItemsConfig[n].image}`;
+    }
+
+    // 2. Tra cứu từ điển tên chuẩn (Canonical SSOT)
     if (ITEM_CANONICAL_ASSETS[n]) {
       return ITEM_CANONICAL_ASSETS[n];
     }
