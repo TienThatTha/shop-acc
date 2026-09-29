@@ -646,5 +646,14 @@
     "color": "#f59e0b",
     "glow_color": null,
     "border_class": ""
+  },
+  "thẻ reroll": {
+    "name": "Thẻ Reroll",
+    "image": "item_the_reroll.png",
+    "category": "reroll_shoes",
+    "tier": "Thượng Cổ",
+    "color": "#38bdf8",
+    "glow_color": null,
+    "border_class": ""
   }
 }
