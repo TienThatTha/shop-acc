@@ -3525,6 +3525,10 @@ const App = () => {
       platform: wp?.platform || 'tiktok',
       linked_discord: Boolean(wp?.linked_discord !== undefined ? wp.linked_discord : dbPlayer.linked_discord),
       linked_tiktok: Boolean(wp?.linked_tiktok !== undefined ? wp.linked_tiktok : dbPlayer.linked_tiktok),
+      pvp_points: Number(wp?.pvp_points !== undefined ? wp.pvp_points : (dbPlayer.pvp_points || 500)),
+      pvp_wins: Number(wp?.pvp_wins !== undefined ? wp.pvp_wins : (dbPlayer.pvp_wins || 0)),
+      pvp_losses: Number(wp?.pvp_losses !== undefined ? wp.pvp_losses : (dbPlayer.pvp_losses || 0)),
+      pvp_streak: Number(wp?.pvp_streak !== undefined ? wp.pvp_streak : (dbPlayer.pvp_streak || 0)),
       inventory: (() => {
         const raw = wp?.inventory || dbPlayer?.inventory;
         if (Array.isArray(raw)) return raw;
@@ -6317,19 +6321,6 @@ const App = () => {
           if (loseAudio) { loseAudio.currentTime = 0; loseAudio.volume = 0.8; loseAudio.play().catch(e => { }); }
         }
 
-        // Đồng bộ lại tiền từ Server trả về lên giao diện Web
-        const currentLinked = currentUser?.linked_game_id || localStorage.getItem(`shop_linked_game_id_${currentUser?.id}`);
-        const updatedUser = {
-          ...currentUser,
-          balance: data.new_balance,
-          spins: data.new_spins,
-          rentFund: data.new_fund,
-          linked_game_id: currentLinked
-        };
-        setCurrentUser(updatedUser);
-        localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
-        setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
-
         // CẬP NHẬT CHỈ SỐ BẢO HIỂM GIÀY HUYỀN THOẠI (PITY)
         const wonShoes = isLegendaryShoes(winningItem) || isServerShoesWin;
         let nextPity = currentPityCount;
@@ -6351,6 +6342,22 @@ const App = () => {
             } catch (e) { }
           }
         }
+
+        // Đồng bộ lại tiền từ Server trả về lên giao diện Web
+        const latestMe = currentUserRef.current || currentUser;
+        const currentLinked = latestMe?.linked_game_id || localStorage.getItem(`shop_linked_game_id_${latestMe?.id}`);
+        const finalPityForUser = (playMode === 'spin' ? nextPity : (latestMe?.shoes_pity ?? currentUser?.shoes_pity ?? 0));
+        const updatedUser = {
+          ...latestMe,
+          balance: data.new_balance,
+          spins: data.new_spins,
+          rentFund: data.new_fund,
+          shoes_pity: finalPityForUser,
+          linked_game_id: currentLinked
+        };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+        setUsersDb(prev => prev.map(u => u.id === (latestMe?.id || currentUser?.id) ? updatedUser : u));
 
         // TỰ ĐỘNG GỬI VẬT PHẨM GAME VÀO SUPABASE GAME_ORDERS NẾU TRÚNG QUÀ IN-GAME
         const isGameReward = isGameItem(winningItem) || wonShoes;
@@ -6593,6 +6600,13 @@ const App = () => {
           finalNewFund = rpcData.new_fund;
           finalPity = rpcData.new_pity;
           shoesWonCount = rpcData.shoes_won_count || 0;
+          if (finalPity !== undefined && finalPity !== null) {
+            setShoesPity(Number(finalPity));
+            const myUid = currentUserRef.current?.id || currentUser?.id;
+            if (myUid) {
+              try { localStorage.setItem(`shop_shoes_pity_${myUid}`, Number(finalPity).toString()); } catch (e) { }
+            }
+          }
         } else {
           // 2. Chế độ Fallback tự động: Xử lý 10 lượt quay tuần tự
           console.warn("Dùng chế độ Fallback x10:", rpcErr?.message);
@@ -6670,6 +6684,13 @@ const App = () => {
           finalNewBalance = simulatedBalance;
           finalNewSpins = simulatedSpins;
           finalPity = tempPity;
+          if (finalPity !== undefined && finalPity !== null) {
+            setShoesPity(Number(finalPity));
+            const myUid = currentUserRef.current?.id || currentUser?.id;
+            if (myUid) {
+              try { localStorage.setItem(`shop_shoes_pity_${myUid}`, Number(finalPity).toString()); } catch (e) { }
+            }
+          }
 
           if (currentUser?.id) {
             try {
@@ -6693,22 +6714,28 @@ const App = () => {
         const winAudio = document.getElementById('winSound');
         if (winAudio) { winAudio.currentTime = 0; winAudio.volume = 0.85; winAudio.play().catch(e => { }); }
 
-        const currentLinked = currentUser?.linked_game_id || localStorage.getItem(`shop_linked_game_id_${currentUser?.id}`);
+        const latestMe = currentUserRef.current || currentUser;
+        const currentLinked = latestMe?.linked_game_id || localStorage.getItem(`shop_linked_game_id_${latestMe?.id}`);
+        const resolvedPity = (finalPity !== undefined && finalPity !== null) ? Number(finalPity) : (latestMe?.shoes_pity ?? currentUser?.shoes_pity ?? 0);
         const updatedUser = {
-          ...currentUser,
+          ...latestMe,
           balance: finalNewBalance,
           spins: finalNewSpins,
           rentFund: finalNewFund,
+          shoes_pity: resolvedPity,
           linked_game_id: currentLinked
         };
         setCurrentUser(updatedUser);
         localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
-        setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
+        setUsersDb(prev => prev.map(u => u.id === (latestMe?.id || currentUser?.id) ? updatedUser : u));
 
         // Cập nhật bảo hiểm Pity
-        setShoesPity(finalPity);
-        if (currentUser?.id) {
-          localStorage.setItem(`shop_shoes_pity_${currentUser.id}`, finalPity.toString());
+        setShoesPity(resolvedPity);
+        const myUid = latestMe?.id || currentUser?.id;
+        if (myUid) {
+          try {
+            localStorage.setItem(`shop_shoes_pity_${myUid}`, resolvedPity.toString());
+          } catch (e) { }
         }
 
         // TỔNG KẾT VẬT PHẨM TRÚNG TỪ 10 LƯỢT
@@ -8405,6 +8432,287 @@ const App = () => {
   };
 
 
+  // Cấu hình Bậc Rank PvP và Giao diện
+  const PVP_RANKS_CONFIG = [
+    { tier_name: "Đồng", color: "#cd7f32", icon: "🥉", sub_tiers: ["V", "IV", "III", "II", "I"] },
+    { tier_name: "Bạc", color: "#cbd5e1", icon: "🥈", sub_tiers: ["V", "IV", "III", "II", "I"] },
+    { tier_name: "Vàng", color: "#ffd700", icon: "🥇", sub_tiers: ["V", "IV", "III", "II", "I"] },
+    { tier_name: "Kim Cương", color: "#38bdf8", icon: "💎", sub_tiers: ["V", "IV", "III", "II", "I"] },
+    { tier_name: "Cao Thủ", color: "#a855f7", icon: "🔮", sub_tiers: ["V", "IV", "III", "II", "I"] },
+    { tier_name: "Đại Cao Thủ", color: "#f43f5e", icon: "🔥", sub_tiers: ["V", "IV", "III", "II", "I"] }
+  ];
+
+  const calculatePvpRank = (points) => {
+    const pts = Math.max(0, Number(points !== undefined && points !== null ? points : 500));
+    let curBase = 500;
+    const ranks = [];
+    for (const t of PVP_RANKS_CONFIG) {
+      for (const sub of t.sub_tiers) {
+        ranks.push({
+          tier_name: t.tier_name,
+          sub_tier: sub,
+          full_name: `${t.tier_name} ${sub}`,
+          base: curBase,
+          color: t.color,
+          icon: t.icon
+        });
+        curBase += 1000;
+      }
+    }
+    const vodichRank = {
+      tier_name: "Vô Địch",
+      sub_tier: "",
+      full_name: "Vô Địch",
+      base: curBase,
+      color: "#ff0055",
+      icon: "👑"
+    };
+
+    if (pts >= vodichRank.base) {
+      return {
+        tier_name: vodichRank.tier_name,
+        tier: vodichRank.tier_name,
+        name: vodichRank.full_name,
+        sub_tier: "",
+        full_name: vodichRank.full_name,
+        badge_color: vodichRank.color,
+        icon: vodichRank.icon,
+        points: pts,
+        next_rank_points: null,
+        points_in_tier: pts - vodichRank.base,
+        tier_span: 1000,
+        pct: 100
+      };
+    }
+
+    if (pts < ranks[0].base) {
+      const first = ranks[0];
+      const span = first.base;
+      return {
+        tier_name: first.tier_name,
+        tier: first.tier_name,
+        name: first.full_name,
+        sub_tier: first.sub_tier,
+        full_name: first.full_name,
+        badge_color: first.color,
+        icon: first.icon,
+        points: pts,
+        next_rank_points: ranks[1].base,
+        points_in_tier: pts,
+        tier_span: span,
+        pct: Math.min(100, Math.max(0, (pts / span) * 100))
+      };
+    }
+
+    let currentRank = ranks[0];
+    let nextThreshold = ranks[1].base;
+    for (let i = 0; i < ranks.length; i++) {
+      if (pts >= ranks[i].base) {
+        currentRank = ranks[i];
+        nextThreshold = (i + 1 < ranks.length) ? ranks[i + 1].base : vodichRank.base;
+      } else {
+        break;
+      }
+    }
+
+    const rankBase = currentRank.base;
+    const ptsInRank = pts - rankBase;
+    const tierSpan = Math.max(1, nextThreshold - rankBase);
+    const pct = Math.min(100, Math.max(0, (ptsInRank / tierSpan) * 100));
+
+    return {
+      tier_name: currentRank.tier_name,
+      tier: currentRank.tier_name,
+      name: currentRank.full_name,
+      sub_tier: currentRank.sub_tier,
+      full_name: currentRank.full_name,
+      badge_color: currentRank.color,
+      icon: currentRank.icon,
+      points: pts,
+      next_rank_points: nextThreshold,
+      points_in_tier: ptsInRank,
+      tier_span: tierSpan,
+      pct: pct
+    };
+  };
+
+  const getPvpRankTheme = (pvpInfo) => {
+    const tier = (pvpInfo && (pvpInfo.tier_name || pvpInfo.tier)) || "Đồng";
+    const rankImgMap = {
+      "Đồng": "rank_dong.png",
+      "Bạc": "rank_bac.png",
+      "Vàng": "rank_vang.png",
+      "Kim Cương": "rank_kimcuong.png",
+      "Cao Thủ": "rank_caothu.png",
+      "Đại Cao Thủ": "rank_daicaothu.png",
+      "Vô Địch": "rank_vodich.png"
+    };
+
+    const themes = {
+      "Đồng": {
+        card_bg: "radial-gradient(circle at 25% 50%, rgba(205, 127, 50, 0.28) 0%, rgba(18, 12, 10, 0.95) 70%)",
+        border: "1.8px solid #cd7f32",
+        box_shadow: "0 0 18px rgba(205, 127, 50, 0.5), inset 0 0 14px rgba(205, 127, 50, 0.25)",
+        emblem_filter: "drop-shadow(0 0 10px rgba(205, 127, 50, 0.9)) drop-shadow(0 0 16px rgba(0, 0, 0, 0.95))",
+        title_style: "color: #ffffff; text-shadow: 0 2px 4px #000, 0 0 10px #f59e0b, 0 0 20px #b45309;",
+        rank_title: (pvpInfo && pvpInfo.full_name) || "ĐỒNG",
+        tag_label: "⚔️ RANK PVP",
+        tag_style: "background: rgba(0, 0, 0, 0.65); border: 1.2px solid #cd7f32; color: #fbbf24;",
+        bar_gradient: "linear-gradient(90deg, #b45309, #f59e0b)",
+        bar_glow: "0 0 8px rgba(245, 158, 11, 0.8)"
+      },
+      "Bạc": {
+        card_bg: "radial-gradient(circle at 25% 50%, rgba(203, 213, 225, 0.28) 0%, rgba(15, 20, 32, 0.95) 70%)",
+        border: "1.8px solid #cbd5e1",
+        box_shadow: "0 0 22px rgba(203, 213, 225, 0.5), inset 0 0 14px rgba(255, 255, 255, 0.2)",
+        emblem_filter: "drop-shadow(0 0 10px #ffffff) drop-shadow(0 0 20px rgba(56, 189, 248, 0.6))",
+        title_style: "color: #ffffff; text-shadow: 0 2px 4px #000, 0 0 10px #cbd5e1, 0 0 20px #38bdf8;",
+        rank_title: (pvpInfo && pvpInfo.full_name) || "BẠC",
+        tag_label: "⚔️ RANK PVP",
+        tag_style: "background: rgba(0, 0, 0, 0.65); border: 1.2px solid #cbd5e1; color: #f8fafc;",
+        bar_gradient: "linear-gradient(90deg, #64748b, #cbd5e1)",
+        bar_glow: "0 0 8px rgba(226, 232, 240, 0.8)"
+      },
+      "Vàng": {
+        card_bg: "radial-gradient(circle at 25% 50%, rgba(255, 215, 0, 0.3) 0%, rgba(25, 18, 5, 0.95) 70%)",
+        border: "1.8px solid #ffd700",
+        box_shadow: "0 0 26px rgba(255, 215, 0, 0.6), inset 0 0 16px rgba(255, 215, 0, 0.3)",
+        emblem_filter: "drop-shadow(0 0 12px #ffd700) drop-shadow(0 0 24px rgba(245, 158, 11, 0.7))",
+        title_style: "color: #ffffff; text-shadow: 0 2px 4px #000, 0 0 10px #ffd700, 0 0 22px #d97706;",
+        rank_title: (pvpInfo && pvpInfo.full_name) || "HOÀNG KIM",
+        tag_label: "⚔️ RANK PVP",
+        tag_style: "background: rgba(0, 0, 0, 0.65); border: 1.2px solid #ffd700; color: #ffd700;",
+        bar_gradient: "linear-gradient(90deg, #d97706, #ffd700)",
+        bar_glow: "0 0 8px rgba(255, 215, 0, 0.9)"
+      },
+      "Kim Cương": {
+        card_bg: "radial-gradient(circle at 25% 50%, rgba(0, 229, 255, 0.3) 0%, rgba(8, 20, 42, 0.95) 70%)",
+        border: "2px solid #00f0ff",
+        box_shadow: "0 0 28px rgba(0, 240, 255, 0.75), inset 0 0 16px rgba(0, 229, 255, 0.35)",
+        emblem_filter: "drop-shadow(0 0 14px #00f0ff) drop-shadow(0 0 26px rgba(56, 189, 248, 0.9))",
+        title_style: "color: #ffffff; text-shadow: 0 2px 4px #000, 0 0 10px #00f0ff, 0 0 22px #0284c7;",
+        rank_title: (pvpInfo && pvpInfo.full_name) || "KIM CƯƠNG",
+        tag_label: "⚔️ RANK PVP",
+        tag_style: "background: rgba(0, 0, 0, 0.65); border: 1.2px solid #00e5ff; color: #38bdf8;",
+        bar_gradient: "linear-gradient(90deg, #0284c7, #00f0ff)",
+        bar_glow: "0 0 8px rgba(0, 240, 255, 0.9)"
+      },
+      "Cao Thủ": {
+        card_bg: "radial-gradient(circle at 25% 50%, rgba(168, 85, 247, 0.32) 0%, rgba(25, 8, 45, 0.95) 70%)",
+        border: "2px solid #c084fc",
+        box_shadow: "0 0 30px rgba(168, 85, 247, 0.8), inset 0 0 18px rgba(192, 132, 252, 0.4)",
+        emblem_filter: "drop-shadow(0 0 14px #c084fc) drop-shadow(0 0 30px rgba(168, 85, 247, 0.95))",
+        title_style: "color: #ffffff; text-shadow: 0 2px 4px #000, 0 0 12px #c084fc, 0 0 24px #9333ea;",
+        rank_title: (pvpInfo && pvpInfo.full_name) || "CAO THỦ",
+        tag_label: "⚔️ RANK PVP",
+        tag_style: "background: rgba(0, 0, 0, 0.65); border: 1.2px solid #c084fc; color: #e879f9;",
+        bar_gradient: "linear-gradient(90deg, #9333ea, #e879f9)",
+        bar_glow: "0 0 8px rgba(232, 121, 249, 0.9)"
+      },
+      "Đại Cao Thủ": {
+        card_bg: "radial-gradient(circle at 25% 50%, rgba(244, 63, 94, 0.35) 0%, rgba(35, 8, 16, 0.95) 70%)",
+        border: "2px solid #ff0055",
+        box_shadow: "0 0 34px rgba(255, 0, 85, 0.85), inset 0 0 20px rgba(244, 63, 94, 0.45)",
+        emblem_filter: "drop-shadow(0 0 14px #ff0055) drop-shadow(0 0 32px rgba(239, 68, 68, 0.95))",
+        title_style: "color: #ffffff; text-shadow: 0 2px 4px #000, 0 0 12px #ff0055, 0 0 24px #dc2626;",
+        rank_title: (pvpInfo && pvpInfo.full_name) || "ĐẠI CAO THỦ",
+        tag_label: "⚔️ RANK PVP",
+        tag_style: "background: rgba(0, 0, 0, 0.65); border: 1.2px solid #ff0055; color: #ff6b8b;",
+        bar_gradient: "linear-gradient(90deg, #dc2626, #ff0055)",
+        bar_glow: "0 0 8px rgba(255, 0, 85, 0.9)"
+      },
+      "Vô Địch": {
+        card_bg: "radial-gradient(circle at 25% 50%, rgba(255, 0, 85, 0.38) 0%, rgba(28, 8, 35, 0.96) 70%)",
+        border: "2.2px solid #ffd700",
+        box_shadow: "0 0 38px rgba(255, 0, 85, 0.9), 0 0 22px rgba(255, 215, 0, 0.8), inset 0 0 22px rgba(255, 215, 0, 0.4)",
+        emblem_filter: "drop-shadow(0 0 16px #ffd700) drop-shadow(0 0 32px #ff0055)",
+        title_style: "color: #ffffff; text-shadow: 0 2px 4px #000, 0 0 12px #ffd700, 0 0 24px #ff0055;",
+        rank_title: "VÔ ĐỊCH",
+        tag_label: "👑 ĐỈNH PHONG",
+        tag_style: "background: rgba(0, 0, 0, 0.7); border: 1.2px solid #ffd700; color: #ffd700; font-weight: 900;",
+        bar_gradient: "linear-gradient(90deg, #ff0055, #ffd700, #00f0ff)",
+        bar_glow: "0 0 10px rgba(255, 215, 0, 0.9)"
+      }
+    };
+
+    const theme = (themes[tier] || themes["Đồng"]);
+    return {
+      ...theme,
+      img_file: rankImgMap[tier] || "rank_dong.png",
+      pct: (pvpInfo && pvpInfo.pct !== undefined) ? pvpInfo.pct : 100
+    };
+  };
+
+  const renderPvpRankHeaderBadge = (playerObj) => {
+    if (!playerObj) return null;
+    const pvpPts = Number(playerObj.pvp_points !== undefined ? playerObj.pvp_points : 500);
+    const pvpInfo = calculatePvpRank(pvpPts);
+    const rankThm = getPvpRankTheme(pvpInfo);
+    return (
+      <div
+        className="flex items-center gap-2 sm:gap-2.5 rounded-2xl px-2.5 sm:px-3 py-1 sm:py-1.5 shrink-0 backdrop-blur-md relative overflow-hidden"
+        style={{
+          background: rankThm.card_bg,
+          border: rankThm.border,
+          boxShadow: rankThm.box_shadow
+        }}
+      >
+        <div className="relative flex items-center justify-center shrink-0">
+          <img
+            src={`/${rankThm.img_file}`}
+            alt={pvpInfo.full_name}
+            className="w-8 h-6 sm:w-10 sm:h-8 object-contain shrink-0"
+            style={{ filter: rankThm.emblem_filter }}
+          />
+        </div>
+        <div className="flex flex-col justify-center gap-0.5 text-right min-w-[70px] sm:min-w-[85px]">
+          <div className="flex items-center justify-end">
+            <span
+              className="text-[7.5px] sm:text-[8.5px] font-black tracking-wider px-1.5 py-0.5 rounded uppercase leading-none whitespace-nowrap"
+              style={{
+                background: 'rgba(0, 0, 0, 0.65)',
+                border: rankThm.border,
+                color: '#fbbf24'
+              }}
+            >
+              {rankThm.tag_label || '⚔️ RANK PVP'}
+            </span>
+          </div>
+          <div
+            className="text-xs sm:text-[13px] font-black tracking-wide uppercase whitespace-nowrap leading-tight"
+            style={{
+              color: '#ffffff',
+              textShadow: '0 1px 3px #000, 0 0 10px rgba(245, 158, 11, 0.8)'
+            }}
+          >
+            {rankThm.rank_title || pvpInfo.full_name}
+          </div>
+          <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+            <span className="text-[11px] sm:text-xs font-black text-white drop-shadow">
+              {pvpPts.toLocaleString()}
+            </span>
+            <span className="text-[8px] sm:text-[9px] font-bold text-slate-300">Điểm</span>
+            {pvpInfo.next_rank_points ? (
+              <div
+                className="w-7 sm:w-9 h-1 sm:h-1.5 bg-black/65 rounded-full overflow-hidden border border-white/20 ml-0.5"
+                title={`Tiến trình Rank: ${pvpInfo.pct.toFixed(0)}%`}
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, pvpInfo.pct))}%`,
+                    background: rankThm.bar_gradient,
+                    boxShadow: rankThm.bar_glow
+                  }}
+                />
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Helpers cho Modal Profile & Trang bị Mộng Thiên Huyễn
   const getRingSkillProcStr = (item) => {
     if (!item) return '0.1%';
@@ -9424,11 +9732,11 @@ const App = () => {
 
     const starMultMath = Math.pow(2, Math.max(0, starsCount - 1));
     const totalEstHp = Math.round(armorStats.baseHp * (1 + 0.25 * plusVal) * starMultMath);
-    const totalEstDef = Math.round(armorStats.baseDef * (1 + 0.20 * plusVal) * starMultMath);
+    const totalEstDef = Math.round(armorStats.baseDef * (1 + 0.25 * plusVal) * starMultMath);
     const estDmgReduc = Math.min(80, Math.round((totalEstDef / (totalEstDef + 2500)) * 100));
 
     const totalEstPantsHp = Math.round(pantsStats.baseHp * (1 + 0.25 * plusVal) * starMultMath);
-    const totalEstPantsDef = Math.round(pantsStats.baseDef * (1 + 0.20 * plusVal) * starMultMath);
+    const totalEstPantsDef = Math.round(pantsStats.baseDef * (1 + 0.25 * plusVal) * starMultMath);
     const estPantsDmgReduc = Math.min(80, Math.round((totalEstPantsDef / (totalEstPantsDef + 2500)) * 100));
 
     const baseDmg = weaponStats.baseDmg;
@@ -9458,6 +9766,7 @@ const App = () => {
       if (category === 'necklace') return { label: 'DÂY CHUYỀN THẦN LỰC', icon: '📿', color: '#f59e0b', border: '#d97706', bg: 'rgba(245, 158, 11, 0.15)' };
       if (category === 'ring') return { label: 'NHẪN THẦN BINH TUYỆT KỸ', icon: '💍', color: '#a855f7', border: '#9333ea', bg: 'rgba(168, 85, 247, 0.15)' };
       if (category === 'pet') return { label: 'LINH THÚ TRỢ CHIẾN', icon: '🐾', color: '#f43f5e', border: '#e11d48', bg: 'rgba(244, 63, 94, 0.15)' };
+      if (category === 'shoes') return { label: 'GIÀY THẦN TỐC', icon: '👟', color: '#ec4899', border: '#db2777', bg: 'rgba(236, 72, 153, 0.15)' };
       return { label: 'TRANG BỊ', icon: '🛡️', color: '#38bdf8', border: '#0ea5e9', bg: 'rgba(56, 189, 248, 0.15)' };
     };
 
@@ -9782,6 +10091,21 @@ const App = () => {
                       </div>
                     </>
                   )}
+
+                  {category === 'shoes' && (() => {
+                    const agi = Number(item.agility || item.base_agility || 300);
+                    return (
+                      <>
+                        <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                          <span className="text-slate-400">Tốc độ đánh Boss:</span>
+                          <span className="font-bold text-pink-300 text-xs">+{agi.toLocaleString()} Tốc Độ ⚡</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 italic pt-0.5">
+                          * Giúp người chơi xuất chiêu cực nhanh, chiếm ưu thế đòn đánh khi săn Boss Thế Giới!
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -10600,7 +10924,7 @@ const App = () => {
           let nkPct = 0;
           if (p.necklace) {
             const bPct = getNecklaceStats(p.necklace).dmgPercent;
-            const uPct = Math.max(Number(p.necklace.plus || 0), Math.round(bPct * (p.necklace.plus || 0) * 0.20));
+            const uPct = Math.max(Number(p.necklace.plus || 0), Math.round(bPct * (p.necklace.plus || 0) * 0.25));
             const nStars = Math.max(1, Math.min(5, Number(p.necklace.stars || 1)));
             nkPct = (bPct + uPct) * Math.pow(2, nStars - 1);
           }
@@ -10725,7 +11049,7 @@ const App = () => {
                       const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 45000 : (item.tier?.toLowerCase().includes('cổ đại') ? 18000 : (item.tier?.toLowerCase().includes('tối thượng') ? 7500 : (item.tier?.toLowerCase().includes('thần thoại') ? 3000 : (item.tier?.toLowerCase().includes('epic') ? 1200 : 450))))));
                       const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
                       const totHp = Math.round(bHp * (1 + 0.25 * (item.plus || 0)) * sMult);
-                      const totDef = Math.round(bDef * (1 + 0.20 * (item.plus || 0)) * sMult);
+                      const totDef = Math.round(bDef * (1 + 0.25 * (item.plus || 0)) * sMult);
                       return (
                         <>
                           <span className="font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded">
@@ -10741,7 +11065,7 @@ const App = () => {
                       const pStats = getPantsStats(item);
                       const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
                       const totHp = Math.round(pStats.baseHp * (1 + 0.25 * (item.plus || 0)) * sMult);
-                      const totDef = Math.round(pStats.baseDef * (1 + 0.20 * (item.plus || 0)) * sMult);
+                      const totDef = Math.round(pStats.baseDef * (1 + 0.25 * (item.plus || 0)) * sMult);
                       return (
                         <>
                           <span className="font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded">
@@ -10790,7 +11114,8 @@ const App = () => {
                     {category === 'shoes' && (() => {
                       const sTier = (item.tier || '').toLowerCase();
                       const sPlus = Number(item.plus || 0);
-                      const baseAgi = Number(item.base_agility || (sTier.includes('huyền thoại') || sTier.includes('legendary') ? 60 : 30));
+                      let baseAgi = Number(item.base_agility || (sTier.includes('huyền thoại') || sTier.includes('legendary') ? 300 : 80));
+                      if ((sTier.includes('thường') || (item.name || '').toLowerCase().includes('thường')) && baseAgi < 80) baseAgi = 80;
                       let shoeBonusPct = 0;
                       const subs = item.sub_stats || [];
                       for (const sub of subs) {
@@ -10799,16 +11124,22 @@ const App = () => {
                           if (m) shoeBonusPct += parseInt(m[1], 10);
                         }
                       }
-                      const plusMult = 1.0 + (sPlus * 0.25);
-                      const totAgi = Math.round(baseAgi * plusMult * (1.0 + shoeBonusPct / 100.0));
+                      const enhanceBonusAgi = Math.round(baseAgi * sPlus * 0.25);
+                      const baseWithPlus = baseAgi + enhanceBonusAgi;
+                      const totAgi = Math.round(baseWithPlus * (1.0 + shoeBonusPct / 100.0));
                       return (
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 px-1.5 py-0.5 rounded">
                             🌪️ Cơ Bản: +{baseAgi.toLocaleString()} Tốc Độ
                           </span>
-                          {totAgi > baseAgi && (
-                            <span className="font-bold text-amber-300 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.5 rounded">
-                              +{(totAgi - baseAgi).toLocaleString()} Tốc Độ
+                          {enhanceBonusAgi > 0 && (
+                            <span className="font-bold text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-1.5 py-0.5 rounded">
+                              +{enhanceBonusAgi.toLocaleString()} Cường Hóa
+                            </span>
+                          )}
+                          {totAgi > baseWithPlus && (
+                            <span className="font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded" title="Tổng Tốc Độ thực tế đã kích hoạt các dòng phụ">
+                              ⚡ Thực Chiến: +{totAgi.toLocaleString()} Tốc
                             </span>
                           )}
                         </div>
@@ -10863,15 +11194,20 @@ const App = () => {
                 {/* Header */}
                 <div className="flex justify-between items-start border-b border-cyan-500/20 pb-4 mb-4 shrink-0">
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <img
-                      src={p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id)}`}
-                      alt="Avatar"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id || 'player')}`;
-                      }}
-                      className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-[2.5px] border-yellow-400 shadow-[0_0_16px_rgba(255,215,0,0.7)] object-cover bg-slate-900 shrink-0"
-                    />
+                    <div className="relative shrink-0">
+                      <img
+                        src={p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id)}`}
+                        alt="Avatar"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id || 'player')}`;
+                        }}
+                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-[2.5px] border-yellow-400 shadow-[0_0_16px_rgba(255,215,0,0.7)] object-cover bg-slate-900"
+                      />
+                      <div className="absolute -bottom-1.5 -right-1.5 bg-blue-600 text-white font-black text-[10px] sm:text-xs px-1.5 py-0.5 rounded-md border border-blue-400 shadow-[0_2px_8px_rgba(37,99,235,0.6)]">
+                        Lv.{lvl}
+                      </div>
+                    </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-black text-lg sm:text-xl text-white tracking-wide truncate max-w-[200px] sm:max-w-[280px]">
@@ -10908,6 +11244,7 @@ const App = () => {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
+                    {renderPvpRankHeaderBadge(p)}
                     <button
                       type="button"
                       onClick={() => { setShowBossProfileModal(false); setShowBossStatModal(true); }}
@@ -10944,55 +11281,6 @@ const App = () => {
                         className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px_#00e5ff] transition-all duration-500"
                         style={{ width: `${expPct}%` }}
                       />
-                    </div>
-                  </div>
-
-                  {/* Fiery CP Box */}
-                  <div className="bg-gradient-to-r from-orange-600/20 via-amber-500/20 to-orange-600/10 border border-orange-500/80 rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-[0_0_20px_rgba(255,100,0,0.25)]">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl animate-bounce">🔥</span>
-                      <div>
-                        <div className="text-[10px] font-black text-amber-400 uppercase tracking-wider">Lực Chiến (CP)</div>
-                        <div className="text-xl sm:text-2xl font-black text-white drop-shadow-[0_0_10px_rgba(255,69,0,0.8)] font-sans">
-                          {Number(p.cp || 0).toLocaleString()} CP
-                        </div>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-300 bg-black/40 px-2.5 py-1 rounded-lg border border-white/10">
-                      Bảng Xếp Hạng Server
-                    </span>
-                  </div>
-
-                  {/* Mini Stats Grid */}
-                  <div>
-                    <div className="text-xs font-black text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      📊 Chỉ Số Chiến Đấu & Tài Nguyên
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">⚔️ Sát Thương (DMG)</div>
-                        <div className="text-sm font-black text-emerald-400 mt-0.5">
-                          {allAttack > 0 ? allAttack.toLocaleString() : '0'} DMG
-                        </div>
-                      </div>
-                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">⚡ Lượt Đánh Khả Dụng</div>
-                        <div className="text-sm font-black text-cyan-400 mt-0.5">
-                          {Number(p.bonus_attacks || 0).toLocaleString()} Lượt
-                        </div>
-                      </div>
-                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">🪙 Xu</div>
-                        <div className="text-sm font-black text-amber-400 mt-0.5">
-                          {Number(p.bonus_coins || 0).toLocaleString()} Xu
-                        </div>
-                      </div>
-                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">👑 Rương Hoàng Kim</div>
-                        <div className="text-sm font-black text-yellow-400 mt-0.5">
-                          {Number(p.royal_chests || 0).toLocaleString()} Rương
-                        </div>
-                      </div>
                     </div>
                   </div>
 
@@ -11104,7 +11392,7 @@ const App = () => {
             const aStars = Math.max(1, Math.min(5, Number(p.armor.stars || 1)));
             const starMultMath = Math.pow(2, Math.max(0, aStars - 1));
             armorHp = Math.round(aStats.baseHp * (1 + 0.25 * aPlus) * starMultMath);
-            armorDef = Math.round(aStats.baseDef * (1 + 0.20 * aPlus) * starMultMath);
+            armorDef = Math.round(aStats.baseDef * (1 + 0.25 * aPlus) * starMultMath);
           }
 
           let pantsHp = 0;
@@ -11115,7 +11403,7 @@ const App = () => {
             const pStars = Math.max(1, Math.min(5, Number(p.pants.stars || 1)));
             const starMultMath = Math.pow(2, Math.max(0, pStars - 1));
             pantsHp = Math.round(pStats.baseHp * (1 + 0.25 * pPlus) * starMultMath);
-            pantsDef = Math.round(pStats.baseDef * (1 + 0.20 * pPlus) * starMultMath);
+            pantsDef = Math.round(pStats.baseDef * (1 + 0.25 * pPlus) * starMultMath);
           }
 
           const maxHp = Number(p.max_hp !== undefined ? p.max_hp : (baseHp + armorHp + pantsHp));
@@ -11152,7 +11440,7 @@ const App = () => {
           let nkPct = 0;
           if (p.necklace) {
             const bPct = getNecklaceStats(p.necklace).dmgPercent;
-            const uPct = Math.max(Number(p.necklace.plus || 0), Math.round(bPct * (p.necklace.plus || 0) * 0.20));
+            const uPct = Math.max(Number(p.necklace.plus || 0), Math.round(bPct * (p.necklace.plus || 0) * 0.25));
             const nStars = Math.max(1, Math.min(5, Number(p.necklace.stars || 1)));
             nkPct = (bPct + uPct) * Math.pow(2, nStars - 1);
           }
@@ -11203,15 +11491,20 @@ const App = () => {
                 {/* Header */}
                 <div className="flex justify-between items-start border-b border-cyan-500/25 pb-4 mb-4 shrink-0">
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <img
-                      src={p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id)}`}
-                      alt="Avatar"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id || 'player')}`;
-                      }}
-                      className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-[2.5px] border-cyan-400 shadow-[0_0_16px_rgba(0,229,255,0.7)] object-cover bg-slate-900 shrink-0"
-                    />
+                    <div className="relative shrink-0">
+                      <img
+                        src={p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id)}`}
+                        alt="Avatar"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id || 'player')}`;
+                        }}
+                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-[2.5px] border-cyan-400 shadow-[0_0_16px_rgba(0,229,255,0.7)] object-cover bg-slate-900"
+                      />
+                      <div className="absolute -bottom-1.5 -right-1.5 bg-blue-600 text-white font-black text-[10px] sm:text-xs px-1.5 py-0.5 rounded-md border border-blue-400 shadow-[0_2px_8px_rgba(37,99,235,0.6)]">
+                        Lv.{lvl}
+                      </div>
+                    </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-black text-lg sm:text-xl text-white tracking-wide truncate max-w-[200px] sm:max-w-[280px]">
@@ -11234,6 +11527,7 @@ const App = () => {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
+                    {renderPvpRankHeaderBadge(p)}
                     <button
                       type="button"
                       onClick={() => { setShowBossStatModal(false); setShowBossProfileModal(true); }}
@@ -11364,7 +11658,8 @@ const App = () => {
                           {p.shoes ? (() => {
                             const sTier = (p.shoes.tier || '').toLowerCase();
                             const sPlus = Number(p.shoes.plus || 0);
-                            const baseAgi = Number(p.shoes.base_agility || (sTier.includes('huyền thoại') || sTier.includes('legendary') ? 60 : 30));
+                            let baseAgi = Number(p.shoes.base_agility || (sTier.includes('huyền thoại') || sTier.includes('legendary') ? 300 : 80));
+                            if ((sTier.includes('thường') || (p.shoes.name || '').toLowerCase().includes('thường')) && baseAgi < 80) baseAgi = 80;
                             let shoeBonusPct = 0;
                             const subs = p.shoes.sub_stats || [];
                             for (const sub of subs) {
@@ -11906,7 +12201,7 @@ const App = () => {
                                       const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 45000 : (item.tier?.toLowerCase().includes('cổ đại') ? 18000 : (item.tier?.toLowerCase().includes('tối thượng') ? 7500 : (item.tier?.toLowerCase().includes('thần thoại') ? 3000 : (item.tier?.toLowerCase().includes('epic') ? 1200 : 450))))));
                                       const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
                                       const totHp = Math.round(bHp * (1 + 0.25 * (item.plus || 0)) * sMult);
-                                      const totDef = Math.round(bDef * (1 + 0.20 * (item.plus || 0)) * sMult);
+                                      const totDef = Math.round(bDef * (1 + 0.25 * (item.plus || 0)) * sMult);
                                       return (
                                         <span className="text-emerald-400 block">
                                           ❤️ +{totHp.toLocaleString()} HP • 🛡️ +{totDef.toLocaleString()} DEF
@@ -11917,7 +12212,7 @@ const App = () => {
                                       const pStats = getPantsStats(item);
                                       const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
                                       const totHp = Math.round(pStats.baseHp * (1 + 0.25 * (item.plus || 0)) * sMult);
-                                      const totDef = Math.round(pStats.baseDef * (1 + 0.20 * (item.plus || 0)) * sMult);
+                                      const totDef = Math.round(pStats.baseDef * (1 + 0.25 * (item.plus || 0)) * sMult);
                                       return (
                                         <span className="text-emerald-400 block">
                                           🛡️ +{pStats.defPercent}% DEF • ❤️ +{pStats.hpPercent}% HP (+{totHp.toLocaleString()} HP / +{totDef.toLocaleString()} DEF)
@@ -12584,7 +12879,7 @@ const App = () => {
                                           const aStats = getArmorStats(item);
                                           const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
                                           const totHp = Math.round(aStats.baseHp * (1 + 0.25 * (item.plus || 0)) * sMult);
-                                          const totDef = Math.round(aStats.baseDef * (1 + 0.20 * (item.plus || 0)) * sMult);
+                                          const totDef = Math.round(aStats.baseDef * (1 + 0.25 * (item.plus || 0)) * sMult);
                                           return (
                                             <span className="text-emerald-400">❤️ +{totHp.toLocaleString()} HP • 🛡️ +{totDef.toLocaleString()} DEF</span>
                                           );
@@ -12593,7 +12888,7 @@ const App = () => {
                                           const pStats = getPantsStats(item);
                                           const sMult = Math.pow(2, Math.max(0, (item.stars || 1) - 1));
                                           const totHp = Math.round(pStats.baseHp * (1 + 0.25 * (item.plus || 0)) * sMult);
-                                          const totDef = Math.round(pStats.baseDef * (1 + 0.20 * (item.plus || 0)) * sMult);
+                                          const totDef = Math.round(pStats.baseDef * (1 + 0.25 * (item.plus || 0)) * sMult);
                                           return (
                                             <span className="text-cyan-400">👖 +{totHp.toLocaleString()} HP • 🛡️ +{totDef.toLocaleString()} DEF (+{pStats.hpPercent}% HP/DEF)</span>
                                           );
@@ -12618,6 +12913,10 @@ const App = () => {
                                         {category === 'pet' && (() => {
                                           const pStats = getPetStats(item);
                                           return <span className="text-rose-400">🐾 +{pStats.bonusDmg.toLocaleString()} DMG</span>;
+                                        })()}
+                                        {category === 'shoes' && (() => {
+                                          const agi = Number(item.agility || item.base_agility || 300);
+                                          return <span className="text-pink-400">👟 +{agi.toLocaleString()} Tốc Độ</span>;
                                         })()}
                                         {category === 'material' && (
                                           <span className="text-cyan-400">💎 x{Number(item.quantity || 1).toLocaleString()} {item.id === 'item_essence_stone' || (item.name || '').toLowerCase().includes('tinh hoa') ? 'Viên' : 'Tinh Thể'}</span>
