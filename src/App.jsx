@@ -2809,20 +2809,7 @@ const App = () => {
               },
               { name: 'Cày Thuê', view: 'caythue', auth: false },
               ...(hasActiveWheelRewards ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false }] : []),
-              { name: 'Lịch Sử', view: 'lichsu', auth: true },
-              {
-                name: (
-                  <span className="flex items-center gap-1.5 text-indigo-300 hover:text-white">
-                    <DiscordIcon className="w-3.5 h-3.5 text-[#5865F2] shrink-0" />
-                    <span>Discord Chơi Game</span>
-                  </span>
-                ),
-                view: 'discord',
-                action: () => {
-                  window.open(DISCORD_INVITE_URL, '_blank');
-                },
-                auth: false
-              }
+              { name: 'Lịch Sử', view: 'lichsu', auth: true }
             ].map((item, idx) => (
               <button
                 key={idx}
