@@ -610,6 +610,10 @@ const App = () => {
 
   // --- CÁC STATE CỦA VÒNG QUAY ---
   const [isSpinning, setIsSpinning] = useState(false);
+  const isSpinningRef = useRef(false);
+  useEffect(() => {
+    isSpinningRef.current = isSpinning;
+  }, [isSpinning]);
   const [rotation, setRotation] = useState(0);
   const [playMode, setPlayMode] = useState('money');
 
@@ -665,8 +669,8 @@ const App = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState(() => { try { const saved = localStorage.getItem('shop_wheel_money'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; } });
-  const [wheelItemsSpinDb, setWheelItemsSpinDb] = useState(() => { try { const saved = localStorage.getItem('shop_wheel_spin'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; } });
+  const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState(() => { try { const saved = localStorage.getItem('shop_wheel_money'); return saved ? JSON.parse(saved).sort((a, b) => String(a.id).localeCompare(String(b.id))) : []; } catch (e) { return []; } });
+  const [wheelItemsSpinDb, setWheelItemsSpinDb] = useState(() => { try { const saved = localStorage.getItem('shop_wheel_spin'); return saved ? JSON.parse(saved).sort((a, b) => String(a.id).localeCompare(String(b.id))) : []; } catch (e) { return []; } });
 
   // --- BẢO HIỂM VÒNG QUAY 120 LẦN CHO GIÀY HUYỀN THOẠI (LẦN 121: 100% TRÚNG) ---
   const isLegendaryShoes = (item) => {
@@ -993,7 +997,7 @@ const App = () => {
       const publicDataPromise = Promise.all([
         supabase.from('accounts').select('*'),
         supabase.from('boosting').select('*').order('id', { ascending: false }),
-        supabase.from('wheel_items').select('*'),
+        supabase.from('wheel_items').select('*').order('id', { ascending: true }),
         supabase.from('vouchers').select('*'),
         supabase.from('boosting_requests').select('*').order('id', { ascending: false }).limit(200), // Hút đơn Cày Thuê
         supabase.from('comments').select('*, users(name, avatar_url, role)').order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(200)
@@ -1041,11 +1045,12 @@ const App = () => {
           localStorage.setItem('shop_boosting_db', JSON.stringify(boostRes.data));
         }
         if (wheelRes.data) {
-          const moneyItems = wheelRes.data.filter(w => w.wheel_type === 'money').map(w => ({
+          const sortedWheelRes = [...wheelRes.data].sort((a, b) => String(a.id).localeCompare(String(b.id)));
+          const moneyItems = sortedWheelRes.filter(w => w.wheel_type === 'money').map(w => ({
             ...w,
             notify_on_win: w.notify_on_win !== undefined && w.notify_on_win !== null ? Boolean(w.notify_on_win) : getWheelNotifyFallback(w.id)
           }));
-          const spinItems = wheelRes.data.filter(w => w.wheel_type === 'spin').map(w => {
+          const spinItems = sortedWheelRes.filter(w => w.wheel_type === 'spin').map(w => {
             const n = String(w.name || '').toLowerCase();
             const t = String(w.type || '').toLowerCase();
             let img = w.image;
@@ -1571,13 +1576,15 @@ const App = () => {
     const wheelItemsChannel = supabase.channel('realtime-wheel-items')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'wheel_items' }, async () => {
         try {
-          const { data } = await supabase.from('wheel_items').select('*');
+          if (isSpinningRef.current) return;
+          const { data } = await supabase.from('wheel_items').select('*').order('id', { ascending: true });
           if (data) {
-            const moneyItems = data.filter(w => w.wheel_type === 'money').map(w => ({
+            const sortedData = [...data].sort((a, b) => String(a.id).localeCompare(String(b.id)));
+            const moneyItems = sortedData.filter(w => w.wheel_type === 'money').map(w => ({
               ...w,
               notify_on_win: w.notify_on_win !== undefined && w.notify_on_win !== null ? Boolean(w.notify_on_win) : getWheelNotifyFallback(w.id)
             }));
-            const spinItems = data.filter(w => w.wheel_type === 'spin').map(w => {
+            const spinItems = sortedData.filter(w => w.wheel_type === 'spin').map(w => {
               const n = String(w.name || '').toLowerCase();
               const t = String(w.type || '').toLowerCase();
               let img = w.image;
@@ -6188,8 +6195,10 @@ const App = () => {
   };
 
   const renderVongQuay = () => {
-    // CHỈ LẤY NHỮNG QUÀ CÓ SỐ LƯỢNG LỚN HƠN 0
-    let activeDb = (playMode === 'money' ? wheelItemsMoneyDb : wheelItemsSpinDb).filter(item => item.quantity === undefined || item.quantity > 0);
+    // CHỈ LẤY NHỮNG QUÀ CÓ SỐ LƯỢNG LỚN HƠN 0 VÀ SẮP XẾP ĐỒNG BỘ TUYỆT ĐỐI THEO ID
+    let activeDb = (playMode === 'money' ? wheelItemsMoneyDb : wheelItemsSpinDb)
+      .filter(item => item.quantity === undefined || item.quantity > 0)
+      .sort((a, b) => String(a.id).localeCompare(String(b.id)));
     // 1. Chống sập khi F5 (Đang tải dữ liệu) hoặc Admin chưa cài bất kỳ quà nào
     if (wheelItemsMoneyDb.length === 0 && wheelItemsSpinDb.length === 0) {
       return (
@@ -6207,7 +6216,9 @@ const App = () => {
 
     // 2. Nếu khách chọn quay Tiền mà Tiền trống (nhưng Lượt có quà), thì lấy tạm Lượt để không sập web
     if (activeDb.length === 0) {
-      activeDb = playMode === 'money' ? wheelItemsSpinDb : wheelItemsMoneyDb;
+      activeDb = (playMode === 'money' ? wheelItemsSpinDb : wheelItemsMoneyDb)
+        .slice()
+        .sort((a, b) => String(a.id).localeCompare(String(b.id)));
     }
 
     const handleSpin = async () => {
@@ -6219,6 +6230,8 @@ const App = () => {
 
       if (isSpinning) return;
       setIsSpinning(true); // Khóa nút bấm ngay lập tức
+      isSpinningRef.current = true;
+      setSpinActionType('x1');
 
       const isUsingMoney = playMode === 'money';
       const requiredCost = isUsingMoney ? wheelConfig.moneyCost : wheelConfig.spinCost;
@@ -6226,6 +6239,7 @@ const App = () => {
       // Kiểm tra số lượt quay hoặc số dư trước khi kích hoạt
       if (!isUsingMoney && (currentUser.spins || 0) < requiredCost) {
         setIsSpinning(false);
+        isSpinningRef.current = false;
         showToast("Bạn đã hết lượt quay! Cứ mỗi 20.000đ nạp tiền sẽ được tặng 1 lượt quay miễn phí. Nạp ngay để quay tiếp nhé!", "info");
         setCurrentView('naptien');
         return;
@@ -6233,6 +6247,7 @@ const App = () => {
 
       if (isUsingMoney && (currentUser.balance || 0) < requiredCost) {
         setIsSpinning(false);
+        isSpinningRef.current = false;
         showToast("Số dư ví không đủ để quay! Vui lòng nạp tiền vào ví.", "error");
         setCurrentView('naptien');
         return;
@@ -6253,14 +6268,14 @@ const App = () => {
       });
 
       // Nếu khách hack code sửa giá tiền thành 0, Server sẽ từ chối và báo lỗi
-      if (error || !data.success) {
+      if (error || !data?.success) {
         setIsSpinning(false);
+        isSpinningRef.current = false;
         if (spinAudio) spinAudio.pause();
         return showToast(error?.message || data?.message || "Lỗi vòng quay!", 'error');
       }
 
       // 2. ĐỌC KẾT QUẢ TỪ SERVER TRẢ VỀ ĐỂ DỰNG HIỆU ỨNG (Animation)
-      let winningIndex = activeDb.findIndex(item => item.id === data.item_id);
       const isServerShoesWin = Boolean(
         data.is_shoes ||
         data.is_pity_trigger ||
@@ -6268,36 +6283,44 @@ const App = () => {
         (data.item_name && data.item_name.toLowerCase().includes('giày'))
       );
 
-      const currentPityCount = Number(shoesPity || 0);
-      const isPityTriggered = (playMode === 'spin' && (currentPityCount >= 120 || Boolean(data.is_pity_trigger)));
-
-      if (isPityTriggered || isServerShoesWin) {
-        const shoesIdx = activeDb.findIndex(isLegendaryShoes);
-        if (shoesIdx !== -1) {
-          winningIndex = shoesIdx;
-        }
+      // Định vị chính xác nan quạt trúng thưởng trên mâm bánh xe (activeDb)
+      let winningIndex = -1;
+      if (isServerShoesWin) {
+        // Chỉ khi SERVER thực sự công nhận trúng Giày (quay trúng tự nhiên hoặc nổ bảo hiểm trên Server)
+        winningIndex = activeDb.findIndex(isLegendaryShoes);
       }
-
+      if (winningIndex === -1 && data.item_id) {
+        winningIndex = activeDb.findIndex(item => item.id === data.item_id);
+      }
+      if (winningIndex === -1 && data.item_name) {
+        winningIndex = activeDb.findIndex(item => item.name === data.item_name);
+      }
       if (winningIndex === -1) {
-        setIsSpinning(false);
-        return showToast("Lỗi đồng bộ vòng quay!", 'error');
+        winningIndex = 0;
       }
 
-      let winningItem = activeDb[winningIndex];
+      let winningItem = {
+        ...activeDb[winningIndex],
+        ...(data.item_name ? { name: data.item_name } : {}),
+        ...(data.item_value !== undefined ? { value: data.item_value } : {}),
+        ...(data.item_type ? { type: data.item_type } : {})
+      };
 
       // Tính góc quay sao cho kim chỉ đúng vào ô trúng
       const N = activeDb.length;
       const sliceAngle = 360 / N;
       const centerAngle = winningIndex * sliceAngle + (sliceAngle / 2);
       const currentBase = rotation % 360;
-      const randomOffset = (Math.random() * sliceAngle * 0.6) - (sliceAngle * 0.3);
-      const targetRotation = rotation + (360 - currentBase) + 1800 + (360 - centerAngle) + randomOffset;
+      // Giới hạn độ lệch an toàn trong ±8% nan quạt để kim luôn nằm ngay ngắn ở trung tâm ô trúng, không chạm biên giới
+      const safeRandomOffset = (Math.random() * 0.16 - 0.08) * sliceAngle;
+      const targetRotation = rotation + (360 - currentBase) + 1800 + (360 - centerAngle) + safeRandomOffset;
 
       setRotation(targetRotation); // Bắt đầu xoay hình ảnh
 
       // Đợi 4 giây cho hình ảnh xoay xong thì tung Pop-up chúc mừng
       setTimeout(async () => {
         setIsSpinning(false);
+        isSpinningRef.current = false;
         if (spinAudio) { spinAudio.pause(); spinAudio.currentTime = 0; }
 
         const winAudio = document.getElementById('winSound');
@@ -6525,18 +6548,22 @@ const App = () => {
       // Kiểm tra số lượt quay hoặc số dư trước khi kích hoạt x10
       if (!isUsingMoney && (currentUser.spins || 0) < totalCost) {
         setIsSpinning(false);
+        isSpinningRef.current = false;
         showToast(`Bạn chưa đủ 10 lượt quay! Hiện có ${currentUser.spins || 0} lượt. Cứ mỗi 20.000đ nạp tiền sẽ được tặng 1 lượt quay miễn phí.`, "info");
         setCurrentView('naptien');
         return;
       }
 
       if (isUsingMoney && (currentUser.balance || 0) < totalCost) {
+        setIsSpinning(false);
+        isSpinningRef.current = false;
         showToast(`Số dư ví không đủ 10 lượt quay (${new Intl.NumberFormat('vi-VN').format(totalCost)}đ)! Vui lòng nạp tiền vào ví.`, "error");
         setCurrentView('naptien');
         return;
       }
 
       setIsSpinning(true);
+      isSpinningRef.current = true;
       setSpinActionType('x10');
 
       // Mở nhạc vòng quay
@@ -6545,10 +6572,6 @@ const App = () => {
         spinAudio.currentTime = 0; spinAudio.volume = 0.6;
         spinAudio.play().catch(e => console.log("Trình duyệt chặn:", e));
       }
-
-      // Xoay vòng quay siêu tốc x10 (2160 độ = 6 vòng)
-      const targetRotation = rotation + 2160 + Math.floor(Math.random() * 360);
-      setRotation(targetRotation);
 
       let itemsResult = [];
       let finalNewBalance = currentUser.balance;
@@ -6693,9 +6716,56 @@ const App = () => {
         console.error("Lỗi thực thi vòng quay x10:", err);
       }
 
+      // Xác định món quà tiêu biểu nhất trong 10 món trúng để kim dừng chính xác vào ô đó
+      let targetItemIndex = -1;
+      const wonShoesItem = itemsResult.find(it => it.isShoes || String(it.type || '').toLowerCase() === 'game_shoes_legendary' || String(it.name || '').toLowerCase().includes('giày'));
+      if (wonShoesItem) {
+        targetItemIndex = activeDb.findIndex(isLegendaryShoes);
+      } else {
+        // Nếu không trúng Giày, chọn món tiêu biểu theo độ ưu tiên
+        // ĐẢM BẢO TUYỆT ĐỐI KHÔNG BAO GIỜ DỪNG VÀO Ô GIÀY THẦN TỐC KHI KHÔNG TRÚNG GIÀY!
+        const nonShoesItems = itemsResult.filter(it => !isLegendaryShoes(it) && !String(it.name || '').toLowerCase().includes('giày'));
+        const priorityOrder = ['game_essence_stone', 'game_ring_crystal', 'game_royal_chests', 'game_boss_chests', 'game_attacks', 'game_coins', 'money', 'spin'];
+        let chosenItem = null;
+        for (const pType of priorityOrder) {
+          chosenItem = nonShoesItems.find(it => String(it.type || '').toLowerCase() === pType || String(it.name || '').toLowerCase().includes(pType));
+          if (chosenItem) break;
+        }
+        if (!chosenItem && nonShoesItems.length > 0) {
+          chosenItem = nonShoesItems[0];
+        }
+        if (chosenItem) {
+          targetItemIndex = activeDb.findIndex(it => it.id === chosenItem.id);
+          if (targetItemIndex === -1) {
+            targetItemIndex = activeDb.findIndex(it => it.name === chosenItem.name);
+          }
+        }
+      }
+
+      // Tránh dừng vào ô giày nếu không trúng giày
+      if (!wonShoesItem) {
+        const shoesIdx = activeDb.findIndex(isLegendaryShoes);
+        if (targetItemIndex === shoesIdx || targetItemIndex === -1) {
+          targetItemIndex = activeDb.findIndex((it, idx) => idx !== shoesIdx);
+          if (targetItemIndex === -1) targetItemIndex = 0;
+        }
+      }
+
+      if (targetItemIndex === -1) targetItemIndex = 0;
+
+      // Xoay bánh xe x10 (6 vòng = 2160 độ) và kim dừng chuẩn xác vào nan quạt của món tiêu biểu
+      const N = activeDb.length;
+      const sliceAngle = 360 / N;
+      const centerAngle = targetItemIndex * sliceAngle + (sliceAngle / 2);
+      const currentBase = rotation % 360;
+      const safeRandomOffset = (Math.random() * 0.16 - 0.08) * sliceAngle;
+      const targetRotation = rotation + (360 - currentBase) + 2160 + (360 - centerAngle) + safeRandomOffset;
+      setRotation(targetRotation);
+
       // Đợi 4 giây cho vòng quay quay xong
       setTimeout(async () => {
         setIsSpinning(false);
+        isSpinningRef.current = false;
         if (spinAudio) { spinAudio.pause(); spinAudio.currentTime = 0; }
 
         const winAudio = document.getElementById('winSound');
