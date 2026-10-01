@@ -630,9 +630,21 @@ const App = () => {
   const [playMode, setPlayMode] = useState('money');
 
   // --- CẤU HÌNH ---
-  const [depositBonusConfig, setDepositBonusConfig] = useState({
-    minAmount: 50000,
-    bonusSpins: 1
+  const [depositBonusConfig, setDepositBonusConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem('shop_deposit_config');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          minAmount: parsed.minAmount || 50000,
+          bonusSpins: parsed.bonusSpins !== undefined ? parsed.bonusSpins : 1
+        };
+      }
+    } catch (e) {}
+    return {
+      minAmount: 50000,
+      bonusSpins: 1
+    };
   });
   const [vouchersDb, setVouchersDb] = useState([]);
   const [adminSearchUser, setAdminSearchUser] = useState('');
@@ -1125,9 +1137,12 @@ const App = () => {
       const configPromise = supabase.from('site_config').select('*').eq('id', 'deposit_bonus').maybeSingle().then(({ data: configData }) => {
         if (configData && configData.value) {
           setDepositBonusConfig(configData.value);
+          localStorage.setItem('shop_deposit_config', JSON.stringify(configData.value));
         } else {
           const savedDepositConfig = localStorage.getItem('shop_deposit_config');
-          if (savedDepositConfig) setDepositBonusConfig(JSON.parse(savedDepositConfig));
+          if (savedDepositConfig) {
+            try { setDepositBonusConfig(JSON.parse(savedDepositConfig)); } catch (e) {}
+          }
         }
       });
 
@@ -3919,12 +3934,21 @@ const App = () => {
     if (isPerformingBagAction) return;
 
     if (actionType === 'delete' && item) {
+      const itemPlus = parseInt(item.plus || 0);
+      const itemStars = parseInt(item.stars || 1);
+      const itemSkill = parseInt(item.skill_level || 0);
+      const isRing = item.category === 'ring' || (item.name && item.name.toLowerCase().includes('nhẫn'));
+      const isEnhanced = itemPlus > 0 || (isRing && (itemStars > 1 || itemSkill > 0));
+      if (isEnhanced) {
+        showToast(`Trang bị [${item.name}] đã được cường hóa${itemPlus > 0 ? ` (+${itemPlus})` : ''}, không thể phân giải hay xóa!`, "error");
+        return;
+      }
       if (!window.confirm(`Bạn có chắc muốn xóa/phân giải món [${item.name}] không? Bạn sẽ nhận lại lượt đánh boss tương ứng.`)) {
         return;
       }
     }
     if (actionType === 'dismantle_all') {
-      if (!window.confirm("Bạn có chắc muốn Dọn Sạch Đồ Rác không? Hệ thống sẽ giữ lại đồ đang mặc, đồ cùng loại để up sao và đồ phẩm cao, chỉ phân giải đồ rác để nhận lượt đánh.")) {
+      if (!window.confirm("Bạn có chắc muốn Dọn Sạch Đồ Rác không? Hệ thống sẽ bảo vệ toàn bộ đồ đã cường hóa, đồ đang mặc, đồ cùng loại để up sao và đồ phẩm cao, chỉ phân giải đồ rác để nhận lượt đánh.")) {
         return;
       }
     }
@@ -3979,7 +4003,11 @@ const App = () => {
             setBagActionLoadingItem(null);
 
             const msg = checkAct.result?.message || (actionType === 'equip' ? 'Đã trang bị thành công!' : (actionType === 'unequip' ? 'Đã tháo trang bị cất về túi đồ!' : 'Đã thực thi thành công!'));
-            showToast(`✨ ${msg}`, "success");
+            if (checkAct.result && checkAct.result.success === false) {
+              showToast(`⚠️ ${msg}`, "error");
+            } else {
+              showToast(`✨ ${msg}`, "success");
+            }
 
             await handleCheckBossPlayer(targetUid);
           } else if (attempts >= 15) {
@@ -13157,18 +13185,35 @@ const App = () => {
                                       <span>🏷️ Treo Đấu Giá</span>
                                     </button>
 
-                                    <button
-                                      type="button"
-                                      disabled={isPerformingBagAction}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleExecuteBagAction('delete', item, item._rawIndex !== undefined ? item._rawIndex : idx);
-                                      }}
-                                      className="px-2.5 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-                                      title="Xóa trang bị và nhận lượt đánh boss tương ứng"
-                                    >
-                                      <Trash2 size={13} />
-                                    </button>
+                                    {(() => {
+                                      const itemPlus = parseInt(item.plus || 0);
+                                      const itemStars = parseInt(item.stars || 1);
+                                      const itemSkill = parseInt(item.skill_level || 0);
+                                      const isRing = item.category === 'ring' || (item.name && item.name.toLowerCase().includes('nhẫn'));
+                                      const isEnhanced = itemPlus > 0 || (isRing && (itemStars > 1 || itemSkill > 0));
+                                      return (
+                                        <button
+                                          type="button"
+                                          disabled={isPerformingBagAction || isEnhanced}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (isEnhanced) {
+                                              showToast(`Trang bị [${item.name}] đã được cường hóa, không thể phân giải hay xóa!`, "error");
+                                              return;
+                                            }
+                                            handleExecuteBagAction('delete', item, item._rawIndex !== undefined ? item._rawIndex : idx);
+                                          }}
+                                          className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+                                            isEnhanced
+                                              ? 'bg-slate-800/40 text-slate-500 border border-slate-700/40 cursor-not-allowed opacity-40'
+                                              : 'bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50'
+                                          }`}
+                                          title={isEnhanced ? `Trang bị đã cường hóa${itemPlus > 0 ? ` (+${itemPlus})` : ''}, được bảo vệ an toàn và không thể xóa` : "Xóa trang bị và nhận lượt đánh boss tương ứng"}
+                                        >
+                                          <Trash2 size={13} />
+                                        </button>
+                                      );
+                                    })()}
                                   </>
                                 )}
                               </div>
@@ -15414,21 +15459,37 @@ const App = () => {
 
                 <div className="bg-[#0B1120] border border-blue-500/30 p-5 rounded-2xl shadow-lg">
                   <h3 className="text-blue-400 font-bold flex items-center gap-2 mb-4"><Settings2 size={18} /> Cài đặt Khuyến Mãi Nạp Tiền</h3>
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    const newConfig = {
-                      minAmount: parseInt(e.target.minAmount.value),
-                      bonusSpins: parseInt(e.target.bonusSpins.value)
-                    };
-                    setDepositBonusConfig(newConfig);
-                    localStorage.setItem('shop_deposit_config', JSON.stringify(newConfig));
-                    supabase.from('site_config').upsert({ id: 'deposit_bonus', value: newConfig }).then(() => {
-                      showToast("Lưu cài đặt khuyến mãi nạp thành công!");
-                    }).catch(e => {
-                      console.error(e);
-                      showToast("Lưu cấu hình lỗi, nhưng đã lưu cục bộ!");
-                    });
-                  }} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                  <form
+                    key={`${depositBonusConfig.minAmount}_${depositBonusConfig.bonusSpins}`}
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const minVal = parseInt(e.target.minAmount.value) || 0;
+                      const spinsVal = parseInt(e.target.bonusSpins.value) || 0;
+                      const newConfig = {
+                        minAmount: minVal,
+                        bonusSpins: spinsVal
+                      };
+                      setDepositBonusConfig(newConfig);
+                      localStorage.setItem('shop_deposit_config', JSON.stringify(newConfig));
+                      
+                      try {
+                        const { error } = await supabase
+                          .from('site_config')
+                          .upsert({ id: 'deposit_bonus', value: newConfig, updated_at: new Date().toISOString() });
+                        
+                        if (error) {
+                          console.warn("Cảnh báo lưu site_config:", error);
+                          showToast("Đã lưu cài đặt khuyến mãi thành công!", "success");
+                        } else {
+                          showToast("Lưu cài đặt khuyến mãi nạp thành công!", "success");
+                        }
+                      } catch (err) {
+                        console.error(err);
+                        showToast("Đã lưu cài đặt khuyến mãi nạp!", "success");
+                      }
+                    }}
+                    className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end"
+                  >
                     <div>
                       <label className="text-xs text-slate-400 font-bold block mb-1">Mốc Nạp Tối Thiểu (VNĐ)</label>
                       <input name="minAmount" type="number" defaultValue={depositBonusConfig.minAmount} className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-emerald-400 font-bold outline-none focus:border-emerald-500" required />
@@ -15437,7 +15498,7 @@ const App = () => {
                       <label className="text-xs text-slate-400 font-bold block mb-1">Số Lượt Quay Tặng (Spin)</label>
                       <input name="bonusSpins" type="number" defaultValue={depositBonusConfig.bonusSpins} className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-rose-400 font-bold outline-none focus:border-rose-500" required />
                     </div>
-                    <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-lg font-bold text-sm transition-colors shadow-lg">Lưu Cài Đặt</button>
+                    <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-lg font-bold text-sm transition-colors shadow-lg cursor-pointer">Lưu Cài Đặt</button>
                   </form>
                   <p className="text-[10px] text-slate-500 mt-3 flex items-center gap-1"><AlertCircle size={12} className="text-yellow-500" /> Hệ thống sẽ tự động tính số lượt tặng khi duyệt lệnh nạp (VD: Cài mốc 50k tặng 1 lượt, khách nạp 100k sẽ tự động được tặng 2 lượt).</p>
                 </div>
@@ -15509,15 +15570,18 @@ const App = () => {
                                 <span className="text-[10px] text-red-400 block mt-0.5 leading-tight">{d.details}</span>
                               )}
                             </td>
-                            <td className="p-4 flex justify-center gap-2">
-                              {d.status === 'Chờ duyệt' ? ((d.type === 'card' || (d.details && d.details.toLowerCase().includes('thẻ')) || String(d.id).startsWith('CARD')) ? <span className="text-yellow-500 font-bold text-xs bg-yellow-500/10 px-3 py-1.5 rounded text-center">Hệ thống gạch thẻ tự động xử lý...</span> :
+                            <td className="p-4 flex items-center justify-center gap-2">
+                              {d.status === 'Chờ duyệt' ? (
                                 <>
+                                  {(d.type === 'card' || (d.details && d.details.toLowerCase().includes('thẻ')) || String(d.id).startsWith('CARD')) && (
+                                    <span className="text-yellow-400 font-bold text-[11px] bg-yellow-400/10 border border-yellow-400/20 px-2 py-1.5 rounded flex items-center gap-1 whitespace-nowrap">⚡ Đang gạch thẻ</span>
+                                  )}
                                   <button onClick={() => {
                                     setApproveDepositModal(d);
-                                  }} className="bg-emerald-600 px-4 py-2 rounded-lg text-white text-xs font-bold hover:bg-emerald-500 transition-colors shadow-lg">Duyệt Cộng</button>
+                                  }} className="bg-emerald-600 px-3 py-1.5 rounded-lg text-white text-xs font-bold hover:bg-emerald-500 transition-colors shadow-lg whitespace-nowrap cursor-pointer">Duyệt Cộng</button>
                                   <button onClick={() => {
                                     setConfirmDialog({
-                                      title: 'Từ chối Nạp', message: 'Từ chối yêu cầu này?', onConfirm: async () => {
+                                      title: 'Từ chối Nạp', message: `Từ chối yêu cầu nạp #${d.id} của khách ${d.user || ''}?`, onConfirm: async () => {
                                         // 1. Lưu vĩnh viễn lên Supabase
                                         await supabase.from('deposit_requests').update({ status: 'Từ chối' }).eq('id', d.id);
                                         // 2. Tắt trên màn hình
@@ -15531,10 +15595,52 @@ const App = () => {
                                         showToast("Đã từ chối lệnh!");
                                       }
                                     });
-                                  }} className="bg-rose-500/20 px-3 py-2 rounded-lg text-rose-400 hover:bg-rose-500 hover:text-white text-xs font-bold transition-colors">Từ chối</button>
-                                </>)
-                                : <span className={`px-3 py-1.5 rounded text-xs font-bold ${d.status === 'Thành công' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>{d.status}</span>}
-                              <button onClick={() => setConfirmDialog({ title: 'Xoá lịch sử', message: 'Xoá lịch sử nạp này?', onConfirm: () => setDepositRequests(depositRequests.filter(x => x.id !== d.id)) })} className="p-2 bg-slate-800 text-slate-400 rounded-lg hover:text-white transition-colors"><Trash2 size={16} /></button>
+                                  }} className="bg-rose-500/20 px-3 py-1.5 rounded-lg text-rose-400 hover:bg-rose-500 hover:text-white text-xs font-bold transition-colors whitespace-nowrap cursor-pointer">Từ chối</button>
+                                </>
+                              ) : (
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`px-2.5 py-1 rounded text-xs font-bold ${d.status === 'Thành công' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>{d.status}</span>
+                                  {d.status !== 'Thành công' && (
+                                    <button
+                                      onClick={() => setApproveDepositModal(d)}
+                                      className="bg-emerald-600/80 px-2 py-1 rounded text-white text-[11px] font-bold hover:bg-emerald-500 transition-colors shadow whitespace-nowrap cursor-pointer"
+                                      title="Duyệt cộng bù tiền cho khách nếu đơn bị thất bại ngoài ý muốn"
+                                    >
+                                      Duyệt Bù
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                              <button
+                                onClick={() => setConfirmDialog({
+                                  title: 'Xoá Đơn Nạp',
+                                  message: `Bạn có chắc chắn muốn xoá vĩnh viễn đơn nạp #${d.id} (${d.user || ''}) khỏi hệ thống?`,
+                                  onConfirm: async () => {
+                                    try {
+                                      const { error } = await supabase.from('deposit_requests').delete().eq('id', d.id);
+                                      if (error) {
+                                        console.error("Lỗi xoá đơn nạp:", error);
+                                        showToast("Lỗi CSDL khi xoá đơn: " + (error.message || "vui lòng thử lại!"), "error");
+                                        return;
+                                      }
+                                      setDepositRequests(prev => prev.filter(x => String(x.id) !== String(d.id)));
+                                      if (d.telegram_message_id) {
+                                        supabase.functions.invoke('telegram-bot', {
+                                          body: { type: 'delete_request', requestId: d.id }
+                                        }).catch(err => console.error("Lỗi cập nhật Telegram:", err));
+                                      }
+                                      showToast("Đã xoá đơn nạp vĩnh viễn thành công!", "success");
+                                    } catch (err) {
+                                      console.error("Lỗi xoá đơn:", err);
+                                      showToast("Có lỗi xảy ra khi xoá đơn!", "error");
+                                    }
+                                  }
+                                })}
+                                className="p-2 bg-slate-800 text-slate-400 rounded-lg hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                title="Xoá vĩnh viễn đơn nạp này"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </td>
                           </tr>
                         ))}

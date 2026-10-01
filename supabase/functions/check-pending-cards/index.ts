@@ -42,9 +42,12 @@ serve(async () => {
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const sign = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-      const response = await fetch('https://doithecao.com/api/card-auto', {
+      const response = await fetch('https://doithecao.com/chargingws/v2', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        },
         body: JSON.stringify({
           request_id: requestId,
           partner_id: partnerId,
@@ -53,7 +56,14 @@ serve(async () => {
         })
       })
 
-      const result = await response.json()
+      const responseText = await response.text()
+      let result: any = {}
+      try {
+        result = JSON.parse(responseText)
+      } catch {
+        console.error("Lỗi parse kết quả kiểm tra thẻ:", responseText)
+        continue
+      }
 
       // Trạng thái thẻ: 1 (Thành công), 2 (Sai mệnh giá), 3 (Lỗi), 99 (Chờ xử lý)
       if (result.status === 1 || result.status === 2 || result.status === 3 || result.status === 100) {

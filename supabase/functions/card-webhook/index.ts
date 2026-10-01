@@ -9,34 +9,51 @@ const supabaseAdmin = createClient(
 
 serve(async (req) => {
   try {
-    let payload;
+    let payload: any = {};
+    const contentType = req.headers.get("content-type") || "";
     if (req.method === 'GET') {
       const url = new URL(req.url);
       payload = Object.fromEntries(url.searchParams.entries());
+    } else if (contentType.includes("application/json")) {
+      payload = await req.json();
+    } else if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
+      const formData = await req.formData();
+      payload = Object.fromEntries(formData.entries());
     } else {
-      payload = await req.json()
+      try {
+        payload = await req.json();
+      } catch {
+        const text = await req.text();
+        const searchParams = new URLSearchParams(text);
+        payload = Object.fromEntries(searchParams.entries());
+      }
     }
     
-    // Ép kiểu nếu request là GET (dữ liệu bị biến thành chuỗi)
+    console.log("Card Webhook Received Payload:", payload);
+
+    // Ép kiểu (dữ liệu từ query/form là chuỗi)
     payload.amount = parseInt(payload.amount || "0");
-    payload.value = parseInt(payload.value || "0");
+    payload.value = parseInt(payload.value || payload.amount || "0");
     payload.status = parseInt(payload.status || "0");
     
     // payload cấu trúc từ doithecao thường là: 
     // status, message, request_id, declared_value, value, amount, code, serial, telco, trans_id, callback_sign
     
-    const partnerKey = Deno.env.get('PARTNER_KEY')
+    const partnerKey = Deno.env.get('PARTNER_KEY') || '';
     
     // 1. Kiểm tra chữ ký (Bảo vệ Giả mạo Callback)
-    // Chữ ký của callback_sign sẽ là: md5(partner_key + code + serial)
-    const signString = `${partnerKey}${payload.code}${payload.serial}`
-    const messageBuffer = new TextEncoder().encode(signString);
-    const hashBuffer = await crypto.subtle.digest("MD5", messageBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const expectedSign = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    async function getMd5(str: string): Promise<string> {
+      const buf = new TextEncoder().encode(str);
+      const hash = await crypto.subtle.digest("MD5", buf);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('').toLowerCase();
+    }
 
-    if (expectedSign !== payload.callback_sign) {
-      console.error("Sai chữ ký bảo mật từ Webhook");
+    const sign1 = await getMd5(`${partnerKey}${payload.code}${payload.serial}`);
+    const sign2 = await getMd5(`${partnerKey}${payload.serial}${payload.code}`);
+    const receivedSign = (payload.callback_sign || payload.sign || '').toString().toLowerCase().trim();
+
+    if (receivedSign && receivedSign !== sign1 && receivedSign !== sign2) {
+      console.error("Sai chữ ký bảo mật từ Webhook:", { receivedSign, sign1, sign2 });
       return new Response("Invalid Signature", { status: 403 })
     }
 
