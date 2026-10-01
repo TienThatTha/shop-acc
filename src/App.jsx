@@ -4487,27 +4487,44 @@ const App = () => {
           {/* NỘI DUNG 2 CỘT MODAL: TRÁI (3D ANIMATED NPC) + PHẢI (BÀN RÈN 2 ĐE & NÚT GÕ BÚA) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
             {/* CỘT TRÁI (COL-5): 3D DRAGON BLACKSMITH NPC STAGE */}
-            <div className="lg:col-span-5 flex flex-col justify-between bg-gradient-to-b from-[#090e1b] via-[#101726] to-[#070b14] border border-amber-500/30 rounded-2xl p-4 shadow-inner relative overflow-hidden">
-              <div className="flex items-center justify-between mb-2">
+            <div className="lg:col-span-5 flex flex-col bg-gradient-to-b from-[#090e1b] via-[#101726] to-[#070b14] border border-amber-500/40 rounded-2xl p-3 sm:p-4 shadow-inner relative overflow-hidden">
+              <div className="flex items-center justify-between mb-2 px-1">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.8 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] font-black uppercase tracking-wider">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
                   <span>✨ 3D ANIMATED NPC</span>
                 </div>
-                <span className="text-[10px] text-slate-400 font-mono">Long Tộc Thợ Rèn</span>
+                <span className="text-[10px] text-slate-400 font-mono">Long Tộc Thần Búa</span>
               </div>
 
-              {/* SÂN KHẤU 3D NHÂN VẬT THẬT (CỬ ĐỘNG THỞ, TỎA NHIỆT, VUNG BÚA) */}
-              <div className="relative w-full aspect-[4/5] max-h-[340px] sm:max-h-[380px] rounded-2xl overflow-hidden border-2 border-amber-400/60 shadow-[0_0_30px_rgba(245,158,11,0.35)] bg-[#04060c] flex items-center justify-center group">
-                {/* Ánh lửa nền lò luyện kim bên trong */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 pointer-events-none"></div>
+              {/* SÂN KHẤU 3D NHÂN VẬT THẬT (CỬ ĐỘNG THỞ, TỎA NHIỆT, VUNG BÚA + HỘP THOẠI TRỰC DIỆN) */}
+              <div className="relative w-full flex-1 min-h-[400px] sm:min-h-[460px] rounded-2xl overflow-hidden border-2 border-amber-400/60 shadow-[0_0_35px_rgba(245,158,11,0.3)] bg-[#04060c] flex items-center justify-center group">
+                {/* Lớp phủ điện ảnh trên dưới */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/60 z-10 pointer-events-none"></div>
 
-                {/* Quầng sáng lửa búa nện rực rỡ */}
-                <div className="absolute top-[28%] right-[15%] w-32 h-32 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 pointer-events-none animate-hammer-fire z-10"></div>
+                {/* Hạt lửa tàn tro bay lơ lửng trong sân khấu */}
+                <div className="absolute top-1/3 left-1/4 w-1.5 h-1.5 rounded-full bg-amber-400 blur-[0.5px] pointer-events-none animate-ember-1 z-10"></div>
+                <div className="absolute top-2/3 right-1/3 w-2 h-2 rounded-full bg-orange-400 blur-[0.5px] pointer-events-none animate-ember-2 z-10"></div>
+
+                {/* Video hỗ trợ phát loop realtime nếu có file video, tự fallback sang ảnh cinematic */}
+                <video
+                  src="/dragon_blacksmith.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className={`absolute inset-0 w-full h-full object-cover object-center transition-all duration-300 select-none ${
+                    isHammerStriking ? 'animate-npc-3d-strike' : 'animate-npc-3d-idle'
+                  }`}
+                  onError={(e) => {
+                    // Nếu chưa có file video mp4, ẩn video và hiển thị ảnh tĩnh
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
 
                 {/* Hình nhân vật 3D cử động idle breathing hoặc strike */}
                 <img
                   src="/dragon_blacksmith.jpg"
-                  alt="Thợ Rèn Long Tộc 3D"
+                  alt="Thần Búa Long Hỏa 3D"
                   className={`w-full h-full object-cover object-center transition-all duration-300 select-none ${
                     isHammerStriking ? 'animate-npc-3d-strike' : 'animate-npc-3d-idle'
                   }`}
@@ -4516,56 +4533,78 @@ const App = () => {
                 {/* Sparks bay khi gõ búa */}
                 {isHammerStriking && (
                   <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center animate-anvil-sparks">
-                    <div className="w-full h-full bg-gradient-to-r from-amber-500/40 via-yellow-300/50 to-orange-500/40 mix-blend-screen flex items-center justify-center">
-                      <span className="text-3xl font-black text-amber-200 drop-shadow-[0_0_25px_#f59e0b] tracking-widest animate-bounce">
+                    <div className="w-full h-full bg-gradient-to-r from-amber-500/50 via-yellow-300/60 to-orange-500/50 mix-blend-screen flex items-center justify-center">
+                      <span className="text-3xl sm:text-4xl font-black text-amber-200 drop-shadow-[0_0_25px_#f59e0b] tracking-widest animate-bounce">
                         ⚡ KENGGG! ⚡
                       </span>
                     </div>
                   </div>
                 )}
 
-                {/* Badge tên NPC đính góc */}
+                {/* HỘP THOẠI TRỰC TIẾP TRÊN VIDEO/NHÂN VẬT (NẰM TRÊN THAY VÌ DƯỚI CHÂN) */}
+                <div className="absolute top-3 left-3 right-3 z-20 animate-fade-in">
+                  <div className="bg-slate-950/90 backdrop-blur-md border border-amber-400/60 rounded-2xl p-3 sm:p-3.5 shadow-[0_0_30px_rgba(0,0,0,0.85)] relative">
+                    {/* Header hộp thoại: Tên người nói & hiệu ứng sóng âm đang nói */}
+                    <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-amber-500/30">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        <h4 className="text-[11px] font-black uppercase text-amber-300 tracking-wider flex items-center gap-1.5">
+                          <span>💬 Thần Búa Long Hỏa</span>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-red-600/30 text-red-300 border border-red-500/40">VIP NPC</span>
+                        </h4>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="w-1 h-2.5 bg-amber-400 rounded-full animate-pulse"></span>
+                        <span className="w-1 h-3.5 bg-orange-400 rounded-full animate-pulse delay-75"></span>
+                        <span className="w-1 h-2 bg-yellow-400 rounded-full animate-pulse delay-150"></span>
+                        <span className="text-[9px] font-mono text-amber-400 font-bold ml-1">ĐANG NÓI</span>
+                      </div>
+                    </div>
+
+                    {/* Nội dung lời thoại trực tiếp */}
+                    <p className="text-xs sm:text-sm text-slate-100 font-semibold leading-relaxed drop-shadow">
+                      {isHammerStriking ? (
+                        <span className="text-amber-300 font-black animate-pulse flex items-center gap-1.5">
+                          <span>💥</span>
+                          <span>THIÊN HỎA KHAI MINH! Thần búa nện xuống đe, linh khí cường hóa bùng nổ chuyển dịch!</span>
+                        </span>
+                      ) : !isLinked ? (
+                        <span>
+                          "Chào đại hiệp! Hãy <strong className="text-amber-400 underline cursor-pointer hover:text-amber-300" onClick={() => { setShowForgeModal(false); handleGenerateLinkOtp('all'); }}>liên kết tài khoản game qua OTP</strong> để ta nhận diện túi đồ của ngươi nhé!"
+                        </span>
+                      ) : selectedForgeItemA && selectedForgeItemB ? (
+                        <span>
+                          "Toàn bộ linh khí <strong className="text-amber-400 font-black">+{plusA}</strong> từ <strong className="text-white">[{selectedForgeItemA.name}]</strong> sẽ truyền trọn vẹn sang <strong className="text-cyan-300 font-black">[{selectedForgeItemB.name}]</strong>! Hãy gõ búa nào!"
+                        </span>
+                      ) : selectedForgeItemA ? (
+                        <span>
+                          "Đã đặt <strong className="text-amber-400 font-black">[{selectedForgeItemA.name} +{plusA}]</strong> lên đe nguồn! Hãy đặt Món Đích [B] cần nhận cấp lên đe bên phải!"
+                        </span>
+                      ) : (
+                        <span>
+                          "Đặt Món Đồ Nguồn [A] (có cấp +) và Món Đích [B] lên 2 cái đe, ta sẽ vung búa rèn chuyển toàn bộ cấp cho ngươi!"
+                        </span>
+                      )}
+                    </p>
+
+                    {/* Đuôi bóng thoại chỉ thẳng xuống mặt NPC */}
+                    <div className="absolute -bottom-2 left-8 w-4 h-4 bg-slate-950/95 border-b border-r border-amber-400/60 transform rotate-45"></div>
+                  </div>
+                </div>
+
+                {/* Badge định danh đính đáy video */}
                 <div className="absolute bottom-2.5 left-2.5 right-2.5 z-20 bg-slate-950/80 backdrop-blur-md border border-amber-400/40 rounded-xl px-3 py-1.5 flex items-center justify-between shadow-lg">
                   <div>
                     <h4 className="text-xs font-black text-amber-300 uppercase tracking-wide flex items-center gap-1.5">
-                      <span>Thần Búa Long Hỏa</span>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-red-600/30 text-red-300 border border-red-500/40">VIP</span>
+                      <span>Lò Luyện Thần Binh</span>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30">LONG TỘC</span>
                     </h4>
-                    <p className="text-[10px] text-slate-400">Đúc rèn thần binh &bull; Đảo Thiên Mệnh</p>
+                    <p className="text-[10px] text-slate-400">Đúc rèn &bull; Chuyển cấp bảo toàn món</p>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] font-mono font-bold text-emerald-400">100% SUCCESS</span>
                   </div>
                 </div>
-              </div>
-
-              {/* HỘP THOẠI NPC TƯƠNG TÁC THEO THAO TÁC */}
-              <div className="mt-3 bg-[#0a0f1d] border border-amber-500/30 rounded-xl p-3 relative shadow">
-                <div className="absolute -top-1.5 left-6 w-3 h-3 bg-[#0a0f1d] border-t border-l border-amber-500/30 transform rotate-45"></div>
-                <p className="text-xs text-slate-200 leading-relaxed font-medium">
-                  {isHammerStriking ? (
-                    <span className="text-amber-300 font-black animate-pulse flex items-center gap-1.5">
-                      <span>💥</span>
-                      <span>THIÊN HỎA KHAI MINH! Thần búa nện xuống đe, hào quang dung hợp cấp độ bùng nổ!</span>
-                    </span>
-                  ) : !isLinked ? (
-                    <span>
-                      Chào đại hiệp! Hãy <strong className="text-amber-400 underline cursor-pointer hover:text-amber-300" onClick={() => { setShowForgeModal(false); handleGenerateLinkOtp('all'); }}>liên kết tài khoản game qua OTP</strong> để ta nhận diện túi đồ của ngươi nhé!
-                    </span>
-                  ) : selectedForgeItemA && selectedForgeItemB ? (
-                    <span>
-                      Toàn bộ linh khí <strong className="text-amber-400">+{plusA}</strong> từ <strong className="text-white">[{selectedForgeItemA.name}]</strong> sẽ truyền trọn vẹn sang <strong className="text-cyan-300">[{selectedForgeItemB.name}]</strong>! Hãy gõ búa nào!
-                    </span>
-                  ) : selectedForgeItemA ? (
-                    <span>
-                      Đã đặt <strong className="text-amber-400">[{selectedForgeItemA.name} +{plusA}]</strong> lên đe nguồn! Hãy đặt Món Đích [B] cần nhận cấp lên đe bên phải!
-                    </span>
-                  ) : (
-                    <span>
-                      Đặt Món Đồ Nguồn [A] (có cấp +) và Món Đích [B] lên 2 cái đe, ta sẽ vung búa rèn chuyển toàn bộ cấp cho ngươi!
-                    </span>
-                  )}
-                </p>
               </div>
             </div>
 
