@@ -516,6 +516,7 @@ const App = () => {
   const [buyPasscodePrompt, setBuyPasscodePrompt] = useState('');
 
   // --- STATE XƯỞNG RÈN LONG TỘC (FORGE LEVEL TRANSFER) ---
+  const [showForgeModal, setShowForgeModal] = useState(false);
   const [selectedForgeItemA, setSelectedForgeItemA] = useState(null);
   const [selectedForgeItemB, setSelectedForgeItemB] = useState(null);
   const [showForgeSelectModal, setShowForgeSelectModal] = useState(null); // 'A' | 'B' | null
@@ -4428,8 +4429,9 @@ const App = () => {
     }
   };
 
-  // --- RENDER GIAO DIỆN XƯỞNG RÈN LONG TỘC (CHUYỂN CẤP CƯỜNG HÓA) ---
-  const renderDragonForgeSection = () => {
+  // --- RENDER MODAL XƯỞNG RÈN LONG TỘC (CHUYỂN CẤP CƯỜNG HÓA) ---
+  const renderDragonForgeModal = () => {
+    if (!showForgeModal) return null;
     const isLinked = Boolean(bossPlayerSummary);
     const currentCoins = Number(bossPlayerSummary?.bonus_coins || 0);
     const hasEnoughCoins = isLinked && currentCoins >= 100;
@@ -4437,351 +4439,396 @@ const App = () => {
     const plusB = Number(selectedForgeItemB?.plus || 0);
 
     return (
-      <div className="bg-gradient-to-br from-[#0c1322] via-[#131d32] to-[#0a101d] border-2 border-amber-500/50 rounded-2xl p-5 md:p-6 shadow-[0_0_30px_rgba(245,158,11,0.2)] backdrop-blur-md text-left animate-fade-in relative overflow-hidden h-full flex flex-col justify-between">
-        {/* Ánh hào quang nền rực lửa */}
-        <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-2 bg-gradient-to-l from-amber-500/20 via-orange-500/10 to-transparent w-64 h-24 pointer-events-none blur-2xl"></div>
-        <div className="absolute bottom-0 left-0 bg-gradient-to-tr from-rose-500/15 to-transparent w-48 h-20 pointer-events-none blur-xl"></div>
+      <div
+        className="fixed inset-0 z-[105] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto"
+        onClick={(e) => { if (e.target === e.currentTarget) setShowForgeModal(false); }}
+      >
+        <div className="bg-gradient-to-br from-[#0c1322] via-[#121c2f] to-[#080d18] border-2 border-amber-500/80 rounded-3xl w-full max-w-5xl shadow-[0_0_80px_rgba(245,158,11,0.45)] p-4 sm:p-6 md:p-7 relative overflow-hidden my-auto text-white animate-zoom-in">
+          {/* Hiệu ứng hào quang rực lửa nền */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-rose-600/15 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div>
-          {/* Header Badge & Tiêu Đề Xưởng Rèn */}
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-3 pb-3 border-b border-slate-800">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500/25 via-orange-500/20 to-rose-500/25 border border-amber-400/50 text-amber-300 font-black text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-              <Flame size={14} className="text-amber-400 animate-pulse" />
-              <span>🔥 XƯỞNG RÈN LONG TỘC</span>
+          {/* Đốm tàn tro bay lơ lửng */}
+          <div className="absolute top-1/4 left-1/3 w-1.5 h-1.5 rounded-full bg-amber-400 blur-[0.5px] pointer-events-none animate-ember-1"></div>
+          <div className="absolute top-2/3 right-1/4 w-2 h-2 rounded-full bg-orange-400 blur-[0.5px] pointer-events-none animate-ember-2"></div>
+          <div className="absolute top-1/2 right-1/3 w-1.5 h-1.5 rounded-full bg-yellow-300 blur-[0.5px] pointer-events-none animate-ember-3"></div>
+
+          {/* HEADER MODAL */}
+          <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-amber-500/30 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-amber-500/30 to-orange-500/30 border border-amber-400/60 flex items-center justify-center text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.45)]">
+                <Flame size={22} className="animate-pulse text-amber-400" />
+              </div>
+              <div>
+                <h3 className="text-lg sm:text-xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-300 to-yellow-200 tracking-wide flex items-center gap-2">
+                  <span>🔥 XƯỞNG RÈN LONG TỘC</span>
+                  <span className="hidden sm:inline-block text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 font-bold">
+                    TỶ LỆ 100% THÀNH CÔNG
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-300">
+                  Chuyển toàn bộ cấp Cường Hóa từ Món Nguồn [A] sang Món Đích [B]
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
-              {!isLinked ? (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 text-xs font-black shadow-[0_0_10px_rgba(245,158,11,0.2)]">
-                  <Lock size={12} className="text-amber-400" />
-                  <span>CẦN LIÊN KẾT GAME</span>
-                </div>
-              ) : (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/40 text-emerald-300 text-xs font-black shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-                  <Sparkles size={13} className="text-emerald-400 animate-spin" />
-                  <span>TỶ LỆ 100% THÀNH CÔNG</span>
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => setShowForgeModal(false)}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-800 hover:bg-rose-600 hover:text-white text-slate-300 flex items-center justify-center transition-all cursor-pointer shadow-lg"
+                title="Đóng Lò Rèn"
+              >
+                <X size={18} />
+              </button>
             </div>
           </div>
 
-          {/* Khối Thợ Rèn Long Tộc 3D & Lời Thoại */}
-          <div className="flex items-center gap-3.5 mb-3 bg-[#0a0f1d]/80 border border-amber-500/20 rounded-2xl p-2.5 sm:p-3 relative">
-            <div className="relative shrink-0">
-              <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl border-2 border-amber-400/70 overflow-hidden shadow-[0_0_15px_rgba(245,158,11,0.4)] ${isHammerStriking ? 'animate-hammer-strike' : 'forge-flame-glow'}`}>
+          {/* NỘI DUNG 2 CỘT MODAL: TRÁI (3D ANIMATED NPC) + PHẢI (BÀN RÈN 2 ĐE & NÚT GÕ BÚA) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            {/* CỘT TRÁI (COL-5): 3D DRAGON BLACKSMITH NPC STAGE */}
+            <div className="lg:col-span-5 flex flex-col justify-between bg-gradient-to-b from-[#090e1b] via-[#101726] to-[#070b14] border border-amber-500/30 rounded-2xl p-4 shadow-inner relative overflow-hidden">
+              <div className="flex items-center justify-between mb-2">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.8 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] font-black uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                  <span>✨ 3D ANIMATED NPC</span>
+                </div>
+                <span className="text-[10px] text-slate-400 font-mono">Long Tộc Thợ Rèn</span>
+              </div>
+
+              {/* SÂN KHẤU 3D NHÂN VẬT THẬT (CỬ ĐỘNG THỞ, TỎA NHIỆT, VUNG BÚA) */}
+              <div className="relative w-full aspect-[4/5] max-h-[340px] sm:max-h-[380px] rounded-2xl overflow-hidden border-2 border-amber-400/60 shadow-[0_0_30px_rgba(245,158,11,0.35)] bg-[#04060c] flex items-center justify-center group">
+                {/* Ánh lửa nền lò luyện kim bên trong */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 pointer-events-none"></div>
+
+                {/* Quầng sáng lửa búa nện rực rỡ */}
+                <div className="absolute top-[28%] right-[15%] w-32 h-32 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 pointer-events-none animate-hammer-fire z-10"></div>
+
+                {/* Hình nhân vật 3D cử động idle breathing hoặc strike */}
                 <img
                   src="/dragon_blacksmith.jpg"
-                  alt="Thợ Rèn Long Tộc"
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = 'https://api.dicebear.com/7.x/bottts/png?seed=blacksmith';
-                  }}
+                  alt="Thợ Rèn Long Tộc 3D"
+                  className={`w-full h-full object-cover object-center transition-all duration-300 select-none ${
+                    isHammerStriking ? 'animate-npc-3d-strike' : 'animate-npc-3d-idle'
+                  }`}
                 />
-              </div>
-              <div className="absolute -bottom-1.5 -right-1.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-black text-[9px] px-1.5 py-0.2 rounded border border-amber-300 shadow">
-                3D NPC
-              </div>
-            </div>
 
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-amber-400 font-black text-xs uppercase tracking-wide">
-                  Thần Búa Long Hỏa
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono">• Trực Chiến</span>
-              </div>
-              <p className="text-[11px] sm:text-xs text-slate-200 leading-snug">
-                {isHammerStriking ? (
-                  <span className="text-amber-300 font-bold animate-pulse">
-                    💥 CLANGGG! Long Hỏa Thần Búa nện xuống đe! Hào quang chuyển cấp bùng nổ!
-                  </span>
-                ) : !isLinked ? (
-                  <span className="text-amber-200/90">
-                    Chào đại hiệp! Hãy <strong className="text-amber-400 underline cursor-pointer hover:text-amber-300" onClick={() => handleGenerateLinkOtp('all')}>liên kết tài khoản game (mã OTP)</strong> ở khung bên cạnh để ta nhận diện túi đồ và vung búa rèn chuyển cấp cho ngươi nhé!
-                  </span>
-                ) : selectedForgeItemA && selectedForgeItemB ? (
-                  <span>
-                    Truyền toàn bộ linh khí <strong className="text-amber-400">+{plusA}</strong> từ <strong className="text-white">[{selectedForgeItemA.name}]</strong> sang <strong className="text-cyan-300">[{selectedForgeItemB.name}]</strong>!
-                  </span>
-                ) : selectedForgeItemA ? (
-                  <span>
-                    Đã nhận diện <strong className="text-amber-400">[{selectedForgeItemA.name} +{plusA}]</strong>. Hãy chọn Món Đồ Đích [B] cần nhận cấp!
-                  </span>
-                ) : (
-                  <span>
-                    Đặt Món Đồ Nguồn [A] và Đích [B] lên đe, ta sẽ dùng búa rèn chuyển toàn bộ cấp Cường Hóa cho ngươi!
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
-
-          {/* KHU VỰC BÀN RÈN: 2 CÁI ĐE & ĐƯỜNG DẪN CHUYỂN CẤP */}
-          <div className="relative rounded-2xl bg-gradient-to-b from-[#070b14] via-[#0b1120] to-[#070b14] border border-amber-500/30 p-3 sm:p-4 mb-3 overflow-hidden shadow-inner">
-            {/* Hiệu ứng chớp lửa đe rèn khi gõ búa */}
-            {isHammerStriking && (
-              <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center animate-anvil-sparks">
-                <div className="w-full h-full bg-gradient-to-r from-amber-500/30 via-yellow-400/40 to-orange-500/30 mix-blend-screen flex items-center justify-center">
-                  <span className="text-2xl sm:text-3xl font-black text-amber-200 drop-shadow-[0_0_20px_#f59e0b] tracking-widest animate-bounce">
-                    ⚡ KENGGG! ⚡
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-11 gap-2 items-center">
-              {/* CỘT TRÁI (COL-5): ĐE NGUỒN (A) */}
-              <div className="col-span-5 flex flex-col items-center">
-                <div className="flex items-center gap-1 mb-1.5">
-                  <span className="text-[11px] font-black uppercase text-amber-400">Đe Nguồn (A)</span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-400/30">
-                    Chuyển Đi
-                  </span>
-                </div>
-
-                {!selectedForgeItemA ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!isLinked) {
-                        showToast("Vui lòng liên kết tài khoản game qua mã OTP trước khi sử dụng Lò Rèn!", "info");
-                        handleGenerateLinkOtp('all');
-                        return;
-                      }
-                      setForgeFilterCategory('all');
-                      setForgeFilterLocation('all');
-                      setForgeSearchQuery('');
-                      setShowForgeSelectModal('A');
-                    }}
-                    className="w-full h-28 sm:h-32 rounded-2xl border-2 border-dashed border-amber-400/60 bg-gradient-to-b from-amber-500/10 via-[#101726]/80 to-[#0c1220] hover:bg-amber-500/20 hover:border-amber-300 flex flex-col items-center justify-center gap-1.5 text-amber-300 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(245,158,11,0.2)] group cursor-pointer relative overflow-hidden"
-                  >
-                    <div
-                      className="absolute inset-0 opacity-15 pointer-events-none bg-center bg-cover"
-                      style={{ backgroundImage: `url('/dragon_anvil.jpg')` }}
-                    ></div>
-                    <div className="w-10 h-10 rounded-full bg-amber-500/25 border border-amber-400/50 flex items-center justify-center text-amber-300 text-2xl font-black group-hover:scale-110 group-hover:bg-amber-500/40 transition-all shadow-[0_0_12px_rgba(245,158,11,0.4)]">
-                      +
-                    </div>
-                    <span className="text-xs sm:text-sm font-black text-amber-300 uppercase tracking-wide">Đặt Đồ A</span>
-                    <span className="text-[10px] text-amber-400/80 font-medium">Cường Hóa &ge; +1</span>
-                  </button>
-                ) : (
-                  <div className="w-full h-28 sm:h-32 rounded-2xl border-2 border-amber-500/80 bg-gradient-to-b from-amber-950/30 via-[#101726] to-[#0c1220] p-2 flex flex-col justify-between shadow-[0_0_20px_rgba(245,158,11,0.3)] relative group">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedForgeItemA(null)}
-                      className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-slate-800/80 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition-colors text-xs z-10"
-                      title="Gỡ món A"
-                    >
-                      ✕
-                    </button>
-
-                    <div className="flex items-center gap-2">
-                      <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border" style={{ borderColor: getBossTierStyle(selectedForgeItemA.tier).color }}>
-                        <img
-                          src={getBossItemAsset(selectedForgeItemA, getCategoryOfItem(selectedForgeItemA))}
-                          alt={selectedForgeItemA.name}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute top-0 right-0 bg-amber-500 text-black font-black text-[9px] px-1 rounded-bl">
-                          +{selectedForgeItemA.plus}
-                        </div>
-                      </div>
-
-                      <div className="min-w-0 flex-1 pr-3">
-                        <h4 className="text-xs font-black text-white truncate" title={selectedForgeItemA.name}>
-                          {selectedForgeItemA.name}
-                        </h4>
-                        <div className="text-[10px] text-amber-400 font-bold">
-                          {'★'.repeat(Math.max(1, Math.min(5, Number(selectedForgeItemA.stars || 1))))}
-                        </div>
-                        <p className="text-[9px] text-slate-400 truncate">
-                          {selectedForgeItemA._locationLabel}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-1 mt-1 pt-1 border-t border-slate-800">
-                      <span className="text-[10px] font-black text-rose-400">
-                        Sau chuyển: <strong className="text-white">+0</strong>
+                {/* Sparks bay khi gõ búa */}
+                {isHammerStriking && (
+                  <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center animate-anvil-sparks">
+                    <div className="w-full h-full bg-gradient-to-r from-amber-500/40 via-yellow-300/50 to-orange-500/40 mix-blend-screen flex items-center justify-center">
+                      <span className="text-3xl font-black text-amber-200 drop-shadow-[0_0_25px_#f59e0b] tracking-widest animate-bounce">
+                        ⚡ KENGGG! ⚡
                       </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Badge tên NPC đính góc */}
+                <div className="absolute bottom-2.5 left-2.5 right-2.5 z-20 bg-slate-950/80 backdrop-blur-md border border-amber-400/40 rounded-xl px-3 py-1.5 flex items-center justify-between shadow-lg">
+                  <div>
+                    <h4 className="text-xs font-black text-amber-300 uppercase tracking-wide flex items-center gap-1.5">
+                      <span>Thần Búa Long Hỏa</span>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-red-600/30 text-red-300 border border-red-500/40">VIP</span>
+                    </h4>
+                    <p className="text-[10px] text-slate-400">Đúc rèn thần binh &bull; Đảo Thiên Mệnh</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-mono font-bold text-emerald-400">100% SUCCESS</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* HỘP THOẠI NPC TƯƠNG TÁC THEO THAO TÁC */}
+              <div className="mt-3 bg-[#0a0f1d] border border-amber-500/30 rounded-xl p-3 relative shadow">
+                <div className="absolute -top-1.5 left-6 w-3 h-3 bg-[#0a0f1d] border-t border-l border-amber-500/30 transform rotate-45"></div>
+                <p className="text-xs text-slate-200 leading-relaxed font-medium">
+                  {isHammerStriking ? (
+                    <span className="text-amber-300 font-black animate-pulse flex items-center gap-1.5">
+                      <span>💥</span>
+                      <span>THIÊN HỎA KHAI MINH! Thần búa nện xuống đe, hào quang dung hợp cấp độ bùng nổ!</span>
+                    </span>
+                  ) : !isLinked ? (
+                    <span>
+                      Chào đại hiệp! Hãy <strong className="text-amber-400 underline cursor-pointer hover:text-amber-300" onClick={() => { setShowForgeModal(false); handleGenerateLinkOtp('all'); }}>liên kết tài khoản game qua OTP</strong> để ta nhận diện túi đồ của ngươi nhé!
+                    </span>
+                  ) : selectedForgeItemA && selectedForgeItemB ? (
+                    <span>
+                      Toàn bộ linh khí <strong className="text-amber-400">+{plusA}</strong> từ <strong className="text-white">[{selectedForgeItemA.name}]</strong> sẽ truyền trọn vẹn sang <strong className="text-cyan-300">[{selectedForgeItemB.name}]</strong>! Hãy gõ búa nào!
+                    </span>
+                  ) : selectedForgeItemA ? (
+                    <span>
+                      Đã đặt <strong className="text-amber-400">[{selectedForgeItemA.name} +{plusA}]</strong> lên đe nguồn! Hãy đặt Món Đích [B] cần nhận cấp lên đe bên phải!
+                    </span>
+                  ) : (
+                    <span>
+                      Đặt Món Đồ Nguồn [A] (có cấp +) và Món Đích [B] lên 2 cái đe, ta sẽ vung búa rèn chuyển toàn bộ cấp cho ngươi!
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* CỘT PHẢI (COL-7): BÀN RÈN 2 CÁI ĐE & ĐIỀU KHIỂN CHUYỂN CẤP */}
+            <div className="lg:col-span-7 flex flex-col justify-between gap-4">
+              {/* KHU VỰC BÀN RÈN: 2 CÁI ĐE VÀ MŨI TÊN TRUYỀN NĂNG LƯỢNG */}
+              <div className="relative rounded-2xl bg-gradient-to-b from-[#070b14] via-[#0b1120] to-[#070b14] border border-amber-500/30 p-4 sm:p-5 overflow-hidden shadow-inner flex-1 flex flex-col justify-center">
+                <div className="grid grid-cols-11 gap-2.5 items-center">
+                  {/* CỘT TRÁI (COL-5): ĐE NGUỒN (A) */}
+                  <div className="col-span-5 flex flex-col items-center">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span className="text-xs font-black uppercase text-amber-400">Đe Nguồn (A)</span>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-400/30">
+                        Chuyển Đi
+                      </span>
+                    </div>
+
+                    {!selectedForgeItemA ? (
                       <button
                         type="button"
                         onClick={() => {
+                          if (!isLinked) {
+                            showToast("Vui lòng liên kết tài khoản game qua mã OTP trước khi sử dụng Lò Rèn!", "info");
+                            setShowForgeModal(false);
+                            handleGenerateLinkOtp('all');
+                            return;
+                          }
                           setForgeFilterCategory('all');
                           setForgeFilterLocation('all');
                           setForgeSearchQuery('');
                           setShowForgeSelectModal('A');
                         }}
-                        className="text-[9px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold transition-colors cursor-pointer"
+                        className="w-full h-36 sm:h-40 rounded-2xl border-2 border-dashed border-amber-400/60 bg-gradient-to-b from-amber-500/10 via-[#101726]/80 to-[#0c1220] hover:bg-amber-500/20 hover:border-amber-300 flex flex-col items-center justify-center gap-2 text-amber-300 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(245,158,11,0.2)] group cursor-pointer relative overflow-hidden"
                       >
-                        Đổi Món
+                        <div
+                          className="absolute inset-0 opacity-20 pointer-events-none bg-center bg-cover"
+                          style={{ backgroundImage: `url('/dragon_anvil.jpg')` }}
+                        ></div>
+                        <div className="w-11 h-11 rounded-full bg-amber-500/25 border border-amber-400/50 flex items-center justify-center text-amber-300 text-2xl font-black group-hover:scale-110 group-hover:bg-amber-500/40 transition-all shadow-[0_0_15px_rgba(245,158,11,0.5)]">
+                          +
+                        </div>
+                        <span className="text-xs sm:text-sm font-black text-amber-300 uppercase tracking-wide">Đặt Đồ Nguồn A</span>
+                        <span className="text-[10px] text-amber-400/80 font-medium">Cường Hóa &ge; +1</span>
                       </button>
-                    </div>
+                    ) : (
+                      <div className="w-full h-36 sm:h-40 rounded-2xl border-2 border-amber-500/80 bg-gradient-to-b from-amber-950/30 via-[#101726] to-[#0c1220] p-3 flex flex-col justify-between shadow-[0_0_25px_rgba(245,158,11,0.35)] relative group">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedForgeItemA(null)}
+                          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-800/90 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition-colors text-xs z-10 cursor-pointer"
+                          title="Gỡ món A"
+                        >
+                          ✕
+                        </button>
+
+                        <div className="flex items-center gap-2.5">
+                          <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 border-2" style={{ borderColor: getBossTierStyle(selectedForgeItemA.tier).color }}>
+                            <img
+                              src={getBossItemAsset(selectedForgeItemA, getCategoryOfItem(selectedForgeItemA))}
+                              alt={selectedForgeItemA.name}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute top-0 right-0 bg-amber-500 text-black font-black text-[10px] px-1.5 rounded-bl">
+                              +{selectedForgeItemA.plus}
+                            </div>
+                          </div>
+
+                          <div className="min-w-0 flex-1 pr-4">
+                            <h4 className="text-xs sm:text-sm font-black text-white truncate" title={selectedForgeItemA.name}>
+                              {selectedForgeItemA.name}
+                            </h4>
+                            <div className="text-[11px] text-amber-400 font-bold">
+                              {'★'.repeat(Math.max(1, Math.min(5, Number(selectedForgeItemA.stars || 1))))}
+                            </div>
+                            <p className="text-[10px] text-slate-400 truncate">
+                              {selectedForgeItemA._locationLabel}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-1 pt-2 border-t border-slate-800">
+                          <span className="text-[10px] font-black text-rose-400">
+                            Sau chuyển: <strong className="text-white">+0</strong>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setForgeFilterCategory('all');
+                              setForgeFilterLocation('all');
+                              setForgeSearchQuery('');
+                              setShowForgeSelectModal('A');
+                            }}
+                            className="text-[10px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold transition-colors cursor-pointer"
+                          >
+                            Đổi Món
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* CỘT GIỮA (COL-1): MŨI TÊN CHUYỂN NĂNG LƯỢNG */}
-              <div className="col-span-1 flex flex-col items-center justify-center gap-1">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.3)] animate-pulse">
-                  <ArrowRight size={16} className="text-amber-400 animate-transfer-beam" />
-                </div>
-                <span className="text-[8px] sm:text-[9px] font-black text-amber-400 uppercase tracking-tighter text-center leading-none">
-                  {selectedForgeItemA ? `+${plusA}` : '100%'}
-                </span>
-              </div>
-
-              {/* CỘT PHẢI (COL-5): ĐE ĐÍCH (B) */}
-              <div className="col-span-5 flex flex-col items-center">
-                <div className="flex items-center gap-1 mb-1.5">
-                  <span className="text-[11px] font-black uppercase text-cyan-400">Đe Đích (B)</span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-400/30">
-                    Nhận Cấp
-                  </span>
-                </div>
-
-                {!selectedForgeItemB ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!isLinked) {
-                        showToast("Vui lòng liên kết tài khoản game qua mã OTP trước khi sử dụng Lò Rèn!", "info");
-                        handleGenerateLinkOtp('all');
-                        return;
-                      }
-                      if (!selectedForgeItemA) {
-                        showToast("Mẹo: Hãy chọn Món Đồ Nguồn A trước để lọc danh sách món B chính xác!", "info");
-                      }
-                      setForgeFilterCategory('all');
-                      setForgeFilterLocation('all');
-                      setForgeSearchQuery('');
-                      setShowForgeSelectModal('B');
-                    }}
-                    className="w-full h-28 sm:h-32 rounded-2xl border-2 border-dashed border-cyan-400/60 bg-gradient-to-b from-cyan-500/10 via-[#101726]/80 to-[#0c1220] hover:bg-cyan-500/20 hover:border-cyan-300 flex flex-col items-center justify-center gap-1.5 text-cyan-300 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(6,182,212,0.2)] group cursor-pointer relative overflow-hidden"
-                  >
-                    <div
-                      className="absolute inset-0 opacity-15 pointer-events-none bg-center bg-cover"
-                      style={{ backgroundImage: `url('/dragon_anvil.jpg')` }}
-                    ></div>
-                    <div className="w-10 h-10 rounded-full bg-cyan-500/25 border border-cyan-400/50 flex items-center justify-center text-cyan-300 text-2xl font-black group-hover:scale-110 group-hover:bg-cyan-500/40 transition-all shadow-[0_0_12px_rgba(6,182,212,0.4)]">
-                      +
+                  {/* CỘT GIỮA (COL-1): MŨI TÊN TRUYỀN NĂNG LƯỢNG */}
+                  <div className="col-span-1 flex flex-col items-center justify-center gap-1.5">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-r from-amber-500/25 to-orange-500/25 border border-amber-400/60 flex items-center justify-center text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.4)] animate-pulse">
+                      <ArrowRight size={18} className="text-amber-400 animate-transfer-beam" />
                     </div>
-                    <span className="text-xs sm:text-sm font-black text-cyan-300 uppercase tracking-wide">Đặt Đồ B</span>
-                    <span className="text-[10px] text-cyan-400/80 font-medium">
-                      {selectedForgeItemA ? `Cường Hóa < +${plusA}` : 'Nhận Cấp'}
+                    <span className="text-[9px] sm:text-[10px] font-black text-amber-400 uppercase tracking-tighter text-center leading-none">
+                      {selectedForgeItemA ? `+${plusA}` : '100%'}
                     </span>
-                  </button>
-                ) : (
-                  <div className="w-full h-28 sm:h-32 rounded-2xl border-2 border-cyan-500/80 bg-gradient-to-b from-cyan-950/30 via-[#101726] to-[#0c1220] p-2 flex flex-col justify-between shadow-[0_0_20px_rgba(6,182,212,0.3)] relative group">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedForgeItemB(null)}
-                      className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-slate-800/80 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition-colors text-xs z-10"
-                      title="Gỡ món B"
-                    >
-                      ✕
-                    </button>
+                  </div>
 
-                    <div className="flex items-center gap-2">
-                      <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border" style={{ borderColor: getBossTierStyle(selectedForgeItemB.tier).color }}>
-                        <img
-                          src={getBossItemAsset(selectedForgeItemB, getCategoryOfItem(selectedForgeItemB))}
-                          alt={selectedForgeItemB.name}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute top-0 right-0 bg-cyan-500 text-black font-black text-[9px] px-1 rounded-bl">
-                          +{plusB}
-                        </div>
-                      </div>
-
-                      <div className="min-w-0 flex-1 pr-3">
-                        <h4 className="text-xs font-black text-white truncate" title={selectedForgeItemB.name}>
-                          {selectedForgeItemB.name}
-                        </h4>
-                        <div className="text-[10px] text-cyan-400 font-bold">
-                          {'★'.repeat(Math.max(1, Math.min(5, Number(selectedForgeItemB.stars || 1))))}
-                        </div>
-                        <p className="text-[9px] text-slate-400 truncate">
-                          {selectedForgeItemB._locationLabel}
-                        </p>
-                      </div>
+                  {/* CỘT PHẢI (COL-5): ĐE ĐÍCH (B) */}
+                  <div className="col-span-5 flex flex-col items-center">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span className="text-xs font-black uppercase text-cyan-400">Đe Đích (B)</span>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-400/30">
+                        Nhận Cấp
+                      </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-1 mt-1 pt-1 border-t border-slate-800">
-                      <span className="text-[10px] font-black text-emerald-400">
-                        Đột phá: <strong className="text-amber-300 font-extrabold animate-pulse">+{plusA || '?'}</strong>
-                      </span>
+                    {!selectedForgeItemB ? (
                       <button
                         type="button"
                         onClick={() => {
+                          if (!isLinked) {
+                            showToast("Vui lòng liên kết tài khoản game qua mã OTP trước khi sử dụng Lò Rèn!", "info");
+                            setShowForgeModal(false);
+                            handleGenerateLinkOtp('all');
+                            return;
+                          }
+                          if (!selectedForgeItemA) {
+                            showToast("Mẹo: Hãy chọn Món Đồ Nguồn A trước để lọc danh sách món B chính xác!", "info");
+                          }
                           setForgeFilterCategory('all');
                           setForgeFilterLocation('all');
                           setForgeSearchQuery('');
                           setShowForgeSelectModal('B');
                         }}
-                        className="text-[9px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold transition-colors cursor-pointer"
+                        className="w-full h-36 sm:h-40 rounded-2xl border-2 border-dashed border-cyan-400/60 bg-gradient-to-b from-cyan-500/10 via-[#101726]/80 to-[#0c1220] hover:bg-cyan-500/20 hover:border-cyan-300 flex flex-col items-center justify-center gap-2 text-cyan-300 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(6,182,212,0.2)] group cursor-pointer relative overflow-hidden"
                       >
-                        Đổi Món
+                        <div
+                          className="absolute inset-0 opacity-20 pointer-events-none bg-center bg-cover"
+                          style={{ backgroundImage: `url('/dragon_anvil.jpg')` }}
+                        ></div>
+                        <div className="w-11 h-11 rounded-full bg-cyan-500/25 border border-cyan-400/50 flex items-center justify-center text-cyan-300 text-2xl font-black group-hover:scale-110 group-hover:bg-cyan-500/40 transition-all shadow-[0_0_15px_rgba(6,182,212,0.5)]">
+                          +
+                        </div>
+                        <span className="text-xs sm:text-sm font-black text-cyan-300 uppercase tracking-wide">Đặt Đồ Đích B</span>
+                        <span className="text-[10px] text-cyan-400/80 font-medium">
+                          {selectedForgeItemA ? `Cường Hóa < +${plusA}` : 'Nhận Cấp'}
+                        </span>
                       </button>
-                    </div>
+                    ) : (
+                      <div className="w-full h-36 sm:h-40 rounded-2xl border-2 border-cyan-500/80 bg-gradient-to-b from-cyan-950/30 via-[#101726] to-[#0c1220] p-3 flex flex-col justify-between shadow-[0_0_25px_rgba(6,182,212,0.35)] relative group">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedForgeItemB(null)}
+                          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-800/90 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition-colors text-xs z-10 cursor-pointer"
+                          title="Gỡ món B"
+                        >
+                          ✕
+                        </button>
+
+                        <div className="flex items-center gap-2.5">
+                          <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 border-2" style={{ borderColor: getBossTierStyle(selectedForgeItemB.tier).color }}>
+                            <img
+                              src={getBossItemAsset(selectedForgeItemB, getCategoryOfItem(selectedForgeItemB))}
+                              alt={selectedForgeItemB.name}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute top-0 right-0 bg-cyan-500 text-black font-black text-[10px] px-1.5 rounded-bl">
+                              +{plusB}
+                            </div>
+                          </div>
+
+                          <div className="min-w-0 flex-1 pr-4">
+                            <h4 className="text-xs sm:text-sm font-black text-white truncate" title={selectedForgeItemB.name}>
+                              {selectedForgeItemB.name}
+                            </h4>
+                            <div className="text-[11px] text-cyan-400 font-bold">
+                              {'★'.repeat(Math.max(1, Math.min(5, Number(selectedForgeItemB.stars || 1))))}
+                            </div>
+                            <p className="text-[10px] text-slate-400 truncate">
+                              {selectedForgeItemB._locationLabel}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-1 pt-2 border-t border-slate-800">
+                          <span className="text-[10px] font-black text-emerald-400">
+                            Đột phá: <strong className="text-amber-300 font-extrabold animate-pulse">+{plusA || '?'}</strong>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setForgeFilterCategory('all');
+                              setForgeFilterLocation('all');
+                              setForgeSearchQuery('');
+                              setShowForgeSelectModal('B');
+                            }}
+                            className="text-[10px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold transition-colors cursor-pointer"
+                          >
+                            Đổi Món
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+              </div>
+
+              {/* FOOTER ĐIỀU KHIỂN: CHI PHÍ & NÚT GÕ BÚA */}
+              <div className="bg-[#080d19]/90 border border-slate-800 rounded-2xl p-4 shadow">
+                <div className="flex items-center justify-between gap-2 text-xs mb-3">
+                  <div className="flex items-center gap-2 font-bold">
+                    <span className="text-yellow-400">🪙 Phí Chuyển Cấp:</span>
+                    <span className="px-2.5 py-0.8 rounded-lg bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 font-black">
+                      100 Xu
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-300">
+                    Số dư ví: <strong className={!isLinked ? 'text-amber-300 font-bold' : hasEnoughCoins ? 'text-emerald-400 font-black' : 'text-rose-400 font-bold'}>
+                      {!isLinked ? 'Chưa liên kết' : `${currentCoins.toLocaleString()} Xu`}
+                    </strong>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={!isLinked ? () => { setShowForgeModal(false); handleGenerateLinkOtp('all'); } : handleExecuteForgeTransfer}
+                  disabled={isLinked && (!selectedForgeItemA || !selectedForgeItemB || isPerformingForgeAction || !hasEnoughCoins)}
+                  className={`w-full py-3.5 px-4 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-xl ${
+                    !isLinked
+                      ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white border border-amber-400/50 shadow-[0_0_25px_rgba(245,158,11,0.45)] hover:scale-[1.02] active:scale-[0.98]'
+                      : !selectedForgeItemA || !selectedForgeItemB || !hasEnoughCoins
+                      ? 'bg-slate-800/80 text-slate-500 border border-slate-700/60 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white border border-amber-400/50 shadow-[0_0_30px_rgba(245,158,11,0.5)] hover:scale-[1.02] active:scale-[0.98]'
+                  }`}
+                >
+                  {!isLinked ? (
+                    <>
+                      <Link size={16} />
+                      <span>LIÊN KẾT TÀI KHOẢN ĐỂ DÙNG LÒ RÈN (OTP)</span>
+                    </>
+                  ) : isPerformingForgeAction ? (
+                    <>
+                      <Sparkles size={16} className="animate-spin text-amber-300" />
+                      <span>Đang Gõ Búa Chuyển Cấp...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-lg">🔨</span>
+                      <span>GÕ BÚA CHUYỂN CẤP (TIÊU HAO 100 XU)</span>
+                    </>
+                  )}
+                </button>
+
+                <p className="text-[11px] text-slate-400 text-center mt-2.5 leading-relaxed">
+                  * Món B nhận toàn bộ cấp Cường Hóa của Món A. Món A sau khi chuyển trở về +0 (không bị mất trang bị).
+                </p>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* FOOTER: CHI PHÍ 100 XU & NÚT GÕ BÚA CHUYỂN CẤP */}
-        <div className="pt-2 border-t border-slate-800/80">
-          <div className="flex items-center justify-between gap-2 text-xs mb-2">
-            <div className="flex items-center gap-1.5 font-bold">
-              <span className="text-yellow-400">🪙 Phí Chuyển Cấp:</span>
-              <span className="px-2 py-0.5 rounded-lg bg-yellow-500/15 border border-yellow-500/30 text-yellow-300 font-black">
-                100 Xu
-              </span>
-            </div>
-            <div className="text-[11px] text-slate-400">
-              Ví của bạn: <strong className={!isLinked ? 'text-amber-300 font-bold' : hasEnoughCoins ? 'text-emerald-400' : 'text-rose-400 font-bold'}>
-                {!isLinked ? 'Chưa liên kết' : `${currentCoins.toLocaleString()} Xu`}
-              </strong>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={!isLinked ? () => handleGenerateLinkOtp('all') : handleExecuteForgeTransfer}
-            disabled={isLinked && (!selectedForgeItemA || !selectedForgeItemB || isPerformingForgeAction || !hasEnoughCoins)}
-            className={`w-full py-3 px-4 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-xl ${
-              !isLinked
-                ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white border border-amber-400/50 shadow-[0_0_25px_rgba(245,158,11,0.45)] hover:scale-[1.02] active:scale-[0.98]'
-                : !selectedForgeItemA || !selectedForgeItemB || !hasEnoughCoins
-                ? 'bg-slate-800/80 text-slate-500 border border-slate-700/60 cursor-not-allowed'
-                : 'bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white border border-amber-400/50 shadow-[0_0_25px_rgba(245,158,11,0.45)] hover:scale-[1.02] active:scale-[0.98]'
-            }`}
-          >
-            {!isLinked ? (
-              <>
-                <Link size={16} />
-                <span>LIÊN KẾT TÀI KHOẢN ĐỂ DÙNG LÒ RÈN (OTP)</span>
-              </>
-            ) : isPerformingForgeAction ? (
-              <>
-                <Sparkles size={16} className="animate-spin text-amber-300" />
-                <span>Đang Gõ Búa Chuyển Cấp...</span>
-              </>
-            ) : (
-              <>
-                <span className="text-base">🔨</span>
-                <span>GÕ BÚA CHUYỂN CẤP (TIÊU HAO 100 XU)</span>
-              </>
-            )}
-          </button>
-
-          <p className="text-[10px] text-slate-400 text-center mt-2 leading-relaxed">
-            * Món B nhận toàn bộ cấp Cường Hóa của Món A. Món A sau khi chuyển trở về +0 (không bị mất).
-          </p>
         </div>
       </div>
     );
@@ -11029,14 +11076,11 @@ const App = () => {
               Hệ thống tự động chuyển thẳng <strong className="text-amber-400">Lượt Đánh, Rương Hoàng Kim, Rương Boss, Xu Nâng Cấp & Trang Bị Thần Binh</strong> vào tài khoản game của bạn ngay khi bấm Mua. Loa Livestream sẽ tự động đọc tên cảm ơn và hiệu ứng nạp VIP sẽ phát sáng rực rỡ!
             </p>
 
-            {/* KHU VỰC LIÊN KẾT TÀI KHOẢN & THÔNG TIN NHÂN VẬT GAME & XƯỞNG RÈN LONG TỘC */}
-            <div className="w-full max-w-7xl mx-auto">
-              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch">
-                {/* CỘT TRÁI (HÌNH 1 / KHU VỰC LIÊN KẾT): */}
-                <div className="xl:col-span-6 flex flex-col">
-                  {bossPlayerSummary ? (
-                    /* 1. KHÁCH ĐÃ LIÊN KẾT: HÌNH 1 (THÔNG TIN NHÂN VẬT + NÚT TÚI ĐỒ & PROFILE) */
-                    <div className="bg-gradient-to-r from-[#0B1120] via-[#151D2F] to-[#0B1120] border-2 border-emerald-500/50 rounded-2xl p-5 md:p-6 shadow-[0_0_30px_rgba(16,185,129,0.15)] backdrop-blur-md text-left animate-fade-in relative overflow-hidden h-full flex flex-col justify-between">
+            {/* KHU VỰC LIÊN KẾT TÀI KHOẢN & THÔNG TIN NHÂN VẬT GAME */}
+            <div className="w-full max-w-3xl mx-auto">
+              {bossPlayerSummary ? (
+                /* 1. KHÁCH ĐÃ LIÊN KẾT: HÌNH 1 (THÔNG TIN NHÂN VẬT + NÚT TÚI ĐỒ & PROFILE) */
+                <div className="bg-gradient-to-r from-[#0B1120] via-[#151D2F] to-[#0B1120] border-2 border-emerald-500/50 rounded-2xl p-5 md:p-6 shadow-[0_0_30px_rgba(16,185,129,0.15)] backdrop-blur-md text-left animate-fade-in relative overflow-hidden">
                   <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-2 bg-gradient-to-l from-emerald-500/20 to-transparent w-48 h-16 pointer-events-none blur-xl"></div>
 
                   {/* Badge Đã liên kết theo nền tảng & Dãy nút hành động */}
@@ -11179,6 +11223,16 @@ const App = () => {
                         <span>Túi Đồ & Trang Bị</span>
                       </button>
 
+                      <button
+                        type="button"
+                        onClick={() => setShowForgeModal(true)}
+                        className="flex-1 md:flex-none px-4 py-2.5 bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 cursor-pointer border border-amber-400/50"
+                        title="Mở Xưởng Rèn Long Tộc để chuyển cấp cường hóa giữa 2 trang bị"
+                      >
+                        <span className="text-base leading-none">🔨</span>
+                        <span>Chuyển Cấp Lò Rèn</span>
+                      </button>
+
                       <div className="flex gap-2 w-full md:w-auto">
                         <button
                           type="button"
@@ -11241,6 +11295,15 @@ const App = () => {
                             <span className="text-base">🎵</span>
                             <span>LIÊN KẾT TIKTOK LIVES</span>
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowForgeModal(true)}
+                            className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                            title="Mở Xưởng Rèn Long Tộc chuyển cấp cường hóa"
+                          >
+                            <span className="text-base">🔨</span>
+                            <span>CHUYỂN CẤP LÒ RÈN</span>
+                          </button>
                         </div>
 
                         <p className="text-[11px] text-slate-400 mt-3">
@@ -11249,13 +11312,6 @@ const App = () => {
                       </div>
                     </div>
                   )}
-                </div>
-
-                {/* CỘT PHẢI: XƯỞNG RÈN LONG TỘC - CHUYỂN CẤP CƯỜNG HÓA */}
-                <div className="xl:col-span-6 flex flex-col">
-                  {renderDragonForgeSection()}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -12842,6 +12898,18 @@ const App = () => {
 
                     <button
                       type="button"
+                      onClick={() => {
+                        setShowBagModal(false);
+                        setShowForgeModal(true);
+                      }}
+                      className="px-3.5 py-2 bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-black text-xs rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer border border-amber-400/40"
+                      title="Mở Lò Rèn Long Tộc chuyển cấp cường hóa"
+                    >
+                      <span>🔨 Lò Rèn</span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => handleExecuteBagAction('dismantle_all')}
                       disabled={isPerformingBagAction || unequippedInventory.length === 0}
                       className="px-3 py-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-xs rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
@@ -14367,6 +14435,9 @@ const App = () => {
             </div>
           </div>
         )}
+
+        {/* MODAL XƯỞNG RÈN LONG TỘC (CHUYỂN CẤP CƯỜNG HÓA) */}
+        {renderDragonForgeModal()}
 
         {renderFooter()}
       </div>
