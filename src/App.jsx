@@ -515,6 +515,17 @@ const App = () => {
   const [buyingLockedListing, setBuyingLockedListing] = useState(null);
   const [buyPasscodePrompt, setBuyPasscodePrompt] = useState('');
 
+  // --- STATE XƯỞNG RÈN LONG TỘC (FORGE LEVEL TRANSFER) ---
+  const [selectedForgeItemA, setSelectedForgeItemA] = useState(null);
+  const [selectedForgeItemB, setSelectedForgeItemB] = useState(null);
+  const [showForgeSelectModal, setShowForgeSelectModal] = useState(null); // 'A' | 'B' | null
+  const [forgeFilterCategory, setForgeFilterCategory] = useState('all');
+  const [forgeFilterLocation, setForgeFilterLocation] = useState('all'); // 'all' | 'equipped' | 'inventory'
+  const [forgeSearchQuery, setForgeSearchQuery] = useState('');
+  const [isHammerStriking, setIsHammerStriking] = useState(false);
+  const [isPerformingForgeAction, setIsPerformingForgeAction] = useState(false);
+  const [forgeSuccessModal, setForgeSuccessModal] = useState(null);
+
   useEffect(() => {
     if (bossTargetId) {
       localStorage.setItem('shop_boss_target_id', bossTargetId);
@@ -4134,6 +4145,646 @@ const App = () => {
       setIsPerformingBagAction(false);
       setBagActionLoadingItem(null);
     }
+  };
+
+  // --- ÂM THANH TIẾNG ĐE & BÚA RÈN (WEB AUDIO API TỰ ĐỘNG CHUẨN XÁC) ---
+  const playAnvilClankSound = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+
+      // Tiếng chuông đe ngân vang kim loại
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(1150, ctx.currentTime);
+      osc1.frequency.exponentialRampToValueAtTime(760, ctx.currentTime + 0.35);
+      gain1.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(ctx.currentTime);
+      osc1.stop(ctx.currentTime + 0.6);
+
+      // Tiếng búa thép nện uy lực xuống mặt đe
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(280, ctx.currentTime);
+      osc2.frequency.exponentialRampToValueAtTime(75, ctx.currentTime + 0.28);
+      gain2.gain.setValueAtTime(0.65, ctx.currentTime);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.38);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(ctx.currentTime);
+      osc2.stop(ctx.currentTime + 0.38);
+
+      // Tiếng xèo tia lửa điện nổ rực lửa
+      const bufferSize = Math.floor(ctx.sampleRate * 0.16);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.04));
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = 3400;
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.3, ctx.currentTime);
+      noiseGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.16);
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+      noise.start(ctx.currentTime);
+    } catch (e) {
+      console.warn("Audio clank error:", e);
+    }
+  };
+
+  // --- HÀM TỔNG HỢP TOÀN BỘ TRANG BỊ CHO LÒ RÈN (ĐANG MẶC + TRONG TÚI ĐỒ) ---
+  const getAllForgeSelectableItems = (mode = 'A') => {
+    if (!bossPlayerSummary) return [];
+    const items = [];
+    const slotNamesVi = {
+      weapon: 'Vũ Khí',
+      armor: 'Áo Giáp',
+      pants: 'Quần',
+      shoes: 'Giày',
+      necklace: 'Dây Chuyền',
+      ring: 'Nhẫn',
+      pet: 'Linh Thú'
+    };
+
+    // 1. Quét các món đang mặc
+    ['weapon', 'armor', 'pants', 'shoes', 'necklace', 'ring', 'pet'].forEach(s => {
+      const it = bossPlayerSummary[s];
+      if (it && typeof it === 'object' && it.name) {
+        items.push({
+          ...it,
+          _isEquipped: true,
+          _sourceSlot: s,
+          slot: s,
+          _locationLabel: `Đang Mặc (${slotNamesVi[s] || s})`
+        });
+      }
+    });
+
+    // 2. Quét các món trong túi đồ
+    const inv = Array.isArray(bossPlayerSummary.inventory)
+      ? bossPlayerSummary.inventory
+      : (Array.isArray(bossPlayerSummary.weapon?.inventory) ? bossPlayerSummary.weapon.inventory : []);
+
+    inv.forEach((it, idx) => {
+      if (it && typeof it === 'object' && it.name) {
+        const cat = it.category || getCategoryOfItem(it);
+        // Loại bỏ các vật phẩm không thể cường hóa như máu, phù, đá... trừ khi có sẵn cấp plus > 0
+        if (!['potion', 'revive', 'material'].includes(cat) || Number(it.plus || 0) > 0) {
+          items.push({
+            ...it,
+            _isEquipped: false,
+            _rawIndex: idx,
+            _sourceIndex: idx,
+            _locationLabel: `Túi Đồ (Ô ${idx + 1})`
+          });
+        }
+      }
+    });
+
+    if (mode === 'A') {
+      // Slot A: Chỉ hiển thị những món CÓ CẤP CƯỜNG HÓA (+1 trở lên)
+      return items.filter(it => Number(it.plus || 0) > 0);
+    } else {
+      // Slot B: Phải khác món A và có cấp cường hóa thấp hơn món A
+      const plusA = Number(selectedForgeItemA?.plus || 0);
+      return items.filter(it => {
+        if (selectedForgeItemA) {
+          if (selectedForgeItemA._isEquipped && it._isEquipped && selectedForgeItemA._sourceSlot === it._sourceSlot) return false;
+          if (!selectedForgeItemA._isEquipped && !it._isEquipped && selectedForgeItemA._rawIndex === it._rawIndex) return false;
+          if (selectedForgeItemA.id && it.id && selectedForgeItemA.id === it.id && selectedForgeItemA.name === it.name) return false;
+        }
+        const itPlus = Number(it.plus || 0);
+        return selectedForgeItemA ? itPlus < plusA : true;
+      });
+    }
+  };
+
+  // --- HÀM THỰC THI CHUYỂN CẤP LÒ RÈN LONG TỘC ---
+  const handleExecuteForgeTransfer = async () => {
+    if (!currentUser) return requireAuth('login');
+    if (!bossPlayerSummary) {
+      showToast("Vui lòng liên kết tài khoản trước khi dùng Lò Rèn!", "error");
+      return;
+    }
+    if (!selectedForgeItemA) {
+      showToast("Vui lòng chọn Món Đồ Nguồn A (có Cường Hóa) trước!", "error");
+      return;
+    }
+    if (!selectedForgeItemB) {
+      showToast("Vui lòng chọn Món Đồ Đích B nhận cấp!", "error");
+      return;
+    }
+    const plusA = Number(selectedForgeItemA.plus || 0);
+    const plusB = Number(selectedForgeItemB.plus || 0);
+    if (plusA <= 0) {
+      showToast(`Món Đồ A [${selectedForgeItemA.name}] chưa có Cấp Cường Hóa (+1 trở lên) để chuyển!`, "error");
+      return;
+    }
+    if (plusB >= plusA) {
+      showToast(`Món Đồ B [${selectedForgeItemB.name}] đã có Cường Hóa (+${plusB}) cao hơn hoặc bằng Món A (+${plusA})!`, "error");
+      return;
+    }
+    const currentCoins = Number(bossPlayerSummary.bonus_coins || 0);
+    if (currentCoins < 100) {
+      showToast(`Đại hiệp không đủ 100 Xu! (Hiện có: ${currentCoins.toLocaleString()} Xu). Cần tối thiểu 100 Xu.`, "error");
+      return;
+    }
+
+    if (isPerformingForgeAction) return;
+
+    // Kích hoạt hiệu ứng gõ búa 3D & âm thanh đe kenggg rực lửa
+    setIsHammerStriking(true);
+    playAnvilClankSound();
+    setIsPerformingForgeAction(true);
+
+    const actionId = `FORGE_ACT_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const targetUid = bossPlayerSummary.user_id;
+
+    try {
+      const { error } = await supabase.from('game_orders').insert([{
+        id: actionId,
+        user_id: targetUid,
+        nickname: bossPlayerSummary.nickname,
+        web_user: currentUser.id,
+        package_id: 'game_action_forge_transfer',
+        package_name: `Chuyển cấp lò rèn [${selectedForgeItemA.name} +${plusA}] ➔ [${selectedForgeItemB.name}]`,
+        price: 0,
+        rewards: {
+          action: 'forge_transfer',
+          item_a: selectedForgeItemA,
+          item_b: selectedForgeItemB,
+          item_a_ref: selectedForgeItemA,
+          item_b_ref: selectedForgeItemB,
+          item_a_name: selectedForgeItemA.name,
+          item_b_name: selectedForgeItemB.name,
+          transfer_plus: plusA
+        },
+        status: 'pending'
+      }]);
+
+      if (error) throw error;
+
+      showToast("🔥 Long Tộc Thợ Rèn đang vung búa rèn chuyển cấp...", "info");
+
+      let attempts = 0;
+      const pollAction = setInterval(async () => {
+        attempts++;
+        try {
+          const { data: checkAct } = await supabase
+            .from('game_orders')
+            .select('*')
+            .eq('id', actionId)
+            .maybeSingle();
+
+          if (checkAct && (checkAct.status === 'completed' || checkAct.status === 'error')) {
+            clearInterval(pollAction);
+            setIsPerformingForgeAction(false);
+            setTimeout(() => setIsHammerStriking(false), 800);
+
+            const isOk = checkAct.status === 'completed' && (checkAct.result?.success !== false);
+            if (isOk) {
+              playAnvilClankSound(); // Âm vang ăn mừng thắng lợi
+              const resMsg = checkAct.result?.message || `Chuyển cấp thành công! [${selectedForgeItemB.name}] nhận +${plusA}!`;
+              showToast(`🎉 ${resMsg}`, "success");
+
+              // Mở modal chúc mừng chuyển cấp thành công
+              setForgeSuccessModal({
+                itemA: { ...selectedForgeItemA, oldPlus: plusA, newPlus: 0 },
+                itemB: { ...selectedForgeItemB, oldPlus: plusB, newPlus: plusA },
+                coinsSpent: 100
+              });
+
+              // Cập nhật state cục bộ ngay lập tức để không độ trễ
+              setBossPlayerSummary(prev => {
+                if (!prev) return prev;
+                const updated = { ...prev };
+                updated.bonus_coins = Math.max(0, Number(prev.bonus_coins || 0) - 100);
+
+                if (selectedForgeItemA._isEquipped && selectedForgeItemA._sourceSlot) {
+                  if (updated[selectedForgeItemA._sourceSlot]) {
+                    updated[selectedForgeItemA._sourceSlot] = { ...updated[selectedForgeItemA._sourceSlot], plus: 0 };
+                  }
+                }
+                if (selectedForgeItemB._isEquipped && selectedForgeItemB._sourceSlot) {
+                  if (updated[selectedForgeItemB._sourceSlot]) {
+                    updated[selectedForgeItemB._sourceSlot] = { ...updated[selectedForgeItemB._sourceSlot], plus: plusA };
+                  }
+                }
+
+                if (Array.isArray(updated.inventory)) {
+                  updated.inventory = updated.inventory.map((invItem, idx) => {
+                    if (!invItem) return invItem;
+                    if (!selectedForgeItemA._isEquipped && (selectedForgeItemA._rawIndex === idx || selectedForgeItemA.id === invItem.id)) {
+                      return { ...invItem, plus: 0 };
+                    }
+                    if (!selectedForgeItemB._isEquipped && (selectedForgeItemB._rawIndex === idx || selectedForgeItemB.id === invItem.id)) {
+                      return { ...invItem, plus: plusA };
+                    }
+                    return invItem;
+                  });
+                }
+                return updated;
+              });
+
+              // Reset lựa chọn
+              setSelectedForgeItemA(null);
+              setSelectedForgeItemB(null);
+
+              // Tải lại dữ liệu đầy đủ từ Supabase
+              await handleCheckBossPlayer(targetUid);
+            } else {
+              const errMsg = checkAct.result?.error || checkAct.result?.message || 'Chuyển cấp thất bại, vui lòng kiểm tra lại!';
+              showToast(`❌ ${errMsg}`, "error");
+            }
+          } else if (attempts >= 15) {
+            clearInterval(pollAction);
+            setIsPerformingForgeAction(false);
+            setIsHammerStriking(false);
+            showToast("Đang đồng bộ dữ liệu lò rèn, vui lòng tải lại trang!", "info");
+            await handleCheckBossPlayer(targetUid);
+          }
+        } catch (e) {
+          console.error("Lỗi poll forge transfer:", e);
+        }
+      }, 1500);
+
+    } catch (err) {
+      console.error("Lỗi gửi yêu cầu chuyển cấp:", err);
+      showToast("Có lỗi xảy ra khi thực hiện chuyển cấp, vui lòng thử lại!", "error");
+      setIsPerformingForgeAction(false);
+      setIsHammerStriking(false);
+    }
+  };
+
+  // --- RENDER GIAO DIỆN XƯỞNG RÈN LONG TỘC (CHUYỂN CẤP CƯỜNG HÓA) ---
+  const renderDragonForgeSection = () => {
+    const isLinked = Boolean(bossPlayerSummary);
+    const currentCoins = Number(bossPlayerSummary?.bonus_coins || 0);
+    const hasEnoughCoins = isLinked && currentCoins >= 100;
+    const plusA = Number(selectedForgeItemA?.plus || 0);
+    const plusB = Number(selectedForgeItemB?.plus || 0);
+
+    return (
+      <div className="bg-gradient-to-br from-[#0c1322] via-[#131d32] to-[#0a101d] border-2 border-amber-500/50 rounded-2xl p-5 md:p-6 shadow-[0_0_30px_rgba(245,158,11,0.2)] backdrop-blur-md text-left animate-fade-in relative overflow-hidden h-full flex flex-col justify-between">
+        {/* Ánh hào quang nền rực lửa */}
+        <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-2 bg-gradient-to-l from-amber-500/20 via-orange-500/10 to-transparent w-64 h-24 pointer-events-none blur-2xl"></div>
+        <div className="absolute bottom-0 left-0 bg-gradient-to-tr from-rose-500/15 to-transparent w-48 h-20 pointer-events-none blur-xl"></div>
+
+        <div>
+          {/* Header Badge & Tiêu Đề Xưởng Rèn */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3 pb-3 border-b border-slate-800">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500/25 via-orange-500/20 to-rose-500/25 border border-amber-400/50 text-amber-300 font-black text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+              <Flame size={14} className="text-amber-400 animate-pulse" />
+              <span>🔥 XƯỞNG RÈN LONG TỘC</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {!isLinked ? (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 text-xs font-black shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                  <Lock size={12} className="text-amber-400" />
+                  <span>CẦN LIÊN KẾT GAME</span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/40 text-emerald-300 text-xs font-black shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                  <Sparkles size={13} className="text-emerald-400 animate-spin" />
+                  <span>TỶ LỆ 100% THÀNH CÔNG</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Khối Thợ Rèn Long Tộc 3D & Lời Thoại */}
+          <div className="flex items-center gap-3.5 mb-3 bg-[#0a0f1d]/80 border border-amber-500/20 rounded-2xl p-2.5 sm:p-3 relative">
+            <div className="relative shrink-0">
+              <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl border-2 border-amber-400/70 overflow-hidden shadow-[0_0_15px_rgba(245,158,11,0.4)] ${isHammerStriking ? 'animate-hammer-strike' : 'forge-flame-glow'}`}>
+                <img
+                  src="/dragon_blacksmith.jpg"
+                  alt="Thợ Rèn Long Tộc"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = 'https://api.dicebear.com/7.x/bottts/png?seed=blacksmith';
+                  }}
+                />
+              </div>
+              <div className="absolute -bottom-1.5 -right-1.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-black text-[9px] px-1.5 py-0.2 rounded border border-amber-300 shadow">
+                3D NPC
+              </div>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-amber-400 font-black text-xs uppercase tracking-wide">
+                  Thần Búa Long Hỏa
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">• Trực Chiến</span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-200 leading-snug">
+                {isHammerStriking ? (
+                  <span className="text-amber-300 font-bold animate-pulse">
+                    💥 CLANGGG! Long Hỏa Thần Búa nện xuống đe! Hào quang chuyển cấp bùng nổ!
+                  </span>
+                ) : !isLinked ? (
+                  <span className="text-amber-200/90">
+                    Chào đại hiệp! Hãy <strong className="text-amber-400 underline cursor-pointer hover:text-amber-300" onClick={() => handleGenerateLinkOtp('all')}>liên kết tài khoản game (mã OTP)</strong> ở khung bên cạnh để ta nhận diện túi đồ và vung búa rèn chuyển cấp cho ngươi nhé!
+                  </span>
+                ) : selectedForgeItemA && selectedForgeItemB ? (
+                  <span>
+                    Truyền toàn bộ linh khí <strong className="text-amber-400">+{plusA}</strong> từ <strong className="text-white">[{selectedForgeItemA.name}]</strong> sang <strong className="text-cyan-300">[{selectedForgeItemB.name}]</strong>!
+                  </span>
+                ) : selectedForgeItemA ? (
+                  <span>
+                    Đã nhận diện <strong className="text-amber-400">[{selectedForgeItemA.name} +{plusA}]</strong>. Hãy chọn Món Đồ Đích [B] cần nhận cấp!
+                  </span>
+                ) : (
+                  <span>
+                    Đặt Món Đồ Nguồn [A] và Đích [B] lên đe, ta sẽ dùng búa rèn chuyển toàn bộ cấp Cường Hóa cho ngươi!
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          {/* KHU VỰC BÀN RÈN: 2 CÁI ĐE & ĐƯỜNG DẪN CHUYỂN CẤP */}
+          <div className="relative rounded-2xl bg-gradient-to-b from-[#070b14] via-[#0b1120] to-[#070b14] border border-amber-500/30 p-3 sm:p-4 mb-3 overflow-hidden shadow-inner">
+            {/* Hiệu ứng chớp lửa đe rèn khi gõ búa */}
+            {isHammerStriking && (
+              <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center animate-anvil-sparks">
+                <div className="w-full h-full bg-gradient-to-r from-amber-500/30 via-yellow-400/40 to-orange-500/30 mix-blend-screen flex items-center justify-center">
+                  <span className="text-2xl sm:text-3xl font-black text-amber-200 drop-shadow-[0_0_20px_#f59e0b] tracking-widest animate-bounce">
+                    ⚡ KENGGG! ⚡
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-11 gap-2 items-center">
+              {/* CỘT TRÁI (COL-5): ĐE NGUỒN (A) */}
+              <div className="col-span-5 flex flex-col items-center">
+                <div className="flex items-center gap-1 mb-1.5">
+                  <span className="text-[11px] font-black uppercase text-amber-400">Đe Nguồn (A)</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-400/30">
+                    Chuyển Đi
+                  </span>
+                </div>
+
+                {!selectedForgeItemA ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isLinked) {
+                        showToast("Vui lòng liên kết tài khoản game qua mã OTP trước khi sử dụng Lò Rèn!", "info");
+                        handleGenerateLinkOtp('all');
+                        return;
+                      }
+                      setForgeFilterCategory('all');
+                      setForgeFilterLocation('all');
+                      setForgeSearchQuery('');
+                      setShowForgeSelectModal('A');
+                    }}
+                    className="w-full h-28 sm:h-32 rounded-2xl border-2 border-dashed border-amber-400/60 bg-gradient-to-b from-amber-500/10 via-[#101726]/80 to-[#0c1220] hover:bg-amber-500/20 hover:border-amber-300 flex flex-col items-center justify-center gap-1.5 text-amber-300 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(245,158,11,0.2)] group cursor-pointer relative overflow-hidden"
+                  >
+                    <div
+                      className="absolute inset-0 opacity-15 pointer-events-none bg-center bg-cover"
+                      style={{ backgroundImage: `url('/dragon_anvil.jpg')` }}
+                    ></div>
+                    <div className="w-10 h-10 rounded-full bg-amber-500/25 border border-amber-400/50 flex items-center justify-center text-amber-300 text-2xl font-black group-hover:scale-110 group-hover:bg-amber-500/40 transition-all shadow-[0_0_12px_rgba(245,158,11,0.4)]">
+                      +
+                    </div>
+                    <span className="text-xs sm:text-sm font-black text-amber-300 uppercase tracking-wide">Đặt Đồ A</span>
+                    <span className="text-[10px] text-amber-400/80 font-medium">Cường Hóa &ge; +1</span>
+                  </button>
+                ) : (
+                  <div className="w-full h-28 sm:h-32 rounded-2xl border-2 border-amber-500/80 bg-gradient-to-b from-amber-950/30 via-[#101726] to-[#0c1220] p-2 flex flex-col justify-between shadow-[0_0_20px_rgba(245,158,11,0.3)] relative group">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedForgeItemA(null)}
+                      className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-slate-800/80 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition-colors text-xs z-10"
+                      title="Gỡ món A"
+                    >
+                      ✕
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border" style={{ borderColor: getBossTierStyle(selectedForgeItemA.tier).color }}>
+                        <img
+                          src={getBossItemAsset(selectedForgeItemA, getCategoryOfItem(selectedForgeItemA))}
+                          alt={selectedForgeItemA.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-0 right-0 bg-amber-500 text-black font-black text-[9px] px-1 rounded-bl">
+                          +{selectedForgeItemA.plus}
+                        </div>
+                      </div>
+
+                      <div className="min-w-0 flex-1 pr-3">
+                        <h4 className="text-xs font-black text-white truncate" title={selectedForgeItemA.name}>
+                          {selectedForgeItemA.name}
+                        </h4>
+                        <div className="text-[10px] text-amber-400 font-bold">
+                          {'★'.repeat(Math.max(1, Math.min(5, Number(selectedForgeItemA.stars || 1))))}
+                        </div>
+                        <p className="text-[9px] text-slate-400 truncate">
+                          {selectedForgeItemA._locationLabel}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-1 mt-1 pt-1 border-t border-slate-800">
+                      <span className="text-[10px] font-black text-rose-400">
+                        Sau chuyển: <strong className="text-white">+0</strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgeFilterCategory('all');
+                          setForgeFilterLocation('all');
+                          setForgeSearchQuery('');
+                          setShowForgeSelectModal('A');
+                        }}
+                        className="text-[9px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold transition-colors cursor-pointer"
+                      >
+                        Đổi Món
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* CỘT GIỮA (COL-1): MŨI TÊN CHUYỂN NĂNG LƯỢNG */}
+              <div className="col-span-1 flex flex-col items-center justify-center gap-1">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.3)] animate-pulse">
+                  <ArrowRight size={16} className="text-amber-400 animate-transfer-beam" />
+                </div>
+                <span className="text-[8px] sm:text-[9px] font-black text-amber-400 uppercase tracking-tighter text-center leading-none">
+                  {selectedForgeItemA ? `+${plusA}` : '100%'}
+                </span>
+              </div>
+
+              {/* CỘT PHẢI (COL-5): ĐE ĐÍCH (B) */}
+              <div className="col-span-5 flex flex-col items-center">
+                <div className="flex items-center gap-1 mb-1.5">
+                  <span className="text-[11px] font-black uppercase text-cyan-400">Đe Đích (B)</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-400/30">
+                    Nhận Cấp
+                  </span>
+                </div>
+
+                {!selectedForgeItemB ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isLinked) {
+                        showToast("Vui lòng liên kết tài khoản game qua mã OTP trước khi sử dụng Lò Rèn!", "info");
+                        handleGenerateLinkOtp('all');
+                        return;
+                      }
+                      if (!selectedForgeItemA) {
+                        showToast("Mẹo: Hãy chọn Món Đồ Nguồn A trước để lọc danh sách món B chính xác!", "info");
+                      }
+                      setForgeFilterCategory('all');
+                      setForgeFilterLocation('all');
+                      setForgeSearchQuery('');
+                      setShowForgeSelectModal('B');
+                    }}
+                    className="w-full h-28 sm:h-32 rounded-2xl border-2 border-dashed border-cyan-400/60 bg-gradient-to-b from-cyan-500/10 via-[#101726]/80 to-[#0c1220] hover:bg-cyan-500/20 hover:border-cyan-300 flex flex-col items-center justify-center gap-1.5 text-cyan-300 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(6,182,212,0.2)] group cursor-pointer relative overflow-hidden"
+                  >
+                    <div
+                      className="absolute inset-0 opacity-15 pointer-events-none bg-center bg-cover"
+                      style={{ backgroundImage: `url('/dragon_anvil.jpg')` }}
+                    ></div>
+                    <div className="w-10 h-10 rounded-full bg-cyan-500/25 border border-cyan-400/50 flex items-center justify-center text-cyan-300 text-2xl font-black group-hover:scale-110 group-hover:bg-cyan-500/40 transition-all shadow-[0_0_12px_rgba(6,182,212,0.4)]">
+                      +
+                    </div>
+                    <span className="text-xs sm:text-sm font-black text-cyan-300 uppercase tracking-wide">Đặt Đồ B</span>
+                    <span className="text-[10px] text-cyan-400/80 font-medium">
+                      {selectedForgeItemA ? `Cường Hóa < +${plusA}` : 'Nhận Cấp'}
+                    </span>
+                  </button>
+                ) : (
+                  <div className="w-full h-28 sm:h-32 rounded-2xl border-2 border-cyan-500/80 bg-gradient-to-b from-cyan-950/30 via-[#101726] to-[#0c1220] p-2 flex flex-col justify-between shadow-[0_0_20px_rgba(6,182,212,0.3)] relative group">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedForgeItemB(null)}
+                      className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-slate-800/80 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition-colors text-xs z-10"
+                      title="Gỡ món B"
+                    >
+                      ✕
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border" style={{ borderColor: getBossTierStyle(selectedForgeItemB.tier).color }}>
+                        <img
+                          src={getBossItemAsset(selectedForgeItemB, getCategoryOfItem(selectedForgeItemB))}
+                          alt={selectedForgeItemB.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-0 right-0 bg-cyan-500 text-black font-black text-[9px] px-1 rounded-bl">
+                          +{plusB}
+                        </div>
+                      </div>
+
+                      <div className="min-w-0 flex-1 pr-3">
+                        <h4 className="text-xs font-black text-white truncate" title={selectedForgeItemB.name}>
+                          {selectedForgeItemB.name}
+                        </h4>
+                        <div className="text-[10px] text-cyan-400 font-bold">
+                          {'★'.repeat(Math.max(1, Math.min(5, Number(selectedForgeItemB.stars || 1))))}
+                        </div>
+                        <p className="text-[9px] text-slate-400 truncate">
+                          {selectedForgeItemB._locationLabel}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-1 mt-1 pt-1 border-t border-slate-800">
+                      <span className="text-[10px] font-black text-emerald-400">
+                        Đột phá: <strong className="text-amber-300 font-extrabold animate-pulse">+{plusA || '?'}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgeFilterCategory('all');
+                          setForgeFilterLocation('all');
+                          setForgeSearchQuery('');
+                          setShowForgeSelectModal('B');
+                        }}
+                        className="text-[9px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold transition-colors cursor-pointer"
+                      >
+                        Đổi Món
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* FOOTER: CHI PHÍ 100 XU & NÚT GÕ BÚA CHUYỂN CẤP */}
+        <div className="pt-2 border-t border-slate-800/80">
+          <div className="flex items-center justify-between gap-2 text-xs mb-2">
+            <div className="flex items-center gap-1.5 font-bold">
+              <span className="text-yellow-400">🪙 Phí Chuyển Cấp:</span>
+              <span className="px-2 py-0.5 rounded-lg bg-yellow-500/15 border border-yellow-500/30 text-yellow-300 font-black">
+                100 Xu
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-400">
+              Ví của bạn: <strong className={!isLinked ? 'text-amber-300 font-bold' : hasEnoughCoins ? 'text-emerald-400' : 'text-rose-400 font-bold'}>
+                {!isLinked ? 'Chưa liên kết' : `${currentCoins.toLocaleString()} Xu`}
+              </strong>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={!isLinked ? () => handleGenerateLinkOtp('all') : handleExecuteForgeTransfer}
+            disabled={isLinked && (!selectedForgeItemA || !selectedForgeItemB || isPerformingForgeAction || !hasEnoughCoins)}
+            className={`w-full py-3 px-4 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-xl ${
+              !isLinked
+                ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white border border-amber-400/50 shadow-[0_0_25px_rgba(245,158,11,0.45)] hover:scale-[1.02] active:scale-[0.98]'
+                : !selectedForgeItemA || !selectedForgeItemB || !hasEnoughCoins
+                ? 'bg-slate-800/80 text-slate-500 border border-slate-700/60 cursor-not-allowed'
+                : 'bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white border border-amber-400/50 shadow-[0_0_25px_rgba(245,158,11,0.45)] hover:scale-[1.02] active:scale-[0.98]'
+            }`}
+          >
+            {!isLinked ? (
+              <>
+                <Link size={16} />
+                <span>LIÊN KẾT TÀI KHOẢN ĐỂ DÙNG LÒ RÈN (OTP)</span>
+              </>
+            ) : isPerformingForgeAction ? (
+              <>
+                <Sparkles size={16} className="animate-spin text-amber-300" />
+                <span>Đang Gõ Búa Chuyển Cấp...</span>
+              </>
+            ) : (
+              <>
+                <span className="text-base">🔨</span>
+                <span>GÕ BÚA CHUYỂN CẤP (TIÊU HAO 100 XU)</span>
+              </>
+            )}
+          </button>
+
+          <p className="text-[10px] text-slate-400 text-center mt-2 leading-relaxed">
+            * Món B nhận toàn bộ cấp Cường Hóa của Món A. Món A sau khi chuyển trở về +0 (không bị mất).
+          </p>
+        </div>
+      </div>
+    );
   };
 
   // --- HÀM THANH TOÁN MUA GÓI NẠP GAME BOSS MỘNG THIÊN HUYỄN ---
@@ -9199,6 +9850,8 @@ const App = () => {
 
   const getRingStats = (it) => {
     let baseDmgPercent = (it?.base_dmg_percent != null && Number(it.base_dmg_percent) > 0) ? Number(it.base_dmg_percent) : 0;
+    let baseHpPercent = (it?.base_hp_percent != null && Number(it.base_hp_percent) > 0) ? Number(it.base_hp_percent) : (it?.hp_percent != null && Number(it.hp_percent) > 0 ? Number(it.hp_percent) : 0);
+    let baseDefPercent = (it?.base_def_percent != null && Number(it.base_def_percent) > 0) ? Number(it.base_def_percent) : (it?.def_percent != null && Number(it.def_percent) > 0 ? Number(it.def_percent) : 0);
     let skillPct = (it?.skill_pct != null && Number(it.skill_pct) > 0) ? Number(it.skill_pct) : 0;
     let capMult = (it?.cap_mult != null && Number(it.cap_mult) > 0) ? Number(it.cap_mult) : 0;
 
@@ -9213,8 +9866,13 @@ const App = () => {
       else if (n.includes('lam ngọc') || t.includes('hiếm')) { baseDmgPercent = 10; skillPct = 15.0; capMult = 200; }
       else { baseDmgPercent = 5; skillPct = 10.0; capMult = 100; }
     }
+    if (!baseHpPercent) baseHpPercent = baseDmgPercent;
+    if (!baseDefPercent) baseDefPercent = baseDmgPercent;
+
     return {
       baseDmgPercent,
+      baseHpPercent,
+      baseDefPercent,
       skillPct: skillPct || Number(it?.skill_pct || 10.0),
       capMult: capMult || Number(it?.cap_mult || 100)
     };
@@ -9804,9 +10462,13 @@ const App = () => {
     const bonusDmg = petStats.bonusDmg;
     const dmgPercent = necklaceStats.dmgPercent;
     const baseDmgPercent = ringStats.baseDmgPercent;
+    const baseHpPercent = ringStats.baseHpPercent || baseDmgPercent;
+    const baseDefPercent = ringStats.baseDefPercent || baseDmgPercent;
     const ringStarsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
     const ringStarMult = Math.pow(3, ringStarsCount - 1);
     const totalEstRingDmg = Math.round(baseDmgPercent * ringStarMult);
+    const totalEstRingHp = Math.round(baseHpPercent * ringStarMult);
+    const totalEstRingDef = Math.round(baseDefPercent * ringStarMult);
     const skillPct = ringStats.skillPct;
     const skillLevel = Number(item.skill_level || 0);
     const skillProcStr = getRingSkillProcStr(item);
@@ -10100,8 +10762,8 @@ const App = () => {
                   {category === 'ring' && (
                     <>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
-                        <span className="text-slate-400">Sát thương gốc (1⭐):</span>
-                        <span className="font-bold text-slate-300">+{baseDmgPercent}% DMG</span>
+                        <span className="text-slate-400">Chỉ số gốc (1⭐):</span>
+                        <span className="font-bold text-slate-300">+{baseDmgPercent}% DMG • +{baseHpPercent}% HP • +{baseDefPercent}% DEF</span>
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
                         <span className="text-amber-400">Hệ số Sao ({ringStarsCount}⭐):</span>
@@ -10110,6 +10772,14 @@ const App = () => {
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
                         <span className="text-purple-400 font-bold">Tổng Sát Thương Dự Tính:</span>
                         <span className="font-black text-purple-300 text-xs">+{totalEstRingDmg.toLocaleString()}% DMG ⚡</span>
+                      </div>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-emerald-400 font-bold">Tổng Sinh Lực (HP) Dự Tính:</span>
+                        <span className="font-black text-emerald-300 text-xs">+{totalEstRingHp.toLocaleString()}% HP ❤️</span>
+                      </div>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-cyan-400 font-bold">Tổng Giáp Thủ (DEF) Dự Tính:</span>
+                        <span className="font-black text-cyan-300 text-xs">+{totalEstRingDef.toLocaleString()}% DEF 🛡️</span>
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
                         <span className="text-purple-400 font-bold">Tuyệt kỹ rút máu Boss:</span>
@@ -10359,11 +11029,14 @@ const App = () => {
               Hệ thống tự động chuyển thẳng <strong className="text-amber-400">Lượt Đánh, Rương Hoàng Kim, Rương Boss, Xu Nâng Cấp & Trang Bị Thần Binh</strong> vào tài khoản game của bạn ngay khi bấm Mua. Loa Livestream sẽ tự động đọc tên cảm ơn và hiệu ứng nạp VIP sẽ phát sáng rực rỡ!
             </p>
 
-            {/* KHU VỰC LIÊN KẾT TÀI KHOẢN & THÔNG TIN NHÂN VẬT GAME (BỎ KIỂM TRA ID) */}
-            <div className="max-w-3xl mx-auto">
-              {bossPlayerSummary ? (
-                /* 1. KHÁCH ĐÃ LIÊN KẾT: THÔNG TIN NHÂN VẬT + NÚT TÚI ĐỒ & PROFILE (KHÔNG CÓ NÚT ĐỔI TÀI KHOẢN THEO CHỈ THỊ) */
-                <div className="bg-gradient-to-r from-[#0B1120] via-[#151D2F] to-[#0B1120] border-2 border-emerald-500/50 rounded-2xl p-5 md:p-6 shadow-[0_0_30px_rgba(16,185,129,0.15)] backdrop-blur-md text-left animate-fade-in relative overflow-hidden">
+            {/* KHU VỰC LIÊN KẾT TÀI KHOẢN & THÔNG TIN NHÂN VẬT GAME & XƯỞNG RÈN LONG TỘC */}
+            <div className="w-full max-w-7xl mx-auto">
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch">
+                {/* CỘT TRÁI (HÌNH 1 / KHU VỰC LIÊN KẾT): */}
+                <div className="xl:col-span-6 flex flex-col">
+                  {bossPlayerSummary ? (
+                    /* 1. KHÁCH ĐÃ LIÊN KẾT: HÌNH 1 (THÔNG TIN NHÂN VẬT + NÚT TÚI ĐỒ & PROFILE) */
+                    <div className="bg-gradient-to-r from-[#0B1120] via-[#151D2F] to-[#0B1120] border-2 border-emerald-500/50 rounded-2xl p-5 md:p-6 shadow-[0_0_30px_rgba(16,185,129,0.15)] backdrop-blur-md text-left animate-fade-in relative overflow-hidden h-full flex flex-col justify-between">
                   <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-2 bg-gradient-to-l from-emerald-500/20 to-transparent w-48 h-16 pointer-events-none blur-xl"></div>
 
                   {/* Badge Đã liên kết theo nền tảng & Dãy nút hành động */}
@@ -10530,48 +11203,59 @@ const App = () => {
                     </div>
                   </div>
                 </div>
-              ) : (
-                /* 2. KHÁCH CHƯA LIÊN KẾT: HIỆN THÔNG BÁO BẮT BUỘC LIÊN KẾT ĐỂ NẠP DỄ DÀNG */
-                <div className="bg-gradient-to-br from-[#151D2F] via-[#1A233A] to-[#0B1120] border-2 border-amber-500/60 rounded-2xl p-6 md:p-8 shadow-[0_0_35px_rgba(245,158,11,0.2)] backdrop-blur-md text-center animate-fade-in relative overflow-hidden">
-                  <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 mb-4 shadow-[0_0_20px_rgba(245,158,11,0.3)] animate-pulse">
-                    <Zap size={32} />
-                  </div>
+                  ) : (
+                    /* 2. KHÁCH CHƯA LIÊN KẾT: THÔNG BÁO BẮT BUỘC LIÊN KẾT ĐỂ NẠP DỄ DÀNG & KÍCH HOẠT LÒ RÈN */
+                    <div className="bg-gradient-to-br from-[#151D2F] via-[#1A233A] to-[#0B1120] border-2 border-amber-500/60 rounded-2xl p-5 md:p-6 shadow-[0_0_35px_rgba(245,158,11,0.2)] backdrop-blur-md text-center animate-fade-in relative overflow-hidden h-full flex flex-col justify-between">
+                      <div>
+                        <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 mb-3 shadow-[0_0_20px_rgba(245,158,11,0.3)] animate-pulse">
+                          <Zap size={28} />
+                        </div>
 
-                  <h3 className="text-xl sm:text-2xl font-black uppercase text-white mb-2 tracking-tight">
-                    ⚠️ BẠN CHƯA LIÊN KẾT TÀI KHOẢN GAME!
-                  </h3>
-                  <p className="text-slate-300 text-xs sm:text-sm max-w-xl mx-auto mb-6 leading-relaxed">
-                    Hãy liên kết tài khoản web với nhân vật game qua <strong className="text-amber-400">mã OTP an toàn</strong>. Sau khi liên kết, bạn sẽ nạp tự động 1-chạm không cần nhập ID, đồng thời có thể <strong className="text-purple-400">mở túi đồ, thay trang bị & xóa đồ rác</strong> trực tiếp trên web!
-                  </p>
+                        <h3 className="text-lg sm:text-xl font-black uppercase text-white mb-2 tracking-tight">
+                          ⚠️ BẠN CHƯA LIÊN KẾT TÀI KHOẢN GAME!
+                        </h3>
+                        <p className="text-slate-300 text-xs sm:text-sm max-w-md mx-auto mb-4 leading-relaxed">
+                          Hãy liên kết tài khoản web với nhân vật game qua <strong className="text-amber-400">mã OTP an toàn</strong> để tự động nạp 1-chạm, đồng thời kích hoạt tính năng <strong className="text-cyan-300">Lò Rèn Long Tộc chuyển cấp</strong> và mở túi đồ trực tiếp trên web!
+                        </p>
+                      </div>
 
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <button
-                      type="button"
-                      onClick={handleGenerateLinkOtp}
-                      disabled={isGeneratingOtp}
-                      className="w-full sm:w-auto px-7 py-3.5 bg-[#5865F2] hover:bg-[#4752C4] text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-[0_0_25px_rgba(88,101,242,0.45)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
-                    >
-                      <svg className="w-5 h-5 fill-current text-white shrink-0" viewBox="0 0 127.14 96.36">
-                        <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
-                      </svg>
-                      <span>🎮 LIÊN KẾT DISCORD (OTP 6 SỐ)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleGenerateLinkOtp}
-                      disabled={isGeneratingOtp}
-                      className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-rose-600 via-pink-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-[0_0_30px_rgba(244,63,94,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                    >
-                      <span className="text-lg">🎵</span>
-                      <span>LIÊN KẾT TIKTOK LIVES (OTP 6 SỐ)</span>
-                    </button>
-                  </div>
+                      <div>
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateLinkOtp('discord')}
+                            disabled={isGeneratingOtp}
+                            className="w-full sm:w-auto px-5 py-3 bg-[#5865F2] hover:bg-[#4752C4] text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(88,101,242,0.45)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                          >
+                            <svg className="w-4 h-4 fill-current text-white shrink-0" viewBox="0 0 127.14 96.36">
+                              <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
+                            </svg>
+                            <span>🎮 LIÊN KẾT DISCORD</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateLinkOtp('tiktok')}
+                            disabled={isGeneratingOtp}
+                            className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-rose-600 via-pink-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(244,63,94,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                          >
+                            <span className="text-base">🎵</span>
+                            <span>LIÊN KẾT TIKTOK LIVES</span>
+                          </button>
+                        </div>
 
-                  <p className="text-[11px] text-slate-400 mt-4">
-                    🔒 Chỉ cần xác nhận 1 lần duy nhất bằng cách bình luận mã trên <strong className="text-slate-200">TikTok Live</strong> hoặc gõ lệnh trên <strong className="text-slate-200">Discord</strong>.
-                  </p>
+                        <p className="text-[11px] text-slate-400 mt-3">
+                          🔒 Chỉ cần xác nhận 1 lần duy nhất bằng mã OTP an toàn.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {/* CỘT PHẢI: XƯỞNG RÈN LONG TỘC - CHUYỂN CẤP CƯỜNG HÓA */}
+                <div className="xl:col-span-6 flex flex-col">
+                  {renderDragonForgeSection()}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -11029,7 +11713,7 @@ const App = () => {
               >
                 {/* Thumbnail vuông chuẩn tỉ lệ, không bị kéo dãn trên mobile */}
                 <div
-                  className="w-14 h-14 sm:w-16 sm:h-16 aspect-square rounded-xl flex items-center justify-center relative shrink-0 self-start overflow-hidden shadow-inner"
+                  className="w-14 h-14 sm:w-16 sm:h-16 aspect-square rounded-xl flex items-center justify-center relative shrink-0 self-start shadow-inner"
                   style={{
                     border: `2px solid ${tier.color}`,
                     background: '#060913',
@@ -11045,6 +11729,17 @@ const App = () => {
                     />
                   ) : (
                     <span className="text-2xl">{defaultIcon}</span>
+                  )}
+                  {Number(item.plus || 0) > 0 && (
+                    <div
+                      className={`absolute -top-1.5 -right-1.5 text-[9.5px] font-black px-1.5 py-0.5 rounded-md leading-none border z-10 ${
+                        Number(item.plus || 0) >= 20
+                          ? 'bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400 text-white border-cyan-300 shadow-[0_0_10px_rgba(255,0,127,0.9)]'
+                          : 'bg-gradient-to-r from-yellow-400 to-amber-500 text-black border-white shadow-[0_0_8px_rgba(255,215,0,0.8)]'
+                      }`}
+                    >
+                      +{item.plus}
+                    </div>
                   )}
                   <div className="absolute bottom-0.5 left-0 right-0 text-center text-[9px] text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
                     {stars}
@@ -11147,12 +11842,25 @@ const App = () => {
                       const rStars = Math.max(1, Math.min(5, Number(item.stars || 1)));
                       const starMult = Math.pow(3, rStars - 1);
                       const totRingDmg = Math.round(rStats.baseDmgPercent * starMult);
+                      const totRingHp = Math.round((rStats.baseHpPercent || rStats.baseDmgPercent) * starMult);
+                      const totRingDef = Math.round((rStats.baseDefPercent || rStats.baseDmgPercent) * starMult);
                       const skPct = rStats.skillPct;
                       return (
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className="font-bold text-purple-400 bg-purple-400/10 border border-purple-400/30 px-1.5 py-0.5 rounded">
-                            +{totRingDmg.toLocaleString()}% DMG {skPct ? `• ⚡ ${skPct}% HP` : ''}
+                            +{totRingDmg.toLocaleString()}% DMG
                           </span>
+                          <span className="font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded">
+                            ❤️ +{totRingHp.toLocaleString()}% HP
+                          </span>
+                          <span className="font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 px-1.5 py-0.5 rounded">
+                            🛡️ +{totRingDef.toLocaleString()}% DEF
+                          </span>
+                          {skPct ? (
+                            <span className="font-bold text-purple-300 bg-purple-500/20 border border-purple-400/40 px-1.5 py-0.5 rounded text-[10px]">
+                              ⚡ Rút {skPct}% HP
+                            </span>
+                          ) : null}
                           {/* Luôn hiển thị thông tin phát động Kỹ Năng */}
                           <span className="font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-1.5 py-0.5 rounded text-[10px]">
                             ⚡ {item.skill_level > 0 ? `Kỹ Năng Lv.${item.skill_level} (${getRingSkillProcStr(item)})` : `Tỉ Lệ: ${getRingSkillProcStr(item)}`}
@@ -11192,6 +11900,11 @@ const App = () => {
                           {enhanceBonusAgi > 0 && (
                             <span className="font-bold text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-1.5 py-0.5 rounded">
                               +{enhanceBonusAgi.toLocaleString()} Cường Hóa
+                            </span>
+                          )}
+                          {shoeBonusPct > 0 && (
+                            <span className="font-bold text-rose-400 bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 rounded">
+                              Tổng: +{shoeBonusPct}% Tốc Độ
                             </span>
                           )}
                           {totAgi > baseWithPlus && (
@@ -11463,10 +12176,19 @@ const App = () => {
             pantsDef = Math.round(pStats.baseDef * (1 + 0.25 * pPlus) * starMultMath);
           }
 
-          const maxHp = Number(p.max_hp !== undefined ? p.max_hp : (baseHp + armorHp + pantsHp));
+          let ringHpMult = 1.0;
+          let ringDefMult = 1.0;
+          if (p.ring) {
+            const rStats = getRingStats(p.ring);
+            const rS = Math.max(1, Math.min(5, Number(p.ring.stars || 1)));
+            const starMult = Math.pow(3, rS - 1);
+            ringHpMult = 1.0 + ((rStats.baseHpPercent || rStats.baseDmgPercent) * starMult / 100.0);
+            ringDefMult = 1.0 + ((rStats.baseDefPercent || rStats.baseDmgPercent) * starMult / 100.0);
+          }
+          const maxHp = Number(p.max_hp !== undefined ? p.max_hp : Math.round((baseHp + armorHp + pantsHp) * ringHpMult));
           const currentHp = Number(p.current_hp !== undefined ? p.current_hp : maxHp);
           const hpPct = Math.min(100, Math.max(0, (currentHp / Math.max(1, maxHp)) * 100));
-          const totalDef = Number(p.total_def !== undefined ? p.total_def : (armorDef + pantsDef));
+          const totalDef = Number(p.total_def !== undefined ? p.total_def : Math.round((armorDef + pantsDef) * ringDefMult));
           const dmgReducPct = Number(p.dmg_reduction_pct !== undefined ? p.dmg_reduction_pct : (totalDef > 0 ? (totalDef / (totalDef + 2500) * 100) : 0));
           const isDead = Boolean(p.is_dead);
           const respawnTime = Number(p.respawn_seconds_left || 0);
@@ -11709,7 +12431,7 @@ const App = () => {
                       <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
                         <div className="text-[10px] font-bold text-slate-400 uppercase flex items-center justify-between">
                           <span>👟 Giày Thần Tốc</span>
-                          {p.shoes && <span className="text-[9px] text-cyan-400 font-bold">{p.shoes.name}</span>}
+                          {p.shoes && <span className="text-[9px] text-cyan-400 font-bold">{p.shoes.name}{p.shoes.plus > 0 ? ` +${p.shoes.plus}` : ''}</span>}
                         </div>
                         <div className="text-sm font-extrabold text-cyan-300 mt-1 truncate">
                           {p.shoes ? (() => {
@@ -11727,7 +12449,7 @@ const App = () => {
                             }
                             const plusMult = 1.0 + (sPlus * 0.25);
                             const totAgi = Math.round(baseAgi * plusMult * (1.0 + shoeBonusPct / 100.0));
-                            return `🌪️ +${totAgi} Tốc Độ (Tiên Cơ)`;
+                            return `🌪️ +${totAgi} Tốc Độ (${shoeBonusPct > 0 ? `+${shoeBonusPct}%` : 'Tiên Cơ'})`;
                           })() : 'Chưa trang bị'}
                         </div>
                       </div>
@@ -12208,7 +12930,7 @@ const App = () => {
                               <div className="flex items-start gap-3">
                                 {/* Ảnh trang bị */}
                                 <div
-                                  className="w-14 h-14 rounded-xl flex items-center justify-center relative shrink-0 overflow-hidden"
+                                  className="w-14 h-14 rounded-xl flex items-center justify-center relative shrink-0"
                                   style={{
                                     border: `1.5px solid ${tier.color}`,
                                     background: '#060913'
@@ -12218,6 +12940,17 @@ const App = () => {
                                     <img src={img} alt={item.name} className="w-11 h-11 object-contain" />
                                   ) : (
                                     <span className="text-2xl">⚔️</span>
+                                  )}
+                                  {Number(item.plus || 0) > 0 && (
+                                    <div
+                                      className={`absolute -top-1.5 -right-1.5 text-[9.5px] font-black px-1.5 py-0.5 rounded-md leading-none border z-10 ${
+                                        Number(item.plus || 0) >= 20
+                                          ? 'bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400 text-white border-cyan-300 shadow-[0_0_10px_rgba(255,0,127,0.9)]'
+                                          : 'bg-gradient-to-r from-yellow-400 to-amber-500 text-black border-white shadow-[0_0_8px_rgba(255,215,0,0.8)]'
+                                      }`}
+                                    >
+                                      +{item.plus}
+                                    </div>
                                   )}
                                   <div className="absolute bottom-0.5 text-center text-[8px] text-amber-300">
                                     {stars}
@@ -12289,11 +13022,13 @@ const App = () => {
                                       const rStars = Math.max(1, Math.min(5, Number(item.stars || 1)));
                                       const starMult = Math.pow(3, rStars - 1);
                                       const totRingDmg = Math.round(rStats.baseDmgPercent * starMult);
+                                      const totRingHp = Math.round((rStats.baseHpPercent || rStats.baseDmgPercent) * starMult);
+                                      const totRingDef = Math.round((rStats.baseDefPercent || rStats.baseDmgPercent) * starMult);
                                       const skPct = rStats.skillPct;
                                       return (
                                         <>
                                           <span className="text-purple-400 block font-semibold">
-                                            💍 +{totRingDmg.toLocaleString()}% DMG {skPct ? `• ⚡ ${skPct}% HP` : ''}
+                                            💍 +{totRingDmg.toLocaleString()}% DMG • <span className="text-emerald-400">❤️+{totRingHp.toLocaleString()}% HP</span> • <span className="text-cyan-400">🛡️+{totRingDef.toLocaleString()}% DEF</span> {skPct ? `• ⚡ ${skPct}%` : ''}
                                           </span>
                                           <span className="text-amber-300 block text-[9.5px]">
                                             ⚡ {item.skill_level > 0 ? `Tuyệt Kỹ: Lv.${item.skill_level} (Tỉ lệ: ${getRingSkillProcStr(item)})` : `Tỉ lệ phát động: ${getRingSkillProcStr(item)}`}
@@ -12959,10 +13694,12 @@ const App = () => {
                                           const rStars = Math.max(1, Math.min(5, Number(item.stars || 1)));
                                           const starMult = Math.pow(3, rStars - 1);
                                           const totRingDmg = Math.round(rStats.baseDmgPercent * starMult);
+                                          const totRingHp = Math.round((rStats.baseHpPercent || rStats.baseDmgPercent) * starMult);
+                                          const totRingDef = Math.round((rStats.baseDefPercent || rStats.baseDmgPercent) * starMult);
                                           const skPct = rStats.skillPct;
                                           return (
                                             <span className="text-purple-400 font-semibold">
-                                              💍 +{totRingDmg.toLocaleString()}% DMG {skPct ? `• ⚡${skPct}%` : ''}
+                                              💍 +{totRingDmg.toLocaleString()}% DMG • <span className="text-emerald-400">❤️+{totRingHp}% HP</span> • <span className="text-cyan-400">🛡️+{totRingDef}% DEF</span> {skPct ? `• ⚡${skPct}%` : ''}
                                               {item.skill_level > 0 ? ` • ⚡Lv.${item.skill_level} (${getRingSkillProcStr(item)})` : ''}
                                             </span>
                                           );
@@ -13304,6 +14041,329 @@ const App = () => {
                   Xác Nhận Mua
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL CHỌN TRANG BỊ CHO LÒ RÈN (SLOT A HOẶC SLOT B) */}
+        {showForgeSelectModal && (() => {
+          const isSlotA = showForgeSelectModal === 'A';
+          const allItems = getAllForgeSelectableItems(showForgeSelectModal);
+
+          const filteredItems = allItems.filter(item => {
+            // Lọc theo loại trang bị
+            if (forgeFilterCategory !== 'all') {
+              const cat = item.category || getCategoryOfItem(item);
+              if (cat !== forgeFilterCategory) return false;
+            }
+            // Lọc theo vị trí (đang mặc hay trong túi)
+            if (forgeFilterLocation === 'equipped' && !item._isEquipped) return false;
+            if (forgeFilterLocation === 'inventory' && item._isEquipped) return false;
+            // Tìm kiếm theo tên
+            if (forgeSearchQuery.trim()) {
+              const q = forgeSearchQuery.toLowerCase().trim();
+              if (!String(item.name || '').toLowerCase().includes(q)) return false;
+            }
+            return true;
+          });
+
+          const categories = [
+            { id: 'all', label: 'Tất Cả' },
+            { id: 'weapon', label: '⚔️ Vũ Khí' },
+            { id: 'armor', label: '🛡️ Áo Giáp' },
+            { id: 'pants', label: '👖 Quần' },
+            { id: 'shoes', label: '👟 Giày' },
+            { id: 'necklace', label: '📿 Dây Chuyền' },
+            { id: 'ring', label: '💍 Nhẫn' },
+            { id: 'pet', label: '🦊 Linh Thú' }
+          ];
+
+          return (
+            <div
+              className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+              onClick={(e) => { if (e.target === e.currentTarget) setShowForgeSelectModal(null); }}
+            >
+              <div className="bg-gradient-to-br from-[#0c1322] via-[#121a2d] to-[#080d18] border-2 border-amber-500/70 rounded-3xl w-full max-w-4xl max-h-[92vh] shadow-[0_0_60px_rgba(245,158,11,0.35)] p-4 sm:p-6 flex flex-col relative text-white animate-zoom-in overflow-hidden">
+                {/* Header Modal */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-amber-500/20 pb-3 mb-3 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                      <Flame size={20} className="animate-pulse" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-base sm:text-lg text-white flex items-center gap-2">
+                        {isSlotA ? '🔥 CHỌN MÓN ĐỒ NGUỒN (A)' : '🎯 CHỌN MÓN ĐỒ ĐÍCH (B)'}
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-400/30">
+                          {isSlotA ? 'Cường Hóa >= +1' : `Cường Hóa < +${selectedForgeItemA?.plus || 'A'}`}
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-300">
+                        {isSlotA
+                          ? 'Chọn món trang bị đang có Cấp Cường Hóa để chuyển đi (món này sẽ về +0 sau khi rèn)'
+                          : 'Chọn món trang bị cần nhận toàn bộ cấp Cường Hóa từ món A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowForgeSelectModal(null)}
+                    className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0 self-end sm:self-center"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Filter Controls: Tabs Loại đồ, Vị trí, Tìm kiếm */}
+                <div className="space-y-2 mb-3 shrink-0">
+                  {/* Category Pills */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+                    {categories.map(cat => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setForgeFilterCategory(cat.id)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                          forgeFilterCategory === cat.id
+                            ? 'bg-amber-500 text-black shadow-[0_0_12px_rgba(245,158,11,0.4)]'
+                            : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Vị trí & Thanh tìm kiếm */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 bg-[#0a0f1c] p-1 rounded-xl border border-slate-800 shrink-0">
+                      {[
+                        { id: 'all', label: 'Tất Cả Vị Trí' },
+                        { id: 'equipped', label: '🛡️ Đang Mặc' },
+                        { id: 'inventory', label: '🎒 Trong Túi' }
+                      ].map(loc => (
+                        <button
+                          key={loc.id}
+                          type="button"
+                          onClick={() => setForgeFilterLocation(loc.id)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            forgeFilterLocation === loc.id
+                              ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold shadow'
+                              : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          {loc.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="relative flex-1">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={forgeSearchQuery}
+                        onChange={(e) => setForgeSearchQuery(e.target.value)}
+                        placeholder="Tìm theo tên trang bị..."
+                        className="w-full bg-[#0a0f1c] border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Danh sách trang bị có thể chọn */}
+                <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin max-h-[50vh]">
+                  {filteredItems.length === 0 ? (
+                    <div className="py-12 text-center text-slate-400">
+                      <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-500 text-2xl">
+                        🔍
+                      </div>
+                      <p className="text-sm font-bold text-slate-300">Không tìm thấy món trang bị nào phù hợp!</p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {isSlotA
+                          ? 'Cần trang bị có cấp Cường Hóa (+1 trở lên) để đặt vào Đe Nguồn A.'
+                          : 'Cần trang bị có Cường Hóa thấp hơn món A để đặt vào Đe Đích B.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                      {filteredItems.map((item, idx) => {
+                        const cat = item.category || getCategoryOfItem(item);
+                        const tier = getBossTierStyle(item.tier);
+                        const img = getBossItemAsset(item, cat);
+                        const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
+                        const plusVal = Number(item.plus || 0);
+
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => {
+                              if (isSlotA) {
+                                setSelectedForgeItemA(item);
+                                if (selectedForgeItemB && Number(selectedForgeItemB.plus || 0) >= plusVal) {
+                                  setSelectedForgeItemB(null);
+                                  showToast(`Đã chọn [${item.name} +${plusVal}]. Món B đã được làm mới để chọn món phù hợp!`, "info");
+                                } else {
+                                  showToast(`Đã chọn [${item.name} +${plusVal}] vào Đe Nguồn A!`, "success");
+                                }
+                              } else {
+                                setSelectedForgeItemB(item);
+                                showToast(`Đã chọn [${item.name} +${plusVal}] vào Đe Đích B!`, "success");
+                              }
+                              setShowForgeSelectModal(null);
+                            }}
+                            className="rounded-2xl p-2.5 bg-gradient-to-b from-[#111827] to-[#0a0f1d] border transition-all duration-200 flex flex-col justify-between hover:border-amber-400/80 hover:scale-[1.02] shadow-lg relative group cursor-pointer"
+                            style={{ borderColor: `${tier.color}55` }}
+                          >
+                            <div className="flex items-start gap-2 mb-2">
+                              <div
+                                className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border relative bg-black/40"
+                                style={{ borderColor: tier.color }}
+                              >
+                                <img src={img} alt={item.name} className="w-full h-full object-cover" />
+                                {plusVal > 0 && (
+                                  <div className="absolute top-0 right-0 bg-amber-500 text-black font-black text-[9px] px-1 rounded-bl">
+                                    +{plusVal}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <h4 className="text-xs font-black text-white truncate" title={item.name}>
+                                  {item.name}
+                                </h4>
+                                <div className="text-[10px] text-amber-400 font-bold">
+                                  {'★'.repeat(starsCount)}
+                                </div>
+                                <span
+                                  className="inline-block text-[9px] font-black uppercase px-1.5 py-0.2 rounded mt-0.5"
+                                  style={{ color: tier.color, backgroundColor: tier.bg }}
+                                >
+                                  {tier.label}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-1.5 border-t border-slate-800 text-[10px]">
+                              <span className="text-slate-400 font-medium truncate">
+                                {item._isEquipped ? (
+                                  <span className="text-emerald-400 font-bold">🛡️ {item._locationLabel}</span>
+                                ) : (
+                                  <span className="text-indigo-300">🎒 {item._locationLabel}</span>
+                                )}
+                              </span>
+                              <span className="text-amber-400 font-bold group-hover:underline">
+                                Chọn 👉
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer Modal */}
+                <div className="flex items-center justify-between gap-3 pt-3 mt-3 border-t border-slate-800 shrink-0 text-xs">
+                  <span className="text-slate-400">
+                    Hiển thị <strong className="text-white">{filteredItems.length}</strong> trang bị hợp lệ
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgeSelectModal(null)}
+                    className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-colors cursor-pointer"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* MODAL CHÚC MỪNG CHUYỂN CẤP LÒ RÈN THÀNH CÔNG */}
+        {forgeSuccessModal && (
+          <div
+            className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+            onClick={(e) => { if (e.target === e.currentTarget) setForgeSuccessModal(null); }}
+          >
+            <div className="bg-gradient-to-br from-[#161f33] via-[#101726] to-[#0a0f1d] border-2 border-amber-400 rounded-3xl w-full max-w-md shadow-[0_0_80px_rgba(245,158,11,0.5)] p-6 text-white text-center animate-zoom-in relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-rose-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+              {/* Icon đe búa phát sáng */}
+              <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-amber-500/30 to-orange-500/30 border-2 border-amber-400 flex items-center justify-center text-4xl mb-4 shadow-[0_0_30px_rgba(245,158,11,0.6)] animate-bounce">
+                🔨
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 text-xs font-black uppercase tracking-wider mb-2">
+                <Sparkles size={14} className="text-emerald-400 animate-spin" />
+                <span>CHUYỂN CẤP THÀNH CÔNG!</span>
+              </div>
+
+              <h3 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-300 to-yellow-200 mb-4">
+                LONG HỎA DUNG CƯỜNG HÓA
+              </h3>
+
+              {/* Thẻ so sánh Before / After */}
+              <div className="bg-[#070b14]/90 border border-amber-500/30 rounded-2xl p-4 mb-4 text-left space-y-3">
+                {/* Món Đích B (Thành công) */}
+                <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-800">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-cyan-400 bg-black/40">
+                      <img
+                        src={getBossItemAsset(forgeSuccessModal.itemB, getCategoryOfItem(forgeSuccessModal.itemB))}
+                        alt={forgeSuccessModal.itemB.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] text-cyan-300 font-bold uppercase">Món Đích [B] Nhận Cấp</p>
+                      <h4 className="text-xs font-black text-white truncate">{forgeSuccessModal.itemB.name}</h4>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-xs text-slate-400 line-through">+{forgeSuccessModal.itemB.oldPlus}</span>
+                    <span className="text-base font-black text-amber-400 ml-2 animate-pulse">
+                      ➔ +{forgeSuccessModal.itemB.newPlus}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Món Nguồn A (Về 0) */}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-amber-400/50 bg-black/40">
+                      <img
+                        src={getBossItemAsset(forgeSuccessModal.itemA, getCategoryOfItem(forgeSuccessModal.itemA))}
+                        alt={forgeSuccessModal.itemA.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] text-amber-300 font-bold uppercase">Món Nguồn [A] Bảo Toàn</p>
+                      <h4 className="text-xs font-black text-slate-300 truncate">{forgeSuccessModal.itemA.name}</h4>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-xs text-slate-400 line-through">+{forgeSuccessModal.itemA.oldPlus}</span>
+                    <span className="text-sm font-black text-slate-300 ml-2">➔ +0</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Chi phí */}
+              <div className="flex items-center justify-between text-xs font-bold text-slate-300 mb-5 px-2">
+                <span>Chi phí tiêu hao:</span>
+                <span className="text-yellow-400 font-black">-100 Xu Nâng Cấp</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setForgeSuccessModal(null)}
+                className="w-full py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-black font-black text-sm uppercase tracking-wider rounded-xl transition-all shadow-[0_0_25px_rgba(245,158,11,0.5)] cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Xác Nhận & Tiếp Tục Rèn
+              </button>
             </div>
           </div>
         )}

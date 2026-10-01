@@ -116,3 +116,82 @@
 .pity-glow-active {
   animation: pityBarGlow 1.8s ease-in-out infinite;
 }
+
+/* === XƯỞNG RÈN LONG TỘC - CHUYỂN CẤP CƯỜNG HÓA ANIMATIONS === */
+@keyframes hammerStrike {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(-30deg) translateY(-12px) scale(1.08);
+  }
+  50% {
+    transform: rotate(40deg) translateY(14px) scale(1.15);
+  }
+  70% {
+    transform: rotate(20deg) translateY(8px) scale(1.05);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes anvilSparkExplosion {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+    filter: brightness(1);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1.2);
+    filter: brightness(2.5) drop-shadow(0 0 30px #f59e0b);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+    filter: brightness(1);
+  }
+}
+
+@keyframes flameAuraPulse {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.3), inset 0 0 15px rgba(239, 68, 68, 0.2);
+    border-color: rgba(245, 158, 11, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(239, 68, 68, 0.65), inset 0 0 25px rgba(245, 158, 11, 0.4);
+    border-color: rgba(239, 68, 68, 0.9);
+  }
+}
+
+@keyframes transferFlowBeam {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.animate-hammer-strike {
+  animation: hammerStrike 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  transform-origin: 20% 80%;
+}
+
+.animate-anvil-sparks {
+  animation: anvilSparkExplosion 0.75s ease-out forwards;
+}
+
+.forge-flame-glow {
+  animation: flameAuraPulse 2.2s ease-in-out infinite;
+}
+
+.animate-transfer-beam {
+  animation: transferFlowBeam 1.2s ease-in-out infinite;
+}
