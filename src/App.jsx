@@ -7033,9 +7033,174 @@ const App = () => {
       const safeRandomOffset = (Math.random() * 0.16 - 0.08) * sliceAngle;
       const targetRotation = rotation + (360 - currentBase) + 1800 + (360 - centerAngle) + safeRandomOffset;
 
+      // CẬP NHẬT CHỈ SỐ BẢO HIỂM GIÀY HUYỀN THOẠI (PITY) & ĐỒNG BỘ TIỀN NGAY LẬP TỨC
+      const wonShoes = isLegendaryShoes(winningItem) || isServerShoesWin;
+      let nextPity = Number(shoesPity) || 0;
+      if (playMode === 'spin') {
+        if (wonShoes) {
+          nextPity = 0;
+        } else if (data.shoes_pity !== undefined && data.shoes_pity !== null) {
+          nextPity = Number(data.shoes_pity);
+        } else {
+          nextPity = (Number(shoesPity) || 0) + 1;
+        }
+        setShoesPity(nextPity);
+        if (currentUser?.id) {
+          try { localStorage.setItem(`shop_shoes_pity_${currentUser.id}`, nextPity.toString()); } catch (e) { }
+          try {
+            supabase.from('users').update({ shoes_pity: nextPity }).eq('id', currentUser.id).then(() => {});
+          } catch (e) { }
+        }
+      }
+
+      // Đồng bộ lại tiền từ Server trả về lên giao diện Web
+      const latestMe = currentUserRef.current || currentUser;
+      const currentLinked = latestMe?.linked_game_id || localStorage.getItem(`shop_linked_game_id_${latestMe?.id}`);
+      const finalPityForUser = (playMode === 'spin' ? nextPity : (latestMe?.shoes_pity ?? currentUser?.shoes_pity ?? 0));
+      const updatedUser = {
+        ...latestMe,
+        balance: data.new_balance,
+        spins: data.new_spins,
+        rentFund: data.new_fund,
+        shoes_pity: finalPityForUser,
+        linked_game_id: currentLinked
+      };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+      setUsersDb(prev => prev.map(u => u.id === (latestMe?.id || currentUser?.id) ? updatedUser : u));
+
+      // TỰ ĐỘNG GỬI VẬT PHẨM GAME VÀO SUPABASE GAME_ORDERS NGAY LẬP TỨC
+      // (Bảo đảm an toàn tuyệt đối: Không chờ 4s animation, dù khách tắt browser/chuyển tab vẫn nhận đủ quà & thông báo)
+      const isGameReward = isGameItem(winningItem) || wonShoes;
+      const targetGameUid = currentLinked
+        || (currentUser?.name ? currentUser.name.trim() : null)
+        || currentUser?.id;
+
+      if (isGameReward && targetGameUid) {
+        const orderId = `WO_WHEEL_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        let orderRewards = {};
+        let pkgId = `wheel_${winningItem.type || 'reward'}`;
+        let pkgName = 'Vòng Quay May Mắn (Gói x1 Lượt)';
+
+        if (wonShoes || winningItem.type === 'game_shoes_legendary') {
+          pkgId = 'wheel_shoes_legendary';
+          orderRewards = {
+            items: [{
+              id: `SHOES_LEGENDARY_${Date.now()}`,
+              name: 'Giày Thần Tốc',
+              category: 'shoes',
+              type: 'shoes',
+              tier: 'Huyền Thoại',
+              base_agility: 300,
+              agility: 300,
+              stars: 0,
+              plus: 0,
+              sub_stats: ['⚡ +30% Tốc Độ Đôi Giày'],
+              description: 'Giày Huyền Thoại Thần Tốc (+300 Tốc độ) nhận từ Vòng Quay May Mắn (Bảo hiểm 121)'
+            }],
+            auto_equip: false
+          };
+          if (bossPlayerSummary) {
+            const newShoesObj = {
+              id: `SHOES_LEGENDARY_${Date.now()}`,
+              name: 'Giày Thần Tốc',
+              category: 'shoes',
+              type: 'shoes',
+              tier: 'Huyền Thoại',
+              base_agility: 300,
+              agility: 300,
+              stars: 0,
+              plus: 0,
+              sub_stats: ['⚡ +30% Tốc Độ Đôi Giày']
+            };
+            setBossPlayerSummary(prev => {
+              if (!prev) return prev;
+              return { ...prev, inventory: [newShoesObj, ...(prev.inventory || [])] };
+            });
+          }
+        } else if (winningItem.type === 'game_essence_stone' || winningItem.name?.toLowerCase().includes('tinh hoa')) {
+          pkgId = 'wheel_game_essence_stone';
+          orderRewards = {
+            items: [{
+              id: 'item_essence_stone',
+              name: 'Đá Tinh Hoa',
+              category: 'material',
+              type: 'material',
+              tier: 'Thượng Cổ',
+              quantity: Number(winningItem.value) || 5,
+              image: 'da_tinh_hoa.png',
+              desc: 'Đá quý thăng cấp kỹ năng Nhẫn Thần Binh'
+            }]
+          };
+        } else if (winningItem.type === 'game_ring_crystal' || winningItem.name?.toLowerCase().includes('tinh thể')) {
+          pkgId = 'wheel_game_ring_crystal';
+          orderRewards = {
+            items: [{
+              id: 'item_ring_crystal',
+              name: 'Tinh Thể Cường Hóa',
+              category: 'material',
+              type: 'material',
+              tier: 'Thượng Cổ',
+              quantity: Number(winningItem.value) || 10,
+              image: 'ring_crystal.png',
+              desc: 'Tinh thể cường hóa, nâng sao và đột phá Nhẫn Thần Binh'
+            }]
+          };
+        } else if (winningItem.type === 'game_attacks' || winningItem.name?.toLowerCase().includes('lượt đánh')) {
+          pkgId = 'wheel_game_attacks';
+          orderRewards = { attacks: Number(winningItem.value) || 5 };
+        } else if (winningItem.type === 'game_boss_chests' || winningItem.name?.toLowerCase().includes('hòm boss')) {
+          pkgId = 'wheel_game_boss_chests';
+          orderRewards = { boss_chests: Number(winningItem.value) || 3 };
+        } else if (winningItem.type === 'game_royal_chests' || winningItem.name?.toLowerCase().includes('hoàng kim')) {
+          pkgId = 'wheel_game_royal_chests';
+          orderRewards = { royal_chests: Number(winningItem.value) || 1 };
+        } else if (winningItem.type === 'game_coins' || winningItem.type === 'coins' || winningItem.type === 'xu' || winningItem.name?.toLowerCase().includes('xu')) {
+          pkgId = 'wheel_game_coins';
+          orderRewards = { coins: Number(winningItem.value) || 20 };
+        } else if (winningItem.type?.startsWith('game_')) {
+          pkgId = `wheel_${winningItem.type}`;
+          orderRewards = {
+            items: [{
+              id: winningItem.type.replace(/^game_/, 'item_'),
+              name: winningItem.name,
+              category: 'material',
+              quantity: Number(winningItem.value) || 1
+            }]
+          };
+        }
+
+        const shouldNotify = Boolean(
+          winningItem.notify_on_win 
+          ?? getWheelNotifyFallback(winningItem.id) 
+          ?? (wonShoes || winningItem.type === 'game_shoes_legendary')
+        );
+
+        supabase.from('game_orders').insert([{
+          id: orderId,
+          user_id: targetGameUid,
+          nickname: currentUser.name,
+          web_user: currentUser.id,
+          package_id: pkgId,
+          package_name: pkgName,
+          price: 0,
+          notify: shouldNotify,
+          rewards: {
+            ...orderRewards,
+            notify: shouldNotify,
+            source_type: 'wheel'
+          },
+          status: 'pending'
+        }]).then(({ error: gErr }) => {
+          if (gErr) console.warn("Lỗi đồng bộ game_orders:", gErr);
+        }).catch(e => {
+          console.warn("Lỗi dispatch game_order:", e);
+        });
+      }
+
       setRotation(targetRotation); // Bắt đầu xoay hình ảnh
 
-      // Đợi 4 giây cho hình ảnh xoay xong thì tung Pop-up chúc mừng
+      // Đợi 4 giây cho hình ảnh xoay xong thì tung Pop-up chúc mừng & âm thanh
       setTimeout(async () => {
         setIsSpinning(false);
         isSpinningRef.current = false;
@@ -7049,174 +7214,7 @@ const App = () => {
           if (loseAudio) { loseAudio.currentTime = 0; loseAudio.volume = 0.8; loseAudio.play().catch(e => { }); }
         }
 
-        // CẬP NHẬT CHỈ SỐ BẢO HIỂM GIÀY HUYỀN THOẠI (PITY)
         try {
-          const wonShoes = isLegendaryShoes(winningItem) || isServerShoesWin;
-          let nextPity = Number(shoesPity) || 0;
-          if (playMode === 'spin') {
-            // Trúng Giày Huyền Thoại (dù tự nhiên hay bảo hiểm 121) -> Reset bảo hiểm về 0
-            // Không trúng Giày Huyền Thoại -> Tăng bảo hiểm lên 1 (nếu server có shoes_pity thì đồng bộ theo server)
-            if (wonShoes) {
-              nextPity = 0;
-            } else if (data.shoes_pity !== undefined && data.shoes_pity !== null) {
-              nextPity = Number(data.shoes_pity);
-            } else {
-              nextPity = (Number(shoesPity) || 0) + 1;
-            }
-            setShoesPity(nextPity);
-            if (currentUser?.id) {
-              try { localStorage.setItem(`shop_shoes_pity_${currentUser.id}`, nextPity.toString()); } catch (e) { }
-              try {
-                supabase.from('users').update({ shoes_pity: nextPity }).eq('id', currentUser.id).then(() => {});
-              } catch (e) { }
-            }
-          }
-
-          // Đồng bộ lại tiền từ Server trả về lên giao diện Web
-          const latestMe = currentUserRef.current || currentUser;
-          const currentLinked = latestMe?.linked_game_id || localStorage.getItem(`shop_linked_game_id_${latestMe?.id}`);
-          const finalPityForUser = (playMode === 'spin' ? nextPity : (latestMe?.shoes_pity ?? currentUser?.shoes_pity ?? 0));
-          const updatedUser = {
-            ...latestMe,
-            balance: data.new_balance,
-            spins: data.new_spins,
-            rentFund: data.new_fund,
-            shoes_pity: finalPityForUser,
-            linked_game_id: currentLinked
-          };
-          setCurrentUser(updatedUser);
-          localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
-          setUsersDb(prev => prev.map(u => u.id === (latestMe?.id || currentUser?.id) ? updatedUser : u));
-
-          // TỰ ĐỘNG GỬI VẬT PHẨM GAME VÀO SUPABASE GAME_ORDERS NẾU TRÚNG QUÀ IN-GAME
-          const isGameReward = isGameItem(winningItem) || wonShoes;
-          const targetGameUid = currentLinked
-            || (currentUser?.name ? currentUser.name.trim() : null)
-            || currentUser?.id;
-
-          if (isGameReward && targetGameUid) {
-            const orderId = `WO_WHEEL_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-            let orderRewards = {};
-            let pkgId = `wheel_${winningItem.type || 'reward'}`;
-            let pkgName = 'Vòng Quay May Mắn (Gói x1 Lượt)';
-
-            if (wonShoes || winningItem.type === 'game_shoes_legendary') {
-              pkgId = 'wheel_shoes_legendary';
-              orderRewards = {
-                items: [{
-                  id: `SHOES_LEGENDARY_${Date.now()}`,
-                  name: 'Giày Thần Tốc',
-                  category: 'shoes',
-                  type: 'shoes',
-                  tier: 'Huyền Thoại',
-                  base_agility: 300,
-                  agility: 300,
-                  stars: 0,
-                  plus: 0,
-                  sub_stats: ['⚡ +30% Tốc Độ Đôi Giày'],
-                  description: 'Giày Huyền Thoại Thần Tốc (+300 Tốc độ) nhận từ Vòng Quay May Mắn (Bảo hiểm 121)'
-                }],
-                auto_equip: false
-              };
-              if (bossPlayerSummary) {
-                const newShoesObj = {
-                  id: `SHOES_LEGENDARY_${Date.now()}`,
-                  name: 'Giày Thần Tốc',
-                  category: 'shoes',
-                  type: 'shoes',
-                  tier: 'Huyền Thoại',
-                  base_agility: 300,
-                  agility: 300,
-                  stars: 0,
-                  plus: 0,
-                  sub_stats: ['⚡ +30% Tốc Độ Đôi Giày']
-                };
-                setBossPlayerSummary(prev => {
-                  if (!prev) return prev;
-                  return { ...prev, inventory: [newShoesObj, ...(prev.inventory || [])] };
-                });
-              }
-            } else if (winningItem.type === 'game_essence_stone' || winningItem.name?.toLowerCase().includes('tinh hoa')) {
-              pkgId = 'wheel_game_essence_stone';
-              orderRewards = {
-                items: [{
-                  id: 'item_essence_stone',
-                  name: 'Đá Tinh Hoa',
-                  category: 'material',
-                  type: 'material',
-                  tier: 'Thượng Cổ',
-                  quantity: Number(winningItem.value) || 5,
-                  image: 'da_tinh_hoa.png',
-                  desc: 'Đá quý thăng cấp kỹ năng Nhẫn Thần Binh'
-                }]
-              };
-            } else if (winningItem.type === 'game_ring_crystal' || winningItem.name?.toLowerCase().includes('tinh thể')) {
-              pkgId = 'wheel_game_ring_crystal';
-              orderRewards = {
-                items: [{
-                  id: 'item_ring_crystal',
-                  name: 'Tinh Thể Cường Hóa',
-                  category: 'material',
-                  type: 'material',
-                  tier: 'Thượng Cổ',
-                  quantity: Number(winningItem.value) || 10,
-                  image: 'ring_crystal.png',
-                  desc: 'Tinh thể cường hóa, nâng sao và đột phá Nhẫn Thần Binh'
-                }]
-              };
-            } else if (winningItem.type === 'game_attacks' || winningItem.name?.toLowerCase().includes('lượt đánh')) {
-              pkgId = 'wheel_game_attacks';
-              orderRewards = { attacks: Number(winningItem.value) || 5 };
-            } else if (winningItem.type === 'game_boss_chests' || winningItem.name?.toLowerCase().includes('hòm boss')) {
-              pkgId = 'wheel_game_boss_chests';
-              orderRewards = { boss_chests: Number(winningItem.value) || 3 };
-            } else if (winningItem.type === 'game_royal_chests' || winningItem.name?.toLowerCase().includes('hoàng kim')) {
-              pkgId = 'wheel_game_royal_chests';
-              orderRewards = { royal_chests: Number(winningItem.value) || 1 };
-            } else if (winningItem.type === 'game_coins' || winningItem.type === 'coins' || winningItem.type === 'xu' || winningItem.name?.toLowerCase().includes('xu')) {
-              pkgId = 'wheel_game_coins';
-              orderRewards = { coins: Number(winningItem.value) || 20 };
-            } else if (winningItem.type?.startsWith('game_')) {
-              pkgId = `wheel_${winningItem.type}`;
-              orderRewards = {
-                items: [{
-                  id: winningItem.type.replace(/^game_/, 'item_'),
-                  name: winningItem.name,
-                  category: 'material',
-                  quantity: Number(winningItem.value) || 1
-                }]
-              };
-            }
-
-            const shouldNotify = Boolean(
-              winningItem.notify_on_win 
-              ?? getWheelNotifyFallback(winningItem.id) 
-              ?? (wonShoes || winningItem.type === 'game_shoes_legendary')
-            );
-
-            try {
-              const { error: gErr } = await supabase.from('game_orders').insert([{
-                id: orderId,
-                user_id: targetGameUid,
-                nickname: currentUser.name,
-                web_user: currentUser.id,
-                package_id: pkgId,
-                package_name: pkgName,
-                price: 0,
-                notify: shouldNotify,
-                rewards: {
-                  ...orderRewards,
-                  notify: shouldNotify,
-                  source_type: 'wheel'
-                },
-                status: 'pending'
-              }]);
-              if (gErr) console.warn("Lỗi đồng bộ game_orders:", gErr);
-            } catch (e) {
-              console.warn("Lỗi dispatch game_order:", e);
-            }
-          }
-
           // Kéo 2 dòng lịch sử mới nhất (Vé quay & Trúng thưởng) để hiển thị bên phải
           const { data: newTxs } = await supabase.from('transactions').select('*').eq('user', currentUser.name).order('created_at', { ascending: false }).limit(2);
           if (newTxs) {
@@ -7225,23 +7223,21 @@ const App = () => {
               return [...newTxs, ...filtered];
             });
           }
+        } catch (e) { }
 
-          // Hiển thị bảng chúc mừng
-          setGiftModalData({
-            item: winningItem,
-            prizeValue: Number(winningItem.value) || 0,
-            prizeType: winningItem.type,
-            isLost: winningItem.type === 'none',
-            isShoes: wonShoes,
-            isGameReward: isGameReward,
-            isPityWin: Boolean(data?.is_pity_trigger),
-            pityCount: nextPity,
-            hasLinkedGame: Boolean(currentLinked)
-          });
-          setIsGiftOpened(true);
-        } catch (spinFinishErr) {
-          console.error("Lỗi callback kết thúc vòng quay:", spinFinishErr);
-        }
+        // Hiển thị bảng chúc mừng
+        setGiftModalData({
+          item: winningItem,
+          prizeValue: Number(winningItem.value) || 0,
+          prizeType: winningItem.type,
+          isLost: winningItem.type === 'none',
+          isShoes: wonShoes,
+          isGameReward: isGameReward,
+          isPityWin: Boolean(data?.is_pity_trigger),
+          pityCount: nextPity,
+          hasLinkedGame: Boolean(currentLinked)
+        });
+        setIsGiftOpened(true);
       }, 4000);
     };
 
@@ -7476,6 +7472,165 @@ const App = () => {
       const currentBase = rotation % 360;
       const safeRandomOffset = (Math.random() * 0.16 - 0.08) * sliceAngle;
       const targetRotation = rotation + (360 - currentBase) + 2160 + (360 - centerAngle) + safeRandomOffset;
+      // CẬP NHẬT USER VÀ PITY NGAY LẬP TỨC
+      const latestMe = currentUserRef.current || currentUser;
+      const currentLinked = latestMe?.linked_game_id || localStorage.getItem(`shop_linked_game_id_${latestMe?.id}`);
+      const resolvedPity = (finalPity !== undefined && finalPity !== null) ? Number(finalPity) : (latestMe?.shoes_pity ?? currentUser?.shoes_pity ?? 0);
+      const updatedUser = {
+        ...latestMe,
+        balance: finalNewBalance,
+        spins: finalNewSpins,
+        rentFund: finalNewFund,
+        shoes_pity: resolvedPity,
+        linked_game_id: currentLinked
+      };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+      setUsersDb(prev => prev.map(u => u.id === (latestMe?.id || currentUser?.id) ? updatedUser : u));
+
+      // Cập nhật bảo hiểm Pity
+      setShoesPity(resolvedPity);
+      const myUid = latestMe?.id || currentUser?.id;
+      if (myUid) {
+        try {
+          localStorage.setItem(`shop_shoes_pity_${myUid}`, resolvedPity.toString());
+        } catch (e) { }
+      }
+
+      // TỔNG KẾT VẬT PHẨM TRÚNG TỪ 10 LƯỢT
+      let sumAttacks = 0;
+      let sumBossChests = 0;
+      let sumRoyalChests = 0;
+      let sumCoins = 0;
+      let sumMoney = 0;
+      let sumSpins = 0;
+      let sumFund = 0;
+      let sumEssenceStones = 0;
+      let sumRingCrystals = 0;
+      let hasShoes = false;
+
+      itemsResult.forEach(it => {
+        const itType = String(it.type || '').toLowerCase();
+        const itName = String(it.name || '').toLowerCase();
+        if (it.isShoes || itType === 'game_shoes_legendary' || itName.includes('giày')) hasShoes = true;
+        else if (itType === 'game_essence_stone' || itName.includes('tinh hoa')) sumEssenceStones += (Number(it.value) || 5);
+        else if (itType === 'game_ring_crystal' || itName.includes('tinh thể')) sumRingCrystals += (Number(it.value) || 10);
+        else if (itType === 'game_attacks' || itName.includes('lượt đánh')) sumAttacks += (Number(it.value) || 5);
+        else if (itType === 'game_boss_chests' || itName.includes('hòm boss')) sumBossChests += (Number(it.value) || 3);
+        else if (itType === 'game_royal_chests' || itName.includes('hoàng kim')) sumRoyalChests += (Number(it.value) || 1);
+        else if (itType === 'game_coins' || itType === 'coins' || itType === 'xu' || itName.includes('xu')) sumCoins += (Number(it.value) || 20);
+        else if (itType === 'money') sumMoney += (Number(it.value) || 0);
+        else if (itType === 'spin') sumSpins += (Number(it.value) || 0);
+        else if (itType === 'fund') sumFund += (Number(it.value) || 0);
+      });
+
+      // TỰ ĐỘNG GỬI VẬT PHẨM GAME VÀO GAME_ORDERS NGAY LẬP TỨC
+      // (Không chờ 4s animation để tránh mất đơn nếu tắt trình duyệt)
+      const hasAnyGameReward = hasShoes || sumAttacks > 0 || sumBossChests > 0 || sumRoyalChests > 0 || sumCoins > 0 || sumEssenceStones > 0 || sumRingCrystals > 0;
+      const targetGameUid = currentLinked
+        || (currentUser?.name ? currentUser.name.trim() : null)
+        || currentUser?.id;
+
+      if (hasAnyGameReward && targetGameUid) {
+        const orderId = `WO_X10_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        const orderRewards = {};
+        const itemsList = [];
+
+        if (hasShoes) {
+          itemsList.push({
+            id: `SHOES_LEGENDARY_${Date.now()}`,
+            name: 'Giày Thần Tốc',
+            category: 'shoes',
+            type: 'shoes',
+            tier: 'Huyền Thoại',
+            base_agility: 300,
+            agility: 300,
+            stars: 0,
+            plus: 0,
+            sub_stats: ['⚡ +30% Tốc Độ Đôi Giày'],
+            description: 'Giày Huyền Thoại Thần Tốc (+300 Tốc độ) nhận từ Vòng Quay x10'
+          });
+          orderRewards.auto_equip = false;
+          if (bossPlayerSummary) {
+            const newShoesObj = {
+              id: `SHOES_LEGENDARY_${Date.now()}`,
+              name: 'Giày Thần Tốc',
+              category: 'shoes',
+              type: 'shoes',
+              tier: 'Huyền Thoại',
+              base_agility: 300,
+              agility: 300,
+              stars: 0,
+              plus: 0,
+              sub_stats: ['⚡ +30% Tốc Độ Đôi Giày']
+            };
+            setBossPlayerSummary(prev => {
+              if (!prev) return prev;
+              return { ...prev, inventory: [newShoesObj, ...(prev.inventory || [])] };
+            });
+          }
+        }
+        if (sumEssenceStones > 0) {
+          itemsList.push({
+            id: 'item_essence_stone',
+            name: 'Đá Tinh Hoa',
+            category: 'material',
+            type: 'material',
+            tier: 'Thượng Cổ',
+            quantity: sumEssenceStones,
+            image: 'da_tinh_hoa.png',
+            desc: 'Đá quý thăng cấp kỹ năng Nhẫn Thần Binh'
+          });
+        }
+        if (sumRingCrystals > 0) {
+          itemsList.push({
+            id: 'item_ring_crystal',
+            name: 'Tinh Thể Cường Hóa',
+            category: 'material',
+            type: 'material',
+            tier: 'Thượng Cổ',
+            quantity: sumRingCrystals,
+            image: 'ring_crystal.png',
+            desc: 'Tinh thể cường hóa, nâng sao và đột phá Nhẫn Thần Binh'
+          });
+        }
+        if (itemsList.length > 0) orderRewards.items = itemsList;
+        if (sumAttacks > 0) orderRewards.attacks = sumAttacks;
+        if (sumBossChests > 0) orderRewards.boss_chests = sumBossChests;
+        if (sumRoyalChests > 0) orderRewards.royal_chests = sumRoyalChests;
+        if (sumCoins > 0) orderRewards.coins = sumCoins;
+
+        const shouldNotifyX10 = itemsResult.some(it => {
+          const rawItem = activeDb.find(dbIt => dbIt.id === it.id) || it;
+          return Boolean(
+            rawItem?.notify_on_win 
+            ?? getWheelNotifyFallback(rawItem?.id)
+            ?? (rawItem?.isShoes || rawItem?.type === 'game_shoes_legendary' || it?.isShoes)
+          );
+        });
+
+        supabase.from('game_orders').insert([{
+          id: orderId,
+          user_id: targetGameUid,
+          nickname: currentUser.name,
+          web_user: currentUser.id,
+          package_id: 'wheel_spin_x10',
+          package_name: 'Vòng Quay May Mắn (Gói x10 Lượt)',
+          price: 0,
+          notify: shouldNotifyX10,
+          rewards: {
+            ...orderRewards,
+            notify: shouldNotifyX10,
+            source_type: 'wheel'
+          },
+          status: 'pending'
+        }]).then(({ error: gErr }) => {
+          if (gErr) console.warn("Lỗi đồng bộ game_orders x10:", gErr);
+        }).catch(e => {
+          console.warn("Lỗi dispatch game_orders x10:", e);
+        });
+      }
+
       setRotation(targetRotation);
 
       // Đợi 4 giây cho vòng quay quay xong
@@ -7486,164 +7641,6 @@ const App = () => {
 
         const winAudio = document.getElementById('winSound');
         if (winAudio) { winAudio.currentTime = 0; winAudio.volume = 0.85; winAudio.play().catch(e => { }); }
-
-        const latestMe = currentUserRef.current || currentUser;
-        const currentLinked = latestMe?.linked_game_id || localStorage.getItem(`shop_linked_game_id_${latestMe?.id}`);
-        const resolvedPity = (finalPity !== undefined && finalPity !== null) ? Number(finalPity) : (latestMe?.shoes_pity ?? currentUser?.shoes_pity ?? 0);
-        const updatedUser = {
-          ...latestMe,
-          balance: finalNewBalance,
-          spins: finalNewSpins,
-          rentFund: finalNewFund,
-          shoes_pity: resolvedPity,
-          linked_game_id: currentLinked
-        };
-        setCurrentUser(updatedUser);
-        localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
-        setUsersDb(prev => prev.map(u => u.id === (latestMe?.id || currentUser?.id) ? updatedUser : u));
-
-        // Cập nhật bảo hiểm Pity
-        setShoesPity(resolvedPity);
-        const myUid = latestMe?.id || currentUser?.id;
-        if (myUid) {
-          try {
-            localStorage.setItem(`shop_shoes_pity_${myUid}`, resolvedPity.toString());
-          } catch (e) { }
-        }
-
-        // TỔNG KẾT VẬT PHẨM TRÚNG TỪ 10 LƯỢT
-        let sumAttacks = 0;
-        let sumBossChests = 0;
-        let sumRoyalChests = 0;
-        let sumCoins = 0;
-        let sumMoney = 0;
-        let sumSpins = 0;
-        let sumFund = 0;
-        let sumEssenceStones = 0;
-        let sumRingCrystals = 0;
-        let hasShoes = false;
-
-        itemsResult.forEach(it => {
-          const itType = String(it.type || '').toLowerCase();
-          const itName = String(it.name || '').toLowerCase();
-          if (it.isShoes || itType === 'game_shoes_legendary' || itName.includes('giày')) hasShoes = true;
-          else if (itType === 'game_essence_stone' || itName.includes('tinh hoa')) sumEssenceStones += (Number(it.value) || 5);
-          else if (itType === 'game_ring_crystal' || itName.includes('tinh thể')) sumRingCrystals += (Number(it.value) || 10);
-          else if (itType === 'game_attacks' || itName.includes('lượt đánh')) sumAttacks += (Number(it.value) || 5);
-          else if (itType === 'game_boss_chests' || itName.includes('hòm boss')) sumBossChests += (Number(it.value) || 3);
-          else if (itType === 'game_royal_chests' || itName.includes('hoàng kim')) sumRoyalChests += (Number(it.value) || 1);
-          else if (itType === 'game_coins' || itType === 'coins' || itType === 'xu' || itName.includes('xu')) sumCoins += (Number(it.value) || 20);
-          else if (itType === 'money') sumMoney += (Number(it.value) || 0);
-          else if (itType === 'spin') sumSpins += (Number(it.value) || 0);
-          else if (itType === 'fund') sumFund += (Number(it.value) || 0);
-        });
-
-        // TỰ ĐỘNG GỬI VẬT PHẨM GAME VÀO GAME_ORDERS
-        const hasAnyGameReward = hasShoes || sumAttacks > 0 || sumBossChests > 0 || sumRoyalChests > 0 || sumCoins > 0 || sumEssenceStones > 0 || sumRingCrystals > 0;
-        const targetGameUid = currentLinked
-          || (currentUser?.name ? currentUser.name.trim() : null)
-          || currentUser?.id;
-
-        if (hasAnyGameReward && targetGameUid) {
-          const orderId = `WO_X10_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-          const orderRewards = {};
-          const itemsList = [];
-
-          if (hasShoes) {
-            itemsList.push({
-              id: `SHOES_LEGENDARY_${Date.now()}`,
-              name: 'Giày Thần Tốc',
-              category: 'shoes',
-              type: 'shoes',
-              tier: 'Huyền Thoại',
-              base_agility: 300,
-              agility: 300,
-              stars: 0,
-              plus: 0,
-              sub_stats: ['⚡ +30% Tốc Độ Đôi Giày'],
-              description: 'Giày Huyền Thoại Thần Tốc (+300 Tốc độ) nhận từ Vòng Quay x10'
-            });
-            orderRewards.auto_equip = false;
-            if (bossPlayerSummary) {
-              const newShoesObj = {
-                id: `SHOES_LEGENDARY_${Date.now()}`,
-                name: 'Giày Thần Tốc',
-                category: 'shoes',
-                type: 'shoes',
-                tier: 'Huyền Thoại',
-                base_agility: 300,
-                agility: 300,
-                stars: 0,
-                plus: 0,
-                sub_stats: ['⚡ +30% Tốc Độ Đôi Giày']
-              };
-              setBossPlayerSummary(prev => {
-                if (!prev) return prev;
-                return { ...prev, inventory: [newShoesObj, ...(prev.inventory || [])] };
-              });
-            }
-          }
-          if (sumEssenceStones > 0) {
-            itemsList.push({
-              id: 'item_essence_stone',
-              name: 'Đá Tinh Hoa',
-              category: 'material',
-              type: 'material',
-              tier: 'Thượng Cổ',
-              quantity: sumEssenceStones,
-              image: 'da_tinh_hoa.png',
-              desc: 'Đá quý thăng cấp kỹ năng Nhẫn Thần Binh'
-            });
-          }
-          if (sumRingCrystals > 0) {
-            itemsList.push({
-              id: 'item_ring_crystal',
-              name: 'Tinh Thể Cường Hóa',
-              category: 'material',
-              type: 'material',
-              tier: 'Thượng Cổ',
-              quantity: sumRingCrystals,
-              image: 'ring_crystal.png',
-              desc: 'Tinh thể cường hóa, nâng sao và đột phá Nhẫn Thần Binh'
-            });
-          }
-          if (itemsList.length > 0) orderRewards.items = itemsList;
-          if (sumAttacks > 0) orderRewards.attacks = sumAttacks;
-          if (sumBossChests > 0) orderRewards.boss_chests = sumBossChests;
-          if (sumRoyalChests > 0) orderRewards.royal_chests = sumRoyalChests;
-          if (sumCoins > 0) orderRewards.coins = sumCoins;
-
-          // Kiểm tra xem trong các phần thưởng quay trúng có món nào được bật thông báo hay không
-          const shouldNotifyX10 = itemsResult.some(it => {
-            const rawItem = activeDb.find(dbIt => dbIt.id === it.id) || it;
-            return Boolean(
-              rawItem?.notify_on_win 
-              ?? getWheelNotifyFallback(rawItem?.id)
-              ?? (rawItem?.isShoes || rawItem?.type === 'game_shoes_legendary')
-            );
-          });
-
-          try {
-            await supabase.from('game_orders').insert([{
-              id: orderId,
-              user_id: targetGameUid,
-              nickname: currentUser.name,
-              web_user: currentUser.id,
-              package_id: 'wheel_spin_x10',
-              package_name: 'Vòng Quay May Mắn (Gói x10 Lượt)',
-              price: 0,
-              notify: shouldNotifyX10,
-              rewards: {
-                ...orderRewards,
-                notify: shouldNotifyX10,
-                source_type: 'wheel'
-              },
-              status: 'pending'
-            }]);
-          } catch (e) {
-            console.warn("Lỗi dispatch game_orders x10:", e);
-          }
-        }
 
         try {
           const { data: newTxs } = await supabase.from('transactions').select('*').eq('user', currentUser.name).order('created_at', { ascending: false }).limit(5);
