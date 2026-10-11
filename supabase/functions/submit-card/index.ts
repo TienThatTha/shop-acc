@@ -52,8 +52,22 @@ serve(async (req) => {
       )
     }
     
-    const partnerId = Deno.env.get('PARTNER_ID')
-    const partnerKey = Deno.env.get('PARTNER_KEY')
+    let partnerId = Deno.env.get('PARTNER_ID') || '68259454751'
+    let partnerKey = Deno.env.get('PARTNER_KEY') || 'a8707134740255bc7e93ede02a02878d'
+    let DOITHECAO_API_URL = 'https://doithecao.com/chargingws/v2'
+
+    try {
+      const { data: partnerCfg } = await supabaseAdmin
+        .from('site_config')
+        .select('value')
+        .eq('id', 'card_partner_config')
+        .single()
+      if (partnerCfg?.value?.partner_id) partnerId = partnerCfg.value.partner_id
+      if (partnerCfg?.value?.partner_key) partnerKey = partnerCfg.value.partner_key
+      if (partnerCfg?.value?.api_url) DOITHECAO_API_URL = partnerCfg.value.api_url
+    } catch {
+      // Dùng fallback mặc định
+    }
     
     if (!partnerId || !partnerKey) {
       throw new Error("Hệ thống chưa cấu hình Partner ID/Key!")
@@ -97,8 +111,6 @@ serve(async (req) => {
     }])
 
     if (dbError) throw dbError;
-
-    const DOITHECAO_API_URL = 'https://doithecao.com/chargingws/v2'; 
 
     const response = await fetch(DOITHECAO_API_URL, {
       method: 'POST',

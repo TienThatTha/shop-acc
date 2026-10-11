@@ -891,7 +891,7 @@ const App = () => {
   const [payosTimeLeft, setPayosTimeLeft] = useState(600);
   const [liveCardError, setLiveCardError] = useState(null);
   const [cardTelco, setCardTelco] = useState('VIETTEL');
-  const [cardAmount, setCardAmount] = useState('10000');
+  const [cardAmount, setCardAmount] = useState('');
   const [cardCode, setCardCode] = useState('');
   const [cardSerial, setCardSerial] = useState('');
 
@@ -6164,6 +6164,11 @@ const App = () => {
       window.isSubmittingCard = true;
       setLiveCardError(null);
 
+      if (!cardAmount || !String(cardAmount).trim() || cardAmount === '0') {
+        window.isSubmittingCard = false;
+        return showToast("Vui lòng chọn mệnh giá thẻ!", "error");
+      }
+
       if (!cardCode.trim() || !cardSerial.trim()) {
         window.isSubmittingCard = false;
         return showToast("Vui lòng nhập đầy đủ Mã thẻ và Số Serial!", "error");
@@ -6187,6 +6192,7 @@ const App = () => {
           showToast("Gửi thẻ thành công! Vui lòng chờ hệ thống xử lý trong ít phút.", "success");
           setCardCode('');
           setCardSerial('');
+          setCardAmount('');
           // Add to local state to reflect UI immediately
           setDepositRequests(prev => [{
             id: data.requestId,
@@ -6376,7 +6382,13 @@ const App = () => {
                   </div>
                   <div>
                     <label className="text-xs text-slate-400 font-bold mb-1 block">Mệnh giá</label>
-                    <select value={cardAmount} onChange={e => setCardAmount(e.target.value)} className="w-full p-3 bg-[#0B1120] border border-slate-700 rounded-xl text-white outline-none">
+                    <select
+                      value={cardAmount}
+                      onChange={e => setCardAmount(e.target.value)}
+                      className={`w-full p-3 bg-[#0B1120] border rounded-xl outline-none transition-colors ${!cardAmount ? 'text-slate-400 border-slate-700' : 'text-white border-slate-700'}`}
+                      required
+                    >
+                      <option value="" disabled>-- Chọn mệnh giá --</option>
                       <option value="10000">10.000 đ</option>
                       <option value="20000">20.000 đ</option>
                       <option value="50000">50.000 đ</option>
@@ -7086,11 +7098,10 @@ const App = () => {
             const orderId = `WO_WHEEL_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
             let orderRewards = {};
             let pkgId = `wheel_${winningItem.type || 'reward'}`;
-            let pkgName = `Vòng Quay: ${winningItem.name}`;
+            let pkgName = 'Vòng Quay May Mắn (Gói x1 Lượt)';
 
             if (wonShoes || winningItem.type === 'game_shoes_legendary') {
               pkgId = 'wheel_shoes_legendary';
-              pkgName = 'Vòng Quay: Giày Thần Tốc (Huyền Thoại)';
               orderRewards = {
                 items: [{
                   id: `SHOES_LEGENDARY_${Date.now()}`,
@@ -7105,7 +7116,7 @@ const App = () => {
                   sub_stats: ['⚡ +30% Tốc Độ Đôi Giày'],
                   description: 'Giày Huyền Thoại Thần Tốc (+300 Tốc độ) nhận từ Vòng Quay May Mắn (Bảo hiểm 121)'
                 }],
-                auto_equip: true
+                auto_equip: false
               };
               if (bossPlayerSummary) {
                 const newShoesObj = {
@@ -7122,13 +7133,11 @@ const App = () => {
                 };
                 setBossPlayerSummary(prev => {
                   if (!prev) return prev;
-                  const newInv = prev.shoes ? [...(prev.inventory || []), prev.shoes] : (prev.inventory || []);
-                  return { ...prev, shoes: newShoesObj, inventory: newInv };
+                  return { ...prev, inventory: [newShoesObj, ...(prev.inventory || [])] };
                 });
               }
             } else if (winningItem.type === 'game_essence_stone' || winningItem.name?.toLowerCase().includes('tinh hoa')) {
               pkgId = 'wheel_game_essence_stone';
-              pkgName = `Vòng Quay: ${winningItem.name}`;
               orderRewards = {
                 items: [{
                   id: 'item_essence_stone',
@@ -7143,7 +7152,6 @@ const App = () => {
               };
             } else if (winningItem.type === 'game_ring_crystal' || winningItem.name?.toLowerCase().includes('tinh thể')) {
               pkgId = 'wheel_game_ring_crystal';
-              pkgName = `Vòng Quay: ${winningItem.name}`;
               orderRewards = {
                 items: [{
                   id: 'item_ring_crystal',
@@ -7170,7 +7178,6 @@ const App = () => {
               orderRewards = { coins: Number(winningItem.value) || 20 };
             } else if (winningItem.type?.startsWith('game_')) {
               pkgId = `wheel_${winningItem.type}`;
-              pkgName = `Vòng Quay: ${winningItem.name}`;
               orderRewards = {
                 items: [{
                   id: winningItem.type.replace(/^game_/, 'item_'),
@@ -7556,7 +7563,7 @@ const App = () => {
               sub_stats: ['⚡ +30% Tốc Độ Đôi Giày'],
               description: 'Giày Huyền Thoại Thần Tốc (+300 Tốc độ) nhận từ Vòng Quay x10'
             });
-            orderRewards.auto_equip = true;
+            orderRewards.auto_equip = false;
             if (bossPlayerSummary) {
               const newShoesObj = {
                 id: `SHOES_LEGENDARY_${Date.now()}`,
@@ -7572,8 +7579,7 @@ const App = () => {
               };
               setBossPlayerSummary(prev => {
                 if (!prev) return prev;
-                const newInv = prev.shoes ? [...(prev.inventory || []), prev.shoes] : (prev.inventory || []);
-                return { ...prev, shoes: newShoesObj, inventory: newInv };
+                return { ...prev, inventory: [newShoesObj, ...(prev.inventory || [])] };
               });
             }
           }

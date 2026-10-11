@@ -9,11 +9,25 @@ const supabaseAdmin = createClient(
 
 serve(async () => {
   try {
-    const partnerId = Deno.env.get('PARTNER_ID')
-    const partnerKey = Deno.env.get('PARTNER_KEY')
+    let partnerId = Deno.env.get('PARTNER_ID') || '68259454751';
+    let partnerKey = Deno.env.get('PARTNER_KEY') || 'a8707134740255bc7e93ede02a02878d';
+    let apiUrl = 'https://doithecao.com/chargingws/v2';
+
+    try {
+      const { data: partnerCfg } = await supabaseAdmin
+        .from('site_config')
+        .select('value')
+        .eq('id', 'card_partner_config')
+        .single();
+      if (partnerCfg?.value?.partner_id) partnerId = partnerCfg.value.partner_id;
+      if (partnerCfg?.value?.partner_key) partnerKey = partnerCfg.value.partner_key;
+      if (partnerCfg?.value?.api_url) apiUrl = partnerCfg.value.api_url;
+    } catch {
+      // Dùng fallback
+    }
 
     if (!partnerId || !partnerKey) {
-      return new Response("Missing Partner Config", { status: 500 })
+      return new Response("Missing Partner Config", { status: 500 });
     }
 
     // 1. Tìm các thẻ đang Pending quá 30 phút

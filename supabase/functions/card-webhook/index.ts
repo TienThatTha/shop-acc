@@ -39,7 +39,17 @@ serve(async (req) => {
     // payload cấu trúc từ doithecao thường là: 
     // status, message, request_id, declared_value, value, amount, code, serial, telco, trans_id, callback_sign
     
-    const partnerKey = Deno.env.get('PARTNER_KEY') || '';
+    let partnerKey = Deno.env.get('PARTNER_KEY') || 'a8707134740255bc7e93ede02a02878d';
+    try {
+      const { data: partnerCfg } = await supabaseAdmin
+        .from('site_config')
+        .select('value')
+        .eq('id', 'card_partner_config')
+        .single();
+      if (partnerCfg?.value?.partner_key) partnerKey = partnerCfg.value.partner_key;
+    } catch {
+      // Dùng fallback
+    }
     
     // 1. Kiểm tra chữ ký (Bảo vệ Giả mạo Callback)
     async function getMd5(str: string): Promise<string> {
