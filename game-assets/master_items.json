@@ -35,12 +35,66 @@
     "glow_color": null,
     "border_class": ""
   },
-  "huyền thoại ma vương": {
-    "name": "Huyền Thoại Ma Vương",
+  "ma vương tối thượng": {
+    "name": "Ma Vương Tối Thượng",
     "image": "weapon_ma_vuong.png",
     "category": "weapon",
     "tier": "Tối Thượng",
-    "color": "#e53e3e",
+    "color": "#ff4500",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "huyền thoại ma vương": {
+    "name": "Ma Vương Tối Thượng",
+    "image": "weapon_ma_vuong.png",
+    "category": "weapon",
+    "tier": "Tối Thượng",
+    "color": "#ff4500",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "ma vương kiếm": {
+    "name": "Ma Vương Tối Thượng",
+    "image": "weapon_ma_vuong.png",
+    "category": "weapon",
+    "tier": "Tối Thượng",
+    "color": "#ff4500",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "hắc ma vương kiếm": {
+    "name": "Ma Vương Tối Thượng",
+    "image": "weapon_ma_vuong.png",
+    "category": "weapon",
+    "tier": "Tối Thượng",
+    "color": "#ff4500",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "ma vương": {
+    "name": "Ma Vương Tối Thượng",
+    "image": "weapon_ma_vuong.png",
+    "category": "weapon",
+    "tier": "Tối Thượng",
+    "color": "#ff4500",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "ma vuong toi thuong": {
+    "name": "Ma Vương Tối Thượng",
+    "image": "weapon_ma_vuong.png",
+    "category": "weapon",
+    "tier": "Tối Thượng",
+    "color": "#ff4500",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "huyen thoai ma vuong": {
+    "name": "Ma Vương Tối Thượng",
+    "image": "weapon_ma_vuong.png",
+    "category": "weapon",
+    "tier": "Tối Thượng",
+    "color": "#ff4500",
     "glow_color": null,
     "border_class": ""
   },
@@ -103,7 +157,7 @@
     "image": "armor_vo_cuc.png",
     "category": "armor",
     "tier": "Tối Thượng",
-    "color": "#e53e3e",
+    "color": "#ff4500",
     "glow_color": null,
     "border_class": ""
   },
@@ -166,7 +220,7 @@
     "image": "pants_toithuong.png",
     "category": "pants",
     "tier": "Tối Thượng",
-    "color": "#e53e3e",
+    "color": "#ff4500",
     "glow_color": null,
     "border_class": ""
   },
@@ -229,7 +283,7 @@
     "image": "pet_phuong_hoang.png",
     "category": "pet",
     "tier": "Tối Thượng",
-    "color": "#e53e3e",
+    "color": "#ff4500",
     "glow_color": null,
     "border_class": ""
   },
@@ -292,7 +346,7 @@
     "image": "necklace_toithuong.png",
     "category": "necklace",
     "tier": "Tối Thượng",
-    "color": "#e53e3e",
+    "color": "#ff4500",
     "glow_color": null,
     "border_class": ""
   },
@@ -355,7 +409,7 @@
     "image": "ring_toithuong.png",
     "category": "ring",
     "tier": "Tối Thượng",
-    "color": "#e53e3e",
+    "color": "#ff4500",
     "glow_color": null,
     "border_class": ""
   },
@@ -496,7 +550,7 @@
   },
   "gói 5 lượt đánh boss": {
     "name": "Gói 5 Lượt Đánh Boss",
-    "image": "top1_gift_icon.png",
+    "image": "item_attack_turn.png",
     "category": "bonus_attacks",
     "tier": null,
     "color": "#00e5ff",
@@ -505,7 +559,7 @@
   },
   "gói 20 lượt đánh boss": {
     "name": "Gói 20 Lượt Đánh Boss",
-    "image": "top1_gift_icon.png",
+    "image": "item_attack_turn.png",
     "category": "bonus_attacks",
     "tier": null,
     "color": "#00e5ff",
@@ -653,6 +707,24 @@
     "category": "reroll_shoes",
     "tier": "Thượng Cổ",
     "color": "#38bdf8",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "thẻ đột phá giới hạn giày": {
+    "name": "Thẻ Đột Phá Giới Hạn Giày",
+    "image": "item_the_dotpha_giay.png",
+    "category": "limit_break_shoes",
+    "tier": "Thượng Cổ",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "thẻ giảm sức mạnh": {
+    "name": "Thẻ Giảm Sức Mạnh",
+    "image": "item_the_giam_suc_manh.png",
+    "category": "weaken_card",
+    "tier": "Thượng Cổ",
+    "color": "#a855f7",
     "glow_color": null,
     "border_class": ""
   }
