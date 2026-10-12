@@ -13457,18 +13457,7 @@ const App = () => {
                   onMouseLeave={hideItemTooltip}
                   onClick={(e) => handleItemCardClick(item, e, category)}
                 >
-                  <div className="relative w-14 h-14 shrink-0 flex items-center justify-center bg-black/40 rounded-xl">
-                    {img ? (
-                      <img src={img} alt={item.name} className="w-12 h-12 object-contain filter drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-                    ) : (
-                      <span className="text-2xl">📦</span>
-                    )}
-                    {stars && (
-                      <span className="absolute bottom-0 right-0 text-[8px] font-black text-amber-300">
-                        {stars}
-                      </span>
-                    )}
-                  </div>
+                  {renderUniversalItemThumb(item, category, { sizeClass: 'w-14 h-14', imgSizeClass: 'w-11 h-11' })}
                   <div className="min-w-0 flex-1">
                     <div className="font-black text-sm text-white truncate" title={item.name}>
                       {item.name}
