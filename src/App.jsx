@@ -9961,10 +9961,16 @@ const App = () => {
         {starsCount > 0 && (
           <div 
             className="absolute top-1 left-0.5 flex flex-col z-10 pointer-events-none"
-            style={{ gap: '1px', filter: 'drop-shadow(0 1.2px 1.5px rgba(0,0,0,0.95))' }}
+            style={{ filter: 'drop-shadow(0 1.2px 1.5px rgba(0,0,0,0.95))' }}
           >
             {Array.from({ length: starsCount }).map((_, sI) => (
-              <svg key={sI} width="9" height="9" viewBox="0 0 24 24">
+              <svg 
+                key={sI} 
+                width="10" 
+                height="10" 
+                viewBox="0 0 24 24" 
+                style={{ marginTop: sI > 0 ? '-2.5px' : '0' }}
+              >
                 <path fill="#fde047" stroke="#261005" strokeWidth="2.0" strokeLinejoin="round" d="M 12.00,1.50 L 15.20,7.80 L 22.20,8.80 L 17.10,13.75 L 18.30,20.70 L 12.00,17.40 L 5.70,20.70 L 6.90,13.75 L 1.80,8.80 L 8.80,7.80 Z"/>
               </svg>
             ))}
@@ -11978,7 +11984,7 @@ const App = () => {
                 onMouseLeave={hideItemTooltip}
                 onClick={(e) => handleItemCardClick(item, e, category)}
               >
-                {renderUniversalItemThumb(item, category, { defaultIcon })}
+                {renderUniversalItemThumb(item, category, { sizeClass: 'w-16 h-16 sm:w-18 sm:h-18', imgSizeClass: 'w-12 h-12 sm:w-14 sm:h-14', defaultIcon })}
 
                 <div className="flex-1 min-w-0 flex flex-col justify-start">
                   <div className="flex items-center justify-between gap-1.5 flex-wrap">
