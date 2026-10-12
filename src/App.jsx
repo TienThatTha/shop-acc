@@ -9530,7 +9530,7 @@ const App = () => {
     if (t.includes('cổ đại')) return { color: '#00ffaa', border: '#00ffaa', bg: 'rgba(0, 255, 170, 0.15)', label: 'CỔ ĐẠI' };
     if (t.includes('tối thượng')) return { color: '#ff3366', border: '#ff3366', bg: 'rgba(255, 51, 102, 0.15)', label: 'TỐI THƯỢNG' };
     if (t.includes('thần thoại')) return { color: '#ffaa00', border: '#ffaa00', bg: 'rgba(255, 170, 0, 0.15)', label: 'THẦN THOẠI' };
-    if (t.includes('huyền thoại') || t.includes('legendary') || t.includes('thần tốc')) return { color: '#ff007f', border: '#ff007f', bg: 'rgba(255, 0, 127, 0.2)', label: '🌈 HUYỀN THOẠI 🌈' };
+    if (t.includes('huyền thoại') || t.includes('legendary') || t.includes('thần tốc')) return { color: '#ffd700', border: '#ffd700', bg: 'rgba(255, 215, 0, 0.2)', label: '🌈 HUYỀN THOẠI 🌈' };
     if (t.includes('sử thi') || t.includes('epic')) return { color: '#a855f7', border: '#a855f7', bg: 'rgba(168, 85, 247, 0.15)', label: 'SỬ THI' };
     if (t.includes('hiếm') || t.includes('rare')) return { color: '#38bdf8', border: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', label: 'HIẾM' };
     return { color: '#94a3b8', border: '#475569', bg: 'rgba(148, 163, 184, 0.15)', label: 'THƯỜNG' };
@@ -9826,6 +9826,210 @@ const App = () => {
     if (n.includes('giày') || n.includes('giay') || n.includes('shoes')) return 'shoes';
     if (n.includes('rồng') || n.includes('phượng') || n.includes('pet') || n.includes('thú')) return 'pet';
     return 'weapon';
+  };
+
+  // --- RENDER THUMBNAIL TRANG BỊ ĐỒNG BỘ 100% VỚI DISCORD PROFILE RENDERER ---
+  const renderUniversalItemThumb = (item, category, options = {}) => {
+    if (!item) return null;
+    const cat = category || getCategoryOfItem(item);
+    const isShoes = (cat === 'shoes') || String(item.category || '').toLowerCase() === 'shoes' || String(item.name || '').toLowerCase().includes('giày');
+    const isRing = (cat === 'ring') || String(item.category || '').toLowerCase() === 'ring' || String(item.name || '').toLowerCase().includes('nhẫn');
+    const isPet = (cat === 'pet') || String(item.category || '').toLowerCase() === 'pet';
+    const isWeapon = (cat === 'weapon') || String(item.category || '').toLowerCase() === 'weapon';
+    const isMaterial = cat === 'material' || (typeof isEnhancementStone === 'function' && isEnhancementStone(null, item));
+
+    const tierStr = String(item.tier || '').toLowerCase();
+    const isHT = isShoes && (tierStr.includes('huyền thoại') || tierStr.includes('legendary') || String(item.name || '').toLowerCase().includes('thần tốc'));
+    const isThuongCo = !isMaterial && (tierStr.includes('thượng cổ') || String(item.name || '').toLowerCase().includes('bá vương') || String(item.name || '').toLowerCase().includes('nữ oa') || String(item.name || '').toLowerCase().includes('bát hoang') || String(item.name || '').toLowerCase().includes('vô cực'));
+
+    const sizeClass = options.sizeClass || 'w-14 h-14 sm:w-16 sm:h-16';
+    const imgSizeClass = options.imgSizeClass || 'w-10 h-10 sm:w-12 sm:h-12';
+
+    let boxBg = '#060913';
+    let boxBorder = '2px solid #334155';
+    let boxShadow = '0 0 10px rgba(0,0,0,0.5)';
+    let imgFilter = 'drop-shadow(0 0 4px rgba(255,255,255,0.3))';
+
+    if (isThuongCo) {
+      boxBg = 'radial-gradient(circle at 70% 30%, #ec4899 0%, #8b5cf6 40%, #3b82f6 70%, #1e1b4b 100%)';
+      boxBorder = '2.5px solid #ffffff';
+      boxShadow = '0 0 18px rgba(236, 72, 153, 0.7), 0 0 30px rgba(59, 130, 246, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.4)';
+      imgFilter = 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.85))';
+    } else if (isHT) {
+      boxBg = 'radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.28) 0%, rgba(236, 72, 153, 0.35) 32%, rgba(99, 102, 241, 0.3) 65%, #060216 100%)';
+      boxBorder = '2.5px solid #ffd700';
+      boxShadow = '0 0 22px rgba(255, 215, 0, 0.85), 0 0 35px rgba(217, 70, 239, 0.65), inset 0 0 10px rgba(255, 215, 0, 0.35)';
+      imgFilter = 'drop-shadow(0 0 10px rgba(255, 215, 0, 0.9)) drop-shadow(0 0 16px rgba(236, 72, 153, 0.7))';
+    } else if (tierStr.includes('cổ đại')) {
+      boxBg = 'radial-gradient(circle at 70% 30%, #00ffaa 0%, #0d9488 45%, #134e4a 80%, #0f172a 100%)';
+      boxBorder = '2.5px solid #00ffaa';
+      boxShadow = '0 0 18px rgba(0, 255, 170, 0.8), inset 0 0 10px rgba(0, 255, 170, 0.35)';
+      imgFilter = 'drop-shadow(0 0 8px #00ffaa)';
+    } else if (tierStr.includes('tối thượng')) {
+      boxBg = 'radial-gradient(circle at 70% 30%, #ff0055 0%, #be123c 45%, #881337 80%, #1a050d 100%)';
+      boxBorder = '2.5px solid #ff0055';
+      boxShadow = '0 0 18px rgba(255, 0, 85, 0.8), inset 0 0 10px rgba(255, 0, 85, 0.35)';
+      imgFilter = 'drop-shadow(0 0 8px #ff0055)';
+    } else if (tierStr.includes('thần thoại')) {
+      boxBg = 'radial-gradient(circle at 70% 30%, #ffd700 0%, #d97706 45%, #78350f 80%, #1c0d02 100%)';
+      boxBorder = '2.5px solid #ffd700';
+      boxShadow = '0 0 18px rgba(255, 215, 0, 0.8), inset 0 0 10px rgba(255, 215, 0, 0.35)';
+      imgFilter = 'drop-shadow(0 0 8px #ffd700)';
+    } else if (tierStr.includes('epic') || tierStr.includes('sử thi')) {
+      boxBg = 'radial-gradient(circle at 70% 30%, #a855f7 0%, #7e22ce 45%, #581c87 80%, #150524 100%)';
+      boxBorder = '2.5px solid #a855f7';
+      boxShadow = '0 0 16px rgba(168, 85, 247, 0.7)';
+      imgFilter = 'drop-shadow(0 0 8px #a855f7)';
+    } else if (tierStr.includes('hiếm') || tierStr.includes('rare')) {
+      boxBg = 'radial-gradient(circle at 70% 30%, #38bdf8 0%, #0284c7 45%, #0369a1 80%, #041b2d 100%)';
+      boxBorder = '2.5px solid #38bdf8';
+      boxShadow = '0 0 16px rgba(56, 189, 248, 0.7)';
+      imgFilter = 'drop-shadow(0 0 8px #38bdf8)';
+    }
+
+    // 1. CỘT SAO DỌC: TUYỆT ĐỐI KHÔNG HIỂN THỊ SAO NẾU LÀ GIÀY HOẶC NGUYÊN LIỆU
+    const starsCount = (!isShoes && !isMaterial) ? Math.max(0, Number(item.stars != null ? item.stars : 1)) : 0;
+
+    // 2. CHỮ BẬC Ở ĐÁY KHUNG: TUYỆT ĐỐI KHÔNG CÓ BẬC NẾU LÀ GIÀY HOẶC NGUYÊN LIỆU
+    const showBac = (!isShoes && !isMaterial);
+    const tierStep = Number(item.tier_step || 0);
+
+    // 3. MÁC GÓC TRÊN BÊN PHẢI (Top-right badge)
+    let badgeLabel = '';
+    let badgeBg = '';
+    let badgeGlow = '';
+
+    if (isRing) {
+      const rLvl = Number(item.skill_level || 0);
+      if (rLvl > 0) {
+        badgeLabel = `Lv.${rLvl}`;
+        const isMax = (rLvl >= 9);
+        badgeBg = isMax ? 'linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #00f2fe 100%)' : 'linear-gradient(135deg, #a855f7, #6366f1)';
+        badgeGlow = '0 0 12px rgba(168,85,247,0.95), 0 0 6px rgba(0,242,254,0.9), 0 2px 4px rgba(0,0,0,0.8)';
+      }
+    } else if (isPet) {
+      const pLvl = Number(item.level || 1);
+      if (pLvl > 0) {
+        badgeLabel = `Lv.${pLvl}`;
+        const isMax = (pLvl >= 100);
+        badgeBg = isMax ? 'linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #f59e0b 100%)' : 'linear-gradient(135deg, #10b981, #059669)';
+        badgeGlow = '0 0 12px rgba(16,185,129,0.95), 0 0 6px rgba(6,182,212,0.9), 0 2px 4px rgba(0,0,0,0.8)';
+      }
+    } else {
+      const plusVal = Number(item.plus || 0);
+      if (plusVal > 0) {
+        badgeLabel = `+${plusVal}`;
+        const isMax = (plusVal >= 20);
+        if (isHT) {
+          badgeBg = 'linear-gradient(135deg, #ffd700 0%, #ff8c00 50%, #ec4899 100%)';
+          badgeGlow = '0 0 12px rgba(255,215,0,0.95), 0 2px 4px rgba(0,0,0,0.8)';
+        } else if (isMax) {
+          badgeBg = 'linear-gradient(135deg, #ff007f 0%, #a855f7 50%, #00f2fe 100%)';
+          badgeGlow = '0 0 12px rgba(255,0,127,0.95), 0 0 6px rgba(0,242,254,0.9), 0 2px 4px rgba(0,0,0,0.8)';
+        } else {
+          badgeBg = 'linear-gradient(135deg, #ffd700, #ff8c00)';
+          badgeGlow = '0 0 10px rgba(255,215,0,0.9), 0 2px 4px rgba(0,0,0,0.8)';
+        }
+      }
+    }
+
+    const imgUrl = getBossItemAsset(item, cat);
+    const rotStyle = isWeapon ? { transform: 'rotate(15deg) scale(1.12)' } : {};
+    const gradId = `goldGrad_web_${cat}_${Math.abs(String(item.name || '').split('').reduce((a, b) => (a << 5) - a + b.charCodeAt(0), 0)) % 10000}`;
+
+    return (
+      <div
+        className={`${sizeClass} aspect-square rounded-xl flex items-center justify-center relative shrink-0 self-start shadow-inner select-none`}
+        style={{
+          background: boxBg,
+          border: boxBorder,
+          boxShadow: boxShadow
+        }}
+      >
+        {imgUrl ? (
+          <img
+            src={imgUrl}
+            alt={item.name}
+            className={`${imgSizeClass} object-contain`}
+            style={{ ...rotStyle, filter: imgFilter }}
+          />
+        ) : (
+          <span className="text-2xl">{options.defaultIcon || '📦'}</span>
+        )}
+
+        {/* CỘT SAO DỌC NÉP SÁT MÉP TRÁI */}
+        {starsCount > 0 && (
+          <div 
+            className="absolute top-1 left-0.5 flex flex-col z-10 pointer-events-none"
+            style={{ gap: '1px', filter: 'drop-shadow(0 1.2px 1.5px rgba(0,0,0,0.95))' }}
+          >
+            {Array.from({ length: starsCount }).map((_, sI) => (
+              <svg key={sI} width="9" height="9" viewBox="0 0 24 24">
+                <path fill="#fde047" stroke="#261005" strokeWidth="2.0" strokeLinejoin="round" d="M 12.00,1.50 L 15.20,7.80 L 22.20,8.80 L 17.10,13.75 L 18.30,20.70 L 12.00,17.40 L 5.70,20.70 L 6.90,13.75 L 1.80,8.80 L 8.80,7.80 Z"/>
+              </svg>
+            ))}
+          </div>
+        )}
+
+        {/* CHỮ {tier_step} BẬC Ở ĐÁY KHUNG */}
+        {showBac && (
+          <div 
+            className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-15 whitespace-nowrap pointer-events-none"
+            style={{ filter: 'drop-shadow(0 1.5px 2px rgba(0,0,0,0.95)) drop-shadow(0 0 3px rgba(245,158,11,0.85))' }}
+          >
+            <svg width="48" height="16" viewBox="0 0 48 16" className="overflow-visible">
+              <defs>
+                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="30%" stopColor="#fffbde" />
+                  <stop offset="70%" stopColor="#ffd700" />
+                  <stop offset="100%" stopColor="#ea580c" />
+                </linearGradient>
+              </defs>
+              <text
+                x="24"
+                y="12"
+                textAnchor="middle"
+                fontFamily="'Segoe UI', 'Arial Black', sans-serif"
+                fontWeight="900"
+                fontSize="11"
+                fill={`url(#${gradId})`}
+                stroke="#1a0800"
+                strokeWidth="1.2"
+                strokeLinejoin="round"
+                paintOrder="stroke fill"
+              >
+                {tierStep} Bậc
+              </text>
+            </svg>
+          </div>
+        )}
+
+        {/* MÁC GÓC TRÊN BÊN PHẢI */}
+        {badgeLabel && (
+          <div
+            className="absolute -top-1.5 -right-1.5 z-25 text-white text-[9.5px] font-black px-1.5 py-0.5 rounded-md leading-none border border-white whitespace-nowrap"
+            style={{
+              background: badgeBg,
+              boxShadow: badgeGlow,
+              letterSpacing: '0.2px',
+              textShadow: '0 1px 2px #000'
+            }}
+          >
+            {badgeLabel}
+          </div>
+        )}
+
+        {/* VƯƠNG MIỆN CÁNH KIM RIÊNG CHO GIÀY HUYỀN THOẠI */}
+        {isHT && (
+          <img
+            src="/game-assets/frame_banana_wings_slim.png"
+            className="absolute -top-1.5 -left-1 w-[calc(100%+8px)] h-[calc(100%+8px)] max-w-none pointer-events-none z-20 filter drop-shadow-[0_0_8px_rgba(255,215,0,0.85)] drop-shadow-[0_0_15px_rgba(217,70,239,0.65)]"
+            alt="Winged Frame"
+          />
+        )}
+      </div>
+    );
   };
 
   // --- BẢNG THÔNG SỐ CHUẨN CỦA VẬT PHẨM (ĐỒNG BỘ 100% VỚI CONFIGS/GAME_ITEMS.JSON) ---
@@ -10396,6 +10600,7 @@ const App = () => {
     const itemName = String(item.name || '').trim();
     const lowerName = itemName.toLowerCase();
     const itemId = String(item.id || '').toLowerCase();
+    const isShoes = (category === 'shoes') || String(item.category || '').toLowerCase() === 'shoes' || lowerName.includes('giày');
 
     // DÀNH CHO NGUYÊN LIỆU (MATERIAL)
     let matInfo = null;
@@ -10593,24 +10798,11 @@ const App = () => {
 
           {/* HEADER VẬT PHẨM */}
           <div className="flex items-start gap-3 pb-3 border-b border-slate-800">
-            <div
-              className="w-14 h-14 rounded-xl flex items-center justify-center relative shrink-0 overflow-hidden bg-black/60 shadow-inner"
-              style={{
-                border: `1.5px solid ${isMaterial ? matInfo.badgeBorder : tier.color}`,
-                boxShadow: `inset 0 0 12px ${isMaterial ? matInfo.badgeBorder : tier.color}30`
-              }}
-            >
-              {img ? (
-                <img src={img} alt={item.name} className="w-11 h-11 object-contain filter drop-shadow-[0_0_6px_rgba(255,255,255,0.2)]" />
-              ) : (
-                <span className="text-2xl">{isMaterial ? matInfo.icon : catBadge.icon}</span>
-              )}
-              {!isMaterial && (
-                <div className="absolute bottom-0.5 text-center text-[7.5px] text-amber-300 font-bold">
-                  {stars}
-                </div>
-              )}
-            </div>
+            {renderUniversalItemThumb(item, category, {
+              sizeClass: 'w-14 h-14',
+              imgSizeClass: 'w-11 h-11',
+              defaultIcon: isMaterial ? matInfo.icon : catBadge.icon
+            })}
 
             <div className="flex-1 min-w-0 pr-2">
               <div className="font-black text-sm text-white truncate leading-tight">
@@ -10650,7 +10842,7 @@ const App = () => {
                     >
                       {catBadge.icon} {catBadge.label}
                     </span>
-                    {starsCount > 0 && (
+                    {!isShoes && starsCount > 0 && (
                       <span className="text-[9px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded">
                         {starsCount}⭐
                       </span>
@@ -11765,15 +11957,20 @@ const App = () => {
             const tier = getBossTierStyle(item.tier);
             const imgUrl = getBossItemAsset(item, category);
             const plusText = (item.plus && item.plus > 0) ? ` +${item.plus}` : '';
-            const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
-            const stars = '⭐'.repeat(starsCount);
+            const isShoes = (category === 'shoes') || String(item.category || '').toLowerCase() === 'shoes' || String(item.name || '').toLowerCase().includes('giày');
+            const isRing = (category === 'ring');
+            const isPet = (category === 'pet');
+            const isHT = isShoes && (String(item.tier || '').toLowerCase().includes('huyền thoại') || String(item.tier || '').toLowerCase().includes('legendary') || String(item.name || '').toLowerCase().includes('thần tốc'));
+            const isThuongCo = String(item.tier || '').toLowerCase().includes('thượng cổ') || String(item.name || '').toLowerCase().includes('bá vương') || String(item.name || '').toLowerCase().includes('nữ oa') || String(item.name || '').toLowerCase().includes('bát hoang') || String(item.name || '').toLowerCase().includes('vô cực');
+
+            const cardBorder = isThuongCo ? 'rgba(236, 72, 153, 0.65)' : (isHT ? '#ffd700' : tier.border);
 
             return (
               <div
                 className="rounded-2xl p-3 sm:p-3.5 flex items-start gap-3 sm:gap-3.5 relative transition-all duration-200 cursor-pointer hover:border-cyan-400/70 group"
                 style={{
                   background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(20, 28, 48, 0.92))',
-                  border: `1.5px solid ${tier.border}`,
+                  border: `1.5px solid ${cardBorder}`,
                   boxShadow: `0 4px 15px rgba(0,0,0,0.4)`
                 }}
                 onMouseEnter={(e) => showItemTooltip(item, e, category)}
@@ -11781,46 +11978,13 @@ const App = () => {
                 onMouseLeave={hideItemTooltip}
                 onClick={(e) => handleItemCardClick(item, e, category)}
               >
-                {/* Thumbnail vuông chuẩn tỉ lệ, không bị kéo dãn trên mobile */}
-                <div
-                  className="w-14 h-14 sm:w-16 sm:h-16 aspect-square rounded-xl flex items-center justify-center relative shrink-0 self-start shadow-inner"
-                  style={{
-                    border: `2px solid ${tier.color}`,
-                    background: '#060913',
-                    boxShadow: `0 0 12px ${tier.border}`
-                  }}
-                >
-                  {imgUrl ? (
-                    <img
-                      src={imgUrl}
-                      alt={item.name}
-                      className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
-                      style={{ filter: `drop-shadow(0 0 6px ${tier.color})` }}
-                    />
-                  ) : (
-                    <span className="text-2xl">{defaultIcon}</span>
-                  )}
-                  {Number(item.plus || 0) > 0 && (
-                    <div
-                      className={`absolute -top-1.5 -right-1.5 text-[9.5px] font-black px-1.5 py-0.5 rounded-md leading-none border z-10 ${
-                        Number(item.plus || 0) >= 20
-                          ? 'bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400 text-white border-cyan-300 shadow-[0_0_10px_rgba(255,0,127,0.9)]'
-                          : 'bg-gradient-to-r from-yellow-400 to-amber-500 text-black border-white shadow-[0_0_8px_rgba(255,215,0,0.8)]'
-                      }`}
-                    >
-                      +{item.plus}
-                    </div>
-                  )}
-                  <div className="absolute bottom-0.5 left-0 right-0 text-center text-[9px] text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                    {stars}
-                  </div>
-                </div>
+                {renderUniversalItemThumb(item, category, { defaultIcon })}
 
                 <div className="flex-1 min-w-0 flex flex-col justify-start">
                   <div className="flex items-center justify-between gap-1.5 flex-wrap">
                     <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                       <span className="font-extrabold text-xs sm:text-sm leading-snug" style={{ color: tier.color }} title={item.name}>
-                        {item.name}{plusText}
+                        {item.name}{isRing || isPet ? '' : plusText}
                       </span>
                       <span
                         className="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase shrink-0"
@@ -13011,33 +13175,7 @@ const App = () => {
                             >
                               <div className="flex items-start gap-3">
                                 {/* Ảnh trang bị */}
-                                <div
-                                  className="w-14 h-14 rounded-xl flex items-center justify-center relative shrink-0"
-                                  style={{
-                                    border: `1.5px solid ${tier.color}`,
-                                    background: '#060913'
-                                  }}
-                                >
-                                  {img ? (
-                                    <img src={img} alt={item.name} className="w-11 h-11 object-contain" />
-                                  ) : (
-                                    <span className="text-2xl">⚔️</span>
-                                  )}
-                                  {Number(item.plus || 0) > 0 && (
-                                    <div
-                                      className={`absolute -top-1.5 -right-1.5 text-[9.5px] font-black px-1.5 py-0.5 rounded-md leading-none border z-10 ${
-                                        Number(item.plus || 0) >= 20
-                                          ? 'bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400 text-white border-cyan-300 shadow-[0_0_10px_rgba(255,0,127,0.9)]'
-                                          : 'bg-gradient-to-r from-yellow-400 to-amber-500 text-black border-white shadow-[0_0_8px_rgba(255,215,0,0.8)]'
-                                      }`}
-                                    >
-                                      +{item.plus}
-                                    </div>
-                                  )}
-                                  <div className="absolute bottom-0.5 text-center text-[8px] text-amber-300">
-                                    {stars}
-                                  </div>
-                                </div>
+                                {renderUniversalItemThumb(item, category, { sizeClass: 'w-14 h-14', imgSizeClass: 'w-11 h-11', defaultIcon: '⚔️' })}
 
                                 {/* Thông tin trang bị */}
                                 <div className="flex-1 min-w-0">
@@ -13713,18 +13851,7 @@ const App = () => {
                                   </div>
 
                                   <div className="flex items-start gap-3 mt-1">
-                                    <div className="relative w-14 h-14 shrink-0 flex items-center justify-center bg-black/50 rounded-xl border border-slate-800">
-                                      {img ? (
-                                        <img src={img} alt={item.name} className="w-11 h-11 object-contain filter drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]" />
-                                      ) : (
-                                        <span className="text-xl">📦</span>
-                                      )}
-                                      {category !== 'material' && (
-                                        <span className="absolute bottom-0 right-0 text-[8px] font-black text-amber-300">
-                                          {stars}
-                                        </span>
-                                      )}
-                                    </div>
+                                    {renderUniversalItemThumb(item, category, { sizeClass: 'w-14 h-14', imgSizeClass: 'w-11 h-11' })}
 
                                     <div className="min-w-0 flex-1">
                                       <div className="font-black text-xs text-white truncate flex items-center justify-between" title={item.name}>
@@ -13920,13 +14047,7 @@ const App = () => {
                               onClick={(e) => handleItemCardClick(item, e, category)}
                             >
                               <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-12 h-12 rounded-xl bg-black/40 flex items-center justify-center shrink-0 border border-slate-800">
-                                  {img ? (
-                                    <img src={img} alt={item.name} className="w-10 h-10 object-contain" />
-                                  ) : (
-                                    <span className="text-xl">📦</span>
-                                  )}
-                                </div>
+                                {renderUniversalItemThumb(item, category, { sizeClass: 'w-12 h-12', imgSizeClass: 'w-10 h-10' })}
 
                                 <div className="min-w-0">
                                   <div className="font-black text-xs sm:text-sm text-white truncate">
@@ -14004,13 +14125,7 @@ const App = () => {
                               onClick={(e) => handleItemCardClick(item, e, category)}
                             >
                               <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-lg bg-black/40 flex items-center justify-center shrink-0 border border-slate-800">
-                                  {img ? (
-                                    <img src={img} alt={item.name} className="w-8 h-8 object-contain" />
-                                  ) : (
-                                    <span>📦</span>
-                                  )}
-                                </div>
+                                {renderUniversalItemThumb(item, category, { sizeClass: 'w-10 h-10', imgSizeClass: 'w-8 h-8' })}
                                 <div className="min-w-0">
                                   <div className="font-bold text-white truncate">
                                     {item.name}
