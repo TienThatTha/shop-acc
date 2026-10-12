@@ -9958,24 +9958,28 @@ const App = () => {
         )}
 
         {/* CỘT SAO DỌC NÉP SÁT MÉP TRÁI */}
-        {starsCount > 0 && (
-          <div 
-            className="absolute top-1 left-0.5 flex flex-col z-10 pointer-events-none"
-            style={{ filter: 'drop-shadow(0 1.2px 1.5px rgba(0,0,0,0.95))' }}
-          >
-            {Array.from({ length: starsCount }).map((_, sI) => (
-              <svg 
-                key={sI} 
-                width="10" 
-                height="10" 
-                viewBox="0 0 24 24" 
-                style={{ marginTop: sI > 0 ? '-2.5px' : '0' }}
-              >
-                <path fill="#fde047" stroke="#261005" strokeWidth="2.0" strokeLinejoin="round" d="M 12.00,1.50 L 15.20,7.80 L 22.20,8.80 L 17.10,13.75 L 18.30,20.70 L 12.00,17.40 L 5.70,20.70 L 6.90,13.75 L 1.80,8.80 L 8.80,7.80 Z"/>
-              </svg>
-            ))}
-          </div>
-        )}
+        {starsCount > 0 && (() => {
+          const sSz = starsCount >= 5 ? 8 : (starsCount >= 4 ? 8.5 : 9);
+          const sOverlap = starsCount >= 5 ? '-3.8px' : '-2.8px';
+          return (
+            <div 
+              className="absolute z-10 pointer-events-none flex flex-col"
+              style={{ top: '2.5px', left: '2px', filter: 'drop-shadow(0 1.2px 1.5px rgba(0,0,0,0.95))' }}
+            >
+              {Array.from({ length: starsCount }).map((_, sI) => (
+                <svg 
+                  key={sI} 
+                  width={sSz} 
+                  height={sSz} 
+                  viewBox="0 0 24 24" 
+                  style={{ marginTop: sI > 0 ? sOverlap : '0' }}
+                >
+                  <path fill="#fde047" stroke="#261005" strokeWidth="2.0" strokeLinejoin="round" d="M 12.00,1.50 L 15.20,7.80 L 22.20,8.80 L 17.10,13.75 L 18.30,20.70 L 12.00,17.40 L 5.70,20.70 L 6.90,13.75 L 1.80,8.80 L 8.80,7.80 Z"/>
+                </svg>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* CHỮ {tier_step} BẬC Ở ĐÁY KHUNG */}
         {showBac && (
