@@ -8076,51 +8076,34 @@ const App = () => {
             </p>
           </div>
 
-          {/* BANNER ĐẾM NGƯỢC KẾT THÚC SỰ KIỆN GIÀY THẦN TỐC */}
-          <div className="w-full max-w-2xl mx-auto mb-6 p-4 rounded-2xl bg-gradient-to-r from-rose-950/70 via-[#161224] to-amber-950/70 border border-amber-500/40 shadow-[0_0_30px_rgba(245,158,11,0.2)] backdrop-blur-md relative overflow-hidden text-left">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none"></div>
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 via-rose-500/20 to-yellow-500/10 border border-amber-500/40 flex items-center justify-center text-2xl shrink-0 shadow-inner shadow-amber-500/20 animate-bounce" style={{ animationDuration: '3s' }}>
-                  👟
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
-                      <Clock size={14} className="text-rose-400 animate-spin" style={{ animationDuration: '8s' }} />
-                      ĐẾM NGƯỢC KẾT THÚC SỰ KIỆN
-                    </span>
-                    <span className="bg-rose-500/20 text-rose-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-500/40 animate-pulse">
-                      HẠN CHÓT 23h59 16/10
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                    Bảo vật <strong className="text-amber-300">Giày Thần Tốc (+300 Tốc độ)</strong> bảo hiểm 121 lần quay. Sau 23h59 ngày 16/10 sự kiện sẽ chính thức đóng!
-                  </p>
-                </div>
-              </div>
+          {/* BANNER ĐẾM NGƯỢC KẾT THÚC SỰ KIỆN GIÀY THẦN TỐC (SIÊU GỌN GÀNG) */}
+          <div className="w-full max-w-lg mx-auto mb-4 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-950/50 via-[#111625]/90 to-amber-950/50 border border-amber-500/30 shadow-md backdrop-blur-md flex items-center justify-between gap-2 text-left">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-sm shrink-0">👟</span>
+              <span className="text-xs font-black uppercase tracking-wide text-amber-300 whitespace-nowrap">
+                Hạn chót Giày Thần Tốc:
+              </span>
+              <span className="bg-rose-500/20 text-rose-300 text-[10px] font-extrabold px-1.5 py-0.2 rounded border border-rose-500/30 shrink-0">
+                23h59 16/10
+              </span>
+            </div>
 
-              {/* 4 Khối số đếm ngược thời gian thực */}
-              <div className="flex items-center gap-1.5 font-mono shrink-0">
-                <div className="bg-[#070b14] border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-center min-w-[42px] shadow-sm">
-                  <div className="text-amber-400 font-black text-base sm:text-lg leading-none">{wheelCountdown.days}</div>
-                  <div className="text-[9px] text-slate-400 uppercase font-sans font-bold mt-0.5">Ngày</div>
-                </div>
-                <span className="text-amber-400 font-black text-base">:</span>
-                <div className="bg-[#070b14] border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-center min-w-[42px] shadow-sm">
-                  <div className="text-amber-400 font-black text-base sm:text-lg leading-none">{wheelCountdown.hours}</div>
-                  <div className="text-[9px] text-slate-400 uppercase font-sans font-bold mt-0.5">Giờ</div>
-                </div>
-                <span className="text-amber-400 font-black text-base">:</span>
-                <div className="bg-[#070b14] border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-center min-w-[42px] shadow-sm">
-                  <div className="text-amber-400 font-black text-base sm:text-lg leading-none">{wheelCountdown.minutes}</div>
-                  <div className="text-[9px] text-slate-400 uppercase font-sans font-bold mt-0.5">Phút</div>
-                </div>
-                <span className="text-amber-400 font-black text-base">:</span>
-                <div className="bg-[#070b14] border border-rose-500/50 rounded-xl px-2.5 py-1.5 text-center min-w-[42px] shadow-[0_0_12px_rgba(244,63,94,0.3)]">
-                  <div className="text-rose-400 font-black text-base sm:text-lg leading-none animate-pulse">{wheelCountdown.seconds}</div>
-                  <div className="text-[9px] text-rose-300 uppercase font-sans font-bold mt-0.5">Giây</div>
-                </div>
+            {/* Mini Countdown Badge */}
+            <div className="flex items-center gap-1 font-mono text-xs font-black shrink-0">
+              <div className="bg-[#070b14] border border-amber-500/30 rounded px-1.5 py-0.5 text-amber-400">
+                {wheelCountdown.days}<span className="text-[9px] text-slate-400 font-sans ml-0.5 font-normal">N</span>
+              </div>
+              <span className="text-amber-400/80 font-bold">:</span>
+              <div className="bg-[#070b14] border border-amber-500/30 rounded px-1.5 py-0.5 text-amber-400">
+                {wheelCountdown.hours}<span className="text-[9px] text-slate-400 font-sans ml-0.5 font-normal">H</span>
+              </div>
+              <span className="text-amber-400/80 font-bold">:</span>
+              <div className="bg-[#070b14] border border-amber-500/30 rounded px-1.5 py-0.5 text-amber-400">
+                {wheelCountdown.minutes}<span className="text-[9px] text-slate-400 font-sans ml-0.5 font-normal">P</span>
+              </div>
+              <span className="text-amber-400/80 font-bold">:</span>
+              <div className="bg-[#070b14] border border-rose-500/40 rounded px-1.5 py-0.5 text-rose-400 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.3)]">
+                {wheelCountdown.seconds}<span className="text-[9px] text-rose-300 font-sans ml-0.5 font-normal">S</span>
               </div>
             </div>
           </div>
