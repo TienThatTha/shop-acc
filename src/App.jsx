@@ -8251,11 +8251,8 @@ const App = () => {
                   </div>
 
                   {/* Dòng mốc 0 lượt và 120 lượt bên dưới thanh bar */}
-                  <div className="flex items-center justify-between mt-1.5 text-[11px] text-slate-500">
+                  <div className="flex items-center justify-between mt-1.5 text-[11px] text-slate-500 font-mono">
                     <span>0 lượt</span>
-                    <span className="text-amber-400/80 font-semibold text-[11px] flex items-center gap-1">
-                      🎯 Mốc 120 lượt (Lần 121 nhận Giày Thần Tốc)
-                    </span>
                     <span>120 lượt</span>
                   </div>
                 </div>
@@ -8264,43 +8261,56 @@ const App = () => {
             )}
           </div>
 
-          {/* KHUNG ĐẾM NGƯỢC HẠN CHÓT SỰ KIỆN GIÀY THẦN TỐC (TÁCH RIÊNG BIỆT - HIỆN ĐẠI & GỌN GÀNG) */}
-          <div className="w-full max-w-2xl mx-auto mb-6 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-rose-950/40 via-[#0d1424] to-amber-950/40 border border-amber-500/35 shadow-[0_6px_24px_rgba(0,0,0,0.55)] backdrop-blur-md flex flex-wrap items-center justify-between gap-3 text-left">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500/20 via-rose-500/20 to-yellow-500/10 border border-amber-500/40 flex items-center justify-center text-base shrink-0 shadow-inner">
-                ⏳
+          {/* KHUNG ĐẾM NGƯỢC HẠN CHÓT SỰ KIỆN GIÀY THẦN TỐC (TÁCH RIÊNG BIỆT - TẬN DỤNG HẾT KHÔNG GIAN) */}
+          <div className="w-full max-w-2xl mx-auto mb-6 px-4 sm:px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-950/40 via-[#0d1424] to-amber-950/40 border border-amber-500/35 shadow-[0_6px_24px_rgba(0,0,0,0.55)] backdrop-blur-md">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-left">
+              
+              {/* Trái: Icon + Tiêu đề + Hạn chót + Mô tả */}
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-500/20 via-rose-500/20 to-yellow-500/10 border border-amber-500/40 flex items-center justify-center text-lg sm:text-xl shrink-0 shadow-inner">
+                    ⏳
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs sm:text-sm font-black uppercase tracking-wide text-amber-300 whitespace-nowrap">
+                        Sự kiện Giày Thần Tốc
+                      </span>
+                      <span className="bg-rose-500/20 text-rose-300 text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-full border border-rose-500/40 shrink-0 animate-pulse">
+                        Hạn chót: 23h59 16/10
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 font-medium mt-0.5 hidden sm:block">
+                      Đếm ngược kết thúc sự kiện mở khóa Giày Thần Tốc
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2 flex-wrap min-w-0">
-                <span className="text-xs sm:text-sm font-black uppercase tracking-wide text-amber-300 whitespace-nowrap">
-                  Sự kiện Giày Thần Tốc
-                </span>
-                <span className="bg-rose-500/20 text-rose-300 text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-full border border-rose-500/40 shrink-0 animate-pulse">
-                  Hạn chót: 23h59 16/10
-                </span>
-              </div>
-            </div>
 
-            <div className="flex items-center gap-1.5 font-mono text-xs sm:text-sm font-black shrink-0">
-              <span className="text-slate-400 font-sans text-xs font-semibold mr-1">Kết thúc sau:</span>
-              <div className="bg-[#040814] border border-amber-500/35 rounded-lg px-2 py-1 text-center min-w-[38px] shadow-sm">
-                <div className="text-amber-400 leading-none">{wheelCountdown.days}</div>
-                <div className="text-[8px] text-slate-400 font-sans font-bold uppercase mt-0.5">Ngày</div>
+              {/* Phải: 4 ô đếm ngược trải đều, tận dụng trọn vẹn không gian */}
+              <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 font-mono w-full sm:w-auto shrink-0">
+                <span className="text-slate-400 font-sans text-xs font-semibold mr-1 hidden md:inline">Kết thúc sau:</span>
+                <div className="bg-[#030712]/90 border border-amber-500/35 rounded-xl px-2.5 sm:px-3 py-1.5 text-center min-w-[46px] sm:min-w-[50px] shadow-sm">
+                  <div className="text-amber-400 font-black text-sm sm:text-base leading-none">{wheelCountdown.days}</div>
+                  <div className="text-[8px] sm:text-[9px] text-slate-400 font-sans font-bold uppercase mt-1">Ngày</div>
+                </div>
+                <span className="text-amber-400/70 font-black text-xs sm:text-sm">:</span>
+                <div className="bg-[#030712]/90 border border-amber-500/35 rounded-xl px-2.5 sm:px-3 py-1.5 text-center min-w-[46px] sm:min-w-[50px] shadow-sm">
+                  <div className="text-amber-400 font-black text-sm sm:text-base leading-none">{wheelCountdown.hours}</div>
+                  <div className="text-[8px] sm:text-[9px] text-slate-400 font-sans font-bold uppercase mt-1">Giờ</div>
+                </div>
+                <span className="text-amber-400/70 font-black text-xs sm:text-sm">:</span>
+                <div className="bg-[#030712]/90 border border-amber-500/35 rounded-xl px-2.5 sm:px-3 py-1.5 text-center min-w-[46px] sm:min-w-[50px] shadow-sm">
+                  <div className="text-amber-400 font-black text-sm sm:text-base leading-none">{wheelCountdown.minutes}</div>
+                  <div className="text-[8px] sm:text-[9px] text-slate-400 font-sans font-bold uppercase mt-1">Phút</div>
+                </div>
+                <span className="text-amber-400/70 font-black text-xs sm:text-sm">:</span>
+                <div className="bg-[#030712]/90 border border-rose-500/50 rounded-xl px-2.5 sm:px-3 py-1.5 text-center min-w-[46px] sm:min-w-[50px] shadow-[0_0_12px_rgba(244,63,94,0.35)]">
+                  <div className="text-rose-400 font-black text-sm sm:text-base leading-none animate-pulse">{wheelCountdown.seconds}</div>
+                  <div className="text-[8px] sm:text-[9px] text-rose-300 font-sans font-bold uppercase mt-1">Giây</div>
+                </div>
               </div>
-              <span className="text-amber-400/70 font-bold">:</span>
-              <div className="bg-[#040814] border border-amber-500/35 rounded-lg px-2 py-1 text-center min-w-[38px] shadow-sm">
-                <div className="text-amber-400 leading-none">{wheelCountdown.hours}</div>
-                <div className="text-[8px] text-slate-400 font-sans font-bold uppercase mt-0.5">Giờ</div>
-              </div>
-              <span className="text-amber-400/70 font-bold">:</span>
-              <div className="bg-[#040814] border border-amber-500/35 rounded-lg px-2 py-1 text-center min-w-[38px] shadow-sm">
-                <div className="text-amber-400 leading-none">{wheelCountdown.minutes}</div>
-                <div className="text-[8px] text-slate-400 font-sans font-bold uppercase mt-0.5">Phút</div>
-              </div>
-              <span className="text-amber-400/70 font-bold">:</span>
-              <div className="bg-[#040814] border border-rose-500/40 rounded-lg px-2 py-1 text-center min-w-[38px] shadow-[0_0_10px_rgba(244,63,94,0.3)]">
-                <div className="text-rose-400 leading-none animate-pulse">{wheelCountdown.seconds}</div>
-                <div className="text-[8px] text-rose-300 font-sans font-bold uppercase mt-0.5">Giây</div>
-              </div>
+
             </div>
           </div>
 
