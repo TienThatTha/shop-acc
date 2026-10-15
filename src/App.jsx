@@ -837,6 +837,47 @@ const App = () => {
     }
   }, [currentUser?.id, currentUser?.shoes_pity]);
 
+  // --- ĐẾM NGƯỢC & TỰ ĐỘNG KẾT THÚC SỰ KIỆN VÒNG QUAY "GIÀY THẦN TỐC" (HẠN CHÓT 23h59 NGÀY 16/10/2026) ---
+  const WHEEL_EVENT_END_TIME = useMemo(() => new Date('2026-10-16T23:59:59+07:00').getTime(), []);
+
+  const [currentEventNow, setCurrentEventNow] = useState(() => {
+    if (typeof window !== 'undefined' && window.__MOCK_TIME__) {
+      return new Date(window.__MOCK_TIME__).getTime();
+    }
+    return Date.now();
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const nowMs = (typeof window !== 'undefined' && window.__MOCK_TIME__)
+        ? new Date(window.__MOCK_TIME__).getTime()
+        : Date.now();
+      setCurrentEventNow(nowMs);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const isWheelEventExpired = useMemo(() => {
+    return currentEventNow >= WHEEL_EVENT_END_TIME;
+  }, [currentEventNow, WHEEL_EVENT_END_TIME]);
+
+  const wheelCountdown = useMemo(() => {
+    const diff = Math.max(0, WHEEL_EVENT_END_TIME - currentEventNow);
+    const totalSeconds = Math.floor(diff / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return {
+      days: String(days).padStart(2, '0'),
+      hours: String(hours).padStart(2, '0'),
+      minutes: String(minutes).padStart(2, '0'),
+      seconds: String(seconds).padStart(2, '0'),
+      isExpired: diff <= 0,
+      totalSeconds
+    };
+  }, [currentEventNow, WHEEL_EVENT_END_TIME]);
+
   // Tự động kiểm tra xem Vòng Quay có phần thưởng khả dụng nào không
   const hasActiveWheelRewards = useMemo(() => {
     const allItems = [...(wheelItemsMoneyDb || []), ...(wheelItemsSpinDb || [])];
@@ -844,10 +885,13 @@ const App = () => {
   }, [wheelItemsMoneyDb, wheelItemsSpinDb]);
 
   useEffect(() => {
-    if (currentView === 'vongquay' && !hasActiveWheelRewards) {
+    if (currentView === 'vongquay' && (!hasActiveWheelRewards || isWheelEventExpired)) {
+      if (isWheelEventExpired && typeof showToast === 'function') {
+        showToast("Sự kiện Vòng Quay Giày Thần Tốc đã chính thức kết thúc vào 23h59 ngày 16/10!", "info");
+      }
       setCurrentView('dashboard');
     }
-  }, [currentView, hasActiveWheelRewards]);
+  }, [currentView, hasActiveWheelRewards, isWheelEventExpired]);
 
   // Tự động tải các giao dịch quay thưởng mới nhất từ cộng đồng để hiển thị lên thanh vinh danh
   useEffect(() => {
@@ -995,14 +1039,14 @@ const App = () => {
 
   // 1. Kích hoạt bảng Trang Chủ (Sảnh chính)
   useEffect(() => {
-    if (currentView === 'dashboard' && !dismissNotice && hasActiveWheelRewards) {
+    if (currentView === 'dashboard' && !dismissNotice && hasActiveWheelRewards && !isWheelEventExpired) {
       // Đợi 0.3s cho web load xong giao diện rồi mới nảy bảng lên (Tránh bị React nuốt lệnh)
       const timer = setTimeout(() => setShowSpinNotice(true), 300);
       return () => clearTimeout(timer);
     } else {
       setShowSpinNotice(false); // Chuyển sang tab khác là tự động dọn dẹp (tắt bảng)
     }
-  }, [currentView, dismissNotice, hasActiveWheelRewards]);
+  }, [currentView, dismissNotice, hasActiveWheelRewards, isWheelEventExpired]);
 
   // 2. Kích hoạt bảng Vòng Quay
   useEffect(() => {
@@ -2695,7 +2739,7 @@ const App = () => {
                 }
               }] : []),
               { name: 'Dịch Vụ Cày Thuê', view: 'caythue', auth: false, icon: <Target size={20} /> },
-              ...(hasActiveWheelRewards ? [{ name: 'Vòng Quay May Mắn', view: 'vongquay', auth: false, icon: <Gift size={20} /> }] : []),
+              ...(hasActiveWheelRewards && !isWheelEventExpired ? [{ name: 'Vòng Quay May Mắn', view: 'vongquay', auth: false, icon: <Gift size={20} /> }] : []),
               { name: 'Lịch Sử Giao Dịch', view: 'lichsu', auth: true, icon: <History size={20} /> },
               {
                 name: '🎮 Discord Chơi Game',
@@ -2765,7 +2809,7 @@ const App = () => {
           { id: 'bossgame', name: 'Nạp Game', icon: <Swords size={22} />, auth: true },
           { id: 'caythue', name: 'Cày thuê', icon: <Target size={22} />, auth: false },
           { id: 'naptien', name: 'Nạp tiền', icon: <Wallet size={22} />, auth: true },
-          ...(hasActiveWheelRewards ? [{ id: 'vongquay', name: 'Vòng quay', icon: <Gift size={22} />, auth: false }] : []),
+          ...(hasActiveWheelRewards && !isWheelEventExpired ? [{ id: 'vongquay', name: 'Vòng quay', icon: <Gift size={22} />, auth: false }] : []),
           { id: 'security', name: 'Cá nhân', icon: <User size={22} />, auth: true }
         ].map(item => {
           const isActive = currentView === item.id;
@@ -2842,7 +2886,7 @@ const App = () => {
                 auth: true
               },
               { name: 'Cày Thuê', view: 'caythue', auth: false },
-              ...(hasActiveWheelRewards ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false }] : []),
+              ...(hasActiveWheelRewards && !isWheelEventExpired ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false }] : []),
               { name: 'Lịch Sử', view: 'lichsu', auth: true }
             ].map((item, idx) => (
               <button
@@ -2893,11 +2937,11 @@ const App = () => {
                   </div>
 
                   {/* Lượt quay */}
-                  {hasActiveWheelRewards && (
+                  {hasActiveWheelRewards && !isWheelEventExpired && (
                     <div
                       onClick={() => setCurrentView('vongquay')}
                       className="flex items-center gap-1.5 sm:gap-2 bg-rose-500/10 border border-rose-500/30 hover:border-rose-500/60 rounded-xl px-2.5 sm:px-3.5 py-1.5 sm:py-2 transition-all shadow-[0_0_15px_rgba(244,63,94,0.05)] cursor-pointer shrink-0"
-                      title="Lượt quay"
+                      title="Lượt quay (Vòng Quay Giày Thần Tốc)"
                     >
                       <Ticket className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 shrink-0" />
                       <span className="text-rose-400 font-extrabold text-[12px] sm:text-[15px] whitespace-nowrap">
@@ -4645,7 +4689,7 @@ const App = () => {
                             <h4 className="text-xs sm:text-sm font-black text-white truncate" title={selectedForgeItemA.name}>
                               {selectedForgeItemA.name}
                             </h4>
-                            <div className="text-[11px] text-amber-400 font-bold">
+                            <div className="text-[11px] text-amber-400 font-bold tracking-widest">
                               {'★'.repeat(Math.max(1, Math.min(5, Number(selectedForgeItemA.stars || 1))))}
                             </div>
                             <p className="text-[10px] text-slate-400 truncate">
@@ -4753,7 +4797,7 @@ const App = () => {
                             <h4 className="text-xs sm:text-sm font-black text-white truncate" title={selectedForgeItemB.name}>
                               {selectedForgeItemB.name}
                             </h4>
-                            <div className="text-[11px] text-cyan-400 font-bold">
+                            <div className="text-[11px] text-cyan-400 font-bold tracking-widest">
                               {'★'.repeat(Math.max(1, Math.min(5, Number(selectedForgeItemB.stars || 1))))}
                             </div>
                             <p className="text-[10px] text-slate-400 truncate">
@@ -5092,6 +5136,16 @@ const App = () => {
                     >
                       💳 HỖ TRỢ NẠP THẺ CÀO TỰ ĐỘNG
                     </div>
+                    {hasActiveWheelRewards && !isWheelEventExpired && (
+                      <div
+                        onClick={() => setCurrentView('vongquay')}
+                        className="inline-flex items-center gap-1.5 px-4 py-1 bg-gradient-to-r from-rose-500/30 via-pink-500/30 to-amber-500/30 text-amber-300 font-extrabold text-xs rounded-full border border-rose-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(244,63,94,0.4)] cursor-pointer hover:scale-105 transition-all animate-pulse"
+                        title="Hạn chót đúng 23h59 ngày 16/10"
+                      >
+                        <span className="text-sm">👟</span>
+                        <span>VÒNG QUAY GIÀY THẦN TỐC (CÒN {wheelCountdown.days}N {wheelCountdown.hours}:{wheelCountdown.minutes}:{wheelCountdown.seconds})</span>
+                      </div>
+                    )}
                     <div
                       onClick={() => { requireAuth('bossgame'); setCurrentView('bossgame'); }}
                       className="inline-block px-4 py-1 bg-gradient-to-r from-amber-500/30 to-rose-500/30 text-amber-300 font-extrabold text-xs rounded-full border border-amber-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(245,158,11,0.5)] cursor-pointer hover:scale-105 transition-all animate-pulse"
@@ -6940,6 +6994,12 @@ const App = () => {
     }
 
     const handleSpin = async () => {
+      if (isWheelEventExpired) {
+        showToast("Sự kiện Vòng Quay Giày Thần Tốc đã chính thức kết thúc vào 23h59 ngày 16/10!", "error");
+        setCurrentView('dashboard');
+        return;
+      }
+
       if (!currentUser) {
         showToast("Vui lòng đăng nhập tài khoản để tham gia Vòng Quay!", 'error');
         setCurrentView('login');
@@ -7245,6 +7305,12 @@ const App = () => {
     // HÀM QUAY X10 (10 LƯỢT LIÊN TIẾP) & SỔ ĐỦ 10 MÓN TRÚNG THƯỞNG
     // =========================================================================
     const handleSpinX10 = async () => {
+      if (isWheelEventExpired) {
+        showToast("Sự kiện Vòng Quay Giày Thần Tốc đã chính thức kết thúc vào 23h59 ngày 16/10!", "error");
+        setCurrentView('dashboard');
+        return;
+      }
+
       if (!currentUser) {
         showToast("Vui lòng đăng nhập tài khoản để tham gia Vòng Quay!", 'error');
         setCurrentView('login');
@@ -8010,6 +8076,55 @@ const App = () => {
             </p>
           </div>
 
+          {/* BANNER ĐẾM NGƯỢC KẾT THÚC SỰ KIỆN GIÀY THẦN TỐC */}
+          <div className="w-full max-w-2xl mx-auto mb-6 p-4 rounded-2xl bg-gradient-to-r from-rose-950/70 via-[#161224] to-amber-950/70 border border-amber-500/40 shadow-[0_0_30px_rgba(245,158,11,0.2)] backdrop-blur-md relative overflow-hidden text-left">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 via-rose-500/20 to-yellow-500/10 border border-amber-500/40 flex items-center justify-center text-2xl shrink-0 shadow-inner shadow-amber-500/20 animate-bounce" style={{ animationDuration: '3s' }}>
+                  👟
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                      <Clock size={14} className="text-rose-400 animate-spin" style={{ animationDuration: '8s' }} />
+                      ĐẾM NGƯỢC KẾT THÚC SỰ KIỆN
+                    </span>
+                    <span className="bg-rose-500/20 text-rose-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-500/40 animate-pulse">
+                      HẠN CHÓT 23h59 16/10
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                    Bảo vật <strong className="text-amber-300">Giày Thần Tốc (+300 Tốc độ)</strong> bảo hiểm 121 lần quay. Sau 23h59 ngày 16/10 sự kiện sẽ chính thức đóng!
+                  </p>
+                </div>
+              </div>
+
+              {/* 4 Khối số đếm ngược thời gian thực */}
+              <div className="flex items-center gap-1.5 font-mono shrink-0">
+                <div className="bg-[#070b14] border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-center min-w-[42px] shadow-sm">
+                  <div className="text-amber-400 font-black text-base sm:text-lg leading-none">{wheelCountdown.days}</div>
+                  <div className="text-[9px] text-slate-400 uppercase font-sans font-bold mt-0.5">Ngày</div>
+                </div>
+                <span className="text-amber-400 font-black text-base">:</span>
+                <div className="bg-[#070b14] border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-center min-w-[42px] shadow-sm">
+                  <div className="text-amber-400 font-black text-base sm:text-lg leading-none">{wheelCountdown.hours}</div>
+                  <div className="text-[9px] text-slate-400 uppercase font-sans font-bold mt-0.5">Giờ</div>
+                </div>
+                <span className="text-amber-400 font-black text-base">:</span>
+                <div className="bg-[#070b14] border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-center min-w-[42px] shadow-sm">
+                  <div className="text-amber-400 font-black text-base sm:text-lg leading-none">{wheelCountdown.minutes}</div>
+                  <div className="text-[9px] text-slate-400 uppercase font-sans font-bold mt-0.5">Phút</div>
+                </div>
+                <span className="text-amber-400 font-black text-base">:</span>
+                <div className="bg-[#070b14] border border-rose-500/50 rounded-xl px-2.5 py-1.5 text-center min-w-[42px] shadow-[0_0_12px_rgba(244,63,94,0.3)]">
+                  <div className="text-rose-400 font-black text-base sm:text-lg leading-none animate-pulse">{wheelCountdown.seconds}</div>
+                  <div className="text-[9px] text-rose-300 uppercase font-sans font-bold mt-0.5">Giây</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* THANH ĐIỀU KHIỂN & TIẾN TRÌNH BẢO HIỂM TÍCH HỢP TẤT CẢ TRONG 1 (ALL-IN-ONE COMPACT CONSOLE) */}
           <div className="w-full max-w-2xl mx-auto bg-gradient-to-b from-[#0d1424] via-[#090f1d] to-[#060a14] border border-amber-500/35 rounded-2xl p-3 sm:p-3.5 mb-6 shadow-xl relative text-left">
             {/* Hàng 1: Chế độ quay, ID Game, Lượt & Nạp tiền */}
@@ -8114,7 +8229,10 @@ const App = () => {
                     <span className="font-extrabold text-amber-300 truncate">
                       Bảo Hiểm Giày Thần Tốc <span className="text-[10px] text-amber-400/90 font-bold bg-amber-500/10 px-1 py-0.2 rounded border border-amber-500/20">(+300 Tốc độ)</span>
                     </span>
-                    <span className="text-[11px] text-slate-400 hidden sm:inline">• Lần 121 chắc chắn trúng</span>
+                    <span className="text-[10px] text-rose-400 font-black bg-rose-500/10 border border-rose-500/25 px-1.5 py-0.5 rounded-full hidden sm:inline-flex items-center gap-1 shrink-0 animate-pulse ml-1">
+                      <Clock size={10} /> Còn {wheelCountdown.days}N {wheelCountdown.hours}:{wheelCountdown.minutes}:{wheelCountdown.seconds}
+                    </span>
+                    <span className="text-[11px] text-slate-400 hidden md:inline">• Lần 121 chắc chắn trúng</span>
                   </div>
 
                   <div className="font-mono font-black text-right shrink-0">
@@ -9957,24 +10075,42 @@ const App = () => {
           <span className="text-2xl">{options.defaultIcon || '📦'}</span>
         )}
 
-        {/* CỘT SAO DỌC NÉP SÁT MÉP TRÁI */}
+        {/* CỘT SAO DỌC THANH THOÁT - KHOẢNG CÁCH RÕ RÀNG, TẬN DỤNG KHÔNG GIAN DỌC */}
         {starsCount > 0 && (() => {
-          const sSz = starsCount >= 5 ? 8 : (starsCount >= 4 ? 8.5 : 9);
-          const sOverlap = starsCount >= 5 ? '-3.8px' : '-2.8px';
+          const isLargeBox = sizeClass.includes('w-16') || sizeClass.includes('w-18') || sizeClass.includes('w-20') || sizeClass.includes('70px') || sizeClass.includes('72px');
+          const isSmallBox = sizeClass.includes('w-10') || sizeClass.includes('w-12');
+
+          // Kích thước ngôi sao & khoảng cách chuẩn: cách đều thoáng đãng, tận dụng tối đa chiều dọc khung
+          const starSz = isLargeBox ? 8.6 : (isSmallBox ? 5.8 : 7.2);
+          const starGap = isLargeBox ? 4.2 : (isSmallBox ? 2.4 : 3.4);
+          const starTop = isLargeBox ? 3.2 : (isSmallBox ? 2.0 : 2.6);
+          const starLeft = isLargeBox ? 3.5 : (isSmallBox ? 2.0 : 2.8);
+
           return (
             <div 
               className="absolute z-10 pointer-events-none flex flex-col"
-              style={{ top: '2.5px', left: '2px', filter: 'drop-shadow(0 1.2px 1.5px rgba(0,0,0,0.95))' }}
+              style={{ 
+                top: `${starTop}px`, 
+                left: `${starLeft}px`, 
+                gap: `${starGap}px`,
+                filter: 'drop-shadow(0 1.5px 2px rgba(0,0,0,0.95)) drop-shadow(0 0 3px rgba(250,204,21,0.6))' 
+              }}
             >
               {Array.from({ length: starsCount }).map((_, sI) => (
                 <svg 
                   key={sI} 
-                  width={sSz} 
-                  height={sSz} 
+                  width={starSz} 
+                  height={starSz} 
                   viewBox="0 0 24 24" 
-                  style={{ marginTop: sI > 0 ? sOverlap : '0' }}
+                  className="shrink-0"
                 >
-                  <path fill="#fde047" stroke="#261005" strokeWidth="2.0" strokeLinejoin="round" d="M 12.00,1.50 L 15.20,7.80 L 22.20,8.80 L 17.10,13.75 L 18.30,20.70 L 12.00,17.40 L 5.70,20.70 L 6.90,13.75 L 1.80,8.80 L 8.80,7.80 Z"/>
+                  <path 
+                    fill="#fde047" 
+                    stroke="#1a0800" 
+                    strokeWidth="1.3" 
+                    strokeLinejoin="round" 
+                    d="M 12.00,1.50 L 15.20,7.80 L 22.20,8.80 L 17.10,13.75 L 18.30,20.70 L 12.00,17.40 L 5.70,20.70 L 6.90,13.75 L 1.80,8.80 L 8.80,7.80 Z"
+                  />
                 </svg>
               ))}
             </div>
@@ -10045,16 +10181,16 @@ const App = () => {
   // --- BẢNG THÔNG SỐ CHUẨN CỦA VẬT PHẨM (ĐỒNG BỘ 100% VỚI CONFIGS/GAME_ITEMS.JSON) ---
   const getWeaponStats = (it) => {
     let baseDmg = (it?.base_dmg != null && Number(it.base_dmg) > 0) ? Number(it.base_dmg) : 0;
-    if (!baseDmg) {
+    if (baseDmg < 500) {
       const n = (it?.name || '').toLowerCase();
       const t = (it?.tier || '').toLowerCase();
-      if (n.includes('bá vương') || t.includes('thượng cổ')) baseDmg = 15000;
-      else if (n.includes('chaos') || t.includes('cổ đại')) baseDmg = 6000;
-      else if (n.includes('ma vương') || t.includes('tối thượng')) baseDmg = 2500;
-      else if (n.includes('thần đao') || t.includes('thần thoại')) baseDmg = 1000;
-      else if (n.includes('trảm ma') || t.includes('epic')) baseDmg = 400;
-      else if (n.includes('song đao') || t.includes('hiếm')) baseDmg = 150;
-      else baseDmg = 50;
+      if (n.includes('bá vương') || t.includes('thượng cổ')) baseDmg = 150000;
+      else if (n.includes('chaos') || t.includes('cổ đại')) baseDmg = 60000;
+      else if (n.includes('ma vương') || t.includes('tối thượng')) baseDmg = 30000;
+      else if (n.includes('thần đao') || t.includes('thần thoại')) baseDmg = 15000;
+      else if (n.includes('song đao') || t.includes('epic')) baseDmg = 5000;
+      else if (n.includes('trảm ma') || t.includes('hiếm')) baseDmg = 2000;
+      else baseDmg = 500;
     }
     return { baseDmg };
   };
@@ -10155,20 +10291,22 @@ const App = () => {
 
   const getPetStats = (it) => {
     let bonusDmg = (it?.bonus_dmg != null && Number(it.bonus_dmg) > 0) ? Number(it.bonus_dmg) : 0;
+    let baseHp = (it?.base_hp != null && Number(it.base_hp) > 0) ? Number(it.base_hp) : (it?.bonus_hp != null && Number(it.bonus_hp) > 0 ? Number(it.bonus_hp) : 0);
+    let baseDef = (it?.base_def != null && Number(it.base_def) > 0) ? Number(it.base_def) : (it?.bonus_def != null && Number(it.bonus_def) > 0 ? Number(it.bonus_def) : 0);
     let critRate = (it?.crit_rate != null && Number(it.crit_rate) > 0) ? Number(it.crit_rate) : 0;
 
-    if (!bonusDmg) {
+    if (bonusDmg < 400 || !baseHp) {
       const n = (it?.name || '').toLowerCase();
       const t = (it?.tier || '').toLowerCase();
-      if (n.includes('bát hoang') || t.includes('thượng cổ')) { bonusDmg = 8000; critRate = 0.5; }
-      else if (n.includes('thần rồng') || n.includes('chaos') || t.includes('cổ đại')) { bonusDmg = 3500; critRate = 0.35; }
-      else if (n.includes('phượng hoàng') || t.includes('tối thượng')) { bonusDmg = 1800; critRate = 0.25; }
-      else if (n.includes('rồng thần') || t.includes('thần thoại')) { bonusDmg = 800; critRate = 0.2; }
-      else if (n.includes('rồng con') || t.includes('epic')) { bonusDmg = 350; critRate = 0.15; }
-      else if (n.includes('cáo tuyết') || t.includes('hiếm')) { bonusDmg = 120; critRate = 0.1; }
-      else { bonusDmg = 40; critRate = 0.05; }
+      if (n.includes('bát hoang') || t.includes('thượng cổ')) { bonusDmg = 80000; baseHp = 2000000; baseDef = 200000; critRate = 0.5; }
+      else if (n.includes('thần rồng') || n.includes('chaos') || t.includes('cổ đại')) { bonusDmg = 35000; baseHp = 800000; baseDef = 80000; critRate = 0.35; }
+      else if (n.includes('phượng hoàng') || t.includes('tối thượng')) { bonusDmg = 18000; baseHp = 360000; baseDef = 36000; critRate = 0.25; }
+      else if (n.includes('rồng thần') || t.includes('thần thoại')) { bonusDmg = 8000; baseHp = 150000; baseDef = 15000; critRate = 0.2; }
+      else if (n.includes('rồng con') || t.includes('epic')) { bonusDmg = 3500; baseHp = 60000; baseDef = 6000; critRate = 0.15; }
+      else if (n.includes('cáo tuyết') || t.includes('hiếm')) { bonusDmg = 1200; baseHp = 20000; baseDef = 2000; critRate = 0.1; }
+      else { bonusDmg = 400; baseHp = 6000; baseDef = 600; critRate = 0.05; }
     }
-    return { bonusDmg, critRate: critRate || 0.05 };
+    return { bonusDmg, baseHp, baseDef, critRate: critRate || 0.05 };
   };
 
   // --- HÀM TÍNH TOÁN VỊ TRÍ & ĐIỀU KHIỂN POPUP TOOLTIP CHI TIẾT VẬT PHẨM THÔNG MINH ---
@@ -10736,6 +10874,9 @@ const App = () => {
     const starMult = (starsCount === 5 ? 2.5 : (starsCount === 4 ? 2.0 : (starsCount === 3 ? 1.6 : (starsCount === 2 ? 1.3 : 1.0))));
     const totalEstDmg = Math.round(totalBasePlus * starMult);
     const bonusDmg = petStats.bonusDmg;
+    const petHp = petStats.baseHp;
+    const petDef = petStats.baseDef;
+    const critRatePct = Math.round(petStats.critRate * 100);
     const dmgPercent = necklaceStats.dmgPercent;
     const baseDmgPercent = ringStats.baseDmgPercent;
     const baseHpPercent = ringStats.baseHpPercent || baseDmgPercent;
@@ -11072,12 +11213,20 @@ const App = () => {
                         <span className="font-bold text-rose-300">+{bonusDmg.toLocaleString()} DMG</span>
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-slate-400">Sinh lực Linh Thú:</span>
+                        <span className="font-bold text-emerald-400">+{petHp.toLocaleString()} HP ❤️</span>
+                      </div>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                        <span className="text-slate-400">Phòng thủ Linh Thú:</span>
+                        <span className="font-bold text-cyan-400">+{petDef.toLocaleString()} DEF 🛡️</span>
+                      </div>
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
                         <span className="text-rose-400 font-bold">Cấp độ Linh Thú:</span>
                         <span className="font-bold text-rose-300">Cấp {petLevel} / 100</span>
                       </div>
                       <div className="flex justify-between items-center pt-0.5">
                         <span className="text-amber-400">Tỉ lệ Chí Mạng Linh Thú:</span>
-                        <span className="font-bold text-amber-300">+{starsCount * 3}% Crit</span>
+                        <span className="font-bold text-amber-300">+{critRatePct}% Crit ⚡</span>
                       </div>
                     </>
                   )}
@@ -11915,7 +12064,7 @@ const App = () => {
           const baseUserDmg = 100 + (lvl * 25);
           let wpDmg = 0;
           if (p.weapon) {
-            const wpBase = Number(p.weapon.base_dmg || 0);
+            const wpBase = getWeaponStats(p.weapon).baseDmg;
             const wpPlus = Number(p.weapon.plus || 0);
             const wpStars = Math.max(1, Math.min(5, Number(p.weapon.stars || 1)));
             wpDmg = Math.round(wpBase * (1.0 + wpPlus * 0.25) * Math.pow(2, wpStars - 1));
@@ -11988,7 +12137,7 @@ const App = () => {
                 onMouseLeave={hideItemTooltip}
                 onClick={(e) => handleItemCardClick(item, e, category)}
               >
-                {renderUniversalItemThumb(item, category, { sizeClass: 'w-16 h-16 sm:w-18 sm:h-18', imgSizeClass: 'w-12 h-12 sm:w-14 sm:h-14', defaultIcon })}
+                {renderUniversalItemThumb(item, category, { sizeClass: 'w-16 h-16 sm:w-[72px] sm:h-[72px]', imgSizeClass: 'w-12 h-12 sm:w-[54px] sm:h-[54px]', defaultIcon })}
 
                 <div className="flex-1 min-w-0 flex flex-col justify-start">
                   <div className="flex items-center justify-between gap-1.5 flex-wrap">
@@ -12002,6 +12151,11 @@ const App = () => {
                       >
                         {tier.label}
                       </span>
+                      {!isShoes && !isPet && (item.stars || 1) > 0 && (
+                        <span className="text-[9px] font-black text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded flex items-center gap-0.5 shrink-0">
+                          {Math.max(1, Math.min(5, Number(item.stars || 1)))}⭐
+                        </span>
+                      )}
                       {category === 'pet' && item.level && (
                         <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-600 text-white shadow-sm shrink-0">
                           Lv.{item.level}
@@ -12028,18 +12182,24 @@ const App = () => {
 
                   {/* Stats row */}
                   <div className="flex items-center gap-1.5 mt-1.5 flex-wrap text-[10px]">
-                    {category === 'weapon' && (
-                      <>
-                        <span className="font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded">
-                          {Number(item.base_dmg || 0).toLocaleString()} DMG
-                        </span>
-                        {item.plus > 0 && (
-                          <span className="font-bold text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-1.5 py-0.5 rounded">
-                            +{Math.round(Number(item.base_dmg || 0) * item.plus * 0.25).toLocaleString()} Cường Hóa
+                    {category === 'weapon' && (() => {
+                      const wStats = getWeaponStats(item);
+                      const baseDmg = wStats.baseDmg;
+                      const plusVal = Number(item.plus || 0);
+                      const plusBonus = Math.round(baseDmg * plusVal * 0.25);
+                      return (
+                        <>
+                          <span className="font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded">
+                            {baseDmg.toLocaleString()} DMG
                           </span>
-                        )}
-                      </>
-                    )}
+                          {plusVal > 0 && (
+                            <span className="font-bold text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-1.5 py-0.5 rounded">
+                              +{plusBonus.toLocaleString()} Cường Hóa
+                            </span>
+                          )}
+                        </>
+                      );
+                    })()}
                     {category === 'armor' && (() => {
                       const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 450000 : (item.tier?.toLowerCase().includes('cổ đại') ? 180000 : (item.tier?.toLowerCase().includes('tối thượng') ? 75000 : (item.tier?.toLowerCase().includes('thần thoại') ? 30000 : (item.tier?.toLowerCase().includes('epic') ? 12000 : 4500))))));
                       const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 45000 : (item.tier?.toLowerCase().includes('cổ đại') ? 18000 : (item.tier?.toLowerCase().includes('tối thượng') ? 7500 : (item.tier?.toLowerCase().includes('thần thoại') ? 3000 : (item.tier?.toLowerCase().includes('epic') ? 1200 : 450))))));
@@ -12115,9 +12275,20 @@ const App = () => {
                     {category === 'pet' && (() => {
                       const pStats = getPetStats(item);
                       return (
-                        <span className="font-bold text-rose-400 bg-rose-400/10 border border-rose-400/30 px-1.5 py-0.5 rounded">
-                          +{pStats.bonusDmg.toLocaleString()} DMG
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-bold text-rose-400 bg-rose-400/10 border border-rose-400/30 px-1.5 py-0.5 rounded">
+                            +{pStats.bonusDmg.toLocaleString()} DMG
+                          </span>
+                          <span className="font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded">
+                            ❤️ +{pStats.baseHp.toLocaleString()} HP
+                          </span>
+                          <span className="font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 px-1.5 py-0.5 rounded">
+                            🛡️ +{pStats.baseDef.toLocaleString()} DEF
+                          </span>
+                          <span className="font-bold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.5 rounded">
+                            ⚡ +{Math.round(pStats.critRate * 100)}% Crit
+                          </span>
+                        </div>
                       );
                     })()}
                     {category === 'shoes' && (() => {
@@ -12429,10 +12600,19 @@ const App = () => {
             ringHpMult = 1.0 + ((rStats.baseHpPercent || rStats.baseDmgPercent) * starMult / 100.0);
             ringDefMult = 1.0 + ((rStats.baseDefPercent || rStats.baseDmgPercent) * starMult / 100.0);
           }
-          const maxHp = Number(p.max_hp !== undefined ? p.max_hp : Math.round((baseHp + armorHp + pantsHp) * ringHpMult));
+          let petHp = 0;
+          let petDef = 0;
+          if (p.pet) {
+            const petS = getPetStats(p.pet);
+            const pStars = Math.max(1, Math.min(5, Number(p.pet.stars || 1)));
+            const starMultMath = Math.pow(2, Math.max(0, pStars - 1));
+            petHp = Math.round(petS.baseHp * starMultMath);
+            petDef = Math.round(petS.baseDef * starMultMath);
+          }
+          const maxHp = Number(p.max_hp !== undefined ? p.max_hp : Math.round((baseHp + armorHp + pantsHp + petHp) * ringHpMult));
           const currentHp = Number(p.current_hp !== undefined ? p.current_hp : maxHp);
           const hpPct = Math.min(100, Math.max(0, (currentHp / Math.max(1, maxHp)) * 100));
-          const totalDef = Number(p.total_def !== undefined ? p.total_def : Math.round((armorDef + pantsDef) * ringDefMult));
+          const totalDef = Number(p.total_def !== undefined ? p.total_def : Math.round((armorDef + pantsDef + petDef) * ringDefMult));
           const dmgReducPct = Number(p.dmg_reduction_pct !== undefined ? p.dmg_reduction_pct : (totalDef > 0 ? (totalDef / (totalDef + 2500) * 100) : 0));
           const isDead = Boolean(p.is_dead);
           const respawnTime = Number(p.respawn_seconds_left || 0);
@@ -12441,7 +12621,7 @@ const App = () => {
           const baseUserDmg = 100 + (lvl * 25);
           let wpDmg = 0;
           if (p.weapon) {
-            const wpBase = Number(p.weapon.base_dmg || 0);
+            const wpBase = getWeaponStats(p.weapon).baseDmg;
             const wpPlus = Number(p.weapon.plus || 0);
             const wpStars = Math.max(1, Math.min(5, Number(p.weapon.stars || 1)));
             wpDmg = Math.round(wpBase * (1.0 + wpPlus * 0.25) * Math.pow(2, wpStars - 1));
@@ -13199,6 +13379,11 @@ const App = () => {
                                     >
                                       {tier.label}
                                     </span>
+                                    {!isShoes && category !== 'material' && starsCount > 0 && (
+                                      <span className="text-[8px] font-black text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1 py-0.5 rounded flex items-center gap-0.5 shrink-0">
+                                        {starsCount}⭐
+                                      </span>
+                                    )}
                                     <button
                                       type="button"
                                       onClick={(e) => { e.stopPropagation(); handleItemCardClick(item, e, category); }}
@@ -13211,11 +13396,16 @@ const App = () => {
 
                                   {/* Stats */}
                                   <div className="text-[10px] text-slate-300 font-bold mt-1 space-y-0.5">
-                                    {category === 'weapon' && (
-                                      <span className="text-emerald-400 block">
-                                        ⚡ +{Number(item.base_dmg || 0).toLocaleString()} DMG {item.plus ? `(+${Math.round(Number(item.base_dmg || 0) * item.plus * 0.25).toLocaleString()})` : ''}
-                                      </span>
-                                    )}
+                                    {category === 'weapon' && (() => {
+                                      const wStats = getWeaponStats(item);
+                                      const baseDmg = wStats.baseDmg;
+                                      const plusVal = Number(item.plus || 0);
+                                      return (
+                                        <span className="text-emerald-400 block">
+                                          ⚡ +{baseDmg.toLocaleString()} DMG {plusVal ? `(+${Math.round(baseDmg * plusVal * 0.25).toLocaleString()})` : ''}
+                                        </span>
+                                      );
+                                    })()}
                                     {category === 'armor' && (() => {
                                       const bHp = Number(item.base_hp || (item.tier?.toLowerCase().includes('thượng cổ') ? 450000 : (item.tier?.toLowerCase().includes('cổ đại') ? 180000 : (item.tier?.toLowerCase().includes('tối thượng') ? 75000 : (item.tier?.toLowerCase().includes('thần thoại') ? 30000 : (item.tier?.toLowerCase().includes('epic') ? 12000 : 4500))))));
                                       const bDef = Number(item.base_def || (item.tier?.toLowerCase().includes('thượng cổ') ? 45000 : (item.tier?.toLowerCase().includes('cổ đại') ? 18000 : (item.tier?.toLowerCase().includes('tối thượng') ? 7500 : (item.tier?.toLowerCase().includes('thần thoại') ? 3000 : (item.tier?.toLowerCase().includes('epic') ? 1200 : 450))))));
@@ -13269,8 +13459,8 @@ const App = () => {
                                     {category === 'pet' && (() => {
                                       const pStats = getPetStats(item);
                                       return (
-                                        <span className="text-rose-400 block">
-                                          🐾 +{pStats.bonusDmg.toLocaleString()} DMG {item.level ? `(Lv.${item.level})` : ''}
+                                        <span className="text-rose-400 block font-semibold">
+                                          🐾 +{pStats.bonusDmg.toLocaleString()} DMG • <span className="text-emerald-400">❤️+{pStats.baseHp.toLocaleString()} HP</span> • <span className="text-cyan-400">🛡️+{pStats.baseDef.toLocaleString()} DEF</span> {item.level ? `(Lv.${item.level})` : ''}
                                         </span>
                                       );
                                     })()}
@@ -13479,6 +13669,11 @@ const App = () => {
                       >
                         {tier.label}
                       </span>
+                      {!isShoes && category !== 'material' && starsCount > 0 && (
+                        <span className="text-[9px] font-black text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                          {starsCount}⭐
+                        </span>
+                      )}
                       {isStackable && (
                         <span className="text-[10px] font-bold text-cyan-300 bg-cyan-950/50 border border-cyan-500/30 px-1.5 py-0.5 rounded">
                           Túi có: x{Number(maxQty).toLocaleString()}
@@ -13873,6 +14068,12 @@ const App = () => {
                                           {tier.label}
                                         </span>
 
+                                        {!isShoes && category !== 'material' && starsCount > 0 && (
+                                          <span className="text-[9px] font-black text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                            {starsCount}⭐
+                                          </span>
+                                        )}
+
                                         {item.skill_level > 0 && (
                                           <span className="text-[9px] font-bold text-amber-300 bg-amber-500/20 px-1 rounded">
                                             Lv.{item.skill_level}
@@ -13890,7 +14091,12 @@ const App = () => {
                                       <div className="text-[10px] text-slate-300 font-bold mt-1">
                                         {category === 'weapon' && (() => {
                                           const wStats = getWeaponStats(item);
-                                          return <span className="text-emerald-400">⚡ +{wStats.baseDmg.toLocaleString()} DMG</span>;
+                                          const plusVal = Number(item.plus || 0);
+                                          return (
+                                            <span className="text-emerald-400">
+                                              ⚡ +{wStats.baseDmg.toLocaleString()} DMG{plusVal > 0 ? ` (+${Math.round(wStats.baseDmg * plusVal * 0.25).toLocaleString()})` : ''}
+                                            </span>
+                                          );
                                         })()}
                                         {category === 'armor' && (() => {
                                           const aStats = getArmorStats(item);
@@ -13931,7 +14137,11 @@ const App = () => {
                                         })()}
                                         {category === 'pet' && (() => {
                                           const pStats = getPetStats(item);
-                                          return <span className="text-rose-400">🐾 +{pStats.bonusDmg.toLocaleString()} DMG</span>;
+                                          return (
+                                            <span className="text-rose-400">
+                                              🐾 +{pStats.bonusDmg.toLocaleString()} DMG • <span className="text-emerald-400">❤️+{pStats.baseHp.toLocaleString()} HP</span> • <span className="text-cyan-400">🛡️+{pStats.baseDef.toLocaleString()} DEF</span> • <span className="text-amber-400">⚡+{Math.round(pStats.critRate * 100)}% Crit</span>
+                                            </span>
+                                          );
                                         })()}
                                         {category === 'shoes' && (() => {
                                           const agi = Number(item.agility || item.base_agility || 300);
@@ -14444,7 +14654,7 @@ const App = () => {
                                 <h4 className="text-xs font-black text-white truncate" title={item.name}>
                                   {item.name}
                                 </h4>
-                                <div className="text-[10px] text-amber-400 font-bold">
+                                <div className="text-[10px] text-amber-400 font-bold tracking-widest">
                                   {'★'.repeat(starsCount)}
                                 </div>
                                 <span
