@@ -8077,14 +8077,16 @@ const App = () => {
           </div>
 
           {/* THANH ĐIỀU KHIỂN & TIẾN TRÌNH BẢO HIỂM TÍCH HỢP TẤT CẢ TRONG 1 (ALL-IN-ONE COMPACT CONSOLE) */}
-          <div className="w-full max-w-2xl mx-auto bg-gradient-to-b from-[#0d1424] via-[#090f1d] to-[#060a14] border border-amber-500/35 rounded-2xl p-3 sm:p-3.5 mb-6 shadow-xl relative text-left">
-            {/* Hàng 1: Chế độ quay, ID Game, Lượt & Nạp tiền */}
-            <div className="flex flex-wrap items-center justify-between gap-2.5 mb-2.5">
-              {/* Cụm Trái: Chế độ & ID Game */}
+          <div className="w-full max-w-2xl mx-auto bg-gradient-to-b from-[#0f172a]/95 via-[#0c1322]/95 to-[#080d18]/95 border border-amber-500/35 rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,0.6)] overflow-hidden mb-6 text-left backdrop-blur-md">
+            
+            {/* TẦNG 1: THÔNG TIN TÀI KHOẢN & VÉ QUAY (User Hub & Spin Wallet Bar) */}
+            <div className="px-3.5 py-2.5 sm:px-4 sm:py-3 bg-[#070b14]/90 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2.5">
+              
+              {/* Bên trái: Tab Chế độ & ID Game */}
               <div className="flex items-center gap-2 flex-wrap">
                 {/* Nút chế độ quay */}
                 {wheelItemsMoneyDb.length > 0 ? (
-                  <div className="flex bg-[#070b14] p-0.5 rounded-lg border border-slate-800">
+                  <div className="flex bg-[#030712] p-0.5 rounded-lg border border-slate-800 shrink-0">
                     {wheelItemsSpinDb.length > 0 && (
                       <button
                         type="button"
@@ -8111,25 +8113,25 @@ const App = () => {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 bg-rose-500/15 text-rose-300 border border-rose-500/30 px-2.5 py-1 rounded-lg text-xs font-black">
+                  <div className="flex items-center gap-1.5 bg-rose-500/15 text-rose-300 border border-rose-500/30 px-2.5 py-1 rounded-lg text-xs font-black shrink-0">
                     <Ticket size={13} /> <span>Vòng Quay Lượt</span>
                   </div>
                 )}
 
-                {/* ID Game liên kết */}
+                {/* ID Game liên kết & Tài nguyên */}
                 {playMode === 'spin' && (
                   currentUser?.linked_game_id ? (
-                    <div className="flex items-center gap-1.5 bg-[#070b14] border border-slate-800 px-2.5 py-1 rounded-lg text-xs">
+                    <div className="flex items-center gap-2 bg-[#030712]/80 border border-slate-800/80 px-2.5 py-1 rounded-lg text-xs">
                       <span className="text-emerald-400 font-extrabold flex items-center gap-1">
-                        🎮 <span className="font-mono text-white">@{currentUser.linked_game_id}</span>
+                        🎮 <span className="font-mono text-white font-black">@{currentUser.linked_game_id}</span>
                       </span>
-                      <span className="text-slate-600">|</span>
+                      <span className="text-slate-700">|</span>
                       <span className="text-amber-300 font-bold flex items-center gap-1">
-                        🪙 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary?.bonus_coins || 0)} Xu
+                        🪙 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary?.bonus_coins || 0)} <span className="text-[10px] text-slate-400 font-normal">Xu</span>
                       </span>
-                      <span className="text-slate-600">|</span>
-                      <span className="text-rose-400 font-bold flex items-center gap-1" title="Điểm Vinh Dự Chiến Trường (PvP)">
-                        🏆 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary?.honor_points || 0)} Vinh Dự
+                      <span className="text-slate-700">|</span>
+                      <span className="text-rose-400 font-bold flex items-center gap-1" title="Điểm Vinh Dự Chiến Trường">
+                        🏆 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary?.honor_points || 0)} <span className="text-[10px] text-slate-400 font-normal">Vinh Dự</span>
                       </span>
                     </div>
                   ) : (
@@ -8147,14 +8149,14 @@ const App = () => {
                 )}
               </div>
 
-              {/* Cụm Phải: Số lượt & Nút Nạp tiền */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 bg-[#070b14] border border-amber-500/30 px-2.5 py-1 rounded-lg text-xs">
+              {/* Bên phải: Cụm Số Vé Hiện Có & Nút Nạp Lượt liền khối */}
+              <div className="flex items-center gap-1.5 bg-[#030712] border border-amber-500/35 rounded-xl p-1 shadow-inner shrink-0">
+                <div className="flex items-center gap-1.5 px-2 py-0.5">
                   <Ticket size={14} className="text-amber-400" />
-                  <span className="text-slate-300 font-medium">Lượt:</span>
-                  <strong className="text-amber-400 font-mono font-black text-sm">
+                  <span className="text-xs text-slate-300 font-medium">Lượt:</span>
+                  <span className="text-amber-400 font-mono font-black text-sm sm:text-base">
                     {currentUser ? (currentUser.spins || 0) : 0}
-                  </strong>
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -8162,7 +8164,7 @@ const App = () => {
                     if (!currentUser) return requireAuth('login');
                     setCurrentView('naptien');
                   }}
-                  className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs px-2.5 py-1 rounded-lg shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1 shrink-0 border border-emerald-400/30"
+                  className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs px-2.5 py-1 rounded-lg shadow-sm transition-all hover:scale-105 active:scale-95 flex items-center gap-1 shrink-0 border border-emerald-400/30"
                 >
                   <Wallet size={12} />
                   <span>Nạp Lượt</span>
@@ -8171,72 +8173,101 @@ const App = () => {
               </div>
             </div>
 
-            {/* Hàng 2: Thanh Bảo Hiểm Giày Thần Tốc (Tích hợp liền mạch) */}
+            {/* TẦNG 2: THẺ TIẾN TRÌNH BẢO HIỂM GIÀY THẦN TỐC (Legendary Shoes Pity Hub) */}
             {playMode === 'spin' && (
-              <div className="pt-2 border-t border-slate-800/80">
-                <div className="flex items-center justify-between text-xs mb-1.5">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-sm">👟</span>
-                    <span className="font-extrabold text-amber-300 truncate">
-                      Bảo Hiểm Giày Thần Tốc <span className="text-[10px] text-amber-400/90 font-bold bg-amber-500/10 px-1 py-0.2 rounded border border-amber-500/20">(+300 Tốc độ)</span>
-                    </span>
-                    <span className="text-[11px] text-slate-400 hidden sm:inline">• Lần 121 chắc chắn trúng</span>
+              <div className="p-3.5 sm:p-4 bg-gradient-to-r from-amber-500/[0.05] via-rose-500/[0.03] to-transparent">
+                
+                {/* Header hàng 1: Thông tin Trang Bị (Trái) & Hạn Chót Đếm Ngược (Phải) */}
+                <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3">
+                  
+                  {/* Trái: Icon Giày + Tên + Thuộc tính */}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/25 via-rose-500/20 to-yellow-500/10 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.25)] p-1">
+                      <img
+                        src={LEGENDARY_SHOES_IMG}
+                        alt="Giày Thần Tốc"
+                        className="w-full h-full object-contain filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-black text-amber-300 text-sm sm:text-base tracking-wide">
+                          Bảo Hiểm Giày Thần Tốc
+                        </span>
+                        <span className="text-[10px] text-amber-300 font-black bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded shadow-sm">
+                          +300 Tốc độ
+                        </span>
+                        <span className="text-[10px] text-rose-300 font-extrabold bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 rounded">
+                          Huyền Thoại
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="font-mono font-black text-right shrink-0">
-                    <span className="text-amber-400 text-xs sm:text-sm">{shoesPity}</span>
-                    <span className="text-slate-500 text-[11px]">/120</span>
-                    {shoesPity >= 120 ? (
-                      <span className="text-rose-400 text-[10px] font-black ml-1.5 animate-pulse">🔥 NỔ LẦN 121!</span>
-                    ) : (
-                      <span className="text-slate-400 text-[10px] font-medium ml-1.5 hidden sm:inline">
-                        (Còn <strong className="text-yellow-400">{120 - shoesPity}</strong> lượt)
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Progress bar siêu gọn gàng */}
-                <div className="w-full h-1.5 sm:h-2 bg-[#050811] rounded-full overflow-hidden border border-slate-800">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      shoesPity >= 120
-                        ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-yellow-300 shadow-[0_0_10px_rgba(244,63,94,0.9)] animate-pulse'
-                        : 'bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500'
-                    }`}
-                    style={{ width: `${Math.min(100, Math.max(3, Math.round((shoesPity / 120) * 100)))}%` }}
-                  ></div>
-                </div>
-
-                {/* Hàng 3: Khung Đếm Ngược Hạn Chót Sự Kiện (Nằm ngay bên dưới thanh bảo hiểm giày) */}
-                <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-1.5 text-slate-300 font-bold">
+                  {/* Phải: Hạn chót & Đồng hồ đếm ngược thanh lịch */}
+                  <div className="flex items-center gap-1.5 bg-[#030712]/90 border border-rose-500/35 px-2.5 py-1 rounded-xl text-xs shadow-sm shrink-0">
                     <Clock size={12} className="text-rose-400 animate-spin" style={{ animationDuration: '8s' }} />
-                    <span className="text-amber-300 font-black uppercase text-[11px] tracking-wide">Hạn chót Giày Thần Tốc:</span>
-                    <span className="bg-rose-500/20 text-rose-300 text-[10px] font-black px-1.5 py-0.2 rounded border border-rose-500/30">
-                      23h59 16/10
+                    <span className="text-slate-400 text-[11px] font-medium hidden sm:inline">Hạn chót:</span>
+                    <span className="text-amber-300 font-bold text-[11px] hidden sm:inline">23h59 16/10</span>
+                    <span className="text-slate-700 hidden sm:inline">•</span>
+                    <span className="text-slate-400 text-[11px] font-medium sm:hidden">Còn:</span>
+                    <span className="text-rose-400 font-mono font-black text-xs">
+                      {wheelCountdown.days}N {wheelCountdown.hours}:{wheelCountdown.minutes}:{wheelCountdown.seconds}
                     </span>
                   </div>
+                </div>
 
-                  <div className="flex items-center gap-1 font-mono text-xs font-black shrink-0">
-                    <span className="text-slate-400 font-sans text-[11px] font-medium mr-0.5">Còn lại:</span>
-                    <div className="bg-[#070b14] border border-amber-500/30 rounded px-1.5 py-0.5 text-amber-400">
-                      {wheelCountdown.days}<span className="text-[9px] text-slate-400 font-sans ml-0.5 font-normal">N</span>
+                {/* Box Tiến độ & Thanh Bar Pity (Chuẩn game AAA, nhìn phát hiểu ngay) */}
+                <div className="bg-[#040814]/80 border border-slate-800/90 rounded-xl p-3 sm:p-3.5 shadow-inner">
+                  
+                  {/* Dòng hiển thị con số rõ ràng */}
+                  <div className="flex items-center justify-between text-xs mb-2">
+                    <div className="flex items-center gap-1.5 text-slate-300">
+                      <span className="text-slate-400 font-medium text-xs">Tiến độ bảo hiểm:</span>
+                      <strong className="font-mono font-black text-amber-400 text-sm sm:text-base">
+                        {shoesPity} <span className="text-slate-500 font-normal text-xs">/ 120</span>
+                      </strong>
                     </div>
-                    <span className="text-amber-400/80 font-bold">:</span>
-                    <div className="bg-[#070b14] border border-amber-500/30 rounded px-1.5 py-0.5 text-amber-400">
-                      {wheelCountdown.hours}<span className="text-[9px] text-slate-400 font-sans ml-0.5 font-normal">H</span>
-                    </div>
-                    <span className="text-amber-400/80 font-bold">:</span>
-                    <div className="bg-[#070b14] border border-amber-500/30 rounded px-1.5 py-0.5 text-amber-400">
-                      {wheelCountdown.minutes}<span className="text-[9px] text-slate-400 font-sans ml-0.5 font-normal">P</span>
-                    </div>
-                    <span className="text-amber-400/80 font-bold">:</span>
-                    <div className="bg-[#070b14] border border-rose-500/40 rounded px-1.5 py-0.5 text-rose-400 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.3)]">
-                      {wheelCountdown.seconds}<span className="text-[9px] text-rose-300 font-sans ml-0.5 font-normal">S</span>
+
+                    <div className="text-right">
+                      {shoesPity >= 120 ? (
+                        <span className="text-rose-400 font-black text-xs sm:text-sm animate-pulse flex items-center gap-1">
+                          🔥 LẦN 121: 100% TRÚNG GIÀY!
+                        </span>
+                      ) : (
+                        <span className="text-xs">
+                          <span className="text-slate-400 font-medium">Còn </span>
+                          <strong className="font-mono font-black text-yellow-300 text-sm">{120 - shoesPity}</strong>
+                          <span className="text-slate-400 font-medium"> lượt </span>
+                          <span className="text-emerald-400 font-bold ml-1 hidden sm:inline">• Lần 121 chắc chắn trúng</span>
+                        </span>
+                      )}
                     </div>
                   </div>
+
+                  {/* Thanh Progress Bar đẹp mắt */}
+                  <div className="w-full h-3 sm:h-3.5 bg-[#02050c] rounded-full overflow-hidden border border-slate-800 p-0.5 shadow-inner">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 relative ${
+                        shoesPity >= 120
+                          ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-yellow-300 shadow-[0_0_14px_rgba(244,63,94,0.95)] animate-pulse'
+                          : 'bg-gradient-to-r from-indigo-500 via-amber-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.5)]'
+                      }`}
+                      style={{ width: `${Math.min(100, Math.max(3, Math.round((shoesPity / 120) * 100)))}%` }}
+                    ></div>
+                  </div>
+
+                  {/* Dòng mốc 0 lượt và 120 lượt bên dưới thanh bar */}
+                  <div className="flex items-center justify-between mt-1.5 text-[11px] text-slate-500">
+                    <span>0 lượt</span>
+                    <span className="text-amber-400/80 font-semibold text-[11px] flex items-center gap-1">
+                      🎯 Mốc 120 lượt (Lần 121 nhận Giày Thần Tốc)
+                    </span>
+                    <span>120 lượt</span>
+                  </div>
                 </div>
+
               </div>
             )}
           </div>

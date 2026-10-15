@@ -116,6 +116,33 @@
     "glow_color": null,
     "border_class": ""
   },
+  "bá vương thần đao": {
+    "name": "Bá Vương Thần Đao Thượng Cổ",
+    "image": "weapon_ba_vuong.png",
+    "category": "weapon",
+    "tier": "Thượng Cổ",
+    "color": "#ff0055",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "ba vuong than dao": {
+    "name": "Bá Vương Thần Đao Thượng Cổ",
+    "image": "weapon_ba_vuong.png",
+    "category": "weapon",
+    "tier": "Thượng Cổ",
+    "color": "#ff0055",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "ba vuong than dao thuong co": {
+    "name": "Bá Vương Thần Đao Thượng Cổ",
+    "image": "weapon_ba_vuong.png",
+    "category": "weapon",
+    "tier": "Thượng Cổ",
+    "color": "#ff0055",
+    "glow_color": null,
+    "border_class": ""
+  },
   "giáp sắt": {
     "name": "Giáp Sắt",
     "image": "armor_giap_sat.png",
@@ -566,6 +593,42 @@
     "glow_color": null,
     "border_class": ""
   },
+  "gói 50 lượt đánh boss": {
+    "name": "Gói 50 Lượt Đánh Boss",
+    "image": "item_attack_turn.png",
+    "category": "bonus_attacks",
+    "tier": null,
+    "color": "#00e5ff",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "gói 100 lượt đánh boss": {
+    "name": "Gói 100 Lượt Đánh Boss",
+    "image": "item_attack_turn.png",
+    "category": "bonus_attacks",
+    "tier": null,
+    "color": "#00e5ff",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "gói 200 lượt đánh boss": {
+    "name": "Gói 200 Lượt Đánh Boss",
+    "image": "item_attack_turn.png",
+    "category": "bonus_attacks",
+    "tier": null,
+    "color": "#00e5ff",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "gói 500 lượt đánh boss": {
+    "name": "Gói 500 Lượt Đánh Boss",
+    "image": "item_attack_turn.png",
+    "category": "bonus_attacks",
+    "tier": null,
+    "color": "#00e5ff",
+    "glow_color": null,
+    "border_class": ""
+  },
   "1 rương chiến tích boss": {
     "name": "1 Rương Chiến Tích Boss",
     "image": "boss_chest_closed_trans.png",
@@ -676,6 +739,51 @@
   },
   "1 vé vòng quay may mắn": {
     "name": "1 Vé Vòng Quay May Mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "vé vòng quay may mắn": {
+    "name": "Vé Vòng Quay May Mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "vé vòng quay": {
+    "name": "Vé Vòng Quay May Mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "ve vong quay may man": {
+    "name": "Vé Vòng Quay May Mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "ve vong quay": {
+    "name": "Vé Vòng Quay May Mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "spin_ticket": {
+    "name": "Vé Vòng Quay May Mắn",
     "image": "spin_ticket.png",
     "category": "spin_ticket",
     "tier": "Thần Thoại",
