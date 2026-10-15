@@ -8129,10 +8129,6 @@ const App = () => {
                       <span className="text-amber-300 font-bold flex items-center gap-1">
                         🪙 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary?.bonus_coins || 0)} <span className="text-[10px] text-slate-400 font-normal">Xu</span>
                       </span>
-                      <span className="text-slate-700">|</span>
-                      <span className="text-rose-400 font-bold flex items-center gap-1" title="Điểm Vinh Dự Chiến Trường">
-                        🏆 {new Intl.NumberFormat('vi-VN').format(bossPlayerSummary?.honor_points || 0)} <span className="text-[10px] text-slate-400 font-normal">Vinh Dự</span>
-                      </span>
                     </div>
                   ) : (
                     <button
@@ -8205,16 +8201,12 @@ const App = () => {
                     </div>
                   </div>
 
-                  {/* Phải: Hạn chót & Đồng hồ đếm ngược thanh lịch */}
-                  <div className="flex items-center gap-1.5 bg-[#030712]/90 border border-rose-500/35 px-2.5 py-1 rounded-xl text-xs shadow-sm shrink-0">
-                    <Clock size={12} className="text-rose-400 animate-spin" style={{ animationDuration: '8s' }} />
-                    <span className="text-slate-400 text-[11px] font-medium hidden sm:inline">Hạn chót:</span>
-                    <span className="text-amber-300 font-bold text-[11px] hidden sm:inline">23h59 16/10</span>
-                    <span className="text-slate-700 hidden sm:inline">•</span>
-                    <span className="text-slate-400 text-[11px] font-medium sm:hidden">Còn:</span>
-                    <span className="text-rose-400 font-mono font-black text-xs">
-                      {wheelCountdown.days}N {wheelCountdown.hours}:{wheelCountdown.minutes}:{wheelCountdown.seconds}
-                    </span>
+                  {/* Phải: Tiến độ bảo hiểm gọn gàng */}
+                  <div className="bg-[#030712]/90 border border-slate-800 px-3 py-1 rounded-xl text-xs shrink-0 shadow-inner flex items-center gap-1.5">
+                    <span className="text-slate-400 text-[11px] font-medium">Bảo hiểm:</span>
+                    <strong className="font-mono font-black text-amber-400 text-xs sm:text-sm">
+                      {shoesPity} <span className="text-slate-500 font-normal text-[11px]">/ 120</span>
+                    </strong>
                   </div>
                 </div>
 
@@ -8270,6 +8262,46 @@ const App = () => {
 
               </div>
             )}
+          </div>
+
+          {/* KHUNG ĐẾM NGƯỢC HẠN CHÓT SỰ KIỆN GIÀY THẦN TỐC (TÁCH RIÊNG BIỆT - HIỆN ĐẠI & GỌN GÀNG) */}
+          <div className="w-full max-w-2xl mx-auto mb-6 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-rose-950/40 via-[#0d1424] to-amber-950/40 border border-amber-500/35 shadow-[0_6px_24px_rgba(0,0,0,0.55)] backdrop-blur-md flex flex-wrap items-center justify-between gap-3 text-left">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500/20 via-rose-500/20 to-yellow-500/10 border border-amber-500/40 flex items-center justify-center text-base shrink-0 shadow-inner">
+                ⏳
+              </div>
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                <span className="text-xs sm:text-sm font-black uppercase tracking-wide text-amber-300 whitespace-nowrap">
+                  Sự kiện Giày Thần Tốc
+                </span>
+                <span className="bg-rose-500/20 text-rose-300 text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-full border border-rose-500/40 shrink-0 animate-pulse">
+                  Hạn chót: 23h59 16/10
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 font-mono text-xs sm:text-sm font-black shrink-0">
+              <span className="text-slate-400 font-sans text-xs font-semibold mr-1">Kết thúc sau:</span>
+              <div className="bg-[#040814] border border-amber-500/35 rounded-lg px-2 py-1 text-center min-w-[38px] shadow-sm">
+                <div className="text-amber-400 leading-none">{wheelCountdown.days}</div>
+                <div className="text-[8px] text-slate-400 font-sans font-bold uppercase mt-0.5">Ngày</div>
+              </div>
+              <span className="text-amber-400/70 font-bold">:</span>
+              <div className="bg-[#040814] border border-amber-500/35 rounded-lg px-2 py-1 text-center min-w-[38px] shadow-sm">
+                <div className="text-amber-400 leading-none">{wheelCountdown.hours}</div>
+                <div className="text-[8px] text-slate-400 font-sans font-bold uppercase mt-0.5">Giờ</div>
+              </div>
+              <span className="text-amber-400/70 font-bold">:</span>
+              <div className="bg-[#040814] border border-amber-500/35 rounded-lg px-2 py-1 text-center min-w-[38px] shadow-sm">
+                <div className="text-amber-400 leading-none">{wheelCountdown.minutes}</div>
+                <div className="text-[8px] text-slate-400 font-sans font-bold uppercase mt-0.5">Phút</div>
+              </div>
+              <span className="text-amber-400/70 font-bold">:</span>
+              <div className="bg-[#040814] border border-rose-500/40 rounded-lg px-2 py-1 text-center min-w-[38px] shadow-[0_0_10px_rgba(244,63,94,0.3)]">
+                <div className="text-rose-400 leading-none animate-pulse">{wheelCountdown.seconds}</div>
+                <div className="text-[8px] text-rose-300 font-sans font-bold uppercase mt-0.5">Giây</div>
+              </div>
+            </div>
           </div>
 
           {/* BỐ CỤC 2 CỘT: TRÁI LÀ VÒNG QUAY & BẢN ĐIỀU KHIỂN - PHẢI LÀ LỊCH SỬ QUAY */}
