@@ -13398,6 +13398,7 @@ const App = () => {
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {displayedInventory.map((item, idx) => {
                           const category = getCategoryOfItem(item);
+                          const isShoes = (category === 'shoes') || String(item?.category || '').toLowerCase() === 'shoes' || String(item?.name || '').toLowerCase().includes('giày');
                           const tier = getBossTierStyle(item.tier);
                           const img = getBossItemAsset(item, category);
                           const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
@@ -13658,6 +13659,7 @@ const App = () => {
         {showListItemModal && selectedItemToList && (() => {
           const item = selectedItemToList;
           const category = getCategoryOfItem(item);
+          const isShoes = (category === 'shoes') || String(item?.category || '').toLowerCase() === 'shoes' || String(item?.name || '').toLowerCase().includes('giày');
           const tier = getBossTierStyle(item?.tier);
           const img = getBossItemAsset(item, category);
           const numStars = Number(item?.stars);
@@ -14070,6 +14072,7 @@ const App = () => {
                           {filteredMarketListings.map((listing) => {
                             const item = listing.item || {};
                             const category = getCategoryOfItem(item);
+                            const isShoes = (category === 'shoes') || String(item?.category || '').toLowerCase() === 'shoes' || String(item?.name || '').toLowerCase().includes('giày');
                             const tier = getBossTierStyle(item.tier);
                             const img = getBossItemAsset(item, category);
                             const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
