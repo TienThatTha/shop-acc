@@ -447,13 +447,15 @@ export default function WizardCardFlip(props) {
           }]);
         } catch (tErr) {}
 
-        // Dispatch game_orders for in-game and Discord sync
+        // Dispatch game_orders for in-game and Discord sync (Tuyệt đối KHÔNG kích hoạt TTS nạp tiền)
         const targetGameUid = currentUser.linked_game_id || currentUser.game_id || currentUser.name;
         if (targetGameUid) {
-          const orderId = `WO_WIZ_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+          const orderId = `WO_WHEEL_WIZ_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
           const orderRewards = {
-            source_type: 'wizard_card_flip',
-            source_event: 'wizard',
+            source_type: 'wheel',
+            is_wizard: true,
+            is_wheel: true,
+            is_card_flip: true,
             items: []
           };
 
@@ -500,14 +502,18 @@ export default function WizardCardFlip(props) {
               user_id: targetGameUid,
               nickname: currentUser.name,
               web_user: currentUser.id,
-              package_id: count === 1 ? 'wizard_flip_x1' : 'wizard_flip_x10',
+              package_id: count === 1 ? 'wheel_wizard_flip_x1' : 'wheel_wizard_flip_x10',
               package_name: count === 1 ? 'Lật Thẻ Bài Phù Thủy (x1)' : 'Lật Thẻ Bài Phù Thủy (x10)',
               price: 0,
-              notify: hadHatWin,
+              notify: false,
               rewards: {
                 ...orderRewards,
-                notify: hadHatWin,
-                is_hat_win: hadHatWin
+                notify: false,
+                notify_discord: false,
+                is_hat_win: hadHatWin,
+                source_type: 'wheel',
+                is_wheel: true,
+                is_wizard: true
               },
               status: 'pending'
             }]);
