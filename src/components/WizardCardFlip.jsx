@@ -145,13 +145,38 @@ export default function WizardCardFlip(props) {
   const [flipCount, setFlipCount] = useState(1); // 1 or 10
   const [activeTab, setActiveTab] = useState('arena'); // 'arena' | 'rules' | 'history' | 'winners'
   
-  // Single card flip state
-  const [singleResult, setSingleResult] = useState(null);
-  const [isSingleFlipped, setIsSingleFlipped] = useState(false);
+  const CARD_BACK_IMG = '/wizard_card_back.jpg';
+
+  // 10 Cards Arena State (Bàn Bài 10 Lá Ma Thuật)
+  const [tableCards, setTableCards] = useState(() => 
+    Array.from({ length: 10 }, (_, i) => ({
+      id: i,
+      isFlipped: false,
+      item: null,
+      isHat: false,
+      isPityTrigger: false
+    }))
+  );
 
   // x10 modal state
   const [x10Results, setX10Results] = useState([]);
   const [showX10Modal, setShowX10Modal] = useState(false);
+
+  // Function to reset / reshuffle all 10 cards face-down
+  const handleResetTable = () => {
+    if (isFlippingRef.current) return;
+    playSound('chestOpenSound');
+    setTableCards(Array.from({ length: 10 }, (_, i) => ({
+      id: i,
+      isFlipped: false,
+      item: null,
+      isHat: false,
+      isPityTrigger: false
+    })));
+    if (typeof showToast === 'function') {
+      showToast('Đã xáo và úp lại toàn bộ 10 lá bài ma thuật!', 'success');
+    }
+  };
 
   // Sound effects
   const playSound = (soundId) => {
@@ -201,7 +226,7 @@ export default function WizardCardFlip(props) {
   }, [transactionsDb]);
 
   // Execute Card Flip (1 or 10 cards)
-  const handleFlip = async (count) => {
+  const handleFlip = async (count, targetCardIndex = null) => {
     if (!currentUser) {
       if (typeof requireAuth === 'function') requireAuth('wizard');
       return;
@@ -216,14 +241,49 @@ export default function WizardCardFlip(props) {
       return;
     }
 
+    // Determine target index for 1 card flip
+    let chosenIdx = targetCardIndex;
+    if (count === 1) {
+      if (chosenIdx === null || chosenIdx === undefined) {
+        // Find first unflipped card
+        const firstUnflipped = tableCards.findIndex(c => !c.isFlipped);
+        if (firstUnflipped === -1) {
+          // All 10 are flipped -> reset and pick 0
+          setTableCards(Array.from({ length: 10 }, (_, i) => ({
+            id: i,
+            isFlipped: false,
+            item: null,
+            isHat: false,
+            isPityTrigger: false
+          })));
+          chosenIdx = 0;
+        } else {
+          chosenIdx = firstUnflipped;
+        }
+      } else {
+        if (tableCards[chosenIdx]?.isFlipped) {
+          if (typeof showToast === 'function') {
+            showToast('Lá bài này đã được lật! Hãy chọn lá bài khác hoặc bấm Xáo Bài.', 'info');
+          }
+          return;
+        }
+      }
+    } else {
+      // If count is 10: if all or some cards are flipped, reset them first
+      if (tableCards.some(c => c.isFlipped)) {
+        setTableCards(Array.from({ length: 10 }, (_, i) => ({
+          id: i,
+          isFlipped: false,
+          item: null,
+          isHat: false,
+          isPityTrigger: false
+        })));
+      }
+    }
+
     isFlippingRef.current = true;
     setIsFlipping(true);
     setFlipCount(count);
-
-    if (count === 1) {
-      setIsSingleFlipped(false);
-      setSingleResult(null);
-    }
 
     playSound('chestOpenSound');
 
@@ -464,21 +524,52 @@ export default function WizardCardFlip(props) {
         setUsersDb(prev => prev.map(u => u.id === currentUser.id ? { ...u, spins: finalNewSpins, wizard_pity: finalPity } : u));
       }
 
-      // Delay to let 3D flip animation play smoothly
-      setTimeout(() => {
-        setIsFlipping(false);
-        isFlippingRef.current = false;
+      // Animate 3D Card Flips on Table
+      if (count === 1) {
+        setTimeout(() => {
+          setIsFlipping(false);
+          isFlippingRef.current = false;
 
-        if (count === 1) {
           const win = wonItems[0];
-          setSingleResult(win);
-          setIsSingleFlipped(true);
+          setTableCards(prev => prev.map((c, cIdx) => cIdx === chosenIdx ? {
+            ...c,
+            isFlipped: true,
+            item: win,
+            isHat: win.is_hat,
+            isPityTrigger: win.is_pity_trigger
+          } : c));
+
           if (win.is_hat || win.is_pity_trigger) {
             playSound('celebrationSound');
+            if (typeof showToast === 'function') {
+              showToast('🎉 XUẤT SẮC! BẠN ĐÃ LẬT TRÚNG NÓN PHÙ THỦY HUYỀN THOẠI!', 'success');
+            }
           } else {
             playSound('winSound');
           }
-        } else {
+        }, 500);
+      } else {
+        // count === 10: Cascade reveal each card sequentially
+        wonItems.forEach((wonItem, idx) => {
+          setTimeout(() => {
+            setTableCards(prev => prev.map((c, cIdx) => cIdx === idx ? {
+              ...c,
+              isFlipped: true,
+              item: wonItem,
+              isHat: wonItem.is_hat,
+              isPityTrigger: wonItem.is_pity_trigger
+            } : c));
+            if (wonItem.is_hat || wonItem.is_pity_trigger) {
+              playSound('celebrationSound');
+            } else {
+              playSound('winSound');
+            }
+          }, (idx + 1) * 120);
+        });
+
+        setTimeout(() => {
+          setIsFlipping(false);
+          isFlippingRef.current = false;
           setX10Results(wonItems);
           setShowX10Modal(true);
           if (hadHatWin) {
@@ -486,8 +577,8 @@ export default function WizardCardFlip(props) {
           } else {
             playSound('winSound');
           }
-        }
-      }, 1200);
+        }, 10 * 120 + 400);
+      }
 
     } catch (err) {
       setIsFlipping(false);
@@ -611,83 +702,142 @@ export default function WizardCardFlip(props) {
         {activeTab === 'arena' && (
           <div className="space-y-8">
             
-            {/* VÙNG BÀN BÀI TRUNG TÂM (MAGIC CARD TABLE) */}
-            <div className="relative p-6 sm:p-10 rounded-3xl bg-gradient-to-b from-[#180f33] via-[#120827] to-[#0c051a] border-2 border-purple-500/40 shadow-[0_0_50px_rgba(147,51,234,0.2)] flex flex-col items-center justify-center min-h-[380px]">
+            {/* VÙNG BÀN BÀI TRUNG TÂM (MAGIC CARD TABLE: 10 THẺ SẴN SÀNG) */}
+            <div className="relative p-4 sm:p-8 rounded-3xl bg-gradient-to-b from-[#180f33] via-[#120827] to-[#0c051a] border-2 border-purple-500/40 shadow-[0_0_50px_rgba(147,51,234,0.2)] flex flex-col items-center justify-center">
               
-              {/* Vòng tròn phép thuật hào quang */}
-              <div className="absolute w-[320px] h-[320px] sm:w-[420px] sm:h-[420px] rounded-full border border-purple-500/20 border-dashed animate-[spin_60s_linear_infinite] pointer-events-none"></div>
-              <div className="absolute w-[240px] h-[240px] sm:w-[320px] sm:h-[320px] rounded-full border border-fuchsia-500/20 animate-[spin_40s_linear_infinite_reverse] pointer-events-none"></div>
+              {/* Vòng tròn phép thuật hào quang ma trận */}
+              <div className="absolute w-[450px] h-[450px] sm:w-[650px] sm:h-[650px] rounded-full border border-purple-500/15 border-dashed animate-[spin_60s_linear_infinite] pointer-events-none"></div>
+              <div className="absolute w-[350px] h-[350px] sm:w-[500px] sm:h-[500px] rounded-full border border-fuchsia-500/15 animate-[spin_40s_linear_infinite_reverse] pointer-events-none"></div>
 
-              {/* LÁ BÀI PHÉP THUẬT 3D CHÍNH GIỮA */}
-              <div className="relative z-10 perspective-[1000px] mb-8">
-                <div 
-                  className={`w-48 h-64 sm:w-56 sm:h-76 rounded-2xl transition-transform duration-700 transform-style-preserve-3d cursor-pointer shadow-[0_10px_35px_rgba(0,0,0,0.8)] ${
-                    isSingleFlipped ? 'rotate-y-180' : isFlipping ? 'animate-pulse scale-105' : 'hover:-translate-y-2'
-                  }`}
-                  onClick={() => !isFlipping && handleFlip(1)}
-                >
-                  {/* MẶT SAU LÁ BÀI (CARD BACK) */}
-                  <div className="absolute inset-0 backface-hidden rounded-2xl bg-gradient-to-br from-indigo-950 via-purple-900 to-fuchsia-950 border-2 border-amber-400/60 p-3 flex flex-col items-center justify-between shadow-[inset_0_0_20px_rgba(245,158,11,0.3)]">
-                    <div className="w-full flex justify-between text-amber-300/60 text-xs font-serif">
-                      <span>★</span>
-                      <span>✦</span>
-                      <span>★</span>
-                    </div>
-
-                    <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-2 border-amber-400/50 flex items-center justify-center bg-purple-950/80 shadow-[0_0_20px_rgba(245,158,11,0.4)] relative">
-                      <span className="text-4xl sm:text-5xl select-none">🧙‍♀️</span>
-                      <div className="absolute inset-0 border border-amber-300/40 rounded-full animate-ping opacity-30"></div>
-                    </div>
-
-                    <div className="text-center">
-                      <span className="text-xs font-black text-amber-300 tracking-wider block">PHÙ THỦY MA THUẬT</span>
-                      <span className="text-[10px] text-purple-300/80">Nhấp để lật thẻ</span>
-                    </div>
-
-                    <div className="w-full flex justify-between text-amber-300/60 text-xs font-serif">
-                      <span>★</span>
-                      <span>✦</span>
-                      <span>★</span>
-                    </div>
-                  </div>
-
-                  {/* MẶT TRƯỚC LÁ BÀI (CARD FRONT - KHI ĐÃ LẬT) */}
-                  <div className={`absolute inset-0 backface-hidden rotate-y-180 rounded-2xl border-2 p-3 flex flex-col items-center justify-between ${
-                    singleResult?.is_hat
-                      ? 'bg-gradient-to-b from-amber-950/90 via-purple-950/90 to-black border-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.8)]'
-                      : 'bg-gradient-to-b from-purple-950/90 via-slate-900/90 to-black border-purple-400/80 shadow-[0_0_25px_rgba(168,85,247,0.5)]'
-                  }`}>
-                    <div className="w-full flex justify-between items-center text-[10px] font-bold text-amber-300">
-                      <span>{singleResult?.is_hat ? 'HUYỀN THOẠI' : 'PHẦN THƯỞNG'}</span>
-                      {singleResult?.is_pity_trigger && (
-                        <span className="bg-amber-400 text-purple-950 px-1.5 py-0.5 rounded font-black text-[9px]">BẢO HIỂM</span>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col items-center justify-center my-auto space-y-2">
-                      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-purple-950/60 border border-purple-500/40 flex items-center justify-center p-2 relative overflow-hidden">
-                        {singleResult?.image ? (
-                          <img 
-                            src={singleResult.image} 
-                            alt={singleResult.name}
-                            className="w-full h-full object-contain filter drop-shadow-[0_0_10px_rgba(245,158,11,0.6)]"
-                            onError={(e) => { e.target.src = '/game-assets/hat_huyen_thoai.png'; }}
-                          />
-                        ) : (
-                          <span className="text-3xl">💨</span>
-                        )}
-                      </div>
-                      <span className="text-xs sm:text-sm font-black text-center text-white line-clamp-2 px-1">
-                        {singleResult?.name || 'Phần thưởng'}
-                      </span>
-                    </div>
-
-                    <div className="w-full text-center py-1 rounded bg-black/40 border border-white/10 text-[10px] text-amber-300 font-bold">
-                      Đã nhận vào túi
-                    </div>
-                  </div>
-
+              {/* Thanh điều khiển Bàn Bài: Tiêu đề & Nút Xáo/Úp Bài */}
+              <div className="w-full flex items-center justify-between mb-5 z-10 px-1 sm:px-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                  <span className="text-xs sm:text-sm font-black text-purple-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles size={16} className="text-amber-400" /> Bàn Bài Ma Thuật (10 Lá Phù Thủy Sẵn Sàng)
+                  </span>
                 </div>
+                
+                <button
+                  onClick={handleResetTable}
+                  disabled={isFlipping}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-950/60 hover:bg-purple-900/80 border border-purple-500/30 text-purple-300 hover:text-white text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                  title="Úp lại toàn bộ 10 thẻ bài"
+                >
+                  <RefreshCw size={14} className={isFlipping ? 'animate-spin' : ''} />
+                  <span className="hidden sm:inline">Xáo / Úp Lại Bài</span>
+                  <span className="sm:hidden">Úp Lại</span>
+                </button>
+              </div>
+
+              {/* BỐ CỤC 10 LÁ BÀI MA THUẬT (2 hàng x 5 cột) */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 w-full max-w-5xl mb-7 z-10">
+                {tableCards.map((card, idx) => {
+                  const isCardHat = card.isHat || card.item?.is_hat || card.item?.type === 'game_hat_legendary' || (card.item?.name && card.item?.name.includes('Nón Huyền Thoại'));
+                  return (
+                    <div 
+                      key={card.id}
+                      className="perspective-1000 aspect-[2/3] w-full"
+                      onClick={() => {
+                        if (!isFlipping && !card.isFlipped) {
+                          handleFlip(1, idx);
+                        }
+                      }}
+                    >
+                      <div 
+                        className={`w-full h-full relative rounded-2xl transition-transform duration-700 transform-style-3d cursor-pointer select-none shadow-[0_8px_25px_rgba(0,0,0,0.7)] ${
+                          card.isFlipped ? 'rotate-y-180' : 'hover:-translate-y-2 hover:shadow-[0_0_25px_rgba(168,85,247,0.6)]'
+                        }`}
+                      >
+                        {/* MẶT SAU: ẢNH HALLOWEEN PHÙ THỦY MA MỊ */}
+                        <div className="absolute inset-0 backface-hidden rounded-2xl overflow-hidden border-2 border-amber-400/60 hover:border-amber-300 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] bg-[#120826] group">
+                          <img 
+                            src={CARD_BACK_IMG} 
+                            alt="Mặt sau thẻ bài Halloween Phù Thủy"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            onError={(e) => { e.target.src = '/game-assets/wizard_card_back.jpg'; }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/45 pointer-events-none"></div>
+                          
+                          {/* Số thứ tự thẻ */}
+                          <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-purple-950/85 border border-amber-400/50 text-[10px] font-black text-amber-300 backdrop-blur-sm shadow-md">
+                            #{idx + 1}
+                          </div>
+
+                          {/* Ký hiệu ma thuật góc trên */}
+                          <div className="absolute top-2 right-2 text-amber-300/80 text-xs font-serif">
+                            ✦
+                          </div>
+
+                          {/* Nhãn hướng dẫn lật */}
+                          <div className="absolute bottom-2.5 inset-x-2 text-center pointer-events-none">
+                            <span className="text-[10px] sm:text-[11px] font-black text-amber-300 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,1)] uppercase block bg-purple-950/80 py-0.5 rounded-lg border border-purple-500/30">
+                              LẬT THẺ
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* MẶT TRƯỚC: PHẦN THƯỞNG KHI ĐÃ LẬT */}
+                        <div className={`absolute inset-0 backface-hidden rotate-y-180 rounded-2xl border-2 p-2 sm:p-3 flex flex-col items-center justify-between overflow-hidden ${
+                          isCardHat
+                            ? 'bg-gradient-to-b from-amber-950/95 via-purple-950/95 to-black border-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.8)] ring-2 ring-amber-400/70'
+                            : 'bg-gradient-to-b from-[#1e113b] via-[#140b2a] to-[#0d071c] border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.4)]'
+                        }`}>
+                          {/* Header bên trong thẻ đã lật */}
+                          <div className="w-full flex justify-between items-center text-[9px] sm:text-[10px] font-black text-amber-300">
+                            <span className="flex items-center gap-1">
+                              {isCardHat && <Crown size={12} className="text-amber-400" />}
+                              {isCardHat ? 'HUYỀN THOẠI' : `#${idx + 1}`}
+                            </span>
+                            {card.isPityTrigger ? (
+                              <span className="bg-amber-400 text-purple-950 px-1 py-0.2 rounded font-black text-[8px] sm:text-[9px]">
+                                120/120
+                              </span>
+                            ) : (
+                              <span className="text-purple-300/80 text-[9px]">ĐÃ MỞ</span>
+                            )}
+                          </div>
+
+                          {/* Hình ảnh & Tên phần thưởng */}
+                          <div className="flex flex-col items-center justify-center my-auto space-y-1.5 w-full">
+                            <div className={`w-14 h-14 sm:w-20 sm:h-20 rounded-xl flex items-center justify-center p-1.5 relative overflow-hidden ${
+                              isCardHat ? 'bg-amber-500/20 border border-amber-400/50' : 'bg-purple-950/60 border border-purple-500/30'
+                            }`}>
+                              {card.item?.image ? (
+                                <img 
+                                  src={card.item.image} 
+                                  alt={card.item.name}
+                                  className={`w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(0,0,0,0.8)] ${
+                                    isCardHat ? 'drop-shadow-[0_0_12px_rgba(245,158,11,0.9)] animate-pulse' : ''
+                                  }`}
+                                  onError={(e) => { e.target.src = '/game-assets/hat_huyen_thoai.png'; }}
+                                />
+                              ) : (
+                                <span className="text-2xl sm:text-3xl">✨</span>
+                              )}
+                            </div>
+
+                            <span className={`text-[11px] sm:text-xs font-black text-center line-clamp-2 px-0.5 leading-tight ${
+                              isCardHat ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]' : 'text-slate-100'
+                            }`}>
+                              {card.item?.name || 'Phần thưởng'}
+                            </span>
+                          </div>
+
+                          {/* Huy hiệu trạng thái dưới chân thẻ */}
+                          <div className={`w-full text-center py-0.5 sm:py-1 rounded text-[9px] sm:text-[10px] font-bold ${
+                            isCardHat 
+                              ? 'bg-amber-500 text-purple-950 font-black shadow-md' 
+                              : 'bg-purple-950/70 border border-purple-500/30 text-purple-200'
+                          }`}>
+                            {isCardHat ? 'BẢO VẬT TỐI THƯỢNG' : 'Đã nhận vào túi'}
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* NÚT BẤM LẬT THẺ: 1 THẺ & 10 THẺ */}
