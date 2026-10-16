@@ -234,27 +234,27 @@ export default function WizardAdminPanel(props) {
   // Open item modal for editing
   const handleOpenEditModal = (item) => {
     setEditingItem(item);
-    setFormId(item.id);
-    setFormName(item.name || '');
+    setFormId(String(item.id || ''));
+    setFormName(String(item.name || ''));
     setFormType(item.type || 'game_attacks');
-    setFormValue(item.value || 1);
-    setFormRate(item.rate || '10%');
+    setFormValue(item.value !== undefined ? item.value : 1);
+    setFormRate(item.rate !== undefined && item.rate !== null ? String(item.rate) : '10%');
     setFormQuantity(item.quantity !== undefined ? item.quantity : 999);
     setFormColor(item.color || '#3b82f6');
     setFormImage(item.image || '');
-    setFormIsSpecial(Boolean(item.is_special || item.type === 'game_hat_legendary'));
+    setFormIsSpecial(Boolean(item.is_special || item.isLegendary || item.type === 'game_hat_legendary'));
     setFormNotify(Boolean(item.notify_on_win));
     setShowItemModal(true);
   };
 
   // Handle click on item in Visual Item Picker (AUTO-FILL)
   const handleSelectFromPicker = (item) => {
-    const isHat = item.category === 'hat' || item.name.toLowerCase().includes('nón huyền thoại');
-    setFormName(item.name);
-    setFormId(item.id.toUpperCase());
+    const isHat = item.category === 'hat' || (item.name && item.name.toLowerCase().includes('nón'));
+    setFormName(String(item.name || ''));
+    setFormId(String(item.id || '').toUpperCase());
     setFormType(isHat ? 'game_hat_legendary' : `game_${item.category}`);
     setFormColor(item.color || '#3b82f6');
-    setFormImage(item.image || '/game-assets/hat_huyen_thoai.png');
+    setFormImage(item.image || '/game-assets/hat_wizard_legendary.png');
     setFormIsSpecial(isHat);
     setFormNotify(isHat);
     if (isHat) setFormRate('0.5%');
@@ -267,37 +267,46 @@ export default function WizardAdminPanel(props) {
   // Save item (add or update)
   const handleSaveItem = async (e) => {
     e.preventDefault();
-    if (!formName.trim()) {
+    const cleanName = String(formName || '').trim();
+    if (!cleanName) {
       if (typeof showToast === 'function') showToast("Vui lòng nhập tên phần thưởng!", "error");
       return;
     }
 
+    const cleanId = String(formId || '').trim() || `WIZ_${Date.now()}`;
+    const rawRateStr = String(formRate !== undefined && formRate !== null ? formRate : '10').trim();
+    const cleanRate = rawRateStr.endsWith('%') ? rawRateStr : `${rawRateStr}%`;
+
     const itemObj = {
-      id: formId.trim() || `WIZ_${Date.now()}`,
-      name: formName.trim(),
+      id: cleanId,
+      name: cleanName,
       type: formType,
       value: Number(formValue) || 1,
-      rate: formRate.trim().endsWith('%') ? formRate.trim() : `${formRate.trim()}%`,
+      rate: cleanRate,
       quantity: Number(formQuantity) || 999,
-      color: formColor,
-      image: formImage,
-      is_special: formIsSpecial,
-      notify_on_win: formNotify
+      color: formColor || '#3b82f6',
+      image: formImage || '/game-assets/hat_wizard_legendary.png',
+      is_special: Boolean(formIsSpecial),
+      isLegendary: Boolean(formIsSpecial),
+      notify_on_win: Boolean(formNotify)
     };
 
     let updatedList = [];
     if (editingItem) {
-      updatedList = wizardItems.map(it => it.id === editingItem.id ? itemObj : it);
+      updatedList = (wizardItems || []).map(it => it.id === editingItem.id ? itemObj : it);
     } else {
-      updatedList = [...wizardItems, itemObj];
+      updatedList = [...(wizardItems || []), itemObj];
     }
 
     setWizardItems(updatedList);
+    localStorage.setItem('shop_wizard_card_items', JSON.stringify(updatedList));
     localStorage.setItem('shop_wizard_items', JSON.stringify(updatedList));
 
     try {
       await supabase.from('site_config').upsert({ id: 'wizard_card_items', value: updatedList });
-    } catch (err) {}
+    } catch (err) {
+      console.warn("Lỗi lưu wizard_card_items:", err);
+    }
 
     setShowItemModal(false);
     if (typeof showToast === 'function') {
@@ -308,13 +317,16 @@ export default function WizardAdminPanel(props) {
   // Delete item
   const handleDeleteItem = async (itemId) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa phần thưởng này khỏi sự kiện?")) return;
-    const updatedList = wizardItems.filter(it => it.id !== itemId);
+    const updatedList = (wizardItems || []).filter(it => it.id !== itemId);
     setWizardItems(updatedList);
+    localStorage.setItem('shop_wizard_card_items', JSON.stringify(updatedList));
     localStorage.setItem('shop_wizard_items', JSON.stringify(updatedList));
 
     try {
       await supabase.from('site_config').upsert({ id: 'wizard_card_items', value: updatedList });
-    } catch (err) {}
+    } catch (err) {
+      console.warn("Lỗi lưu wizard_card_items:", err);
+    }
 
     if (typeof showToast === 'function') showToast("Đã xóa phần thưởng thành công!", "success");
   };
@@ -326,16 +338,21 @@ export default function WizardAdminPanel(props) {
     const newConfig = {
       status: eventStatus,
       start_time: formattedStartTime,
+      startTime: formattedStartTime,
       pity_threshold: Number(pityThreshold) || 120,
+      pityTarget: Number(pityThreshold) || 120,
       updated_at: new Date().toISOString()
     };
 
     setWizardEventConfig(newConfig);
+    localStorage.setItem('shop_wizard_event_config', JSON.stringify(newConfig));
     localStorage.setItem('shop_wizard_config', JSON.stringify(newConfig));
 
     try {
       await supabase.from('site_config').upsert({ id: 'wizard_event_config', value: newConfig });
-    } catch (err) {}
+    } catch (err) {
+      console.warn("Lỗi lưu wizard_event_config:", err);
+    }
 
     if (typeof showToast === 'function') {
       showToast("Đã lưu cài đặt sự kiện Phù Thủy thành công!", "success");
