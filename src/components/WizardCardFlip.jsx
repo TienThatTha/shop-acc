@@ -245,10 +245,13 @@ export default function WizardCardFlip(props) {
     let chosenIdx = targetCardIndex;
     if (count === 1) {
       if (chosenIdx === null || chosenIdx === undefined) {
-        // Find first unflipped card
-        const firstUnflipped = tableCards.findIndex(c => !c.isFlipped);
-        if (firstUnflipped === -1) {
-          // All 10 are flipped -> reset and pick 0
+        // Nút ấn mở thẻ random: lấy ngẫu nhiên 1 trong các thẻ đang úp
+        const unflippedIndices = tableCards
+          .map((c, i) => (!c.isFlipped ? i : null))
+          .filter(i => i !== null);
+
+        if (unflippedIndices.length === 0) {
+          // Cả 10 thẻ đều đã mở -> reset lại cả 10 thẻ úp mặt rồi chọn ngẫu nhiên 1 thẻ
           setTableCards(Array.from({ length: 10 }, (_, i) => ({
             id: i,
             isFlipped: false,
@@ -256,29 +259,29 @@ export default function WizardCardFlip(props) {
             isHat: false,
             isPityTrigger: false
           })));
-          chosenIdx = 0;
+          chosenIdx = Math.floor(Math.random() * 10);
         } else {
-          chosenIdx = firstUnflipped;
+          // Chọn ngẫu nhiên trong danh sách thẻ đang úp
+          chosenIdx = unflippedIndices[Math.floor(Math.random() * unflippedIndices.length)];
         }
       } else {
+        // Bấm trực tiếp vào thẻ
         if (tableCards[chosenIdx]?.isFlipped) {
           if (typeof showToast === 'function') {
-            showToast('Lá bài này đã được lật! Hãy chọn lá bài khác hoặc bấm Xáo Bài.', 'info');
+            showToast(`Lá bài #${chosenIdx + 1} này đã được lật rồi! Hãy chọn lá bài khác hoặc bấm Xáo Bài.`, 'info');
           }
           return;
         }
       }
     } else {
-      // If count is 10: if all or some cards are flipped, reset them first
-      if (tableCards.some(c => c.isFlipped)) {
-        setTableCards(Array.from({ length: 10 }, (_, i) => ({
-          id: i,
-          isFlipped: false,
-          item: null,
-          isHat: false,
-          isPityTrigger: false
-        })));
-      }
+      // Khi lật 10 thẻ: úp lại toàn bộ các thẻ trước để chuẩn bị hiệu ứng mở mới đồng loạt
+      setTableCards(Array.from({ length: 10 }, (_, i) => ({
+        id: i,
+        isFlipped: false,
+        item: null,
+        isHat: false,
+        isPityTrigger: false
+      })));
     }
 
     isFlippingRef.current = true;
@@ -549,7 +552,7 @@ export default function WizardCardFlip(props) {
           }
         }, 500);
       } else {
-        // count === 10: Cascade reveal each card sequentially
+        // count === 10: Toàn bộ 10 thẻ mở ra ngay trên bàn hiển thị phần quà luôn
         wonItems.forEach((wonItem, idx) => {
           setTimeout(() => {
             setTableCards(prev => prev.map((c, cIdx) => cIdx === idx ? {
@@ -559,25 +562,24 @@ export default function WizardCardFlip(props) {
               isHat: wonItem.is_hat,
               isPityTrigger: wonItem.is_pity_trigger
             } : c));
-            if (wonItem.is_hat || wonItem.is_pity_trigger) {
-              playSound('celebrationSound');
-            } else {
-              playSound('winSound');
-            }
-          }, (idx + 1) * 120);
+          }, 80 + idx * 50);
         });
 
         setTimeout(() => {
           setIsFlipping(false);
           isFlippingRef.current = false;
-          setX10Results(wonItems);
-          setShowX10Modal(true);
           if (hadHatWin) {
             playSound('celebrationSound');
+            if (typeof showToast === 'function') {
+              showToast('👑 TUYỆT VỜI! BẠN ĐÃ LẬT TRÚNG NÓN HUYỀN THOẠI TRÊN BÀN BÀI!', 'success');
+            }
           } else {
             playSound('winSound');
+            if (typeof showToast === 'function') {
+              showToast('✨ Đã mở toàn bộ 10 thẻ ma thuật trực tiếp trên bàn!', 'success');
+            }
           }
-        }, 10 * 120 + 400);
+        }, 80 + 10 * 50 + 200);
       }
 
     } catch (err) {
@@ -840,19 +842,20 @@ export default function WizardCardFlip(props) {
                 })}
               </div>
 
-              {/* NÚT BẤM LẬT THẺ: 1 THẺ & 10 THẺ */}
-              <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-md z-10">
+              {/* NÚT BẤM LẬT THẺ: 1 THẺ RANDOM & 10 THẺ MỞ TẤT CẢ */}
+              <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-lg z-10">
                 <button
                   disabled={isFlipping}
                   onClick={() => handleFlip(1)}
-                  className={`flex-1 w-full py-4 px-6 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-xl ${
+                  className={`flex-1 w-full py-4 px-5 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-xl ${
                     isFlipping
                       ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                       : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-purple-600/30 hover:scale-105 active:scale-95'
                   }`}
+                  title="Lật ngẫu nhiên 1 lá bài đang úp (hoặc bạn có thể click trực tiếp vào lá bài muốn mở)"
                 >
                   <Sparkles size={20} className="text-amber-300" />
-                  <span>LẬT 1 THẺ</span>
+                  <span>LẬT 1 THẺ (RANDOM)</span>
                   <span className="text-xs text-amber-200 font-bold bg-purple-950/60 px-2 py-0.5 rounded-lg border border-purple-400/30">
                     -1 Thẻ
                   </span>
@@ -861,14 +864,15 @@ export default function WizardCardFlip(props) {
                 <button
                   disabled={isFlipping}
                   onClick={() => handleFlip(10)}
-                  className={`flex-1 w-full py-4 px-6 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-xl ${
+                  className={`flex-1 w-full py-4 px-5 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-xl ${
                     isFlipping
                       ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                       : 'bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white shadow-amber-500/30 hover:scale-105 active:scale-95'
                   }`}
+                  title="Mở toàn bộ 10 thẻ bài trực tiếp trên bàn hiển thị quà"
                 >
                   <Flame size={20} className="text-amber-300 animate-pulse" />
-                  <span>LẬT 10 THẺ</span>
+                  <span>LẬT 10 THẺ (MỞ TẤT CẢ)</span>
                   <span className="text-xs text-amber-200 font-bold bg-black/40 px-2 py-0.5 rounded-lg border border-amber-400/40">
                     -10 Thẻ
                   </span>
@@ -1097,95 +1101,6 @@ export default function WizardCardFlip(props) {
 
       </div>
 
-      {/* POPUP MODAL TỔNG KẾT 10 THẺ (GRAND SHOWCASE MODAL) */}
-      {showX10Modal && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 animate-fade-in">
-          <div className="bg-gradient-to-b from-[#1c1038] via-[#140b2a] to-[#0d071c] border-2 border-purple-500/60 rounded-3xl w-full max-w-4xl p-6 sm:p-8 shadow-[0_0_60px_rgba(168,85,247,0.4)] relative space-y-6 max-h-[90vh] overflow-y-auto">
-            
-            <button 
-              onClick={() => setShowX10Modal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl bg-purple-950/50 hover:bg-purple-900/60 transition-colors"
-            >
-              <X size={22} />
-            </button>
-
-            <div className="text-center space-y-2">
-              <span className="text-xs font-black px-3 py-1 rounded-full bg-purple-900/60 text-purple-300 border border-purple-500/30 uppercase tracking-wider">
-                Kết Quả Lật 10 Thẻ Phù Thủy
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-200 via-pink-200 to-amber-300">
-                CHÚC MỪNG BẠN ĐÃ NHẬN ĐƯỢC 10 PHẦN THƯỞNG!
-              </h2>
-
-              {x10Results.some(r => r.is_hat || r.is_pity_trigger) && (
-                <div className="p-3 bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-purple-500/20 border border-amber-400/50 rounded-2xl text-amber-300 text-sm font-black animate-pulse flex items-center justify-center gap-2">
-                  <Crown size={18} className="text-amber-400" />
-                  <span>🎉 TUYỆT VỜI! BẠN ĐÃ NỔ GIẢI ĐẶC BIỆT: BẢO VẬT NÓN HUYỀN THOẠI!</span>
-                </div>
-              )}
-            </div>
-
-            {/* GRID 10 LÁ BÀI LẬT NGỬA */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              {x10Results.map((item, idx) => {
-                const isHat = item.is_hat || item.type === 'game_hat_legendary' || (item.name && item.name.includes('Nón Huyền Thoại'));
-                return (
-                  <div 
-                    key={idx}
-                    className={`p-3 rounded-2xl flex flex-col items-center text-center justify-between border relative transition-all ${
-                      isHat 
-                        ? 'bg-gradient-to-b from-amber-950/80 to-purple-950/90 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.5)] scale-105 ring-2 ring-amber-400/60'
-                        : 'bg-[#150d2e]/90 border-purple-500/30'
-                    }`}
-                  >
-                    <span className="text-[10px] font-bold text-slate-400 absolute top-2 left-2">
-                      #{item.card_index || idx + 1}
-                    </span>
-
-                    {item.is_pity_trigger && (
-                      <span className="absolute top-2 right-2 bg-amber-400 text-purple-950 text-[9px] font-black px-1 rounded">
-                        120/120
-                      </span>
-                    )}
-
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-purple-950/40 flex items-center justify-center p-2 my-2 mt-4">
-                      {item.image ? (
-                        <img 
-                          src={item.image} 
-                          alt={item.name} 
-                          className="w-full h-full object-contain filter drop-shadow-[0_0_6px_rgba(0,0,0,0.8)]"
-                          onError={(e) => { e.target.src = '/game-assets/hat_huyen_thoai.png'; }}
-                        />
-                      ) : (
-                        <span className="text-2xl">💨</span>
-                      )}
-                    </div>
-
-                    <div className="w-full">
-                      <span className={`text-xs font-black block truncate ${isHat ? 'text-amber-300' : 'text-slate-200'}`}>
-                        {item.name}
-                      </span>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">
-                        Pity: {item.pity_at_card || 0}/120
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex justify-center pt-2">
-              <button
-                onClick={() => setShowX10Modal(false)}
-                className="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black rounded-xl shadow-lg shadow-purple-600/30 transition-all hover:scale-105"
-              >
-                Xác Nhận & Đóng
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
 
     </div>
   );
