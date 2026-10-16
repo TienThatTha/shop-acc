@@ -961,6 +961,37 @@ const App = () => {
     }
   }, [currentUser?.id, currentUser?.shoes_pity]);
 
+  // --- BỘ ĐẾM BẢO HIỂM SỰ KIỆN "LẬT THẺ BÀI PHÙ THỦY" (120 LƯỢT) ---
+  const [wizardPity, setWizardPity] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('shop_cached_user');
+      const u = savedUser ? JSON.parse(savedUser) : null;
+      if (u?.id) {
+        const local = localStorage.getItem(`shop_wizard_pity_${u.id}`);
+        if (local !== null) return parseInt(local) || 0;
+        if (u.wizard_pity !== undefined) return parseInt(u.wizard_pity) || 0;
+      }
+      return 0;
+    } catch (e) {
+      return 0;
+    }
+  });
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      const local = localStorage.getItem(`shop_wizard_pity_${currentUser.id}`);
+      if (currentUser.wizard_pity !== undefined && currentUser.wizard_pity !== null) {
+        const dbPity = parseInt(currentUser.wizard_pity) || 0;
+        setWizardPity(dbPity);
+        try { localStorage.setItem(`shop_wizard_pity_${currentUser.id}`, dbPity.toString()); } catch (e) { }
+      } else if (local !== null) {
+        setWizardPity(parseInt(local) || 0);
+      }
+    } else {
+      setWizardPity(0);
+    }
+  }, [currentUser?.id, currentUser?.wizard_pity]);
+
   // --- ĐẾM NGƯỢC & TỰ ĐỘNG KẾT THÚC SỰ KIỆN VÒNG QUAY "GIÀY THẦN TỐC" (HẠN CHÓT 23h59 NGÀY 16/10/2026) ---
   const WHEEL_EVENT_END_TIME = useMemo(() => new Date('2026-10-16T23:59:59+07:00').getTime(), []);
 

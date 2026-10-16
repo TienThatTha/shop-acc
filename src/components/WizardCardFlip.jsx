@@ -131,6 +131,7 @@ export default function WizardCardFlip(props) {
     onOpenHistory
   } = props;
 
+  const wizardPity = Number(propPity !== undefined && propPity !== null ? propPity : (currentUser?.wizard_pity || 0));
   const requireAuth = propRequireAuth || onRequireAuth;
   const wizardEventConfig = propConfig || config || {};
   const wizardItems = useMemo(() => {
@@ -454,7 +455,7 @@ export default function WizardCardFlip(props) {
       }
 
       // Update state locally
-      setWizardPity(finalPity);
+      if (typeof setWizardPity === 'function') setWizardPity(finalPity);
       localStorage.setItem(`shop_wizard_pity_${currentUser.id}`, finalPity.toString());
 
       // Update currentUser spins
