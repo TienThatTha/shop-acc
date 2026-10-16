@@ -1,5 +1,5 @@
 // -*- coding: utf-8 -*-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Sparkles, Crown, PlusCircle, Trash2, Edit3, Save, Clock, 
   Search, Filter, Image as ImageIcon, Check, X, Shield, RefreshCw 
@@ -8,25 +8,154 @@ import { supabase } from '../supabaseClient';
 import allGameItems from '../all_game_items.json';
 import { LEGENDARY_HAT_IMG } from '../hatAsset';
 
-export default function WizardAdminPanel({
-  wizardEventConfig,
-  setWizardEventConfig,
-  wizardItems,
-  setWizardItems,
-  showToast
-}) {
+const DEFAULT_WIZARD_ITEMS = [
+  {
+    id: 'hat_wizard_legendary',
+    name: 'Nón Phù Thủy Tối Thượng (Huyền Thoại)',
+    category: 'Trang bị Nón',
+    type: 'hat',
+    value: 1,
+    rate: 0.5,
+    color: '#f59e0b',
+    image: '/game-assets/hat_wizard_legendary.png',
+    isLegendary: true,
+    is_special: true,
+    desc: 'Mũ Phù Thủy Huyền Thoại (+450 Phép & +250 Kháng Phép). Áp dụng bảo hiểm 120 lượt chắc chắn nhận!'
+  },
+  {
+    id: 'item_the_reroll_sieucap',
+    name: 'Thẻ Reroll Siêu Cấp',
+    category: 'Vật phẩm tiêu hao',
+    type: 'consumable',
+    value: 1,
+    rate: 4.5,
+    color: '#ec4899',
+    image: '/game-assets/item_the_reroll_sieucap.png',
+    isLegendary: false,
+    desc: 'Tẩy toàn bộ chỉ số trang bị và đảm bảo ít nhất 2 dòng Cam/Đỏ tối thượng!'
+  },
+  {
+    id: 'item_the_dotpha_giay',
+    name: 'Thẻ Đột Phá Giày Thần Tốc',
+    category: 'Vật phẩm tiêu hao',
+    type: 'consumable',
+    value: 1,
+    rate: 8.0,
+    color: '#a855f7',
+    image: '/game-assets/item_the_dotpha_giay.png',
+    isLegendary: false,
+    desc: 'Đột phá tăng bậc và mở khóa hiệu ứng ẩn cho Giày Thần Tốc.'
+  },
+  {
+    id: 'item_spin_ticket_5',
+    name: '5 Thẻ may mắn',
+    category: 'Thẻ sự kiện',
+    type: 'ticket',
+    value: 5,
+    rate: 12.0,
+    color: '#3b82f6',
+    image: '/game-assets/item_spin_ticket_5.png',
+    isLegendary: false,
+    desc: 'Nhận ngay +5 Thẻ may mắn (Lượt chơi chung Vòng Quay & Lật Thẻ Phù Thủy).'
+  },
+  {
+    id: 'item_attack_turn',
+    name: '+3 Lượt Đánh Boss',
+    category: 'Vật phẩm tiêu hao',
+    type: 'consumable',
+    value: 3,
+    rate: 15.0,
+    color: '#10b981',
+    image: '/game-assets/item_attack_turn.png',
+    isLegendary: false,
+    desc: 'Tăng ngay 3 lượt khiêu chiến Boss Thế Giới để săn trang bị quý hiếm.'
+  },
+  {
+    id: 'gem_ruby',
+    name: '500 Hồng Thạch (Ruby)',
+    category: 'Tiền tệ',
+    type: 'ruby',
+    value: 500,
+    rate: 18.0,
+    color: '#f43f5e',
+    image: '/game-assets/gem_ruby.png',
+    isLegendary: false,
+    desc: '500 Hồng ngọc quý hiếm dùng để mua vật phẩm cao cấp.'
+  },
+  {
+    id: 'currency_coins',
+    name: '50.000 Xu Nâng Cấp',
+    category: 'Tiền tệ',
+    type: 'coins',
+    value: 50000,
+    rate: 22.0,
+    color: '#eab308',
+    image: '/game-assets/currency_coins.png',
+    isLegendary: false,
+    desc: '50.000 Xu dùng để cường hóa trang bị và nâng cấp kỹ năng.'
+  },
+  {
+    id: 'item_the_reroll',
+    name: 'Thẻ Tẩy Luyện Thường',
+    category: 'Vật phẩm tiêu hao',
+    type: 'consumable',
+    value: 2,
+    rate: 20.0,
+    color: '#06b6d4',
+    image: '/game-assets/item_the_reroll.png',
+    isLegendary: false,
+    desc: 'Tẩy lại 1 dòng chỉ số bất kỳ của trang bị.'
+  }
+];
+
+export default function WizardAdminPanel(props) {
+  const {
+    wizardEventConfig: propConfig,
+    config,
+    setWizardEventConfig: propSetConfig,
+    onSaveConfig,
+    wizardItems: propItems,
+    rewards,
+    setWizardItems: propSetItems,
+    onSaveRewards,
+    showToast
+  } = props;
+
+  const wizardEventConfig = propConfig || config || {};
+  const setWizardEventConfig = (newCfg) => {
+    if (typeof propSetConfig === 'function') propSetConfig(newCfg);
+    if (typeof onSaveConfig === 'function') onSaveConfig(newCfg);
+  };
+
+  const initialItems = (Array.isArray(propItems) && propItems.length > 0)
+    ? propItems
+    : ((Array.isArray(rewards) && rewards.length > 0) ? rewards : DEFAULT_WIZARD_ITEMS);
+
+  const [wizardItems, setLocalWizardItems] = useState(initialItems);
+
+  useEffect(() => {
+    if (Array.isArray(propItems) && propItems.length > 0) setLocalWizardItems(propItems);
+    else if (Array.isArray(rewards) && rewards.length > 0) setLocalWizardItems(rewards);
+  }, [propItems, rewards]);
+
+  const setWizardItems = (newList) => {
+    setLocalWizardItems(newList);
+    if (typeof propSetItems === 'function') propSetItems(newList);
+    if (typeof onSaveRewards === 'function') onSaveRewards(newList);
+  };
+
   // Event settings state
-  const [eventStatus, setEventStatus] = useState(wizardEventConfig?.status || 'auto');
+  const [eventStatus, setEventStatus] = useState(wizardEventConfig?.status || 'hidden');
   const [startTime, setStartTime] = useState(() => {
-    if (wizardEventConfig?.start_time) {
+    if (wizardEventConfig?.start_time || wizardEventConfig?.startTime) {
       try {
-        const d = new Date(wizardEventConfig.start_time);
+        const d = new Date(wizardEventConfig.start_time || wizardEventConfig.startTime);
         return d.toISOString().slice(0, 16);
       } catch (e) {}
     }
     return '2026-10-17T05:00';
   });
-  const [pityThreshold, setPityThreshold] = useState(wizardEventConfig?.pity_threshold || 120);
+  const [pityThreshold, setPityThreshold] = useState(wizardEventConfig?.pity_threshold || wizardEventConfig?.pityTarget || 120);
 
   // Item editing modal state
   const [showItemModal, setShowItemModal] = useState(false);
@@ -310,7 +439,7 @@ export default function WizardAdminPanel({
           <div>
             <h3 className="text-xl font-bold text-white flex items-center gap-2">
               <Sparkles size={20} className="text-amber-400" />
-              Danh Sách Phần Thưởng Sự Kiện Lật Thẻ ({wizardItems.length} món)
+              Danh Sách Phần Thưởng Sự Kiện Lật Thẻ ({(wizardItems || []).length} món)
             </h3>
             <p className="text-xs text-slate-400">
               Admin có thể chọn từ 100% kho item game sẵn có hoặc tùy chỉnh tỉ lệ rơi và bảo hiểm.
@@ -350,7 +479,7 @@ export default function WizardAdminPanel({
                 </tr>
               </thead>
               <tbody className="divide-y divide-purple-900/30">
-                {wizardItems.map((item, idx) => {
+                {(wizardItems || []).map((item, idx) => {
                   const isHat = item.is_special || item.type === 'game_hat_legendary' || (item.name && item.name.includes('Nón Huyền Thoại'));
                   return (
                     <tr key={item.id || idx} className={`hover:bg-purple-950/30 transition-colors ${isHat ? 'bg-amber-950/30' : ''}`}>

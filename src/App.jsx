@@ -17177,7 +17177,9 @@ const App = () => {
             {/* TAB LẬT THẺ PHÙ THỦY */}
             {adminTab === 'wizard' && (
               <WizardAdminPanel
+                wizardEventConfig={wizardEventConfig}
                 config={wizardEventConfig}
+                setWizardEventConfig={setWizardEventConfig}
                 onSaveConfig={async (newCfg) => {
                   setWizardEventConfig(newCfg);
                   localStorage.setItem('shop_wizard_event_config', JSON.stringify(newCfg));
@@ -17188,7 +17190,9 @@ const App = () => {
                   }
                   showToast("Lưu cấu hình Sự Kiện Phù Thủy thành công!");
                 }}
+                wizardItems={wizardCardItems}
                 rewards={wizardCardItems}
+                setWizardItems={setWizardCardItems}
                 onSaveRewards={async (newRewards) => {
                   setWizardCardItems(newRewards);
                   localStorage.setItem('shop_wizard_card_items', JSON.stringify(newRewards));
@@ -17199,6 +17203,7 @@ const App = () => {
                   }
                   showToast("Cập nhật danh sách phần thưởng Lật Thẻ thành công!");
                 }}
+                showToast={showToast}
               />
             )}
 
