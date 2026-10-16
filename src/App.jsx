@@ -12,7 +12,10 @@ import {
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { LEGENDARY_SHOES_IMG, getShoesImage } from './shoesAsset';
+import { LEGENDARY_HAT_IMG, getHatImage } from './hatAsset';
 import masterItemsConfig from './master_items.json';
+import WizardCardFlip from './components/WizardCardFlip';
+import WizardAdminPanel from './components/WizardAdminPanel';
 
 // Helper lưu cấu hình bật/tắt thông báo cho từng món vòng quay (chống lỗi schema & sync realtime)
 const getWheelNotifyFallback = (itemId) => {
@@ -696,6 +699,127 @@ const App = () => {
   const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState(() => { try { const saved = localStorage.getItem('shop_wheel_money'); return saved ? JSON.parse(saved).sort((a, b) => String(a.id).localeCompare(String(b.id))) : []; } catch (e) { return []; } });
   const [wheelItemsSpinDb, setWheelItemsSpinDb] = useState(() => { try { const saved = localStorage.getItem('shop_wheel_spin'); return saved ? JSON.parse(saved).sort((a, b) => String(a.id).localeCompare(String(b.id))) : []; } catch (e) { return []; } });
 
+  // --- CẤU HÌNH & DỮ LIỆU SỰ KIỆN "LẬT THẺ BÀI PHÙ THỦY" ---
+  const [wizardEventConfig, setWizardEventConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem('shop_wizard_event_config');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      status: 'hidden', // 'hidden' (Mặc định ẩn ngoài sảnh, Admin tự bật trong Admin Panel)
+      startTime: '2026-10-17T05:00:00+07:00',
+      pityTarget: 120,
+      flipCost: 1,
+      bannerTitle: 'Sự Kiện Phù Thủy - Lật Thẻ Ma Thuật',
+      bannerSubtitle: 'Lật bài săn Nón Huyền Thoại Phù Thủy - Chắc chắn trúng ở mốc 120 thẻ!'
+    };
+  });
+
+  const [wizardCardItems, setWizardCardItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem('shop_wizard_card_items');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      {
+        id: 'hat_wizard_legendary',
+        name: 'Nón Phù Thủy Tối Thượng (Huyền Thoại)',
+        category: 'Trang bị Nón',
+        type: 'hat',
+        value: 1,
+        rate: 0.5,
+        color: '#f59e0b',
+        image: '/game-assets/hat_wizard_legendary.png',
+        isLegendary: true,
+        desc: 'Mũ Phù Thủy Huyền Thoại (+450 Phép & +250 Kháng Phép). Áp dụng bảo hiểm 120 lượt chắc chắn nhận!'
+      },
+      {
+        id: 'item_the_reroll_sieucap',
+        name: 'Thẻ Reroll Siêu Cấp',
+        category: 'Vật phẩm tiêu hao',
+        type: 'consumable',
+        value: 1,
+        rate: 4.5,
+        color: '#ec4899',
+        image: '/game-assets/item_the_reroll_sieucap.png',
+        isLegendary: false,
+        desc: 'Tẩy toàn bộ chỉ số trang bị và đảm bảo ít nhất 2 dòng Cam/Đỏ tối thượng!'
+      },
+      {
+        id: 'item_the_dotpha_giay',
+        name: 'Thẻ Đột Phá Giày Thần Tốc',
+        category: 'Vật phẩm tiêu hao',
+        type: 'consumable',
+        value: 1,
+        rate: 8.0,
+        color: '#a855f7',
+        image: '/game-assets/item_the_dotpha_giay.png',
+        isLegendary: false,
+        desc: 'Đột phá tăng bậc và mở khóa hiệu ứng ẩn cho Giày Thần Tốc.'
+      },
+      {
+        id: 'item_spin_ticket_5',
+        name: '5 Thẻ may mắn',
+        category: 'Thẻ sự kiện',
+        type: 'ticket',
+        value: 5,
+        rate: 12.0,
+        color: '#3b82f6',
+        image: '/game-assets/item_spin_ticket_5.png',
+        isLegendary: false,
+        desc: 'Nhận ngay +5 Thẻ may mắn (Lượt chơi chung Vòng Quay & Lật Thẻ Phù Thủy).'
+      },
+      {
+        id: 'item_attack_turn',
+        name: '+3 Lượt Đánh Boss',
+        category: 'Vật phẩm tiêu hao',
+        type: 'consumable',
+        value: 3,
+        rate: 15.0,
+        color: '#10b981',
+        image: '/game-assets/item_attack_turn.png',
+        isLegendary: false,
+        desc: 'Tăng ngay 3 lượt khiêu chiến Boss Thế Giới để săn trang bị quý hiếm.'
+      },
+      {
+        id: 'gem_ruby',
+        name: '500 Hồng Thạch (Ruby)',
+        category: 'Tiền tệ',
+        type: 'ruby',
+        value: 500,
+        rate: 18.0,
+        color: '#f43f5e',
+        image: '/game-assets/gem_ruby.png',
+        isLegendary: false,
+        desc: '500 Hồng ngọc quý hiếm dùng để mua vật phẩm cao cấp.'
+      },
+      {
+        id: 'currency_coins',
+        name: '50.000 Xu Nâng Cấp',
+        category: 'Tiền tệ',
+        type: 'coins',
+        value: 50000,
+        rate: 22.0,
+        color: '#eab308',
+        image: '/game-assets/currency_coins.png',
+        isLegendary: false,
+        desc: '50.000 Xu dùng để cường hóa trang bị và nâng cấp kỹ năng.'
+      },
+      {
+        id: 'item_the_reroll',
+        name: 'Thẻ Tẩy Luyện Thường',
+        category: 'Vật phẩm tiêu hao',
+        type: 'consumable',
+        value: 2,
+        rate: 20.0,
+        color: '#06b6d4',
+        image: '/game-assets/item_the_reroll.png',
+        isLegendary: false,
+        desc: 'Tẩy lại 1 dòng chỉ số bất kỳ của trang bị.'
+      }
+    ];
+  });
+
   // --- BẢO HIỂM VÒNG QUAY 120 LẦN CHO GIÀY HUYỀN THOẠI (LẦN 121: 100% TRÚNG) ---
   const isLegendaryShoes = (item) => {
     if (!item) return false;
@@ -892,6 +1016,34 @@ const App = () => {
       setCurrentView('dashboard');
     }
   }, [currentView, hasActiveWheelRewards, isWheelEventExpired]);
+
+  // --- LOGIC ẨN / HIỆN & PHÂN QUYỀN SỰ KIỆN PHÙ THỦY ---
+  const isWizardEventOpen = useMemo(() => {
+    const status = wizardEventConfig?.status || 'auto';
+    if (status === 'public') return true;
+    if (status === 'hidden') return false;
+    const targetMs = new Date(wizardEventConfig?.startTime || '2026-10-17T05:00:00+07:00').getTime();
+    return currentEventNow >= targetMs;
+  }, [wizardEventConfig, currentEventNow]);
+
+  const isWizardEventVisible = useMemo(() => {
+    if (currentUser?.role === 'admin') return true; // Admin luôn thấy nút để cấu hình & test
+    return isWizardEventOpen;
+  }, [currentUser?.role, isWizardEventOpen]);
+
+  const isWizardEventAccessible = useMemo(() => {
+    if (currentUser?.role === 'admin') return true; // Admin luôn có quyền truy cập
+    return isWizardEventOpen;
+  }, [currentUser?.role, isWizardEventOpen]);
+
+  useEffect(() => {
+    if (currentView === 'wizard' && !isWizardEventAccessible) {
+      if (typeof showToast === 'function') {
+        showToast('Sự kiện Lật Thẻ Bài Phù Thủy chưa mở hoặc đang tạm bảo trì!', 'warning');
+      }
+      setCurrentView('dashboard');
+    }
+  }, [currentView, isWizardEventAccessible]);
 
   // Tự động tải các giao dịch quay thưởng mới nhất từ cộng đồng để hiển thị lên thanh vinh danh
   useEffect(() => {
@@ -1193,6 +1345,20 @@ const App = () => {
       supabase.from('site_config').select('*').eq('id', 'wheel_config').maybeSingle().then(({ data: wConfigData }) => {
         if (wConfigData && wConfigData.value) {
           setWheelConfig(prev => ({ ...prev, ...wConfigData.value }));
+        }
+      });
+
+      supabase.from('site_config').select('*').eq('id', 'wizard_event_config').maybeSingle().then(({ data: wzConfigData }) => {
+        if (wzConfigData && wzConfigData.value) {
+          setWizardEventConfig(prev => ({ ...prev, ...wzConfigData.value }));
+          localStorage.setItem('shop_wizard_event_config', JSON.stringify(wzConfigData.value));
+        }
+      });
+
+      supabase.from('site_config').select('*').eq('id', 'wizard_card_items').maybeSingle().then(({ data: wzItemsData }) => {
+        if (wzItemsData && Array.isArray(wzItemsData.value) && wzItemsData.value.length > 0) {
+          setWizardCardItems(wzItemsData.value);
+          localStorage.setItem('shop_wizard_card_items', JSON.stringify(wzItemsData.value));
         }
       });
 
@@ -2740,6 +2906,14 @@ const App = () => {
               }] : []),
               { name: 'Dịch Vụ Cày Thuê', view: 'caythue', auth: false, icon: <Target size={20} /> },
               ...(hasActiveWheelRewards && !isWheelEventExpired ? [{ name: 'Vòng Quay May Mắn', view: 'vongquay', auth: false, icon: <Gift size={20} /> }] : []),
+              ...(isWizardEventVisible ? [{
+                name: 'Sự kiện phù thủy',
+                view: 'wizard',
+                auth: false,
+                icon: <Sparkles size={20} className="text-purple-400 animate-pulse" />,
+                isWizard: true,
+                badge: !isWizardEventOpen ? 'Admin Test' : 'Mới'
+              }] : []),
               { name: 'Lịch Sử Giao Dịch', view: 'lichsu', auth: true, icon: <History size={20} /> },
               {
                 name: '🎮 Discord Chơi Game',
@@ -2764,9 +2938,24 @@ const App = () => {
                     setCurrentView(item.view);
                   }
                 }}
-                className={`p-3.5 rounded-xl text-sm font-bold flex items-center gap-3 transition-colors text-left ${currentView === item.view ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : item.adminOnly ? 'text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20' : 'bg-transparent text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                className={`p-3.5 rounded-xl text-sm font-bold flex items-center gap-3 transition-all text-left ${
+                  item.isWizard
+                    ? currentView === item.view
+                      ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/30 border border-purple-400'
+                      : 'bg-purple-950/40 text-purple-300 border border-purple-500/30 hover:bg-purple-900/40'
+                    : currentView === item.view
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                      : item.adminOnly
+                        ? 'text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20'
+                        : 'bg-transparent text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
               >
                 {item.icon} <span className="flex-1">{item.name}</span>
+                {item.badge && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-extrabold uppercase ${item.badge === 'Admin Test' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'}`}>
+                    {item.badge}
+                  </span>
+                )}
                 {currentView === item.view && <ArrowRight size={16} className="opacity-50" />}
               </button>
             ))}
@@ -2810,6 +2999,7 @@ const App = () => {
           { id: 'caythue', name: 'Cày thuê', icon: <Target size={22} />, auth: false },
           { id: 'naptien', name: 'Nạp tiền', icon: <Wallet size={22} />, auth: true },
           ...(hasActiveWheelRewards && !isWheelEventExpired ? [{ id: 'vongquay', name: 'Vòng quay', icon: <Gift size={22} />, auth: false }] : []),
+          ...(isWizardEventVisible ? [{ id: 'wizard', name: 'Phù Thủy', icon: <Sparkles size={22} className="text-purple-400" />, auth: false }] : []),
           { id: 'security', name: 'Cá nhân', icon: <User size={22} />, auth: true }
         ].map(item => {
           const isActive = currentView === item.id;
@@ -2887,6 +3077,12 @@ const App = () => {
               },
               { name: 'Cày Thuê', view: 'caythue', auth: false },
               ...(hasActiveWheelRewards && !isWheelEventExpired ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false }] : []),
+              ...(isWizardEventVisible ? [{
+                name: 'Sự kiện phù thủy',
+                view: 'wizard',
+                auth: false,
+                isWizard: true
+              }] : []),
               { name: 'Lịch Sử', view: 'lichsu', auth: true }
             ].map((item, idx) => (
               <button
@@ -2900,10 +3096,21 @@ const App = () => {
                     setCurrentView(item.view);
                   }
                 }}
-                className={`px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-lg text-xs xl:text-sm font-semibold whitespace-nowrap transition-colors shrink-0 ${currentView === item.view ? 'bg-blue-600/15 text-blue-400 border border-blue-500/30 shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                className={`px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-lg text-xs xl:text-sm font-semibold whitespace-nowrap transition-all shrink-0 flex items-center gap-1.5 ${
+                  item.isWizard
+                    ? currentView === 'wizard'
+                      ? 'bg-gradient-to-r from-purple-600 via-fuchsia-600 to-indigo-600 text-white border border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.5)] font-bold'
+                      : 'bg-gradient-to-r from-purple-950/70 to-indigo-950/70 text-purple-300 border border-purple-500/50 hover:border-purple-400 hover:text-white hover:shadow-[0_0_12px_rgba(168,85,247,0.35)]'
+                    : currentView === item.view
+                      ? 'bg-blue-600/15 text-blue-400 border border-blue-500/30 shadow-sm'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
                   }`}
               >
-                {item.name}
+                {item.isWizard && <Sparkles size={14} className="text-amber-300 shrink-0 animate-spin" style={{ animationDuration: '4s' }} />}
+                <span>{item.name}</span>
+                {item.isWizard && !isWizardEventOpen && currentUser?.role === 'admin' && (
+                  <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1 py-0.5 rounded border border-amber-500/30">Admin</span>
+                )}
               </button>
             ))}
             {currentUser?.role === 'admin' && (
@@ -2936,15 +3143,15 @@ const App = () => {
                     </span>
                   </div>
 
-                  {/* Lượt quay */}
-                  {hasActiveWheelRewards && !isWheelEventExpired && (
+                  {/* Lượt chơi / Thẻ may mắn */}
+                  {((hasActiveWheelRewards && !isWheelEventExpired) || isWizardEventVisible) && (
                     <div
-                      onClick={() => setCurrentView('vongquay')}
-                      className="flex items-center gap-1.5 sm:gap-2 bg-rose-500/10 border border-rose-500/30 hover:border-rose-500/60 rounded-xl px-2.5 sm:px-3.5 py-1.5 sm:py-2 transition-all shadow-[0_0_15px_rgba(244,63,94,0.05)] cursor-pointer shrink-0"
-                      title="Lượt quay (Vòng Quay Giày Thần Tốc)"
+                      onClick={() => setCurrentView(isWizardEventVisible ? 'wizard' : 'vongquay')}
+                      className="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-purple-500/15 via-rose-500/15 to-purple-500/15 border border-purple-500/40 hover:border-purple-400 rounded-xl px-2.5 sm:px-3.5 py-1.5 sm:py-2 transition-all shadow-[0_0_15px_rgba(168,85,247,0.15)] cursor-pointer shrink-0"
+                      title="Thẻ may mắn (Lượt chơi chung Vòng Quay & Sự Kiện Phù Thủy)"
                     >
-                      <Ticket className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 shrink-0" />
-                      <span className="text-rose-400 font-extrabold text-[12px] sm:text-[15px] whitespace-nowrap">
+                      <Ticket className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 shrink-0" />
+                      <span className="text-amber-300 font-extrabold text-[12px] sm:text-[15px] whitespace-nowrap">
                         {currentUser.spins || 0}<span className="text-[10px] sm:text-xs ml-0.5 font-bold"> Lượt</span>
                       </span>
                     </div>
@@ -5064,7 +5271,7 @@ const App = () => {
         const txPayload = {
           id: txId,
           user: currentUser.name,
-          action: `Mua ${qty} Vé Quay Vòng Quay (+${qty} lượt quay)`,
+          action: `Mua ${qty} Thẻ may mắn (+${qty} lượt chơi)`,
           amount: totalCost,
           date: dateStr,
           status: 'Đã hoàn tất',
@@ -5084,8 +5291,8 @@ const App = () => {
       }
 
       setShowBuyTicketModal(false);
-      showToast(`🎉 Mua thành công ${qty} Vé Quay! Bạn hiện có ${(currentUser.spins || 0) + qty} lượt quay.`, "success");
-      sendAdminAlert('MUA VÉ QUAY VÒNG QUAY', `Khách ${currentUser.name} vừa mua ${qty} Vé Quay (${new Intl.NumberFormat('vi-VN').format(totalCost)}đ)`);
+      showToast(`🎉 Mua thành công ${qty} Thẻ may mắn! Bạn hiện có ${(currentUser.spins || 0) + qty} lượt chơi.`, "success");
+      sendAdminAlert('MUA THẺ MAY MẮN', `Khách ${currentUser.name} vừa mua ${qty} Thẻ may mắn (${new Intl.NumberFormat('vi-VN').format(totalCost)}đ)`);
     } catch (err) {
       console.error("Lỗi mua vé quay:", err);
       showToast("Lỗi khi mua vé quay: " + (err.message || err), "error");
@@ -7933,12 +8140,12 @@ const App = () => {
           stroke: '#f472b6',
           strokeGlow: 'rgba(236, 72, 153, 0.85)',
           glowColor: '#ec4899',
-          tag: 'VÉ QUAY',
+          tag: 'THẺ MAY MẮN',
           tagBg: 'rgba(236, 72, 153, 0.3)',
           tagBorder: '#ec4899',
           tagText: '#fbcfe8',
           displayImg,
-          shortTitle: 'THÊM VÉ QUAY',
+          shortTitle: 'THẺ MAY MẮN',
           valText: `+${w.value || 1} LƯỢT`
         };
       }
@@ -9952,6 +10159,11 @@ const App = () => {
       return '/game-assets/necklace_thuong.png';
     }
 
+    // Nón (Hats)
+    if (category === 'hat' || n.includes('nón') || n.includes('non') || n.includes('mũ') || n.includes('mu') || n.includes('hat')) {
+      return getHatImage(directImg) || '/game-assets/hat_huyen_thoai.png';
+    }
+
     // Giày (Shoes)
     const tierStr = String(itemOrName?.tier || '').toLowerCase();
     if (category === 'shoes' || n.includes('giày') || n.includes('giay') || n.includes('shoes') || n.includes('boot')) {
@@ -9980,7 +10192,7 @@ const App = () => {
     if (item.category) return item.category;
     if (item.type) {
       const t = String(item.type).toLowerCase();
-      if (['material', 'ring', 'necklace', 'pants', 'armor', 'weapon', 'pet', 'shoes'].includes(t)) {
+      if (['material', 'ring', 'necklace', 'pants', 'armor', 'weapon', 'pet', 'shoes', 'hat'].includes(t)) {
         return t;
       }
     }
@@ -9993,6 +10205,7 @@ const App = () => {
     if (n.includes('dây chuyền') || n.includes('necklace')) return 'necklace';
     if (n.includes('giáp') || n.includes('armor')) return 'armor';
     if (n.includes('giày') || n.includes('giay') || n.includes('shoes')) return 'shoes';
+    if (n.includes('nón') || n.includes('non') || n.includes('mũ') || n.includes('mu') || n.includes('hat')) return 'hat';
     if (n.includes('rồng') || n.includes('phượng') || n.includes('pet') || n.includes('thú')) return 'pet';
     return 'weapon';
   };
@@ -10002,13 +10215,14 @@ const App = () => {
     if (!item) return null;
     const cat = category || getCategoryOfItem(item);
     const isShoes = (cat === 'shoes') || String(item.category || '').toLowerCase() === 'shoes' || String(item.name || '').toLowerCase().includes('giày');
+    const isHat = (cat === 'hat') || String(item.category || '').toLowerCase() === 'hat' || String(item.name || '').toLowerCase().includes('nón') || String(item.name || '').toLowerCase().includes('mũ');
     const isRing = (cat === 'ring') || String(item.category || '').toLowerCase() === 'ring' || String(item.name || '').toLowerCase().includes('nhẫn');
     const isPet = (cat === 'pet') || String(item.category || '').toLowerCase() === 'pet';
     const isWeapon = (cat === 'weapon') || String(item.category || '').toLowerCase() === 'weapon';
     const isMaterial = cat === 'material' || (typeof isEnhancementStone === 'function' && isEnhancementStone(null, item));
 
     const tierStr = String(item.tier || '').toLowerCase();
-    const isHT = isShoes && (tierStr.includes('huyền thoại') || tierStr.includes('legendary') || String(item.name || '').toLowerCase().includes('thần tốc'));
+    const isHT = (isShoes || isHat) && (tierStr.includes('huyền thoại') || tierStr.includes('legendary') || String(item.name || '').toLowerCase().includes('thần tốc') || String(item.name || '').toLowerCase().includes('nón'));
     const isThuongCo = !isMaterial && (tierStr.includes('thượng cổ') || String(item.name || '').toLowerCase().includes('bá vương') || String(item.name || '').toLowerCase().includes('nữ oa') || String(item.name || '').toLowerCase().includes('bát hoang') || String(item.name || '').toLowerCase().includes('vô cực'));
 
     const sizeClass = options.sizeClass || 'w-14 h-14 sm:w-16 sm:h-16';
@@ -10056,11 +10270,11 @@ const App = () => {
       imgFilter = 'drop-shadow(0 0 8px #38bdf8)';
     }
 
-    // 1. CỘT SAO DỌC: TUYỆT ĐỐI KHÔNG HIỂN THỊ SAO NẾU LÀ GIÀY HOẶC NGUYÊN LIỆU
-    const starsCount = (!isShoes && !isMaterial) ? Math.max(0, Number(item.stars != null ? item.stars : 1)) : 0;
+    // 1. CỘT SAO DỌC: TUYỆT ĐỐI KHÔNG HIỂN THỊ SAO NẾU LÀ GIÀY, NÓN HOẶC NGUYÊN LIỆU
+    const starsCount = (!isShoes && !isHat && !isMaterial) ? Math.max(0, Number(item.stars != null ? item.stars : 1)) : 0;
 
-    // 2. CHỮ BẬC Ở ĐÁY KHUNG: TUYỆT ĐỐI KHÔNG CÓ BẬC NẾU LÀ GIÀY HOẶC NGUYÊN LIỆU
-    const showBac = (!isShoes && !isMaterial);
+    // 2. CHỮ BẬC Ở ĐÁY KHUNG: TUYỆT ĐỐI KHÔNG CÓ BẬC NẾU LÀ GIÀY, NÓN HOẶC NGUYÊN LIỆU
+    const showBac = (!isShoes && !isHat && !isMaterial);
     const tierStep = Number(item.tier_step || 0);
 
     // 3. MÁC GÓC TRÊN BÊN PHẢI (Top-right badge)
@@ -10954,6 +11168,7 @@ const App = () => {
       if (category === 'ring') return { label: 'NHẪN THẦN BINH TUYỆT KỸ', icon: '💍', color: '#a855f7', border: '#9333ea', bg: 'rgba(168, 85, 247, 0.15)' };
       if (category === 'pet') return { label: 'LINH THÚ TRỢ CHIẾN', icon: '🐾', color: '#f43f5e', border: '#e11d48', bg: 'rgba(244, 63, 94, 0.15)' };
       if (category === 'shoes') return { label: 'GIÀY THẦN TỐC', icon: '👟', color: '#ec4899', border: '#db2777', bg: 'rgba(236, 72, 153, 0.15)' };
+      if (category === 'hat') return { label: 'BẢO VẬT NÓN', icon: '👑', color: '#ffd700', border: '#eab308', bg: 'rgba(234, 179, 8, 0.15)' };
       return { label: 'TRANG BỊ', icon: '🛡️', color: '#38bdf8', border: '#0ea5e9', bg: 'rgba(56, 189, 248, 0.15)' };
     };
 
@@ -11044,7 +11259,7 @@ const App = () => {
                     >
                       {catBadge.icon} {catBadge.label}
                     </span>
-                    {!isShoes && starsCount > 0 && (
+                    {!isShoes && !isHat && starsCount > 0 && (
                       <span className="text-[9px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded">
                         {starsCount}⭐
                       </span>
@@ -12168,9 +12383,10 @@ const App = () => {
             const imgUrl = getBossItemAsset(item, category);
             const plusText = (item.plus && item.plus > 0) ? ` +${item.plus}` : '';
             const isShoes = (category === 'shoes') || String(item.category || '').toLowerCase() === 'shoes' || String(item.name || '').toLowerCase().includes('giày');
+            const isHat = (category === 'hat') || String(item.category || '').toLowerCase() === 'hat' || String(item.name || '').toLowerCase().includes('nón') || String(item.name || '').toLowerCase().includes('mũ');
             const isRing = (category === 'ring');
             const isPet = (category === 'pet');
-            const isHT = isShoes && (String(item.tier || '').toLowerCase().includes('huyền thoại') || String(item.tier || '').toLowerCase().includes('legendary') || String(item.name || '').toLowerCase().includes('thần tốc'));
+            const isHT = (isShoes || isHat) && (String(item.tier || '').toLowerCase().includes('huyền thoại') || String(item.tier || '').toLowerCase().includes('legendary') || String(item.name || '').toLowerCase().includes('thần tốc') || String(item.name || '').toLowerCase().includes('huyền thoại'));
             const isThuongCo = String(item.tier || '').toLowerCase().includes('thượng cổ') || String(item.name || '').toLowerCase().includes('bá vương') || String(item.name || '').toLowerCase().includes('nữ oa') || String(item.name || '').toLowerCase().includes('bát hoang') || String(item.name || '').toLowerCase().includes('vô cực');
 
             const cardBorder = isThuongCo ? 'rgba(236, 72, 153, 0.65)' : (isHT ? '#ffd700' : tier.border);
@@ -12202,7 +12418,7 @@ const App = () => {
                       >
                         {tier.label}
                       </span>
-                      {!isShoes && !isPet && (item.stars || 1) > 0 && (
+                      {!isShoes && !isHat && !isPet && (item.stars || 1) > 0 && (
                         <span className="text-[9px] font-black text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded flex items-center gap-0.5 shrink-0">
                           {Math.max(1, Math.min(5, Number(item.stars || 1)))}⭐
                         </span>
@@ -12378,6 +12594,29 @@ const App = () => {
                               ⚡ Thực Chiến: +{totAgi.toLocaleString()} Tốc
                             </span>
                           )}
+                        </div>
+                      );
+                    })()}
+                    {category === 'hat' && (() => {
+                      const hPlus = Number(item.plus || 0);
+                      const hEnhMult = 1.0 + 0.25 * hPlus;
+                      const basePen = Number(item.base_armor_pen_pct || 300);
+                      const baseReduc = Number(item.base_dmg_reduction_pct || 300);
+                      const baseDefPct = Number(item.base_def_pct || 3000);
+                      const totPen = Math.round(basePen * hEnhMult);
+                      const totReduc = Math.round(baseReduc * hEnhMult);
+                      const totDefPct = Math.round(baseDefPct * hEnhMult);
+                      return (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-rose-400 bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 rounded">
+                            🗡️ +{totPen.toLocaleString()}% Xuyên Giáp
+                          </span>
+                          <span className="font-bold text-teal-400 bg-teal-500/15 border border-teal-500/30 px-1.5 py-0.5 rounded">
+                            🔰 +{totReduc.toLocaleString()}% Giảm ST
+                          </span>
+                          <span className="font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 px-1.5 py-0.5 rounded">
+                            🛡️ +{totDefPct.toLocaleString()}% DEF
+                          </span>
                         </div>
                       );
                     })()}
@@ -12578,9 +12817,8 @@ const App = () => {
                       {renderEquipSlot(p.necklace, 'necklace', '📿', 'Dây Chuyền')}
                       {renderEquipSlot(p.ring, 'ring', '💍', 'Nhẫn Thần Binh')}
                       {renderEquipSlot(p.shoes, 'shoes', '👟', 'Bảo Vật Đôi Giày')}
-                      <div className="sm:col-span-2">
-                        {renderEquipSlot(p.pet, 'pet', '🐾', 'Linh Thú')}
-                      </div>
+                      {renderEquipSlot(p.hat, 'hat', '👑', 'Bảo Vật Nón')}
+                      {renderEquipSlot(p.pet, 'pet', '🐾', 'Linh Thú')}
                     </div>
                   </div>
                 </div>
@@ -13399,6 +13637,7 @@ const App = () => {
                         {displayedInventory.map((item, idx) => {
                           const category = getCategoryOfItem(item);
                           const isShoes = (category === 'shoes') || String(item?.category || '').toLowerCase() === 'shoes' || String(item?.name || '').toLowerCase().includes('giày');
+                          const isHat = (category === 'hat') || String(item?.category || '').toLowerCase() === 'hat' || String(item?.name || '').toLowerCase().includes('nón') || String(item?.name || '').toLowerCase().includes('mũ');
                           const tier = getBossTierStyle(item.tier);
                           const img = getBossItemAsset(item, category);
                           const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
@@ -13431,7 +13670,7 @@ const App = () => {
                                     >
                                       {tier.label}
                                     </span>
-                                    {!isShoes && category !== 'material' && starsCount > 0 && (
+                                    {!isShoes && !isHat && category !== 'material' && starsCount > 0 && (
                                       <span className="text-[8px] font-black text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1 py-0.5 rounded flex items-center gap-0.5 shrink-0">
                                         {starsCount}⭐
                                       </span>
@@ -13660,6 +13899,7 @@ const App = () => {
           const item = selectedItemToList;
           const category = getCategoryOfItem(item);
           const isShoes = (category === 'shoes') || String(item?.category || '').toLowerCase() === 'shoes' || String(item?.name || '').toLowerCase().includes('giày');
+          const isHat = (category === 'hat') || String(item?.category || '').toLowerCase() === 'hat' || String(item?.name || '').toLowerCase().includes('nón') || String(item?.name || '').toLowerCase().includes('mũ');
           const tier = getBossTierStyle(item?.tier);
           const img = getBossItemAsset(item, category);
           const numStars = Number(item?.stars);
@@ -13722,7 +13962,7 @@ const App = () => {
                       >
                         {tier.label}
                       </span>
-                      {!isShoes && category !== 'material' && starsCount > 0 && (
+                      {!isShoes && !isHat && category !== 'material' && starsCount > 0 && (
                         <span className="text-[9px] font-black text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                           {starsCount}⭐
                         </span>
@@ -14073,6 +14313,7 @@ const App = () => {
                             const item = listing.item || {};
                             const category = getCategoryOfItem(item);
                             const isShoes = (category === 'shoes') || String(item?.category || '').toLowerCase() === 'shoes' || String(item?.name || '').toLowerCase().includes('giày');
+                            const isHat = (category === 'hat') || String(item?.category || '').toLowerCase() === 'hat' || String(item?.name || '').toLowerCase().includes('nón') || String(item?.name || '').toLowerCase().includes('mũ');
                             const tier = getBossTierStyle(item.tier);
                             const img = getBossItemAsset(item, category);
                             const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
@@ -14122,7 +14363,7 @@ const App = () => {
                                           {tier.label}
                                         </span>
 
-                                        {!isShoes && category !== 'material' && starsCount > 0 && (
+                                        {!isShoes && !isHat && category !== 'material' && starsCount > 0 && (
                                           <span className="text-[9px] font-black text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                                             {starsCount}⭐
                                           </span>
@@ -15503,9 +15744,9 @@ const App = () => {
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 pb-2">
             <h2 className="text-2xl font-black text-white flex items-center gap-2 whitespace-nowrap"><Settings className="text-rose-500" /> PANEL ADMIN</h2>
             <div className="flex bg-[#151D2F] p-1 md:p-1.5 rounded-xl border border-slate-800 whitespace-nowrap shadow-lg overflow-x-auto scrollbar-hide w-full">
-              {['users', 'messages', 'accs', 'deposits', 'rentreqs', 'boosting', 'wheel'].map(tab => {
-                const labels = { users: 'Người Dùng', messages: 'Hộp Thư', accs: 'Kho Nick', deposits: 'Nạp Tiền', rentreqs: 'Thuê Nick', boosting: 'Cày Thuê', wheel: 'Vòng Quay' };
-                const isHiddenOnMobile = tab === 'accs' || tab === 'wheel';
+              {['users', 'messages', 'accs', 'deposits', 'rentreqs', 'boosting', 'wheel', 'wizard'].map(tab => {
+                const labels = { users: 'Người Dùng', messages: 'Hộp Thư', accs: 'Kho Nick', deposits: 'Nạp Tiền', rentreqs: 'Thuê Nick', boosting: 'Cày Thuê', wheel: 'Vòng Quay', wizard: '🃏 Lật Thẻ Phù Thủy' };
+                const isHiddenOnMobile = tab === 'accs';
                 return <button key={tab} onClick={() => setAdminTab(tab)} className={`flex-1 text-center px-1.5 md:px-4 py-1.5 md:py-2 text-[11px] md:text-sm font-bold rounded-lg transition-all relative ${isHiddenOnMobile ? 'hidden md:inline-block' : ''} ${adminTab === tab ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   {labels[tab]}
                   {tab === 'messages' && totalUnreadAdmin > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full animate-pulse">{totalUnreadAdmin}</span>}
@@ -16933,6 +17174,34 @@ const App = () => {
               </div>
             )}
 
+            {/* TAB LẬT THẺ PHÙ THỦY */}
+            {adminTab === 'wizard' && (
+              <WizardAdminPanel
+                config={wizardEventConfig}
+                onSaveConfig={async (newCfg) => {
+                  setWizardEventConfig(newCfg);
+                  localStorage.setItem('shop_wizard_event_config', JSON.stringify(newCfg));
+                  try {
+                    await supabase.from('site_config').upsert({ id: 'wizard_event_config', value: newCfg });
+                  } catch (e) {
+                    console.warn("Lỗi lưu wizard_event_config:", e);
+                  }
+                  showToast("Lưu cấu hình Sự Kiện Phù Thủy thành công!");
+                }}
+                rewards={wizardCardItems}
+                onSaveRewards={async (newRewards) => {
+                  setWizardCardItems(newRewards);
+                  localStorage.setItem('shop_wizard_card_items', JSON.stringify(newRewards));
+                  try {
+                    await supabase.from('site_config').upsert({ id: 'wizard_card_items', value: newRewards });
+                  } catch (e) {
+                    console.warn("Lỗi lưu wizard_card_items:", e);
+                  }
+                  showToast("Cập nhật danh sách phần thưởng Lật Thẻ thành công!");
+                }}
+              />
+            )}
+
           </div>
 
           {/* --- ADMIN MODALS --- */}
@@ -18153,6 +18422,38 @@ const App = () => {
         {currentView === 'lichsu' && renderLichsuScreen()}
         {currentView === 'caythue' && renderCayThueScreen()}
         {currentView === 'vongquay' && renderVongQuay()}
+        {currentView === 'wizard' && (
+          <div className="min-h-screen bg-[#070512] text-slate-200 font-sans pb-24 md:pb-20">
+            {renderNavbar()}
+            <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 pt-4 sm:pt-6">
+              <WizardCardFlip
+                currentUser={currentUser}
+                onUpdateUser={(updated) => {
+                  setCurrentUser(updated);
+                  localStorage.setItem('shop_cached_user', JSON.stringify(updated));
+                  setUsersDb(prev => prev.map(u => u.id === updated.id ? { ...u, ...updated } : u));
+                }}
+                onRequireAuth={() => requireAuth('wizard')}
+                onOpenDeposit={() => {
+                  requireAuth('naptien');
+                  setCurrentView('naptien');
+                }}
+                onOpenHistory={() => {
+                  requireAuth('lichsu');
+                  setCurrentView('lichsu');
+                }}
+                transactionsDb={transactionsDb}
+                onAddTransaction={(newTx) => {
+                  setTransactionsDb(prev => [newTx, ...prev]);
+                }}
+                config={wizardEventConfig}
+                rewards={wizardCardItems}
+                showToast={showToast}
+              />
+            </main>
+            {renderMobileBottomNav()}
+          </div>
+        )}
         {currentView === 'bossgame' && renderBossGameScreen()}
         {currentView === 'vip_info' && (
           <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-20">

@@ -557,6 +557,69 @@
     "glow_color": "#ff00ff",
     "border_class": "rainbow-aura-box"
   },
+  "nón huyền thoại": {
+    "name": "Nón Huyền Thoại",
+    "image": "hat_huyen_thoai.png",
+    "category": "hat",
+    "tier": "Huyền Thoại",
+    "color": "#ffd700",
+    "glow_color": "#ff00ff",
+    "border_class": "rainbow-aura-box"
+  },
+  "bảo vật nón huyền thoại": {
+    "name": "Nón Huyền Thoại",
+    "image": "hat_huyen_thoai.png",
+    "category": "hat",
+    "tier": "Huyền Thoại",
+    "color": "#ffd700",
+    "glow_color": "#ff00ff",
+    "border_class": "rainbow-aura-box"
+  },
+  "bảo vật nón": {
+    "name": "Nón Huyền Thoại",
+    "image": "hat_huyen_thoai.png",
+    "category": "hat",
+    "tier": "Huyền Thoại",
+    "color": "#ffd700",
+    "glow_color": "#ff00ff",
+    "border_class": "rainbow-aura-box"
+  },
+  "non huyen thoai": {
+    "name": "Nón Huyền Thoại",
+    "image": "hat_huyen_thoai.png",
+    "category": "hat",
+    "tier": "Huyền Thoại",
+    "color": "#ffd700",
+    "glow_color": "#ff00ff",
+    "border_class": "rainbow-aura-box"
+  },
+  "non than thoai": {
+    "name": "Nón Huyền Thoại",
+    "image": "hat_huyen_thoai.png",
+    "category": "hat",
+    "tier": "Huyền Thoại",
+    "color": "#ffd700",
+    "glow_color": "#ff00ff",
+    "border_class": "rainbow-aura-box"
+  },
+  "mũ huyền thoại": {
+    "name": "Nón Huyền Thoại",
+    "image": "hat_huyen_thoai.png",
+    "category": "hat",
+    "tier": "Huyền Thoại",
+    "color": "#ffd700",
+    "glow_color": "#ff00ff",
+    "border_class": "rainbow-aura-box"
+  },
+  "mu huyen thoai": {
+    "name": "Nón Huyền Thoại",
+    "image": "hat_huyen_thoai.png",
+    "category": "hat",
+    "tier": "Huyền Thoại",
+    "color": "#ffd700",
+    "glow_color": "#ff00ff",
+    "border_class": "rainbow-aura-box"
+  },
   "tinh thể cường hóa": {
     "name": "Tinh Thể Cường Hóa",
     "image": "ring_crystal.png",
@@ -737,8 +800,44 @@
     "glow_color": null,
     "border_class": ""
   },
+  "1 thẻ may mắn": {
+    "name": "1 Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "1 the may man": {
+    "name": "1 Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
   "1 vé vòng quay may mắn": {
-    "name": "1 Vé Vòng Quay May Mắn",
+    "name": "1 Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "1 thẻ vòng quay may mắn": {
+    "name": "1 Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "thẻ may mắn": {
+    "name": "Thẻ may mắn",
     "image": "spin_ticket.png",
     "category": "spin_ticket",
     "tier": "Thần Thoại",
@@ -747,7 +846,25 @@
     "border_class": ""
   },
   "vé vòng quay may mắn": {
-    "name": "Vé Vòng Quay May Mắn",
+    "name": "Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "the may man": {
+    "name": "Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "thẻ vòng quay may mắn": {
+    "name": "Thẻ may mắn",
     "image": "spin_ticket.png",
     "category": "spin_ticket",
     "tier": "Thần Thoại",
@@ -756,7 +873,7 @@
     "border_class": ""
   },
   "vé vòng quay": {
-    "name": "Vé Vòng Quay May Mắn",
+    "name": "Thẻ may mắn",
     "image": "spin_ticket.png",
     "category": "spin_ticket",
     "tier": "Thần Thoại",
@@ -764,8 +881,8 @@
     "glow_color": null,
     "border_class": ""
   },
-  "ve vong quay may man": {
-    "name": "Vé Vòng Quay May Mắn",
+  "thẻ vòng quay": {
+    "name": "Thẻ may mắn",
     "image": "spin_ticket.png",
     "category": "spin_ticket",
     "tier": "Thần Thoại",
@@ -773,8 +890,8 @@
     "glow_color": null,
     "border_class": ""
   },
-  "ve vong quay": {
-    "name": "Vé Vòng Quay May Mắn",
+  "vé quay": {
+    "name": "Thẻ may mắn",
     "image": "spin_ticket.png",
     "category": "spin_ticket",
     "tier": "Thần Thoại",
@@ -782,8 +899,26 @@
     "glow_color": null,
     "border_class": ""
   },
-  "spin_ticket": {
-    "name": "Vé Vòng Quay May Mắn",
+  "thẻ quay": {
+    "name": "Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "5 thẻ may mắn": {
+    "name": "5 Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "5 the may man": {
+    "name": "5 Thẻ may mắn",
     "image": "spin_ticket.png",
     "category": "spin_ticket",
     "tier": "Thần Thoại",
@@ -792,7 +927,52 @@
     "border_class": ""
   },
   "5 vé vòng quay may mắn": {
-    "name": "5 Vé Vòng Quay May Mắn",
+    "name": "5 Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "5 thẻ vòng quay may mắn": {
+    "name": "5 Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "5 vé vòng quay": {
+    "name": "5 Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "5 thẻ vòng quay": {
+    "name": "5 Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "10 thẻ may mắn": {
+    "name": "10 Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "10 the may man": {
+    "name": "10 Thẻ may mắn",
     "image": "spin_ticket.png",
     "category": "spin_ticket",
     "tier": "Thần Thoại",
@@ -801,7 +981,34 @@
     "border_class": ""
   },
   "10 vé vòng quay may mắn": {
-    "name": "10 Vé Vòng Quay May Mắn",
+    "name": "10 Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "10 thẻ vòng quay may mắn": {
+    "name": "10 Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "10 vé vòng quay": {
+    "name": "10 Thẻ may mắn",
+    "image": "spin_ticket.png",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "10 thẻ vòng quay": {
+    "name": "10 Thẻ may mắn",
     "image": "spin_ticket.png",
     "category": "spin_ticket",
     "tier": "Thần Thoại",
@@ -818,8 +1025,35 @@
     "glow_color": null,
     "border_class": ""
   },
+  "thẻ reroll siêu cấp": {
+    "name": "Thẻ Reroll Siêu Cấp",
+    "image": "item_the_reroll_sieucap.png",
+    "category": "super_reroll",
+    "tier": "Thần Thoại",
+    "color": "#ffd700",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "thẻ đột phá giới hạn": {
+    "name": "Thẻ Đột Phá Giới Hạn",
+    "image": "item_the_dotpha_giay.png",
+    "category": "limit_break_shoes",
+    "tier": "Thượng Cổ",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
   "thẻ đột phá giới hạn giày": {
-    "name": "Thẻ Đột Phá Giới Hạn Giày",
+    "name": "Thẻ Đột Phá Giới Hạn",
+    "image": "item_the_dotpha_giay.png",
+    "category": "limit_break_shoes",
+    "tier": "Thượng Cổ",
+    "color": "#f59e0b",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "thẻ đột phá giày": {
+    "name": "Thẻ Đột Phá Giới Hạn",
     "image": "item_the_dotpha_giay.png",
     "category": "limit_break_shoes",
     "tier": "Thượng Cổ",

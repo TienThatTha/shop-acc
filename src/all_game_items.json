@@ -1,0 +1,704 @@
+[
+  {
+    "id": "game_hat_legendary",
+    "name": "Nón Huyền Thoại",
+    "category": "hat",
+    "tier": "Huyền Thoại",
+    "color": "#ffd700",
+    "image": "/game-assets/hat_huyen_thoai.png",
+    "desc": "Bảo vật nón hoàng kim tối thượng (+300% Xuyên Giáp, +300% Giảm ST, +3000% DEF)"
+  },
+  {
+    "id": "game_hat_normal",
+    "name": "Nón Thường",
+    "category": "hat",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "image": "/game-assets/hat_thuong.png",
+    "desc": "Bảo vật nón cơ bản"
+  },
+  {
+    "id": "wp_kiếm_gỗ",
+    "name": "Kiếm Gỗ",
+    "category": "weapon",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "image": "/game-assets/weapon_wooden_sword.png",
+    "desc": "Vũ khí Thường - Sát thương: 1,000"
+  },
+  {
+    "id": "wp_trảm_ma_kiếm",
+    "name": "Trảm Ma Kiếm",
+    "category": "weapon",
+    "tier": "Hiếm",
+    "color": "#3182ce",
+    "image": "/game-assets/weapon_tram_ma.png",
+    "desc": "Vũ khí Hiếm - Sát thương: 4,000"
+  },
+  {
+    "id": "wp_song_đao_hỏa_thần",
+    "name": "Song Đao Hỏa Thần",
+    "category": "weapon",
+    "tier": "Epic",
+    "color": "#805ad5",
+    "image": "/game-assets/weapon_song_dao.png",
+    "desc": "Vũ khí Epic - Sát thương: 10,000"
+  },
+  {
+    "id": "wp_thần_đao_diệt_tộc",
+    "name": "Thần Đao Diệt Tộc",
+    "category": "weapon",
+    "tier": "Thần Thoại",
+    "color": "#d69e2e",
+    "image": "/game-assets/weapon_than_dao.png",
+    "desc": "Vũ khí Thần Thoại - Sát thương: 30,000"
+  },
+  {
+    "id": "wp_ma_vương_tối_thượng",
+    "name": "Ma Vương Tối Thượng",
+    "category": "weapon",
+    "tier": "Tối Thượng",
+    "color": "#ff4500",
+    "image": "/game-assets/weapon_ma_vuong.png",
+    "desc": "Vũ khí Tối Thượng - Sát thương: 60,000"
+  },
+  {
+    "id": "wp_thần_kiếm_cổ_đại_chaos",
+    "name": "Thần Kiếm Cổ Đại Chaos",
+    "category": "weapon",
+    "tier": "Cổ Đại",
+    "color": "#00ffaa",
+    "image": "/game-assets/weapon_chaos.png",
+    "desc": "Vũ khí Cổ Đại - Sát thương: 120,000"
+  },
+  {
+    "id": "wp_bá_vương_thần_đao_thượng_cổ",
+    "name": "Bá Vương Thần Đao Thượng Cổ",
+    "category": "weapon",
+    "tier": "Thượng Cổ",
+    "color": "#ff0055",
+    "image": "/game-assets/weapon_ba_vuong.png",
+    "desc": "Vũ khí Thượng Cổ - Sát thương: 300,000"
+  },
+  {
+    "id": "ar_giáp_sắt",
+    "name": "Giáp Sắt",
+    "category": "armor",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "image": "/game-assets/armor_giap_sat.png",
+    "desc": "Áo giáp Thường"
+  },
+  {
+    "id": "ar_giáp_rồng",
+    "name": "Giáp Rồng",
+    "category": "armor",
+    "tier": "Hiếm",
+    "color": "#3182ce",
+    "image": "/game-assets/armor_giap_rong.png",
+    "desc": "Áo giáp Hiếm"
+  },
+  {
+    "id": "ar_giáp_thánh_quang",
+    "name": "Giáp Thánh Quang",
+    "category": "armor",
+    "tier": "Epic",
+    "color": "#805ad5",
+    "image": "/game-assets/armor_thanh_quang.png",
+    "desc": "Áo giáp Epic"
+  },
+  {
+    "id": "ar_giáp_kim_cương",
+    "name": "Giáp Kim Cương",
+    "category": "armor",
+    "tier": "Thần Thoại",
+    "color": "#d69e2e",
+    "image": "/game-assets/armor_kim_cuong.png",
+    "desc": "Áo giáp Thần Thoại"
+  },
+  {
+    "id": "ar_giáp_vô_cực_tối_thượng",
+    "name": "Giáp Vô Cực Tối Thượng",
+    "category": "armor",
+    "tier": "Tối Thượng",
+    "color": "#ff4500",
+    "image": "/game-assets/armor_vo_cuc.png",
+    "desc": "Áo giáp Tối Thượng"
+  },
+  {
+    "id": "ar_giáp_cổ_đại_long_vương",
+    "name": "Giáp Cổ Đại Long Vương",
+    "category": "armor",
+    "tier": "Cổ Đại",
+    "color": "#00ffaa",
+    "image": "/game-assets/armor_long_vuong.png",
+    "desc": "Áo giáp Cổ Đại"
+  },
+  {
+    "id": "ar_thần_giáp_thượng_cổ_nữ_oa",
+    "name": "Thần Giáp Thượng Cổ Nữ Oa",
+    "category": "armor",
+    "tier": "Thượng Cổ",
+    "color": "#ff0055",
+    "image": "/game-assets/armor_nu_oa.png",
+    "desc": "Áo giáp Thượng Cổ"
+  },
+  {
+    "id": "pa_quần_thiết_giáp",
+    "name": "Quần Thiết Giáp",
+    "category": "pants",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "image": "/game-assets/pants_thuong.png",
+    "desc": "Quần trang bị Thường"
+  },
+  {
+    "id": "pa_quần_lam_ngọc",
+    "name": "Quần Lam Ngọc",
+    "category": "pants",
+    "tier": "Hiếm",
+    "color": "#3182ce",
+    "image": "/game-assets/pants_hiem.png",
+    "desc": "Quần trang bị Hiếm"
+  },
+  {
+    "id": "pa_quần_thánh_quang",
+    "name": "Quần Thánh Quang",
+    "category": "pants",
+    "tier": "Epic",
+    "color": "#805ad5",
+    "image": "/game-assets/pants_epic.png",
+    "desc": "Quần trang bị Epic"
+  },
+  {
+    "id": "pa_quần_kim_cương",
+    "name": "Quần Kim Cương",
+    "category": "pants",
+    "tier": "Thần Thoại",
+    "color": "#d69e2e",
+    "image": "/game-assets/pants_thanthoai.png",
+    "desc": "Quần trang bị Thần Thoại"
+  },
+  {
+    "id": "pa_quần_vô_cực_tối_thượng",
+    "name": "Quần Vô Cực Tối Thượng",
+    "category": "pants",
+    "tier": "Tối Thượng",
+    "color": "#ff4500",
+    "image": "/game-assets/pants_toithuong.png",
+    "desc": "Quần trang bị Tối Thượng"
+  },
+  {
+    "id": "pa_quần_cổ_đại_long_vương",
+    "name": "Quần Cổ Đại Long Vương",
+    "category": "pants",
+    "tier": "Cổ Đại",
+    "color": "#00ffaa",
+    "image": "/game-assets/pants_codai.png",
+    "desc": "Quần trang bị Cổ Đại"
+  },
+  {
+    "id": "pa_thần_quần_thượng_cổ_nữ_oa",
+    "name": "Thần Quần Thượng Cổ Nữ Oa",
+    "category": "pants",
+    "tier": "Thượng Cổ",
+    "color": "#ff0055",
+    "image": "/game-assets/pants_thuongco.png",
+    "desc": "Quần trang bị Thượng Cổ"
+  },
+  {
+    "id": "sh_giày_thường",
+    "name": "Giày Thường",
+    "category": "shoes",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "image": "/game-assets/shoes_thuong.png",
+    "desc": "Bảo vật giày Thường"
+  },
+  {
+    "id": "sh_giày_thần_tốc",
+    "name": "Giày Thần Tốc",
+    "category": "shoes",
+    "tier": "Huyền Thoại",
+    "color": "#ff00ff",
+    "image": "/game-assets/shoes_huyen_thoai.png",
+    "desc": "Bảo vật giày Huyền Thoại"
+  },
+  {
+    "id": "sh_bảo_vật_giày_huyền_thoại_thất_sắc",
+    "name": "Bảo Vật Giày Huyền Thoại Thất Sắc",
+    "category": "shoes",
+    "tier": "Huyền Thoại",
+    "color": "#ff00ff",
+    "image": "/game-assets/shoes_huyen_thoai.png",
+    "desc": "Bảo vật giày Huyền Thoại"
+  },
+  {
+    "id": "ne_dây_chuyền_bạc",
+    "name": "Dây Chuyền Bạc",
+    "category": "necklace",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "image": "/game-assets/necklace_thuong.png",
+    "desc": "Dây chuyền Thường"
+  },
+  {
+    "id": "ne_dây_chuyền_lam_ngọc",
+    "name": "Dây Chuyền Lam Ngọc",
+    "category": "necklace",
+    "tier": "Hiếm",
+    "color": "#3182ce",
+    "image": "/game-assets/necklace_hiem.png",
+    "desc": "Dây chuyền Hiếm"
+  },
+  {
+    "id": "ne_dây_chuyền_tử_tinh",
+    "name": "Dây Chuyền Tử Tinh",
+    "category": "necklace",
+    "tier": "Epic",
+    "color": "#805ad5",
+    "image": "/game-assets/necklace_epic.png",
+    "desc": "Dây chuyền Epic"
+  },
+  {
+    "id": "ne_dây_chuyền_hoàng_kim",
+    "name": "Dây Chuyền Hoàng Kim",
+    "category": "necklace",
+    "tier": "Thần Thoại",
+    "color": "#d69e2e",
+    "image": "/game-assets/necklace_thanthoai.png",
+    "desc": "Dây chuyền Thần Thoại"
+  },
+  {
+    "id": "ne_dây_chuyền_hắc_ma_vương",
+    "name": "Dây Chuyền Hắc Ma Vương",
+    "category": "necklace",
+    "tier": "Tối Thượng",
+    "color": "#ff4500",
+    "image": "/game-assets/necklace_toithuong.png",
+    "desc": "Dây chuyền Tối Thượng"
+  },
+  {
+    "id": "ne_dây_chuyền_cổ_đại_chaos",
+    "name": "Dây Chuyền Cổ Đại Chaos",
+    "category": "necklace",
+    "tier": "Cổ Đại",
+    "color": "#00ffaa",
+    "image": "/game-assets/necklace_codai.png",
+    "desc": "Dây chuyền Cổ Đại"
+  },
+  {
+    "id": "ne_thần_dây_chuyền_thượng_cổ_vô_cực",
+    "name": "Thần Dây Chuyền Thượng Cổ Vô Cực",
+    "category": "necklace",
+    "tier": "Thượng Cổ",
+    "color": "#ff0055",
+    "image": "/game-assets/necklace_thuongco.png",
+    "desc": "Dây chuyền Thượng Cổ"
+  },
+  {
+    "id": "ri_nhẫn_hắc_thiết",
+    "name": "Nhẫn Hắc Thiết",
+    "category": "ring",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "image": "/game-assets/ring_thuong.png",
+    "desc": "Nhẫn thần binh Thường"
+  },
+  {
+    "id": "ri_nhẫn_lam_ngọc_tinh",
+    "name": "Nhẫn Lam Ngọc Tinh",
+    "category": "ring",
+    "tier": "Hiếm",
+    "color": "#3182ce",
+    "image": "/game-assets/ring_hiem.png",
+    "desc": "Nhẫn thần binh Hiếm"
+  },
+  {
+    "id": "ri_nhẫn_huyết_ma_thạch",
+    "name": "Nhẫn Huyết Ma Thạch",
+    "category": "ring",
+    "tier": "Epic",
+    "color": "#805ad5",
+    "image": "/game-assets/ring_epic.png",
+    "desc": "Nhẫn thần binh Epic"
+  },
+  {
+    "id": "ri_nhẫn_hoàng_kim_diệt_thế",
+    "name": "Nhẫn Hoàng Kim Diệt Thế",
+    "category": "ring",
+    "tier": "Thần Thoại",
+    "color": "#d69e2e",
+    "image": "/game-assets/ring_thanthoai.png",
+    "desc": "Nhẫn thần binh Thần Thoại"
+  },
+  {
+    "id": "ri_nhẫn_hắc_ám_ma_vương",
+    "name": "Nhẫn Hắc Ám Ma Vương",
+    "category": "ring",
+    "tier": "Tối Thượng",
+    "color": "#ff4500",
+    "image": "/game-assets/ring_toithuong.png",
+    "desc": "Nhẫn thần binh Tối Thượng"
+  },
+  {
+    "id": "ri_nhẫn_thần_long_chaos",
+    "name": "Nhẫn Thần Long Chaos",
+    "category": "ring",
+    "tier": "Cổ Đại",
+    "color": "#00ffaa",
+    "image": "/game-assets/ring_codai.png",
+    "desc": "Nhẫn thần binh Cổ Đại"
+  },
+  {
+    "id": "ri_bát_hoang_thần_giới_vô_cực",
+    "name": "Bát Hoang Thần Giới Vô Cực",
+    "category": "ring",
+    "tier": "Thượng Cổ",
+    "color": "#ff0055",
+    "image": "/game-assets/ring_thuongco.png",
+    "desc": "Nhẫn thần binh Thượng Cổ"
+  },
+  {
+    "id": "pet_mèo_béo",
+    "name": "Mèo Béo",
+    "category": "pet",
+    "tier": "Thường",
+    "color": "#a0aec0",
+    "image": "/game-assets/pet_meo_beo.png",
+    "desc": "Linh thú chiến đấu Thường"
+  },
+  {
+    "id": "pet_cáo_tuyết",
+    "name": "Cáo Tuyết",
+    "category": "pet",
+    "tier": "Hiếm",
+    "color": "#3182ce",
+    "image": "/game-assets/pet_cao_tuyet.png",
+    "desc": "Linh thú chiến đấu Hiếm"
+  },
+  {
+    "id": "pet_rồng_con",
+    "name": "Rồng Con",
+    "category": "pet",
+    "tier": "Epic",
+    "color": "#805ad5",
+    "image": "/game-assets/pet_rong_con.png",
+    "desc": "Linh thú chiến đấu Epic"
+  },
+  {
+    "id": "pet_rồng_thần_tí_hon",
+    "name": "Rồng Thần Tí Hon",
+    "category": "pet",
+    "tier": "Thần Thoại",
+    "color": "#d69e2e",
+    "image": "/game-assets/pet_rong_than.png",
+    "desc": "Linh thú chiến đấu Thần Thoại"
+  },
+  {
+    "id": "pet_phượng_hoàng_tối_thượng",
+    "name": "Phượng Hoàng Tối Thượng",
+    "category": "pet",
+    "tier": "Tối Thượng",
+    "color": "#ff4500",
+    "image": "/game-assets/pet_phuong_hoang.png",
+    "desc": "Linh thú chiến đấu Tối Thượng"
+  },
+  {
+    "id": "pet_thần_rồng_cổ_đại_chaos",
+    "name": "Thần Rồng Cổ Đại Chaos",
+    "category": "pet",
+    "tier": "Cổ Đại",
+    "color": "#00ffaa",
+    "image": "/game-assets/pet_rong_chaos.png",
+    "desc": "Linh thú chiến đấu Cổ Đại"
+  },
+  {
+    "id": "pet_bát_hoang_thần_rồng_thượng_cổ",
+    "name": "Bát Hoang Thần Rồng Thượng Cổ",
+    "category": "pet",
+    "tier": "Thượng Cổ",
+    "color": "#ff0055",
+    "image": "/game-assets/pet_rong_thuong_co.png",
+    "desc": "Linh thú chiến đấu Thượng Cổ"
+  },
+  {
+    "id": "item_ring_crystal",
+    "name": "Tinh Thể Cường Hóa",
+    "category": "material",
+    "tier": "Thượng Cổ",
+    "color": "#3b82f6",
+    "image": "/game-assets/ring_crystal.png",
+    "desc": "Tinh thể quý dùng để nâng sao và đột phá Nhẫn Thần Binh (20 xu)"
+  },
+  {
+    "id": "item_essence_stone",
+    "name": "Đá Tinh Hoa",
+    "category": "material",
+    "tier": "Thượng Cổ",
+    "color": "#3b82f6",
+    "image": "/game-assets/da_tinh_hoa.png",
+    "desc": "Đá quý dùng để nâng cấp Level Kỹ Năng Nhẫn Thần Binh (100 xu)"
+  },
+  {
+    "id": "atk_5",
+    "name": "Gói 5 Lượt Đánh Boss",
+    "category": "bonus_attacks",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/item_attack_turn.png",
+    "desc": "Cộng 5 lượt đánh boss vĩnh viễn"
+  },
+  {
+    "id": "atk_20",
+    "name": "Gói 20 Lượt Đánh Boss",
+    "category": "bonus_attacks",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/item_attack_turn.png",
+    "desc": "Cộng 20 lượt đánh boss vĩnh viễn"
+  },
+  {
+    "id": "atk_50",
+    "name": "Gói 50 Lượt Đánh Boss",
+    "category": "bonus_attacks",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/item_attack_turn.png",
+    "desc": "Cộng 50 lượt đánh boss vĩnh viễn"
+  },
+  {
+    "id": "atk_100",
+    "name": "Gói 100 Lượt Đánh Boss",
+    "category": "bonus_attacks",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/item_attack_turn.png",
+    "desc": "Cộng 100 lượt đánh boss vĩnh viễn"
+  },
+  {
+    "id": "atk_200",
+    "name": "Gói 200 Lượt Đánh Boss",
+    "category": "bonus_attacks",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/item_attack_turn.png",
+    "desc": "Cộng 200 lượt đánh boss vĩnh viễn"
+  },
+  {
+    "id": "atk_500",
+    "name": "Gói 500 Lượt Đánh Boss",
+    "category": "bonus_attacks",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/item_attack_turn.png",
+    "desc": "Cộng 500 lượt đánh boss vĩnh viễn"
+  },
+  {
+    "id": "chest_boss_1",
+    "name": "1 Rương Chiến Tích Boss",
+    "category": "boss_chests",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/boss_chest_closed_trans.png",
+    "desc": "Mở trang bị Thường ➔ Thượng Cổ"
+  },
+  {
+    "id": "chest_boss_5",
+    "name": "5 Rương Chiến Tích Boss",
+    "category": "boss_chests",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/boss_chest_closed_trans.png",
+    "desc": "Mở 5 rương boss chiến tích"
+  },
+  {
+    "id": "chest_royal_1",
+    "name": "1 Rương Hoàng Gia VIP",
+    "category": "royal_chests",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/royal_chest_closed_trans.png",
+    "desc": "Chỉ mở ra Thần Thoại ➔ Thượng Cổ!"
+  },
+  {
+    "id": "chest_royal_3",
+    "name": "3 Rương Hoàng Gia VIP",
+    "category": "royal_chests",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/royal_chest_closed_trans.png",
+    "desc": "3 rương hoàng gia cực phẩm"
+  },
+  {
+    "id": "buff_dmg_10m",
+    "name": "Bùa x2 Sát Thương (10 Phút)",
+    "category": "buff_dmg",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/top1_gift_icon.png",
+    "desc": "Nhân đôi sát thương đánh boss 10 phút"
+  },
+  {
+    "id": "buff_dmg_30m",
+    "name": "Bùa x2 Sát Thương (30 Phút)",
+    "category": "buff_dmg",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/top1_gift_icon.png",
+    "desc": "Nhân đôi sát thương đánh boss 30 phút"
+  },
+  {
+    "id": "exp_20k",
+    "name": "Túi 20,000 EXP",
+    "category": "exp",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/reward_exp.png",
+    "desc": "Tăng cấp nhân vật nhanh chóng"
+  },
+  {
+    "id": "exp_100k",
+    "name": "Túi 100,000 EXP Khủng",
+    "category": "exp",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/reward_exp.png",
+    "desc": "Tăng cấp thần tốc cho nhân vật"
+  },
+  {
+    "id": "item_reset_boss",
+    "name": "Bùa Reset Boss",
+    "category": "reset_boss",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/item_reset_boss.png",
+    "desc": "Hồi sinh & đưa World Boss về Level 0 (10,000 HP)"
+  },
+  {
+    "id": "item_summon_rabbit",
+    "name": "Bùa Triệu Hồi Thỏ",
+    "category": "summon_rabbit",
+    "tier": "Thần Thoại",
+    "color": "#3b82f6",
+    "image": "/game-assets/boss_lucky_rabbit_trans.png",
+    "desc": "Triệu hồi Boss Thỏ Vàng May Mắn (Máu ngẫu nhiên 500k - 1tr)"
+  },
+  {
+    "id": "item_health_potion",
+    "name": "Bình Huyết Dược",
+    "category": "potion",
+    "tier": "Hiếm",
+    "color": "#3b82f6",
+    "image": "/game-assets/item_health_potion.png",
+    "desc": "Hồi phục 50% Máu (HP) tối đa ngay lập tức"
+  },
+  {
+    "id": "item_revive_amulet",
+    "name": "Bùa Phục Sinh",
+    "category": "revive",
+    "tier": "Thần Thoại",
+    "color": "#3b82f6",
+    "image": "/game-assets/item_revive_amulet.png",
+    "desc": "Hồi sinh ngay tức thì với 100% HP khi tử trận hoặc tự động cứu mạng"
+  },
+  {
+    "id": "item_spin_ticket_1",
+    "name": "Thẻ may mắn",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#3b82f6",
+    "image": "/game-assets/spin_ticket.png",
+    "desc": "Tự động cộng +1 Lượt Quay Vòng Quay trên Website!"
+  },
+  {
+    "id": "item_spin_ticket_5",
+    "name": "5 Thẻ may mắn",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#3b82f6",
+    "image": "/game-assets/spin_ticket.png",
+    "desc": "Tự động cộng +5 Lượt Quay Vòng Quay trên Website!"
+  },
+  {
+    "id": "item_spin_ticket_10",
+    "name": "10 Thẻ may mắn",
+    "category": "spin_ticket",
+    "tier": "Thần Thoại",
+    "color": "#3b82f6",
+    "image": "/game-assets/spin_ticket.png",
+    "desc": "Tự động cộng +10 Lượt Quay Vòng Quay trên Website!"
+  },
+  {
+    "id": "item_reroll_shoes",
+    "name": "Thẻ Reroll",
+    "category": "reroll_shoes",
+    "tier": "Thượng Cổ",
+    "color": "#3b82f6",
+    "image": "/game-assets/item_the_reroll.png",
+    "desc": "Làm mới toàn bộ dòng phụ của trang bị (150% - 500% cho ATK/DEF/HP, 15% - 50% dòng khác; hoặc x2 nếu Đột Phá)"
+  },
+  {
+    "id": "item_super_reroll",
+    "name": "Thẻ Reroll Siêu Cấp",
+    "category": "super_reroll",
+    "tier": "Thần Thoại",
+    "color": "#3b82f6",
+    "image": "/game-assets/item_the_reroll_sieucap.png",
+    "desc": "Tẩy toàn bộ dòng phụ trang bị về cùng 1 loại thuộc tính duy nhất ngẫu nhiên (chỉ số % random độc lập)"
+  },
+  {
+    "id": "item_limit_break_shoes",
+    "name": "Thẻ Đột Phá Giới Hạn",
+    "category": "limit_break_shoes",
+    "tier": "Thượng Cổ",
+    "color": "#3b82f6",
+    "image": "/game-assets/item_the_dotpha_giay.png",
+    "desc": "Mở trần dòng phụ lên 100% (1000% cho ATK/DEF/HP) cho bất kỳ trang bị nào khi Reroll"
+  },
+  {
+    "id": "item_weaken_card",
+    "name": "Thẻ Giảm Sức Mạnh",
+    "category": "weaken_card",
+    "tier": "Thượng Cổ",
+    "color": "#3b82f6",
+    "image": "/game-assets/item_the_giam_suc_manh.png",
+    "desc": "Tự động kích hoạt khi ghép trận PvP: Giảm 50% toàn bộ thuộc tính đối phương!"
+  },
+  {
+    "id": "game_coins",
+    "name": "Xu Nâng Cấp",
+    "category": "currency",
+    "tier": "Đặc biệt",
+    "color": "#eab308",
+    "image": "/game-assets/gold_coin.png",
+    "desc": "Xu dùng để nâng cấp trang bị và mua đồ trong Shop"
+  },
+  {
+    "id": "game_attacks",
+    "name": "Lượt Đánh Boss",
+    "category": "currency",
+    "tier": "Đặc biệt",
+    "color": "#3b82f6",
+    "image": "/game-assets/item_attack_turn.png",
+    "desc": "Lượt dùng để tấn công Boss Thế Giới"
+  },
+  {
+    "id": "game_exp",
+    "name": "Điểm Kinh Nghiệm (EXP)",
+    "category": "currency",
+    "tier": "Đặc biệt",
+    "color": "#10b981",
+    "image": "/game-assets/reward_exp.png",
+    "desc": "Kinh nghiệm tăng cấp độ nhân vật"
+  },
+  {
+    "id": "none",
+    "name": "Chúc may mắn lần sau",
+    "category": "special",
+    "tier": "Thường",
+    "color": "#64748b",
+    "image": "/favicon.png",
+    "desc": "Không trúng phần thưởng lần này"
+  }
+]
