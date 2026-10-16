@@ -7,21 +7,138 @@ import {
 import { supabase } from '../supabaseClient';
 import { LEGENDARY_HAT_IMG } from '../hatAsset';
 
-export default function WizardCardFlip({
-  currentUser,
-  currentEventNow,
-  wizardEventConfig,
-  wizardItems,
-  wizardPity,
-  setWizardPity,
-  requireAuth,
-  showToast,
-  setCurrentView,
-  transactionsDb,
-  setTransactionsDb,
-  usersDb,
-  setUsersDb
-}) {
+const DEFAULT_WIZARD_ITEMS = [
+  {
+    id: 'hat_wizard_legendary',
+    name: 'Nón Phù Thủy Tối Thượng (Huyền Thoại)',
+    category: 'Trang bị Nón',
+    type: 'hat',
+    value: 1,
+    rate: 0.5,
+    color: '#f59e0b',
+    image: '/game-assets/hat_wizard_legendary.png',
+    isLegendary: true,
+    is_special: true,
+    desc: 'Mũ Phù Thủy Huyền Thoại (+450 Phép & +250 Kháng Phép). Áp dụng bảo hiểm 120 lượt chắc chắn nhận!'
+  },
+  {
+    id: 'item_the_reroll_sieucap',
+    name: 'Thẻ Reroll Siêu Cấp',
+    category: 'Vật phẩm tiêu hao',
+    type: 'consumable',
+    value: 1,
+    rate: 4.5,
+    color: '#ec4899',
+    image: '/game-assets/item_the_reroll_sieucap.png',
+    isLegendary: false,
+    desc: 'Tẩy toàn bộ chỉ số trang bị và đảm bảo ít nhất 2 dòng Cam/Đỏ tối thượng!'
+  },
+  {
+    id: 'item_the_dotpha_giay',
+    name: 'Thẻ Đột Phá Giày Thần Tốc',
+    category: 'Vật phẩm tiêu hao',
+    type: 'consumable',
+    value: 1,
+    rate: 8.0,
+    color: '#a855f7',
+    image: '/game-assets/item_the_dotpha_giay.png',
+    isLegendary: false,
+    desc: 'Đột phá tăng bậc và mở khóa hiệu ứng ẩn cho Giày Thần Tốc.'
+  },
+  {
+    id: 'item_spin_ticket_5',
+    name: '5 Thẻ may mắn',
+    category: 'Thẻ sự kiện',
+    type: 'ticket',
+    value: 5,
+    rate: 12.0,
+    color: '#3b82f6',
+    image: '/game-assets/item_spin_ticket_5.png',
+    isLegendary: false,
+    desc: 'Nhận ngay +5 Thẻ may mắn (Lượt chơi chung Vòng Quay & Lật Thẻ Phù Thủy).'
+  },
+  {
+    id: 'item_attack_turn',
+    name: '+3 Lượt Đánh Boss',
+    category: 'Vật phẩm tiêu hao',
+    type: 'consumable',
+    value: 3,
+    rate: 15.0,
+    color: '#10b981',
+    image: '/game-assets/item_attack_turn.png',
+    isLegendary: false,
+    desc: 'Tăng ngay 3 lượt khiêu chiến Boss Thế Giới để săn trang bị quý hiếm.'
+  },
+  {
+    id: 'gem_ruby',
+    name: '500 Hồng Thạch (Ruby)',
+    category: 'Tiền tệ',
+    type: 'ruby',
+    value: 500,
+    rate: 18.0,
+    color: '#f43f5e',
+    image: '/game-assets/gem_ruby.png',
+    isLegendary: false,
+    desc: '500 Hồng ngọc quý hiếm dùng để mua vật phẩm cao cấp.'
+  },
+  {
+    id: 'currency_coins',
+    name: '50.000 Xu Nâng Cấp',
+    category: 'Tiền tệ',
+    type: 'coins',
+    value: 50000,
+    rate: 22.0,
+    color: '#eab308',
+    image: '/game-assets/currency_coins.png',
+    isLegendary: false,
+    desc: '50.000 Xu dùng để cường hóa trang bị và nâng cấp kỹ năng.'
+  },
+  {
+    id: 'item_the_reroll',
+    name: 'Thẻ Tẩy Luyện Thường',
+    category: 'Vật phẩm tiêu hao',
+    type: 'consumable',
+    value: 2,
+    rate: 20.0,
+    color: '#06b6d4',
+    image: '/game-assets/item_the_reroll.png',
+    isLegendary: false,
+    desc: 'Tẩy lại 1 dòng chỉ số bất kỳ của trang bị.'
+  }
+];
+
+export default function WizardCardFlip(props) {
+  const {
+    currentUser,
+    currentEventNow,
+    wizardEventConfig: propConfig,
+    config,
+    wizardItems: propItems,
+    rewards,
+    wizardPity: propPity,
+    setWizardPity,
+    requireAuth: propRequireAuth,
+    onRequireAuth,
+    showToast,
+    setCurrentView = () => {},
+    transactionsDb = [],
+    setTransactionsDb = () => {},
+    onAddTransaction,
+    usersDb = [],
+    setUsersDb = () => {},
+    onUpdateUser,
+    onOpenDeposit,
+    onOpenHistory
+  } = props;
+
+  const requireAuth = propRequireAuth || onRequireAuth;
+  const wizardEventConfig = propConfig || config || {};
+  const wizardItems = useMemo(() => {
+    if (Array.isArray(propItems) && propItems.length > 0) return propItems;
+    if (Array.isArray(rewards) && rewards.length > 0) return rewards;
+    return DEFAULT_WIZARD_ITEMS;
+  }, [propItems, rewards]);
+
   const [isFlipping, setIsFlipping] = useState(false);
   const isFlippingRef = useRef(false);
   const [flipCount, setFlipCount] = useState(1); // 1 or 10
@@ -47,23 +164,21 @@ export default function WizardCardFlip({
     } catch (e) {}
   };
 
-  const pityThreshold = wizardEventConfig?.pity_threshold || 120;
+  const pityThreshold = wizardEventConfig?.pity_threshold || wizardEventConfig?.pityTarget || 120;
   const currentSpins = Number(currentUser?.spins || 0);
 
   // Identify the special grand prize (Nón Huyền Thoại)
   const specialItem = useMemo(() => {
-    return wizardItems.find(it => 
-      it.is_special || 
-      it.type === 'game_hat_legendary' || 
-      (it.name && it.name.toLowerCase().includes('nón huyền thoại'))
-    ) || {
-      id: 'WIZARD_HAT_LEGENDARY',
-      name: 'Nón Huyền Thoại',
-      type: 'game_hat_legendary',
-      image: LEGENDARY_HAT_IMG,
-      color: '#ffd700',
-      rate: '0.5%'
-    };
+    return (wizardItems || []).find(it => 
+      it && (
+        it.is_special || 
+        it.isLegendary ||
+        it.type === 'game_hat_legendary' || 
+        it.type === 'hat' ||
+        it.id === 'hat_wizard_legendary' ||
+        (it.name && it.name.toLowerCase().includes('nón'))
+      )
+    ) || DEFAULT_WIZARD_ITEMS[0];
   }, [wizardItems]);
 
   // Recent flip history from transactions

@@ -18426,30 +18426,53 @@ const App = () => {
           <div className="min-h-screen bg-[#070512] text-slate-200 font-sans pb-24 md:pb-20">
             {renderNavbar()}
             <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 pt-4 sm:pt-6">
-              <WizardCardFlip
-                currentUser={currentUser}
-                onUpdateUser={(updated) => {
-                  setCurrentUser(updated);
-                  localStorage.setItem('shop_cached_user', JSON.stringify(updated));
-                  setUsersDb(prev => prev.map(u => u.id === updated.id ? { ...u, ...updated } : u));
-                }}
-                onRequireAuth={() => requireAuth('wizard')}
-                onOpenDeposit={() => {
-                  requireAuth('naptien');
-                  setCurrentView('naptien');
-                }}
-                onOpenHistory={() => {
-                  requireAuth('lichsu');
-                  setCurrentView('lichsu');
-                }}
-                transactionsDb={transactionsDb}
-                onAddTransaction={(newTx) => {
-                  setTransactionsDb(prev => [newTx, ...prev]);
-                }}
-                config={wizardEventConfig}
-                rewards={wizardCardItems}
-                showToast={showToast}
-              />
+              {isWizardEventAccessible ? (
+                <WizardCardFlip
+                  currentUser={currentUser}
+                  currentEventNow={currentEventNow}
+                  wizardEventConfig={wizardEventConfig}
+                  config={wizardEventConfig}
+                  wizardItems={wizardCardItems}
+                  rewards={wizardCardItems}
+                  wizardPity={wizardPity}
+                  setWizardPity={setWizardPity}
+                  requireAuth={requireAuth}
+                  onRequireAuth={() => requireAuth('wizard')}
+                  setCurrentView={setCurrentView}
+                  onOpenDeposit={() => {
+                    requireAuth('naptien');
+                    setCurrentView('naptien');
+                  }}
+                  onOpenHistory={() => {
+                    requireAuth('lichsu');
+                    setCurrentView('lichsu');
+                  }}
+                  transactionsDb={transactionsDb}
+                  setTransactionsDb={setTransactionsDb}
+                  onAddTransaction={(newTx) => {
+                    setTransactionsDb(prev => [newTx, ...prev]);
+                  }}
+                  usersDb={usersDb}
+                  setUsersDb={setUsersDb}
+                  onUpdateUser={(updated) => {
+                    setCurrentUser(updated);
+                    localStorage.setItem('shop_cached_user', JSON.stringify(updated));
+                    setUsersDb(prev => prev.map(u => u.id === updated.id ? { ...u, ...updated } : u));
+                  }}
+                  showToast={showToast}
+                />
+              ) : (
+                <div className="text-center py-20">
+                  <div className="bg-purple-950/40 border border-purple-500/30 rounded-2xl p-8 max-w-md mx-auto">
+                    <Sparkles size={48} className="text-purple-400 mx-auto mb-4 animate-pulse" />
+                    <h3 className="text-xl font-bold text-white mb-2">Sự Kiện Đang Tạm Ẩn</h3>
+                    <p className="text-slate-400 text-sm mb-6">Sự kiện Lật Thẻ Bài Phù Thủy hiện đang được bảo trì hoặc chưa mở. Vui lòng quay lại sau!</p>
+                    <button onClick={() => setCurrentView('dashboard')} className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-purple-600/30">
+                      Về Trang Chủ
+                    </button>
+                  </div>
+                </div>
+              )}
             </main>
             {renderMobileBottomNav()}
           </div>
