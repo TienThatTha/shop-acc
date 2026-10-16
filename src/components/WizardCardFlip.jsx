@@ -842,38 +842,40 @@ export default function WizardCardFlip(props) {
                 })}
               </div>
 
-              {/* NÚT BẤM LẬT THẺ: 1 THẺ RANDOM & 10 THẺ MỞ TẤT CẢ */}
-              <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-lg z-10">
+              {/* NÚT BẤM LẬT THẺ: 1 DÒNG GỌN ĐẸP & CHUẨN GAMING */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5 w-full max-w-2xl px-2 z-10">
+                {/* NÚT LẬT 1 THẺ */}
                 <button
                   disabled={isFlipping}
                   onClick={() => handleFlip(1)}
-                  className={`flex-1 w-full py-4 px-5 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-xl ${
+                  className={`w-full sm:w-auto sm:flex-1 py-3.5 px-6 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-3 transition-all duration-200 whitespace-nowrap select-none border ${
                     isFlipping
-                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-purple-600/30 hover:scale-105 active:scale-95'
+                      ? 'bg-slate-800/80 border-slate-700 text-slate-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white border-purple-400/40 shadow-[0_4px_20px_rgba(147,51,234,0.45)] hover:shadow-[0_6px_30px_rgba(147,51,234,0.7)] hover:-translate-y-0.5 active:translate-y-0 active:scale-95'
                   }`}
-                  title="Lật ngẫu nhiên 1 lá bài đang úp (hoặc bạn có thể click trực tiếp vào lá bài muốn mở)"
+                  title="Lật ngẫu nhiên 1 lá bài đang úp hoặc bấm trực tiếp vào lá bài muốn mở"
                 >
-                  <Sparkles size={20} className="text-amber-300" />
-                  <span>LẬT 1 THẺ (RANDOM)</span>
-                  <span className="text-xs text-amber-200 font-bold bg-purple-950/60 px-2 py-0.5 rounded-lg border border-purple-400/30">
+                  <Sparkles size={18} className="text-amber-300 shrink-0" />
+                  <span className="tracking-wide">LẬT 1 THẺ</span>
+                  <span className="text-xs text-amber-300 font-black bg-black/40 px-2.5 py-0.5 rounded-lg border border-purple-400/30 shadow-inner shrink-0">
                     -1 Thẻ
                   </span>
                 </button>
 
+                {/* NÚT LẬT 10 THẺ */}
                 <button
                   disabled={isFlipping}
                   onClick={() => handleFlip(10)}
-                  className={`flex-1 w-full py-4 px-5 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-xl ${
+                  className={`w-full sm:w-auto sm:flex-1 py-3.5 px-6 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-3 transition-all duration-200 whitespace-nowrap select-none border ${
                     isFlipping
-                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white shadow-amber-500/30 hover:scale-105 active:scale-95'
+                      ? 'bg-slate-800/80 border-slate-700 text-slate-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white border-amber-300/50 shadow-[0_4px_25px_rgba(245,158,11,0.5)] hover:shadow-[0_6px_35px_rgba(245,158,11,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-95'
                   }`}
-                  title="Mở toàn bộ 10 thẻ bài trực tiếp trên bàn hiển thị quà"
+                  title="Mở toàn bộ 10 thẻ bài trực tiếp trên bàn"
                 >
-                  <Flame size={20} className="text-amber-300 animate-pulse" />
-                  <span>LẬT 10 THẺ (MỞ TẤT CẢ)</span>
-                  <span className="text-xs text-amber-200 font-bold bg-black/40 px-2 py-0.5 rounded-lg border border-amber-400/40">
+                  <Flame size={18} className="text-amber-200 shrink-0 animate-pulse" />
+                  <span className="tracking-wide">LẬT 10 THẺ</span>
+                  <span className="text-xs text-amber-200 font-black bg-black/45 px-2.5 py-0.5 rounded-lg border border-amber-400/40 shadow-inner shrink-0">
                     -10 Thẻ
                   </span>
                 </button>
