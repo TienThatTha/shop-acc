@@ -3810,7 +3810,7 @@ const App = () => {
   // --- HÀM CHUẨN HÓA DỮ LIỆU NGƯỜI CHƠI TỪ BẢNG GAME_PLAYERS (SUPABASE) ---
   const parseGamePlayerRecord = (dbPlayer) => {
     if (!dbPlayer) return null;
-    let wp = null, ar = null, nk = null, rg = null, pt = null, pn = null, sh = null;
+    let wp = null, ar = null, nk = null, rg = null, pt = null, pn = null, sh = null, ht = null;
     try { wp = dbPlayer.weapon ? (typeof dbPlayer.weapon === 'string' ? JSON.parse(dbPlayer.weapon) : dbPlayer.weapon) : null; } catch (e) { wp = { name: dbPlayer.weapon }; }
     try { ar = dbPlayer.armor ? (typeof dbPlayer.armor === 'string' ? JSON.parse(dbPlayer.armor) : dbPlayer.armor) : null; } catch (e) { ar = { name: dbPlayer.armor }; }
     try { pn = dbPlayer.pants ? (typeof dbPlayer.pants === 'string' ? JSON.parse(dbPlayer.pants) : dbPlayer.pants) : null; } catch (e) { pn = { name: dbPlayer.pants }; }
@@ -3839,6 +3839,18 @@ const App = () => {
     }
     if (sh && !sh.name) sh = null;
 
+    try { ht = dbPlayer.hat ? (typeof dbPlayer.hat === 'string' ? JSON.parse(dbPlayer.hat) : dbPlayer.hat) : null; } catch (e) { ht = { name: dbPlayer.hat }; }
+    if (Array.isArray(ht)) ht = ht.length > 0 ? ht[0] : null;
+    if (!ht && wp && wp.hat) {
+      try {
+        ht = typeof wp.hat === 'string' ? JSON.parse(wp.hat) : wp.hat;
+      } catch (e) {
+        ht = { name: wp.hat };
+      }
+      if (Array.isArray(ht)) ht = ht.length > 0 ? ht[0] : null;
+    }
+    if (ht && !ht.name) ht = null;
+
     const normalizeEquipSubStats = (item) => {
       if (!item || typeof item !== 'object') return item;
       if (typeof item.sub_stats === 'string' && item.sub_stats.trim()) {
@@ -3861,7 +3873,7 @@ const App = () => {
       }
       return item;
     };
-    [wp, ar, pn, nk, rg, pt, sh].forEach(normalizeEquipSubStats);
+    [wp, ar, pn, nk, rg, pt, sh, ht].forEach(normalizeEquipSubStats);
 
     return {
       exists: true,
@@ -3893,6 +3905,7 @@ const App = () => {
       ring: rg,
       necklace: nk,
       shoes: sh,
+      hat: ht,
       exp: wp?.player_exp || 0,
       bonus_coins: (wp?.player_coins !== undefined && wp?.player_coins !== null) ? Number(wp.player_coins) : (dbPlayer.bonus_coins || dbPlayer.coins || 0),
       honor_points: Number(wp?.honor_points !== undefined && wp?.honor_points !== null ? wp.honor_points : (dbPlayer.honor_points || dbPlayer.honor || 0)),
@@ -12551,16 +12564,22 @@ const App = () => {
           }
           const allAttack = Math.round(baseTotalDmg * (1.0 + (nkPct / 100.0)) * (1.0 + (ringDmgPct / 100.0)));
 
-          const renderEquipSlot = (item, category, defaultIcon, defaultTitle) => {
+          const renderEquipSlot = (item, category, defaultIcon, defaultTitle, slotCmd = '') => {
             if (!item || !item.name) {
               return (
-                <div className="bg-[#0F172A]/70 border border-dashed border-slate-700/80 rounded-2xl p-3 flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-slate-800/50 border border-dashed border-slate-600 flex items-center justify-center text-xl shrink-0 text-slate-500">
-                    {defaultIcon}
+                <div className="bg-[#0F172A]/70 border border-dashed border-slate-700/80 rounded-2xl p-3 flex flex-col gap-2">
+                  <div className="flex items-center justify-between pb-1 border-b border-white/5 w-full">
+                    <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">{defaultIcon} {defaultTitle}</span>
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">{slotCmd}</span>
                   </div>
-                  <div>
-                    <div className="text-slate-400 text-xs font-bold">{defaultTitle}</div>
-                    <div className="text-slate-600 text-[11px] italic">Chưa trang bị</div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-slate-800/50 border border-dashed border-slate-600 flex items-center justify-center text-xl shrink-0 text-slate-500">
+                      {defaultIcon}
+                    </div>
+                    <div>
+                      <div className="text-slate-400 text-xs font-bold">{defaultTitle}</div>
+                      <div className="text-slate-600 text-[11px] italic">Chưa trang bị</div>
+                    </div>
                   </div>
                 </div>
               );
@@ -12594,6 +12613,10 @@ const App = () => {
                 {renderUniversalItemThumb(item, category, { sizeClass: 'w-16 h-16 sm:w-[72px] sm:h-[72px]', imgSizeClass: 'w-12 h-12 sm:w-[54px] sm:h-[54px]', defaultIcon })}
 
                 <div className="flex-1 min-w-0 flex flex-col justify-start">
+                  <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-white/5 w-full">
+                    <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">{defaultIcon} {defaultTitle}</span>
+                    <span className="text-[10px] font-black text-cyan-400 uppercase tracking-wider">{slotCmd}</span>
+                  </div>
                   <div className="flex items-center justify-between gap-1.5 flex-wrap">
                     <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                       <span className="font-extrabold text-xs sm:text-sm leading-snug" style={{ color: tier.color }} title={item.name}>
@@ -12781,6 +12804,17 @@ const App = () => {
                               ⚡ Thực Chiến: +{totAgi.toLocaleString()} Tốc
                             </span>
                           )}
+                          <div className="flex items-center gap-1.5 flex-wrap pt-1.5 mt-1 border-t border-dashed border-yellow-400/25 text-[10px] w-full">
+                            <span className="font-extrabold text-cyan-300 bg-cyan-500/15 border border-cyan-500/30 px-1.5 py-0.5 rounded">
+                              ⚡ Tốc Độ: +{totAgi.toLocaleString()} (+{shoeBonusPct}% + 60% Set)
+                            </span>
+                            <span className="font-extrabold text-teal-300 bg-teal-500/15 border border-teal-500/30 px-1.5 py-0.5 rounded">
+                              🛡️ Né Đòn: 60.0%
+                            </span>
+                            <span className="font-extrabold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded">
+                              👑 Kháng: 100% (Miễn Nhiễm 👑)
+                            </span>
+                          </div>
                         </div>
                       );
                     })()}
@@ -12935,32 +12969,48 @@ const App = () => {
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-3.5 flex-1">
-                  {/* Level & EXP Bar */}
-                  <div className="bg-[#0B101B]/80 border border-slate-800 rounded-xl p-3">
-                    <div className="flex justify-between items-center mb-1.5 text-xs">
-                      <span className="font-extrabold text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 px-2 py-0.5 rounded">
-                        Cấp {lvl}
-                      </span>
-                      <span className="font-bold text-slate-400 font-mono text-[11px]">
-                        {exp.toLocaleString()} / {expNeeded.toLocaleString()} EXP ({expPct.toFixed(1)}%)
-                      </span>
+                <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-3 flex-1">
+                  {/* 1. THANH TÀI NGUYÊN (XU, LƯỢT, VINH DỰ) - CHUẨN ĐỒNG BỘ ẢNH 2 */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-xl px-3 py-2 flex items-center justify-center gap-2 text-xs font-black text-yellow-300 shadow-sm">
+                      <span className="text-sm">🪙</span>
+                      <span>{new Intl.NumberFormat('vi-VN').format(p.bonus_coins || 0)} Xu</span>
                     </div>
-                    <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px_#00e5ff] transition-all duration-500"
-                        style={{ width: `${expPct}%` }}
-                      />
+                    <div className="bg-cyan-400/10 border border-cyan-400/30 rounded-xl px-3 py-2 flex items-center justify-center gap-2 text-xs font-black text-cyan-300 shadow-sm">
+                      <span className="text-sm">⚔️</span>
+                      <span>{new Intl.NumberFormat('vi-VN').format(p.bonus_attacks || 0)} Lượt</span>
+                    </div>
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 flex items-center justify-center gap-2 text-xs font-black text-amber-400 shadow-sm">
+                      <span className="text-sm">🏆</span>
+                      <span>{new Intl.NumberFormat('vi-VN').format(p.honor_points || 0)} Vinh Dự</span>
                     </div>
                   </div>
 
-                  {/* Kích Hoạt Hiệu Ứng Set 2 - 4 - 6 */}
+                  {/* 2. LỰC CHIẾN (CP) RỰC LỬA - CHUẨN ĐỒNG BỘ ẢNH 2 */}
+                  <div className="bg-gradient-to-r from-orange-600/20 to-amber-600/20 border-2 border-orange-500 rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-[0_0_20px_rgba(255,100,0,0.25)]">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl animate-pulse">🔥</span>
+                      <div>
+                        <div className="text-[10.5px] font-black text-amber-400 uppercase tracking-wider">Lực Chiến (CP)</div>
+                        <div className="text-xl sm:text-2xl font-black text-white drop-shadow-[0_0_10px_#ff4500] font-sans">
+                          {new Intl.NumberFormat('vi-VN').format(p.cp || 0)} CP
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right hidden sm:block">
+                      <span className="text-[10px] text-slate-400 bg-black/40 px-2.5 py-1 rounded-md border border-white/10">
+                        Bảng Xếp Hạng Server
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 3. KÍCH HOẠT HIỆU ỨNG SET ĐỒ (NẾU CÓ) */}
                   {(() => {
                     const activeSets = getPlayerActiveSets(p);
                     if (!activeSets || activeSets.length === 0) return null;
                     return (
-                      <div className="bg-gradient-to-r from-amber-950/40 via-purple-950/30 to-slate-900/70 border border-amber-500/50 rounded-2xl p-3.5 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-                        <div className="flex items-center justify-between pb-2 border-b border-amber-500/30 mb-2">
+                      <div className="bg-gradient-to-r from-amber-950/40 via-purple-950/30 to-slate-900/70 border border-amber-500/50 rounded-2xl p-3 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-amber-500/30 mb-2">
                           <div className="flex items-center gap-2">
                             <span className="text-base">👑</span>
                             <span className="text-xs font-black text-amber-300 uppercase tracking-wider">
@@ -12995,25 +13045,67 @@ const App = () => {
                     );
                   })()}
 
-                  {/* Equipment Section (7 Slots) */}
+                  {/* 4. HÀNG 2 CỘT: KINH NGHIỆM (EXP) & SÁT THƯƠNG (ALL DMG) - CHUẨN ẢNH 2 */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {/* Level & EXP Bar */}
+                    <div className="bg-[#0B101B]/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+                      <div className="flex justify-between items-center mb-1.5 text-xs">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                          Kinh Nghiệm (EXP)
+                        </span>
+                        <span className="font-bold text-slate-400 font-mono text-[11px]">
+                          {exp.toLocaleString()} / {expNeeded.toLocaleString()} ({expPct.toFixed(1)}%)
+                        </span>
+                      </div>
+                      <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px_#00e5ff] transition-all duration-500"
+                          style={{ width: `${expPct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Sát Thương (All DMG) */}
+                    <div className="bg-gradient-to-r from-orange-600/20 to-red-600/15 border border-orange-500/60 rounded-xl p-3 flex flex-col justify-center shadow-[0_0_15px_rgba(255,69,0,0.2)]">
+                      <div className="text-[10px] font-black text-amber-400 uppercase tracking-wider mb-1">
+                        ⚔️ Sát Thương (All DMG)
+                      </div>
+                      <div className="flex items-baseline gap-1.5 font-black">
+                        <span className="text-base text-amber-400">⚡</span>
+                        <span className="text-xl sm:text-2xl text-white drop-shadow-[0_0_10px_#ff2200]">
+                          {new Intl.NumberFormat('vi-VN').format(allAttack)}
+                        </span>
+                        <span className="text-xs text-amber-400 font-bold">DMG</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 5. KHUÔN 8 Ô TRANG BỊ CỐ ĐỊNH CHUẨN ĐỒNG BỘ 100% ẢNH 2 */}
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-xs font-black text-slate-300 uppercase tracking-wider">
-                        🛡️ Trang Bị & Thần Binh Đang Mặc (7 Ô)
+                        🛡️ Trang Bị & Thần Binh Đang Mặc (8 Ô)
                       </span>
                       <span className="text-[10.5px] text-slate-500 italic hidden sm:inline">
                         Chi tiết sao, cường hóa, nhẫn & thuộc tính phụ
                       </span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      {renderEquipSlot(p.weapon, 'weapon', '⚔️', 'Vũ Khí')}
-                      {renderEquipSlot(p.armor, 'armor', '🛡️', 'Áo Giáp')}
-                      {renderEquipSlot(p.pants, 'pants', '👖', 'Quần Chiến')}
-                      {renderEquipSlot(p.necklace, 'necklace', '📿', 'Dây Chuyền')}
-                      {renderEquipSlot(p.ring, 'ring', '💍', 'Nhẫn Thần Binh')}
-                      {renderEquipSlot(p.shoes, 'shoes', '👟', 'Bảo Vật Đôi Giày')}
-                      {renderEquipSlot(p.hat, 'hat', '👑', 'Bảo Vật Nón')}
-                      {renderEquipSlot(p.pet, 'pet', '🐾', 'Linh Thú')}
+                      {/* HÀNG 1: VŨ KHÍ & ÁO GIÁP */}
+                      {renderEquipSlot(p.weapon, 'weapon', '⚔️', 'Vũ Khí', '/dap khi')}
+                      {renderEquipSlot(p.armor, 'armor', '🛡️', 'Áo Giáp', '/dap giap')}
+
+                      {/* HÀNG 2: QUẦN CHIẾN & DÂY CHUYỀN */}
+                      {renderEquipSlot(p.pants, 'pants', '👖', 'Quần Chiến', '/dap quan')}
+                      {renderEquipSlot(p.necklace, 'necklace', '📿', 'Dây Chuyền', '/dap chuyen')}
+
+                      {/* HÀNG 3: NHẪN THẦN BINH & LINH THÚ */}
+                      {renderEquipSlot(p.ring, 'ring', '💍', 'Nhẫn Thần Binh', '/dap nhan')}
+                      {renderEquipSlot(p.pet, 'pet', '🐾', 'Linh Thú', '/feed')}
+
+                      {/* HÀNG 4: BẢO VẬT ĐÔI GIÀY & BẢO VẬT NÓN */}
+                      {renderEquipSlot(p.shoes, 'shoes', '👟', 'Bảo Vật Đôi Giày', '/dap giay')}
+                      {renderEquipSlot(p.hat, 'hat', '👑', 'Bảo Vật Nón', '/dap non')}
                     </div>
                   </div>
                 </div>
