@@ -107,6 +107,221 @@ const DEFAULT_WIZARD_ITEMS = [
   }
 ];
 
+// Helper phân tích và ánh xạ hình ảnh vật phẩm chuẩn xác cho từng bản ghi lịch sử lật bài
+export const getRewardInfo = (actionStr, customReward = null, wizardItemsList = []) => {
+  if (customReward && customReward.image) {
+    return {
+      name: customReward.name || 'Phần thưởng',
+      image: customReward.image,
+      color: customReward.color || '#a855f7',
+      badge: customReward.is_special ? '👑 BẢO VẬT HUYỀN THOẠI' : (customReward.type || 'Vật phẩm'),
+      isHat: !!(customReward.is_special || customReward.is_hat || customReward.type === 'game_hat_legendary' || (customReward.name && customReward.name.includes('Nón'))),
+      subText: customReward.desc || 'Đã nhận vào túi đồ'
+    };
+  }
+
+  const act = (actionStr || '').trim();
+  const lower = act.toLowerCase();
+
+  // 1. Nón Huyền Thoại (Bảo vật tối thượng)
+  if (lower.includes('nón') || lower.includes('mũ') || lower.includes('legendary') || lower.includes('trúng nón')) {
+    return {
+      name: 'Nón Phù Thủy Huyền Thoại',
+      image: LEGENDARY_HAT_IMG,
+      color: '#ffd700',
+      badge: '👑 BẢO VẬT HUYỀN THOẠI',
+      isHat: true,
+      subText: act.includes('120') ? 'Nổ Bảo Hiểm 120/120' : 'Bảo Vật Độc Nhất (+450 Phép & +250 Kháng)'
+    };
+  }
+
+  // 2. Hồng Thạch (Ruby)
+  if (lower.includes('hồng thạch') || lower.includes('ruby')) {
+    const matchQty = act.match(/(\d+[\.\d]*)\s*hồng thạch/i);
+    const qty = matchQty ? matchQty[1] : '500';
+    return {
+      name: `${qty} Hồng Thạch (Ruby)`,
+      image: '/game-assets/gem_ruby.png',
+      color: '#f43f5e',
+      badge: 'Tiền Tệ Quý',
+      isHat: false,
+      subText: 'Đã cộng thẳng vào hòm đồ game'
+    };
+  }
+
+  // 3. Xu Nâng Cấp
+  if (lower.includes('xu nâng cấp') || (lower.includes('xu') && !lower.includes('hồng thạch'))) {
+    const matchQty = act.match(/(\d+[\.\d]*)\s*xu/i);
+    const qty = matchQty ? matchQty[1] : '50.000';
+    return {
+      name: `${qty} Xu Nâng Cấp`,
+      image: '/game-assets/gold_coin.png',
+      color: '#eab308',
+      badge: 'Tiền Tệ Cường Hóa',
+      isHat: false,
+      subText: 'Dùng nâng cấp kỹ năng & trang bị'
+    };
+  }
+
+  // 4. Lượt Đánh Boss
+  if (lower.includes('lượt đánh') || lower.includes('đánh boss') || lower.includes('atk')) {
+    const matchQty = act.match(/(\d+[\.\d]*)\s*lượt/i);
+    const qty = matchQty ? `+${matchQty[1]}` : '+50.000';
+    return {
+      name: `${qty} Lượt Đánh Boss`,
+      image: '/game-assets/item_attack_turn.png',
+      color: '#10b981',
+      badge: 'Khiêu Chiến Boss',
+      isHat: false,
+      subText: 'Tăng lượt khiêu chiến Boss Thế Giới'
+    };
+  }
+
+  // 5. Rương Hoàng Gia VIP / Hòm Hoàng Kim
+  if (lower.includes('hoàng gia') || lower.includes('hoàng kim')) {
+    return {
+      name: act.includes('3') ? '3 Rương Hoàng Gia VIP' : 'Rương Hoàng Gia VIP',
+      image: '/game-assets/royal_chest_closed_trans.png',
+      color: '#8b5cf6',
+      badge: 'Kho Báu Hoàng Gia',
+      isHat: false,
+      subText: 'Mở ra cơ hội nhận trang bị Thần Thoại'
+    };
+  }
+
+  // 6. Rương Boss / Rương Chiến Tích Boss
+  if (lower.includes('chiến tích') || lower.includes('hòm boss') || lower.includes('rương boss')) {
+    return {
+      name: act.includes('5') ? '5 Rương Chiến Tích Boss' : (act.includes('3') ? '3 Rương Chiến Tích Boss' : 'Rương Chiến Tích Boss'),
+      image: '/game-assets/boss_chest_closed_trans.png',
+      color: '#3b82f6',
+      badge: 'Rương Boss',
+      isHat: false,
+      subText: 'Chứa trang bị boss và tinh thể'
+    };
+  }
+
+  // 7. Thẻ Reroll Siêu Cấp
+  if (lower.includes('reroll siêu cấp') || lower.includes('siêu cấp')) {
+    return {
+      name: 'Thẻ Reroll Siêu Cấp',
+      image: '/game-assets/item_the_reroll_sieucap.png',
+      color: '#ec4899',
+      badge: 'Tẩy Tối Thượng',
+      isHat: false,
+      subText: 'Đảm bảo ít nhất 2 dòng Cam/Đỏ'
+    };
+  }
+
+  // 8. Thẻ Đột Phá Giày
+  if (lower.includes('đột phá')) {
+    return {
+      name: 'Thẻ Đột Phá Giày Thần Tốc',
+      image: '/game-assets/item_the_dotpha_giay.png',
+      color: '#a855f7',
+      badge: 'Đột Phá Bậc',
+      isHat: false,
+      subText: 'Nâng bậc & mở khóa hiệu ứng ẩn'
+    };
+  }
+
+  // 9. Thẻ Reroll / Thẻ Tẩy Luyện
+  if (lower.includes('reroll') || lower.includes('tẩy luyện')) {
+    return {
+      name: 'Thẻ Tẩy Luyện Thường',
+      image: '/game-assets/item_the_reroll.png',
+      color: '#06b6d4',
+      badge: 'Tẩy Trang Bị',
+      isHat: false,
+      subText: 'Tẩy lại 1 dòng chỉ số bất kỳ'
+    };
+  }
+
+  // 10. Tinh Thể Cường Hóa
+  if (lower.includes('tinh thể')) {
+    return {
+      name: 'Tinh Thể Cường Hóa',
+      image: '/game-assets/ring_crystal.png',
+      color: '#38bdf8',
+      badge: 'Nguyên Liệu',
+      isHat: false,
+      subText: 'Cường hóa trang bị nhẫn & dây chuyền'
+    };
+  }
+
+  // 11. Đá Tinh Hoa
+  if (lower.includes('tinh hoa')) {
+    return {
+      name: 'Đá Tinh Hoa Ma Thuật',
+      image: '/game-assets/da_tinh_hoa.png',
+      color: '#c084fc',
+      badge: 'Nguyên Liệu Hiếm',
+      isHat: false,
+      subText: 'Dùng tôi luyện trang bị tối thượng'
+    };
+  }
+
+  // 12. 5 Thẻ may mắn
+  if (lower.includes('thẻ may mắn') || lower.includes('spin ticket')) {
+    return {
+      name: '5 Thẻ May Mắn (Lượt Chơi)',
+      image: '/game-assets/item_spin_ticket_5.png',
+      color: '#60a5fa',
+      badge: 'Vé May Mắn',
+      isHat: false,
+      subText: 'Lượt chơi chung Vòng Quay & Lật Thẻ'
+    };
+  }
+
+  // 13. Bùa Reset Boss
+  if (lower.includes('reset boss')) {
+    return {
+      name: 'Bùa Reset Boss Thế Giới',
+      image: '/game-assets/item_reset_boss.png',
+      color: '#38bdf8',
+      badge: 'Bùa Ma Thuật',
+      isHat: false,
+      subText: 'Hồi sinh Boss để khiêu chiến tiếp'
+    };
+  }
+
+  // 14. Lật Thẻ x10
+  if (lower.includes('x10') || lower.includes('10 thẻ')) {
+    return {
+      name: 'Lật Bộ 10 Thẻ Phù Thủy',
+      image: '/game-assets/wizard_card_back.png',
+      color: '#c084fc',
+      badge: 'Bộ 10 Lá Bài',
+      isHat: false,
+      subText: 'Đã mở trọn vẹn 10 phần quà ma thuật trên bàn'
+    };
+  }
+
+  // 15. Check matching wizard items
+  if (Array.isArray(wizardItemsList)) {
+    const matched = wizardItemsList.find(it => it && it.name && lower.includes(it.name.toLowerCase()));
+    if (matched) {
+      return {
+        name: matched.name,
+        image: matched.image || '/game-assets/wizard_card_back.png',
+        color: matched.color || '#a855f7',
+        badge: matched.category || matched.type || 'Vật phẩm',
+        isHat: !!(matched.is_special || matched.type === 'game_hat_legendary'),
+        subText: matched.desc || 'Phần thưởng sự kiện Phù Thủy'
+      };
+    }
+  }
+
+  return {
+    name: act || 'Phần thưởng Phù Thủy',
+    image: '/game-assets/wizard_card_back.png',
+    color: '#a855f7',
+    badge: 'Phù Thủy',
+    isHat: false,
+    subText: 'Sự Kiện Lật Thẻ Bài'
+  };
+};
+
 export default function WizardCardFlip(props) {
   const {
     currentUser,
@@ -211,17 +426,38 @@ export default function WizardCardFlip(props) {
   const personalHistory = useMemo(() => {
     if (!currentUser?.name) return [];
     return (transactionsDb || [])
-      .filter(t => t.user === currentUser.name && (t.type === 'wizard_card_win' || (t.action && t.action.includes('Lật Thẻ Phù Thủy'))))
-      .slice(0, 30);
-  }, [transactionsDb, currentUser?.name]);
+      .filter(t => {
+        if (!t || t.user !== currentUser.name) return false;
+        const isWizardTx = t.type === 'wizard_card_win' || (t.action && t.action.includes('Lật Thẻ Phù Thủy'));
+        if (!isWizardTx) return false;
+        // Loại bỏ triệt để mọi bản ghi test cũ của Admin nếu còn lưu trong local cache trình duyệt
+        if (currentUser.role === 'admin' || currentUser.name === 'Admin') {
+          if (t.id?.startsWith('WIZ_179213') || t.id?.startsWith('WIZ10') || t.date?.includes('16/10/2026')) {
+            return false;
+          }
+        }
+        return true;
+      })
+      .slice(0, 50);
+  }, [transactionsDb, currentUser?.name, currentUser?.role]);
 
   // Legendary hat winners leaderboard
   const specialWinners = useMemo(() => {
     return (transactionsDb || [])
-      .filter(t => (t.type === 'wizard_card_win' || t.type === 'spin_win') && (
-        (t.action && (t.action.includes('Nón Huyền Thoại') || t.action.includes('Mũ Huyền Thoại'))) ||
-        t.isHatWin
-      ))
+      .filter(t => {
+        if (!t) return false;
+        const isHat = (
+          t.isHatWin ||
+          (t.action && (t.action.includes('Nón Huyền Thoại') || t.action.includes('Mũ Huyền Thoại'))) ||
+          (t.reward_name && t.reward_name.includes('Nón Huyền Thoại'))
+        );
+        if (!isHat) return false;
+        // Tuyệt đối không cho phép tài khoản Admin hiển thị trên bảng vinh danh
+        if (t.user === 'Admin' || (t.user && t.user.toLowerCase() === 'admin')) {
+          return false;
+        }
+        return true;
+      })
       .slice(0, 20);
   }, [transactionsDb]);
 
@@ -291,246 +527,201 @@ export default function WizardCardFlip(props) {
     playSound('chestOpenSound');
 
     try {
-      // 1. Try calling Supabase RPC if exists
-      let rpcSuccess = false;
+      // 1. GIAO MỌI QUYỀN SINH SÁT CHO SERVER (Trừ lượt quay + Check bảo hiểm 120 + Chọn quà)
       let rpcResult = null;
-
-      try {
-        if (count === 1) {
-          const { data, error } = await supabase.rpc('m_flip_wizard_card', {
-            khach_id: currentUser.id,
-            p_cost: 1
-          });
-          if (!error && data?.success) {
-            rpcSuccess = true;
-            rpcResult = data;
-          }
-        } else {
-          const { data, error } = await supabase.rpc('m_flip_wizard_card_x10', {
-            khach_id: currentUser.id,
-            p_cost: 10
-          });
-          if (!error && data?.success) {
-            rpcSuccess = true;
-            rpcResult = data;
-          }
-        }
-      } catch (rpcErr) {
-        rpcSuccess = false;
-      }
-
-      // 2. Client-side transactional backend logic (handles 120-pity guarantee, sequence, and DB sync)
-      let finalNewSpins = currentSpins - count;
-      let finalPity = wizardPity;
-      let wonItems = [];
-      let hadHatWin = false;
-
-      if (rpcSuccess && rpcResult) {
-        finalNewSpins = rpcResult.new_spins;
-        finalPity = rpcResult.new_pity;
-        if (count === 1) {
-          wonItems = [rpcResult.item];
-          hadHatWin = rpcResult.is_hat;
-        } else {
-          wonItems = rpcResult.items;
-          hadHatWin = (rpcResult.hat_won_count || 0) > 0;
-        }
-      } else {
-        // Fallback sequential execution with atomic 120-pity trigger
-        let runningPity = wizardPity;
-        const activeItems = (wizardItems && wizardItems.length > 0) ? wizardItems : [
-          { id: 'WIZARD_HAT_LEGENDARY', name: 'Nón Huyền Thoại', type: 'game_hat_legendary', value: 1, rate: '0.5%', color: '#ffd700', image: LEGENDARY_HAT_IMG, is_special: true },
-          { id: 'WIZARD_CRYSTAL', name: '+10 Viên Tinh Thể', type: 'game_ring_crystal', value: 10, rate: '10%', color: '#ec4899', image: '/game-assets/ring_crystal.png' },
-          { id: 'WIZARD_STONE', name: '+5 Đá Tinh Hoa', type: 'game_essence_stone', value: 5, rate: '10%', color: '#a855f7', image: '/game-assets/da_tinh_hoa.png' },
-          { id: 'WIZARD_ATK', name: '+50.000 Lượt Đánh Boss', type: 'game_attacks', value: 50000, rate: '15%', color: '#3b82f6', image: '/game-assets/item_attack_turn.png' },
-          { id: 'WIZARD_CHEST_B', name: '+3 Hòm Boss', type: 'game_boss_chests', value: 3, rate: '20%', color: '#10b981', image: '/game-assets/mystery_box_closed.png' },
-          { id: 'WIZARD_CHEST_R', name: '+1 Hòm Hoàng Kim', type: 'game_royal_chests', value: 1, rate: '5%', color: '#8b5cf6', image: '/game-assets/royal_chest.png' },
-          { id: 'WIZARD_COINS', name: '+50 Xu Nâng Cấp', type: 'game_coins', value: 50, rate: '10%', color: '#eab308', image: '/game-assets/gold_coin.png' },
-          { id: 'WIZARD_NONE', name: 'Chúc may mắn lần sau', type: 'none', value: 0, rate: '29.5%', color: '#64748b', image: null }
-        ];
-
-        // Total rate
-        let totalRate = 0;
-        activeItems.forEach(it => {
-          const r = parseFloat((it.rate || '10%').toString().replace('%', '').replace(',', '.')) || 0;
-          totalRate += r;
+      if (count === 1) {
+        const { data, error } = await supabase.rpc('m_flip_wizard_card', {
+          khach_id: currentUser.id,
+          p_cost: 1
         });
-        if (totalRate <= 0) totalRate = 100;
-
-        for (let step = 1; step <= count; step++) {
-          let winner = null;
-          let isPityTrigger = false;
-          let isHat = false;
-
-          // 120 Pity check
-          if (runningPity + 1 >= pityThreshold) {
-            winner = specialItem;
-            isPityTrigger = true;
-            isHat = true;
-          } else {
-            const rand = Math.random() * totalRate;
-            let cum = 0;
-            for (const it of activeItems) {
-              const r = parseFloat((it.rate || '10%').toString().replace('%', '').replace(',', '.')) || 0;
-              cum += r;
-              if (rand <= cum) {
-                winner = it;
-                break;
-              }
-            }
-            if (!winner) winner = activeItems[0];
-            if (winner.is_special || winner.type === 'game_hat_legendary' || (winner.name && winner.name.toLowerCase().includes('nón huyền thoại'))) {
-              isHat = true;
-            }
-          }
-
-          if (isHat) {
-            runningPity = 0;
-            hadHatWin = true;
-          } else {
-            runningPity += 1;
-          }
-
-          wonItems.push({
-            card_index: step,
-            id: winner.id,
-            name: winner.name,
-            type: winner.type,
-            value: winner.value || 1,
-            image: winner.image,
-            color: winner.color,
-            is_hat: isHat,
-            is_pity_trigger: isPityTrigger,
-            pity_at_card: runningPity
-          });
+        if (error || !data?.success) {
+          setIsFlipping(false);
+          isFlippingRef.current = false;
+          return showToast(error?.message || data?.message || "Lỗi lật thẻ! Vui lòng thử lại sau.", 'error');
         }
-
-        finalPity = runningPity;
-
-        // Sync to Supabase users table
-        try {
-          await supabase.from('users').update({
-            spins: finalNewSpins,
-            wizard_pity: finalPity
-          }).eq('id', currentUser.id);
-        } catch (uErr) {
-          try {
-            await supabase.from('users').update({ spins: finalNewSpins }).eq('id', currentUser.id);
-          } catch (e2) {}
+        rpcResult = data;
+      } else {
+        const { data, error } = await supabase.rpc('m_flip_wizard_card_x10', {
+          khach_id: currentUser.id,
+          p_cost: 10
+        });
+        if (error || !data?.success) {
+          setIsFlipping(false);
+          isFlippingRef.current = false;
+          return showToast(error?.message || data?.message || "Lỗi lật 10 thẻ! Vui lòng thử lại sau.", 'error');
         }
+        rpcResult = data;
+      }
 
-        // Sync pity to site_config as persistent fallback store
+      const finalNewSpins = rpcResult.new_spins;
+      const finalPity = rpcResult.new_pity;
+      const wonItems = count === 1 ? [rpcResult.item] : (rpcResult.items || []);
+      const hadHatWin = count === 1 ? Boolean(rpcResult.is_hat) : ((rpcResult.hat_won_count || 0) > 0);
+
+      // 2. GHI NHẬN LỊCH SỬ GIAO DỊCH LÊN GIAO DIỆN CLIENT
+      const nowStr = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+      const txId = `WIZ_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const txAction = count === 1 
+        ? `Lật Thẻ Phù Thủy: ${wonItems[0]?.name || 'Vật phẩm'}${wonItems[0]?.is_pity_trigger ? ' (Nổ Bảo Hiểm 120/120!)' : ''}`
+        : `Lật Thẻ Phù Thủy x10 (10 Thẻ)${hadHatWin ? ' - 🧙 Trúng Nón Huyền Thoại!' : ''}`;
+
+      const newTx = {
+        id: txId,
+        user: currentUser.name || 'Khách hàng',
+        action: txAction,
+        amount: -count,
+        date: nowStr,
+        status: 'Thành công',
+        type: 'wizard_card_win',
+        isSpinCost: true,
+        reward_name: count === 1 ? wonItems[0]?.name : (hadHatWin ? 'Nón Huyền Thoại' : 'Bộ 10 Lá Ma Thuật'),
+        reward_image: count === 1 ? wonItems[0]?.image : (hadHatWin ? LEGENDARY_HAT_IMG : '/game-assets/wizard_card_back.png'),
+        reward_color: count === 1 ? wonItems[0]?.color : (hadHatWin ? '#ffd700' : '#c084fc'),
+        isHatWin: hadHatWin
+      };
+
+      if (typeof onAddTransaction === 'function') {
+        onAddTransaction(newTx);
+      } else if (typeof setTransactionsDb === 'function') {
+        setTransactionsDb(prev => [newTx, ...(Array.isArray(prev) ? prev : [])]);
+      }
+
+      // 3. TỰ ĐỘNG GỬI VẬT PHẨM VÀO SUPABASE GAME_ORDERS CHO IN-GAME (main.py -> game_core.py)
+      const targetGameUid = currentUser.linked_game_id || currentUser.game_id || currentUser.name;
+      if (targetGameUid) {
+        const orderId = `WO_WIZ_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        const orderRewards = {
+          source_type: 'wizard_card_flip',
+          is_wizard: true,
+          is_wheel: false,
+          is_card_flip: true,
+          silent: false,
+          notify: hadHatWin,
+          notify_discord: hadHatWin,
+          items: []
+        };
+
+        wonItems.forEach(it => {
+          if (!it) return;
+          const isThisHat = Boolean(
+            it.is_hat ||
+            it.type === 'hat' ||
+            it.type === 'game_hat_legendary' ||
+            it.id === 'hat_wizard_legendary' ||
+            (it.name && (it.name.toLowerCase().includes('nón') || it.name.toLowerCase().includes('phù thủy')))
+          );
+          if (isThisHat) {
+            orderRewards.items.push({
+              id: 'game_hat_legendary',
+              name: 'Nón Huyền Thoại',
+              category: 'hat',
+              tier: 'Huyền Thoại',
+              quantity: 1,
+              image: 'hat_huyen_thoai.png'
+            });
+          } else if (it.type === 'game_attacks' || it.id === 'item_attack_turn') {
+            orderRewards.attacks = (orderRewards.attacks || 0) + (Number(it.value) || 50000);
+          } else if (it.type === 'game_boss_chests' || it.id === 'CHEST_BOSS_5') {
+            orderRewards.boss_chests = (orderRewards.boss_chests || 0) + (Number(it.value) || 5);
+          } else if (it.type === 'game_royal_chests' || it.id === 'CHEST_ROYAL_3') {
+            orderRewards.royal_chests = (orderRewards.royal_chests || 0) + (Number(it.value) || 3);
+          } else if (it.type === 'game_coins' || it.type === 'game_currency' || it.id === 'GAME_COINS') {
+            orderRewards.coins = (orderRewards.coins || 0) + (Number(it.value) || 10);
+          } else if (it.type === 'game_material' || it.id === 'ITEM_ESSENCE_STONE') {
+            orderRewards.items.push({
+              id: 'item_essence_stone',
+              name: 'Đá Tinh Hoa',
+              category: 'material',
+              quantity: Number(it.value) || 1,
+              image: 'da_tinh_hoa.png'
+            });
+          } else if (it.type === 'game_material' || it.id === 'ITEM_RING_CRYSTAL') {
+            orderRewards.items.push({
+              id: 'item_ring_crystal',
+              name: 'Tinh Thể Cường Hóa',
+              category: 'material',
+              quantity: Number(it.value) || 1,
+              image: 'ring_crystal.png'
+            });
+          } else if (it.id === 'item_the_reroll_sieucap') {
+            orderRewards.items.push({
+              id: 'item_the_reroll_sieucap',
+              name: 'Thẻ Reroll Siêu Cấp',
+              category: 'consumable',
+              quantity: Number(it.value) || 1,
+              image: 'item_the_reroll_sieucap.png'
+            });
+          } else if (it.id === 'item_the_dotpha_giay') {
+            orderRewards.items.push({
+              id: 'item_the_dotpha_giay',
+              name: 'Thẻ Đột Phá',
+              category: 'consumable',
+              quantity: Number(it.value) || 1,
+              image: 'item_the_dotpha_giay.png'
+            });
+          } else if (it.id === 'item_the_reroll') {
+            orderRewards.items.push({
+              id: 'item_the_reroll',
+              name: 'Thẻ Reroll',
+              category: 'consumable',
+              quantity: Number(it.value) || 1,
+              image: 'item_the_reroll.png'
+            });
+          } else if (it.id === 'ITEM_RESET_BOSS') {
+            orderRewards.items.push({
+              id: 'item_reset_boss',
+              name: 'Bùa Reset Boss',
+              category: 'item_reset_boss',
+              quantity: Number(it.value) || 1,
+              image: 'item_reset_boss.png'
+            });
+          }
+        });
+
         try {
-          const { data: pityConfig } = await supabase.from('site_config').select('value').eq('id', 'wizard_user_pity').single();
-          const currentPityMap = pityConfig?.value || {};
-          currentPityMap[currentUser.id] = finalPity;
-          await supabase.from('site_config').upsert({ id: 'wizard_user_pity', value: currentPityMap });
-        } catch (cfgErr) {}
-
-        // Insert transaction record
-        const nowStr = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
-        const txId = `WIZ_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        const txAction = count === 1 
-          ? `Lật Thẻ Phù Thủy: ${wonItems[0].name}${wonItems[0].is_pity_trigger ? ' (Nổ Bảo Hiểm 120/120!)' : ''}`
-          : `Lật Thẻ Phù Thủy x10 (10 Thẻ)${hadHatWin ? ' - 🧙 Trúng Nón Huyền Thoại!' : ''}`;
-
-        try {
-          await supabase.from('transactions').insert([{
-            id: txId,
-            user: currentUser.name || 'Khách hàng',
-            action: txAction,
-            amount: -count,
-            date: nowStr,
-            status: 'Thành công',
-            type: 'wizard_card_win',
-            isSpinCost: true
+          await supabase.from('game_orders').insert([{
+            id: orderId,
+            user_id: targetGameUid,
+            nickname: currentUser.name,
+            web_user: currentUser.id,
+            package_id: count === 1 ? 'wizard_flip_x1' : 'wizard_flip_x10',
+            package_name: count === 1 ? 'Lật Thẻ Bài Phù Thủy (x1)' : 'Lật Thẻ Bài Phù Thủy (x10)',
+            price: 0,
+            notify: hadHatWin,
+            rewards: {
+              ...orderRewards,
+              notify: hadHatWin,
+              notify_discord: hadHatWin,
+              silent: false,
+              is_hat_win: hadHatWin,
+              source_type: 'wizard_card_flip',
+              is_wizard: true
+            },
+            status: 'pending'
           }]);
-        } catch (tErr) {}
-
-        // Dispatch game_orders for in-game and Discord sync (Tuyệt đối KHÔNG kích hoạt TTS nạp tiền)
-        const targetGameUid = currentUser.linked_game_id || currentUser.game_id || currentUser.name;
-        if (targetGameUid) {
-          const orderId = `WO_WHEEL_WIZ_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-          const orderRewards = {
-            source_type: 'wheel',
-            is_wizard: true,
-            is_wheel: true,
-            is_card_flip: true,
-            items: []
-          };
-
-          wonItems.forEach(it => {
-            if (it.type === 'game_hat_legendary' || it.is_hat || (it.name && it.name.includes('Nón Huyền Thoại'))) {
-              orderRewards.items.push({
-                id: 'game_hat_legendary',
-                name: 'Nón Huyền Thoại',
-                category: 'hat',
-                tier: 'Huyền Thoại',
-                quantity: 1,
-                image: 'hat_huyen_thoai.png'
-              });
-            } else if (it.type === 'game_attacks') {
-              orderRewards.attacks = (orderRewards.attacks || 0) + (Number(it.value) || 50000);
-            } else if (it.type === 'game_boss_chests') {
-              orderRewards.boss_chests = (orderRewards.boss_chests || 0) + (Number(it.value) || 3);
-            } else if (it.type === 'game_royal_chests') {
-              orderRewards.royal_chests = (orderRewards.royal_chests || 0) + (Number(it.value) || 1);
-            } else if (it.type === 'game_coins') {
-              orderRewards.coins = (orderRewards.coins || 0) + (Number(it.value) || 50);
-            } else if (it.type === 'game_essence_stone') {
-              orderRewards.items.push({
-                id: 'item_essence_stone',
-                name: 'Đá Tinh Hoa',
-                category: 'material',
-                quantity: Number(it.value) || 5,
-                image: 'da_tinh_hoa.png'
-              });
-            } else if (it.type === 'game_ring_crystal') {
-              orderRewards.items.push({
-                id: 'item_ring_crystal',
-                name: 'Tinh Thể Cường Hóa',
-                category: 'material',
-                quantity: Number(it.value) || 10,
-                image: 'ring_crystal.png'
-              });
-            }
-          });
-
-          try {
-            await supabase.from('game_orders').insert([{
-              id: orderId,
-              user_id: targetGameUid,
-              nickname: currentUser.name,
-              web_user: currentUser.id,
-              package_id: count === 1 ? 'wheel_wizard_flip_x1' : 'wheel_wizard_flip_x10',
-              package_name: count === 1 ? 'Lật Thẻ Bài Phù Thủy (x1)' : 'Lật Thẻ Bài Phù Thủy (x10)',
-              price: 0,
-              notify: false,
-              rewards: {
-                ...orderRewards,
-                notify: false,
-                notify_discord: false,
-                is_hat_win: hadHatWin,
-                source_type: 'wheel',
-                is_wheel: true,
-                is_wizard: true
-              },
-              status: 'pending'
-            }]);
-          } catch (ordErr) {
-            console.warn("Lỗi gửi game_orders lật bài:", ordErr);
-          }
+        } catch (ordErr) {
+          console.warn("Lỗi gửi game_orders lật bài:", ordErr);
         }
       }
 
-      // Update state locally
+      // 4. ĐỒNG BỘ TIỀN & PITY LÊN GIAO DIỆN NGƯỜI DÙNG
       if (typeof setWizardPity === 'function') setWizardPity(finalPity);
-      localStorage.setItem(`shop_wizard_pity_${currentUser.id}`, finalPity.toString());
+      try { localStorage.setItem(`shop_wizard_pity_${currentUser.id}`, finalPity.toString()); } catch (e) {}
 
-      // Update currentUser spins
-      currentUser.spins = finalNewSpins;
-      if (typeof setUsersDb === 'function') {
-        setUsersDb(prev => prev.map(u => u.id === currentUser.id ? { ...u, spins: finalNewSpins, wizard_pity: finalPity } : u));
+      const updatedUser = {
+        ...currentUser,
+        spins: finalNewSpins,
+        wizard_pity: finalPity
+      };
+      if (typeof onUpdateUser === 'function') {
+        onUpdateUser(updatedUser);
+      } else {
+        currentUser.spins = finalNewSpins;
+        currentUser.wizard_pity = finalPity;
+        try { localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser)); } catch (e) {}
+        if (typeof setUsersDb === 'function') {
+          setUsersDb(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+        }
       }
 
       // Animate 3D Card Flips on Table
@@ -1028,39 +1219,126 @@ export default function WizardCardFlip(props) {
 
         {/* TAB 3: LỊCH SỬ CỦA BẠN */}
         {activeTab === 'history' && (
-          <div className="bg-[#130b29]/90 border border-purple-500/30 p-6 rounded-3xl space-y-4">
-            <h3 className="text-xl font-bold text-purple-300 flex items-center gap-2">
-              <History size={22} /> Lịch Sử Lật Thẻ Cá Nhân
-            </h3>
+          <div className="bg-[#130b29]/95 border border-purple-500/40 p-5 sm:p-7 rounded-3xl space-y-5 shadow-[0_0_30px_rgba(147,51,234,0.15)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-500/20 pb-4">
+              <h3 className="text-xl font-black text-purple-200 flex items-center gap-2.5">
+                <History size={24} className="text-purple-400" /> 
+                <span>Lịch Sử Lật Thẻ Cá Nhân</span>
+              </h3>
+              <span className="text-xs text-purple-300 bg-purple-950/70 border border-purple-500/30 px-3 py-1.5 rounded-full font-bold self-start sm:self-auto">
+                {personalHistory.length} Lượt lật gần nhất
+              </span>
+            </div>
 
             {personalHistory.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 text-sm">
-                Bạn chưa có lịch sử lật thẻ nào trong sự kiện. Hãy bấm "Lật Thẻ" để thử vận may ngay!
+              <div className="text-center py-16 px-4 space-y-3">
+                <div className="w-16 h-16 rounded-3xl bg-purple-900/30 border border-purple-500/30 flex items-center justify-center mx-auto text-3xl shadow-inner">
+                  🃏
+                </div>
+                <h4 className="text-lg font-bold text-slate-200">Chưa có lịch sử lật thẻ</h4>
+                <p className="text-slate-400 text-sm max-w-md mx-auto">
+                  Bạn chưa có lượt lật thẻ nào trong sự kiện. Hãy bấm chọn thẻ trên bàn hoặc bấm "Lật Thẻ Ngẫu Nhiên" để bắt đầu thử vận may nhận Nón Huyền Thoại!
+                </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-2xl border border-purple-900/40 bg-black/20">
                 <table className="w-full text-left text-xs sm:text-sm border-collapse">
                   <thead>
-                    <tr className="bg-purple-950/80 border-b border-purple-500/30 text-purple-300">
-                      <th className="p-3">Thời Gian</th>
-                      <th className="p-3">Hành Động / Phần Thưởng</th>
-                      <th className="p-3">Chi Phí</th>
-                      <th className="p-3">Trạng Thái</th>
+                    <tr className="bg-purple-950/90 border-b border-purple-500/30 text-purple-300 font-black uppercase text-[11px] sm:text-xs tracking-wider">
+                      <th className="p-3.5 whitespace-nowrap">
+                        <span className="flex items-center gap-1.5"><Clock size={13} className="text-purple-400" /> Thời Gian</span>
+                      </th>
+                      <th className="p-3.5 min-w-[260px]">
+                        <span className="flex items-center gap-1.5"><Gift size={13} className="text-amber-400" /> Phần Thưởng Nhận Được</span>
+                      </th>
+                      <th className="p-3.5 whitespace-nowrap">
+                        <span className="flex items-center gap-1.5"><Zap size={13} className="text-rose-400" /> Chi Phí</span>
+                      </th>
+                      <th className="p-3.5 whitespace-nowrap text-right">
+                        <span className="inline-flex items-center gap-1.5"><Shield size={13} className="text-emerald-400" /> Trạng Thái</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-purple-900/30">
-                    {personalHistory.map((t, idx) => (
-                      <tr key={t.id || idx}>
-                        <td className="p-3 text-slate-400 whitespace-nowrap">{t.date}</td>
-                        <td className="p-3 font-semibold text-slate-200">{t.action}</td>
-                        <td className="p-3 text-rose-400 font-bold whitespace-nowrap">{t.amount} thẻ</td>
-                        <td className="p-3">
-                          <span className="px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold">
-                            {t.status || 'Thành công'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {personalHistory.map((t, idx) => {
+                      const info = getRewardInfo(t.action, t, wizardItems);
+                      return (
+                        <tr 
+                          key={t.id || idx} 
+                          className={`transition-colors duration-150 hover:bg-purple-900/20 ${
+                            info.isHat ? 'bg-amber-950/30' : (idx % 2 === 0 ? 'bg-purple-950/15' : 'bg-transparent')
+                          }`}
+                        >
+                          {/* Thời gian */}
+                          <td className="p-3.5 text-slate-400 whitespace-nowrap font-medium text-xs">
+                            {t.date}
+                          </td>
+
+                          {/* Phần thưởng với ảnh trực quan */}
+                          <td className="p-3.5">
+                            <div className="flex items-center gap-3">
+                              {/* Khung ảnh vật phẩm */}
+                              <div className={`relative w-11 h-11 sm:w-12 sm:h-12 rounded-2xl p-1.5 shrink-0 flex items-center justify-center transition-all duration-200 ${
+                                info.isHat 
+                                  ? 'bg-gradient-to-br from-amber-500/30 to-purple-900/60 border-2 border-amber-400 shadow-[0_0_18px_rgba(245,158,11,0.55)] animate-pulse'
+                                  : 'bg-gradient-to-b from-purple-900/40 to-slate-900/60 border border-purple-500/40 shadow-inner'
+                              }`}>
+                                <img 
+                                  src={info.image} 
+                                  alt={info.name} 
+                                  className="w-full h-full object-contain drop-shadow"
+                                  onError={(e) => { e.currentTarget.src = '/game-assets/wizard_card_back.png'; }}
+                                />
+                                {info.isHat && (
+                                  <span className="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-amber-400 to-yellow-300 text-purple-950 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-md">
+                                    👑
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Tên vật phẩm & thông số chi tiết */}
+                              <div className="space-y-0.5 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`font-black text-sm sm:text-base ${
+                                    info.isHat 
+                                      ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]' 
+                                      : 'text-slate-100'
+                                  }`}>
+                                    {info.name}
+                                  </span>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider border ${
+                                    info.isHat 
+                                      ? 'bg-amber-400/25 text-amber-300 border-amber-400/50 shadow-sm' 
+                                      : 'bg-purple-900/50 text-purple-300 border-purple-500/40'
+                                  }`}>
+                                    {info.badge}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] sm:text-xs text-slate-400 font-medium">
+                                  {info.subText}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Chi phí */}
+                          <td className="p-3.5 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-950/60 text-rose-300 border border-rose-500/40 font-black text-xs sm:text-sm">
+                              <span>🎫</span>
+                              <span>{t.amount} Thẻ</span>
+                            </span>
+                          </td>
+
+                          {/* Trạng thái */}
+                          <td className="p-3.5 whitespace-nowrap text-right">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-950/70 text-emerald-300 border border-emerald-500/40 text-xs font-black shadow-sm">
+                              <Check size={12} className="stroke-[3]" />
+                              <span>{t.status || 'Thành công'}</span>
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1070,36 +1348,107 @@ export default function WizardCardFlip(props) {
 
         {/* TAB 4: BẢNG VINH DANH NỔ NÓN */}
         {activeTab === 'winners' && (
-          <div className="bg-[#130b29]/90 border border-purple-500/30 p-6 rounded-3xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold text-amber-300 flex items-center gap-2">
-                <Trophy size={22} className="text-amber-400" /> Bảng Vinh Danh Người Trúng Nón Huyền Thoại
-              </h3>
-              <span className="text-xs text-purple-300 bg-purple-950/60 px-3 py-1 rounded-full border border-purple-500/30">
-                Cập nhật Realtime
+          <div className="bg-[#130b29]/95 border border-purple-500/40 p-5 sm:p-7 rounded-3xl space-y-6 shadow-[0_0_30px_rgba(245,158,11,0.15)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-500/20 pb-4">
+              <div className="space-y-1">
+                <h3 className="text-xl sm:text-2xl font-black text-amber-300 flex items-center gap-2.5">
+                  <Trophy size={26} className="text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.7)]" /> 
+                  <span>Bảng Vinh Danh Người Trúng Nón Huyền Thoại</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Ghi danh những đại pháp sư may mắn nhất server đã lật trúng Bảo Vật Nón Huyền Thoại
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 text-xs text-purple-300 bg-purple-950/80 px-3.5 py-1.5 rounded-full border border-purple-500/40 font-bold self-start sm:self-auto shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span>Cập nhật Realtime</span>
               </span>
             </div>
 
             {specialWinners.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 text-sm">
-                Chưa có ai nổ Nón Huyền Thoại. Bạn có thể là người may mắn đầu tiên!
+              <div className="text-center py-16 px-4 space-y-5 rounded-2xl bg-amber-950/20 border border-amber-500/20">
+                <div className="relative w-24 h-24 sm:w-28 sm:h-28 mx-auto flex items-center justify-center">
+                  <div className="absolute inset-0 bg-amber-400/15 rounded-full blur-xl animate-pulse"></div>
+                  <img 
+                    src={LEGENDARY_HAT_IMG} 
+                    alt="Nón Huyền Thoại" 
+                    className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,215,0,0.6)]"
+                  />
+                </div>
+                <div className="space-y-2 max-w-lg mx-auto">
+                  <h4 className="text-lg sm:text-xl font-black text-amber-200">
+                    Chưa có ai nổ Nón Huyền Thoại!
+                  </h4>
+                  <p className="text-slate-300 text-xs sm:text-sm">
+                    Hãy tham gia lật thẻ bài phù thủy ngay hôm nay. Tiến độ bảo hiểm <strong className="text-amber-300 font-extrabold">120/120 Thẻ</strong> chắc chắn <strong className="text-amber-300 font-black underline">100% nổ Nón Huyền Thoại</strong> và khắc tên bạn vĩnh viễn trên Bảng Vinh Danh này!
+                  </p>
+                </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {specialWinners.map((win, idx) => (
-                  <div key={win.id || idx} className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/40 to-purple-950/40 border border-amber-500/40 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl shrink-0">
-                        🧙
+                  <div 
+                    key={win.id || idx} 
+                    className="relative rounded-3xl bg-gradient-to-r from-[#1c0c38]/95 via-[#230f45]/90 to-amber-950/50 border-2 border-amber-500/50 hover:border-amber-400 p-4 sm:p-5 shadow-[0_0_25px_rgba(245,158,11,0.2)] transition-all duration-300 hover:shadow-[0_0_35px_rgba(245,158,11,0.35)] overflow-hidden group flex flex-col sm:flex-row items-center justify-between gap-4"
+                  >
+                    {/* Hào quang nền */}
+                    <div className="absolute -top-12 -right-12 w-36 h-36 bg-amber-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-amber-400/25 transition-colors"></div>
+
+                    {/* Bên trái: Thông tin người chơi & avatar có vương miện */}
+                    <div className="flex items-center gap-3.5 z-10 w-full sm:w-auto">
+                      <div className="relative shrink-0">
+                        <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 p-[2px] shadow-lg shadow-amber-500/30">
+                          <div className="w-full h-full rounded-2xl bg-[#140b28] flex items-center justify-center overflow-hidden">
+                            {win.avatar_url ? (
+                              <img src={win.avatar_url} alt={win.user} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-2xl font-black text-amber-300">
+                                {win.user ? win.user.charAt(0).toUpperCase() : '🧙'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span className="absolute -top-2 -right-1.5 bg-gradient-to-r from-amber-400 to-yellow-300 text-purple-950 text-[10px] font-black p-1 rounded-full shadow-[0_0_8px_rgba(251,191,36,0.8)]">
+                          <Crown size={12} className="fill-purple-950" />
+                        </span>
                       </div>
-                      <div>
-                        <span className="text-sm font-black text-amber-300 block">{win.user || 'Người chơi ẩn danh'}</span>
-                        <span className="text-[11px] text-slate-400">{win.date}</span>
+
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-base sm:text-lg font-black text-amber-200 tracking-wide drop-shadow-[0_0_8px_rgba(251,191,36,0.4)] truncate">
+                            {win.user || 'Đại Pháp Sư'}
+                          </span>
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/40 uppercase tracking-wider">
+                            May Mắn Tối Thượng
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                          <Clock size={12} className="text-purple-400" />
+                          <span>{win.date || 'Vừa xong'}</span>
+                        </div>
                       </div>
                     </div>
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-400 text-purple-950">
-                      Nón Huyền Thoại
-                    </span>
+
+                    {/* Bên phải: Hộp trưng bày Nón Huyền Thoại cực kỳ hoành tráng */}
+                    <div className="flex items-center gap-3.5 bg-amber-950/40 border border-amber-400/40 rounded-2xl p-2.5 px-3.5 shadow-[0_0_15px_rgba(245,158,11,0.25)] group-hover:scale-105 transition-transform z-10 w-full sm:w-auto justify-end">
+                      <div className="relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-amber-400/20 rounded-full blur-md animate-pulse"></div>
+                        <img 
+                          src={LEGENDARY_HAT_IMG} 
+                          alt="Nón Huyền Thoại" 
+                          className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(255,215,0,0.85)] animate-pulse"
+                        />
+                      </div>
+                      <div className="text-right">
+                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-400 to-yellow-400 text-purple-950 text-xs font-black shadow-md uppercase tracking-wider">
+                          <Sparkles size={11} className="fill-purple-950" />
+                          <span>NÓN HUYỀN THOẠI</span>
+                        </div>
+                        <p className="text-[11px] text-amber-300/90 font-black mt-1">
+                          +450 Phép • +250 Kháng
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

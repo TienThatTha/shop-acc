@@ -1,5 +1,6 @@
 -- =============================================================================
 -- SỰ KIỆN LẬT THẺ BÀI PHÙ THỦY - BẢO HIỂM NÓN HUYỀN THOẠI 120 LƯỢT
+-- Hướng dẫn: Copy TOÀN BỘ file này dán vào SQL Editor trên Supabase Dashboard và bấm RUN!
 -- =============================================================================
 
 -- 1. Thêm cột wizard_pity vào bảng users (nếu chưa có)
@@ -7,6 +8,7 @@ ALTER TABLE public.users ADD COLUMN IF NOT EXISTS wizard_pity integer DEFAULT 0;
 
 -- 2. Đảm bảo bảng game_players có cột hat để trang bị Nón Huyền Thoại
 ALTER TABLE public.game_players ADD COLUMN IF NOT EXISTS hat jsonb DEFAULT '{}'::jsonb;
+
 
 -- 3. Hàm Lật 1 Thẻ Phù Thủy (m_flip_wizard_card)
 CREATE OR REPLACE FUNCTION public.m_flip_wizard_card(
@@ -25,7 +27,6 @@ DECLARE
     v_winner jsonb;
     v_is_pity_trigger boolean := false;
     v_is_hat boolean := false;
-    v_cfg record;
     v_items jsonb := '[]'::jsonb;
     v_item jsonb;
     v_total_rate numeric := 0;
@@ -51,28 +52,32 @@ BEGIN
     -- 2. Đọc cấu hình sự kiện từ site_config
     SELECT value INTO v_items FROM site_config WHERE id = 'wizard_card_items';
     IF v_items IS NULL OR jsonb_array_length(v_items) = 0 THEN
-        -- Fallback danh sách mặc định nếu chưa cấu hình
         v_items := '[
-            {"id": "WIZARD_HAT_LEGENDARY", "name": "Nón Huyền Thoại", "type": "game_hat_legendary", "value": 1, "rate": "0.5%", "color": "#ffd700", "image": "/game-assets/hat_huyen_thoai.png", "is_special": true},
-            {"id": "WIZARD_CRYSTAL", "name": "+10 Viên Tinh Thể", "type": "game_ring_crystal", "value": 10, "rate": "10%", "color": "#ec4899", "image": "/game-assets/ring_crystal.png"},
-            {"id": "WIZARD_STONE", "name": "+5 Đá Tinh Hoa", "type": "game_essence_stone", "value": 5, "rate": "10%", "color": "#a855f7", "image": "/game-assets/da_tinh_hoa.png"},
-            {"id": "WIZARD_ATK", "name": "+50.000 Lượt Đánh Boss", "type": "game_attacks", "value": 50000, "rate": "15%", "color": "#3b82f6", "image": "/game-assets/item_attack_turn.png"},
-            {"id": "WIZARD_CHEST_B", "name": "+3 Hòm Boss", "type": "game_boss_chests", "value": 3, "rate": "20%", "color": "#10b981", "image": "/game-assets/mystery_box_closed.png"},
-            {"id": "WIZARD_CHEST_R", "name": "+1 Hòm Hoàng Kim", "type": "game_royal_chests", "value": 1, "rate": "5%", "color": "#8b5cf6", "image": "/game-assets/royal_chest.png"},
-            {"id": "WIZARD_COINS", "name": "+50 Xu Nâng Cấp", "type": "game_coins", "value": 50, "rate": "10%", "color": "#eab308", "image": "/game-assets/gold_coin.png"},
-            {"id": "WIZARD_NONE", "name": "Chúc may mắn lần sau", "type": "none", "value": 0, "rate": "29.5%", "color": "#64748b", "image": null}
+            {"id": "hat_wizard_legendary", "name": "Nón Phù Thủy Tối Thượng (Huyền Thoại)", "type": "hat", "value": 1, "rate": "0.1%", "color": "#f59e0b", "image": "/game-assets/hat_wizard_legendary.png", "is_special": true},
+            {"id": "item_the_reroll_sieucap", "name": "Thẻ Reroll Siêu Cấp", "type": "consumable", "value": 1, "rate": "2%", "color": "#ec4899", "image": "/game-assets/item_the_reroll_sieucap.png"},
+            {"id": "item_the_dotpha_giay", "name": "Thẻ Đột Phá", "type": "consumable", "value": 1, "rate": "1%", "color": "#a855f7", "image": "/game-assets/item_the_dotpha_giay.png"},
+            {"id": "item_attack_turn", "name": "+50000 Lượt Đánh Boss", "type": "consumable", "value": 50000, "rate": "50%", "color": "#10b981", "image": "/game-assets/item_attack_turn.png"},
+            {"id": "CHEST_ROYAL_3", "name": "3 Rương Hoàng Gia VIP", "type": "game_royal_chests", "value": 3, "rate": "10%", "color": "#3b82f6", "image": "/game-assets/royal_chest_closed_trans.png"},
+            {"id": "CHEST_BOSS_5", "name": "5 Rương Chiến Tích Boss", "type": "game_boss_chests", "value": 5, "rate": "40%", "color": "#3b82f6", "image": "/game-assets/boss_chest_closed_trans.png"},
+            {"id": "item_the_reroll", "name": "Thẻ Reroll", "type": "consumable", "value": 1, "rate": "20%", "color": "#06b6d4", "image": "/game-assets/item_the_reroll.png"},
+            {"id": "ITEM_RING_CRYSTAL", "name": "Tinh Thể Cường Hóa", "type": "game_material", "value": 1, "rate": "10%", "color": "#3b82f6", "image": "/game-assets/ring_crystal.png"},
+            {"id": "ITEM_ESSENCE_STONE", "name": "Đá Tinh Hoa", "type": "game_material", "value": 1, "rate": "2%", "color": "#3b82f6", "image": "/game-assets/da_tinh_hoa.png"},
+            {"id": "GAME_COINS", "name": "10 Xu Nâng Cấp", "type": "game_currency", "value": 10, "rate": "5%", "color": "#eab308", "image": "/game-assets/gold_coin.png"},
+            {"id": "ITEM_RESET_BOSS", "name": "Bùa Reset Boss", "type": "game_reset_boss", "value": 1, "rate": "10%", "color": "#3b82f6", "image": "/game-assets/item_reset_boss.png"}
         ]'::jsonb;
     END IF;
 
     -- 3. KIỂM TRA BẢO HIỂM 120 LƯỢT:
-    -- Lượt thứ 120 (v_curr_pity + 1 = 120 hoặc v_curr_pity >= 119) -> 100% nổ Nón Huyền Thoại
+    -- Lượt thứ 120 (v_curr_pity + 1 >= 120) -> 100% nổ Nón Huyền Thoại
     IF (v_curr_pity + 1) >= 120 THEN
         FOR v_item IN SELECT * FROM jsonb_array_elements(v_items)
         LOOP
-            IF (v_item->>'is_special')::boolean = true 
+            IF v_item->>'is_special' = 'true'
+               OR v_item->>'type' = 'hat'
                OR v_item->>'type' = 'game_hat_legendary'
-               OR lower(v_item->>'name') LIKE '%nón huyền thoại%'
-               OR lower(v_item->>'name') LIKE '%mũ huyền thoại%' THEN
+               OR v_item->>'id' = 'hat_wizard_legendary'
+               OR lower(v_item->>'name') LIKE '%nón%huyền thoại%'
+               OR lower(v_item->>'name') LIKE '%phù thủy%' THEN
                 v_winner := v_item;
                 v_is_pity_trigger := true;
                 v_is_hat := true;
@@ -83,7 +88,6 @@ BEGIN
 
     -- 4. Nếu chưa chạm mốc bảo hiểm 120: Quay ngẫu nhiên theo tỉ lệ %
     IF v_winner IS NULL THEN
-        -- Tính tổng tỉ lệ
         FOR v_item IN SELECT * FROM jsonb_array_elements(v_items)
         LOOP
             v_rate_num := CAST(REPLACE(REPLACE(COALESCE(v_item->>'rate', '0%'), '%', ''), ',', '.') AS numeric);
@@ -109,9 +113,12 @@ BEGIN
             v_winner := v_items->0;
         END IF;
 
-        IF (v_winner->>'is_special')::boolean = true 
+        IF v_winner->>'is_special' = 'true'
+           OR v_winner->>'type' = 'hat'
            OR v_winner->>'type' = 'game_hat_legendary'
-           OR lower(v_winner->>'name') LIKE '%nón huyền thoại%' THEN
+           OR v_winner->>'id' = 'hat_wizard_legendary'
+           OR lower(v_winner->>'name') LIKE '%nón%huyền thoại%'
+           OR lower(v_winner->>'name') LIKE '%phù thủy%' THEN
             v_is_hat := true;
         END IF;
     END IF;
@@ -133,17 +140,21 @@ BEGIN
     v_now := to_char(NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh', 'DD/MM/YYYY HH24:MI:SS');
     v_tx_id := 'WIZ_' || floor(extract(epoch from NOW()) * 1000)::text || '_' || substr(md5(random()::text), 1, 4);
 
-    INSERT INTO transactions (id, "user", action, amount, date, status, type, "isSpinCost")
-    VALUES (
-        v_tx_id,
-        COALESCE(v_user.name, 'Khách hàng'),
-        'Lật Thẻ Phù Thủy: ' || (v_winner->>'name') || CASE WHEN v_is_pity_trigger THEN ' (Nổ Bảo Hiểm 120/120!)' ELSE '' END,
-        -p_cost,
-        v_now,
-        'Thành công',
-        'wizard_card_win',
-        true
-    );
+    BEGIN
+        INSERT INTO transactions (id, "user", action, amount, date, status, type, "isSpinCost")
+        VALUES (
+            v_tx_id,
+            COALESCE(v_user.name, 'Khách hàng'),
+            'Lật Thẻ Phù Thủy: ' || (v_winner->>'name') || CASE WHEN v_is_pity_trigger THEN ' (Nổ Bảo Hiểm 120/120!)' ELSE '' END,
+            -p_cost,
+            v_now,
+            'Thành công',
+            'wizard_card_win',
+            true
+        );
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
 
     RETURN jsonb_build_object(
         'success', true,
@@ -198,14 +209,17 @@ BEGIN
     SELECT value INTO v_items FROM site_config WHERE id = 'wizard_card_items';
     IF v_items IS NULL OR jsonb_array_length(v_items) = 0 THEN
         v_items := '[
-            {"id": "WIZARD_HAT_LEGENDARY", "name": "Nón Huyền Thoại", "type": "game_hat_legendary", "value": 1, "rate": "0.5%", "color": "#ffd700", "image": "/game-assets/hat_huyen_thoai.png", "is_special": true},
-            {"id": "WIZARD_CRYSTAL", "name": "+10 Viên Tinh Thể", "type": "game_ring_crystal", "value": 10, "rate": "10%", "color": "#ec4899", "image": "/game-assets/ring_crystal.png"},
-            {"id": "WIZARD_STONE", "name": "+5 Đá Tinh Hoa", "type": "game_essence_stone", "value": 5, "rate": "10%", "color": "#a855f7", "image": "/game-assets/da_tinh_hoa.png"},
-            {"id": "WIZARD_ATK", "name": "+50.000 Lượt Đánh Boss", "type": "game_attacks", "value": 50000, "rate": "15%", "color": "#3b82f6", "image": "/game-assets/item_attack_turn.png"},
-            {"id": "WIZARD_CHEST_B", "name": "+3 Hòm Boss", "type": "game_boss_chests", "value": 3, "rate": "20%", "color": "#10b981", "image": "/game-assets/mystery_box_closed.png"},
-            {"id": "WIZARD_CHEST_R", "name": "+1 Hòm Hoàng Kim", "type": "game_royal_chests", "value": 1, "rate": "5%", "color": "#8b5cf6", "image": "/game-assets/royal_chest.png"},
-            {"id": "WIZARD_COINS", "name": "+50 Xu Nâng Cấp", "type": "game_coins", "value": 50, "rate": "10%", "color": "#eab308", "image": "/game-assets/gold_coin.png"},
-            {"id": "WIZARD_NONE", "name": "Chúc may mắn lần sau", "type": "none", "value": 0, "rate": "29.5%", "color": "#64748b", "image": null}
+            {"id": "hat_wizard_legendary", "name": "Nón Phù Thủy Tối Thượng (Huyền Thoại)", "type": "hat", "value": 1, "rate": "0.1%", "color": "#f59e0b", "image": "/game-assets/hat_wizard_legendary.png", "is_special": true},
+            {"id": "item_the_reroll_sieucap", "name": "Thẻ Reroll Siêu Cấp", "type": "consumable", "value": 1, "rate": "2%", "color": "#ec4899", "image": "/game-assets/item_the_reroll_sieucap.png"},
+            {"id": "item_the_dotpha_giay", "name": "Thẻ Đột Phá", "type": "consumable", "value": 1, "rate": "1%", "color": "#a855f7", "image": "/game-assets/item_the_dotpha_giay.png"},
+            {"id": "item_attack_turn", "name": "+50000 Lượt Đánh Boss", "type": "consumable", "value": 50000, "rate": "50%", "color": "#10b981", "image": "/game-assets/item_attack_turn.png"},
+            {"id": "CHEST_ROYAL_3", "name": "3 Rương Hoàng Gia VIP", "type": "game_royal_chests", "value": 3, "rate": "10%", "color": "#3b82f6", "image": "/game-assets/royal_chest_closed_trans.png"},
+            {"id": "CHEST_BOSS_5", "name": "5 Rương Chiến Tích Boss", "type": "game_boss_chests", "value": 5, "rate": "40%", "color": "#3b82f6", "image": "/game-assets/boss_chest_closed_trans.png"},
+            {"id": "item_the_reroll", "name": "Thẻ Reroll", "type": "consumable", "value": 1, "rate": "20%", "color": "#06b6d4", "image": "/game-assets/item_the_reroll.png"},
+            {"id": "ITEM_RING_CRYSTAL", "name": "Tinh Thể Cường Hóa", "type": "game_material", "value": 1, "rate": "10%", "color": "#3b82f6", "image": "/game-assets/ring_crystal.png"},
+            {"id": "ITEM_ESSENCE_STONE", "name": "Đá Tinh Hoa", "type": "game_material", "value": 1, "rate": "2%", "color": "#3b82f6", "image": "/game-assets/da_tinh_hoa.png"},
+            {"id": "GAME_COINS", "name": "10 Xu Nâng Cấp", "type": "game_currency", "value": 10, "rate": "5%", "color": "#eab308", "image": "/game-assets/gold_coin.png"},
+            {"id": "ITEM_RESET_BOSS", "name": "Bùa Reset Boss", "type": "game_reset_boss", "value": 1, "rate": "10%", "color": "#3b82f6", "image": "/game-assets/item_reset_boss.png"}
         ]'::jsonb;
     END IF;
 
@@ -227,9 +241,12 @@ BEGIN
         IF (v_curr_pity + 1) >= 120 THEN
             FOR v_item IN SELECT * FROM jsonb_array_elements(v_items)
             LOOP
-                IF (v_item->>'is_special')::boolean = true 
+                IF v_item->>'is_special' = 'true'
+                   OR v_item->>'type' = 'hat'
                    OR v_item->>'type' = 'game_hat_legendary'
-                   OR lower(v_item->>'name') LIKE '%nón huyền thoại%' THEN
+                   OR v_item->>'id' = 'hat_wizard_legendary'
+                   OR lower(v_item->>'name') LIKE '%nón%huyền thoại%'
+                   OR lower(v_item->>'name') LIKE '%phù thủy%' THEN
                     v_winner := v_item;
                     v_is_pity_trigger := true;
                     v_is_hat := true;
@@ -254,9 +271,12 @@ BEGIN
 
             IF v_winner IS NULL THEN v_winner := v_items->0; END IF;
 
-            IF (v_winner->>'is_special')::boolean = true 
+            IF v_winner->>'is_special' = 'true'
+               OR v_winner->>'type' = 'hat'
                OR v_winner->>'type' = 'game_hat_legendary'
-               OR lower(v_winner->>'name') LIKE '%nón huyền thoại%' THEN
+               OR v_winner->>'id' = 'hat_wizard_legendary'
+               OR lower(v_winner->>'name') LIKE '%nón%huyền thoại%'
+               OR lower(v_winner->>'name') LIKE '%phù thủy%' THEN
                 v_is_hat := true;
             END IF;
         END IF;
@@ -293,17 +313,21 @@ BEGIN
     v_now := to_char(NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh', 'DD/MM/YYYY HH24:MI:SS');
     v_tx_id := 'WIZ10_' || floor(extract(epoch from NOW()) * 1000)::text || '_' || substr(md5(random()::text), 1, 4);
 
-    INSERT INTO transactions (id, "user", action, amount, date, status, type, "isSpinCost")
-    VALUES (
-        v_tx_id,
-        COALESCE(v_user.name, 'Khách hàng'),
-        'Lật Thẻ Phù Thủy x10 (10 Thẻ)' || CASE WHEN v_hat_won_count > 0 THEN ' - 🧙 Trúng Nón Huyền Thoại!' ELSE '' END,
-        -p_cost,
-        v_now,
-        'Thành công',
-        'wizard_card_win',
-        true
-    );
+    BEGIN
+        INSERT INTO transactions (id, "user", action, amount, date, status, type, "isSpinCost")
+        VALUES (
+            v_tx_id,
+            COALESCE(v_user.name, 'Khách hàng'),
+            'Lật Thẻ Phù Thủy x10 (10 Thẻ)' || CASE WHEN v_hat_won_count > 0 THEN ' - 🧙 Trúng Nón Huyền Thoại!' ELSE '' END,
+            -p_cost,
+            v_now,
+            'Thành công',
+            'wizard_card_win',
+            true
+        );
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
 
     RETURN jsonb_build_object(
         'success', true,
@@ -314,3 +338,18 @@ BEGIN
     );
 END;
 $$;
+
+-- 5. CẤP QUYỀN THỰC THI (GRANT)
+GRANT EXECUTE ON FUNCTION public.m_flip_wizard_card(text, numeric) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.m_flip_wizard_card_x10(text, numeric) TO anon, authenticated, service_role;
+
+-- 6. KHẮC PHỤC DỮ LIỆU BAE CHII (QUỲNH CHI - miyuuuoiii04):
+-- Bae Chii đã thực hiện 121 lượt lật thẻ và nhận đủ quà (1 Nón Huyền Thoại, 18 Rương Hoàng Kim, 230 Rương Boss)
+-- nhưng do lỗi server chưa có hàm nên chưa trừ 121 lượt.
+-- Chạy lệnh sau để khấu trừ đúng 121 lượt và đặt wizard_pity về 1 (sau khi nổ nón ở lượt 120):
+UPDATE users 
+SET spins = GREATEST(0, COALESCE(spins, 0) - 121),
+    wizard_pity = 1
+WHERE id = 'f0eab763-ef3f-423f-8ab9-0070e9e552ad'
+   OR linked_game_id = 'miyuuuoiii04'
+   OR name = 'Quỳnh Chi';

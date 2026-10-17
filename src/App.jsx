@@ -1052,9 +1052,11 @@ const App = () => {
   const isWizardEventOpen = useMemo(() => {
     const status = wizardEventConfig?.status || 'auto';
     if (status === 'public') return true;
-    if (status === 'hidden') return false;
     const targetMs = new Date(wizardEventConfig?.startTime || '2026-10-17T05:00:00+07:00').getTime();
-    return currentEventNow >= targetMs;
+    // Tự động mở đúng 5h00 sáng ngày 17/10/2026 cho toàn bộ người chơi
+    if (currentEventNow >= targetMs) return true;
+    if (status === 'hidden') return false;
+    return false;
   }, [wizardEventConfig, currentEventNow]);
 
   const isWizardEventVisible = useMemo(() => {
@@ -8218,6 +8220,16 @@ const App = () => {
       // Loại bỏ hoàn toàn kết quả trượt
       if (actLower.includes('chúc may mắn') || actLower.includes('không trúng') || actLower.includes('that bai')) {
         return false;
+      }
+
+      // Trước 5h00 sáng 17/10 (giai đoạn test/bí mật): Tuyệt đối không cho phép lộ sự kiện Phù Thủy lên Marquee
+      // Từ 5h00 sáng 17/10 trở đi: Tự động cho phép người chơi trúng Nón / Quà hiển thị trên thanh vinh danh bình thường!
+      const WIZARD_OPEN_MS = new Date('2026-10-17T05:00:00+07:00').getTime();
+      const isBeforeEventOpen = Date.now() < WIZARD_OPEN_MS;
+      if (isBeforeEventOpen) {
+        if (tType === 'wizard_card_win' || String(t.id || '').toLowerCase().includes('wiz') || actLower.includes('phù thủy') || actLower.includes('nón')) {
+          return false;
+        }
       }
 
       // Loại bỏ hoàn toàn tiền mặt / VNĐ cũ (như Sunnalucy vừa nhận 20k VNĐ, 10k VNĐ...)
