@@ -37,6 +37,19 @@ const saveWheelNotifyFallback = (itemId, val) => {
   } catch (e) {}
 };
 
+// Helper định dạng ngày giờ cho input datetime-local (YYYY-MM-DDTHH:mm)
+const formatDateTimeLocal = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch (e) {
+    return '';
+  }
+};
+
 const getRecordTime = (item) => {
   if (item.created_at) return new Date(item.created_at).getTime();
   if (item.date) {
@@ -670,11 +683,24 @@ const App = () => {
           moneyCost: parsed.moneyCost || 20000,
           spinCost: parsed.spinCost || 1,
           ticketPrice: parsed.ticketPrice || 20000,
-          ticketSaleEnabled: parsed.ticketSaleEnabled !== false
+          ticketSaleEnabled: parsed.ticketSaleEnabled !== false,
+          status: parsed.status || 'active',
+          startTime: parsed.startTime || '2026-10-15T00:00:00+07:00',
+          endTime: parsed.endTime || '2026-10-31T23:59:59+07:00',
+          pityTarget: parsed.pityTarget !== undefined ? Number(parsed.pityTarget) : 120
         };
       }
     } catch (e) {}
-    return { moneyCost: 20000, spinCost: 1, ticketPrice: 20000, ticketSaleEnabled: true };
+    return {
+      moneyCost: 20000,
+      spinCost: 1,
+      ticketPrice: 20000,
+      ticketSaleEnabled: true,
+      status: 'active',
+      startTime: '2026-10-15T00:00:00+07:00',
+      endTime: '2026-10-31T23:59:59+07:00',
+      pityTarget: 120
+    };
   });
 
   const [showBuyTicketModal, setShowBuyTicketModal] = useState(false);
@@ -992,8 +1018,22 @@ const App = () => {
     }
   }, [currentUser?.id, currentUser?.wizard_pity]);
 
-  // --- ĐẾM NGƯỢC & TỰ ĐỘNG KẾT THÚC SỰ KIỆN VÒNG QUAY "GIÀY THẦN TỐC" (HẠN CHÓT 23h59 NGÀY 16/10/2026) ---
-  const WHEEL_EVENT_END_TIME = useMemo(() => new Date('2026-10-16T23:59:59+07:00').getTime(), []);
+  // --- ĐẾM NGƯỢC & QUẢN LÝ TRẠNG THÁI SỰ KIỆN VÒNG QUAY MAY MẮN (VQMM) ---
+  const WHEEL_EVENT_START_TIME = useMemo(() => {
+    if (wheelConfig?.startTime) {
+      const ms = new Date(wheelConfig.startTime).getTime();
+      if (!isNaN(ms)) return ms;
+    }
+    return new Date('2026-10-15T00:00:00+07:00').getTime();
+  }, [wheelConfig?.startTime]);
+
+  const WHEEL_EVENT_END_TIME = useMemo(() => {
+    if (wheelConfig?.endTime) {
+      const ms = new Date(wheelConfig.endTime).getTime();
+      if (!isNaN(ms)) return ms;
+    }
+    return new Date('2026-10-31T23:59:59+07:00').getTime();
+  }, [wheelConfig?.endTime]);
 
   const [currentEventNow, setCurrentEventNow] = useState(() => {
     if (typeof window !== 'undefined' && window.__MOCK_TIME__) {
@@ -1013,11 +1053,34 @@ const App = () => {
   }, []);
 
   const isWheelEventExpired = useMemo(() => {
-    return currentEventNow >= WHEEL_EVENT_END_TIME;
-  }, [currentEventNow, WHEEL_EVENT_END_TIME]);
+    const status = wheelConfig?.status || 'active';
+    const isAdmin = currentUser?.role === 'admin';
+
+    // 1. Trạng thái ẩn: Người thường bị chặn / coi như đóng, Admin vẫn thấy và test được
+    if (status === 'hidden') {
+      return !isAdmin;
+    }
+    // 2. Trạng thái đóng vĩnh viễn:
+    if (status === 'closed') {
+      return !isAdmin;
+    }
+    // 3. Trạng thái tự động theo lịch:
+    if (status === 'auto') {
+      if (currentEventNow < WHEEL_EVENT_START_TIME) return !isAdmin; // Chưa bắt đầu
+      if (currentEventNow >= WHEEL_EVENT_END_TIME) return true; // Đã quá hạn
+      return false;
+    }
+    // 4. Trạng thái đang mở (active): Chỉ đóng khi quá hạn endTime
+    if (currentEventNow >= WHEEL_EVENT_END_TIME) {
+      return !isAdmin;
+    }
+    return false;
+  }, [currentEventNow, WHEEL_EVENT_START_TIME, WHEEL_EVENT_END_TIME, wheelConfig?.status, currentUser?.role]);
 
   const wheelCountdown = useMemo(() => {
-    const diff = Math.max(0, WHEEL_EVENT_END_TIME - currentEventNow);
+    const isUpcoming = currentEventNow < WHEEL_EVENT_START_TIME;
+    const targetMs = isUpcoming ? WHEEL_EVENT_START_TIME : WHEEL_EVENT_END_TIME;
+    const diff = Math.max(0, targetMs - currentEventNow);
     const totalSeconds = Math.floor(diff / 1000);
     const days = Math.floor(totalSeconds / 86400);
     const hours = Math.floor((totalSeconds % 86400) / 3600);
@@ -1028,10 +1091,11 @@ const App = () => {
       hours: String(hours).padStart(2, '0'),
       minutes: String(minutes).padStart(2, '0'),
       seconds: String(seconds).padStart(2, '0'),
-      isExpired: diff <= 0,
+      isExpired: currentEventNow >= WHEEL_EVENT_END_TIME,
+      isUpcoming,
       totalSeconds
     };
-  }, [currentEventNow, WHEEL_EVENT_END_TIME]);
+  }, [currentEventNow, WHEEL_EVENT_START_TIME, WHEEL_EVENT_END_TIME]);
 
   // Tự động kiểm tra xem Vòng Quay có phần thưởng khả dụng nào không
   const hasActiveWheelRewards = useMemo(() => {
@@ -1042,11 +1106,18 @@ const App = () => {
   useEffect(() => {
     if (currentView === 'vongquay' && (!hasActiveWheelRewards || isWheelEventExpired)) {
       if (isWheelEventExpired && typeof showToast === 'function') {
-        showToast("Sự kiện Vòng Quay Giày Thần Tốc đã chính thức kết thúc vào 23h59 ngày 16/10!", "info");
+        const status = wheelConfig?.status || 'active';
+        if (status === 'hidden') {
+          showToast("Sự kiện Vòng Quay May Mắn hiện đang tạm ẩn để bảo trì!", "info");
+        } else if (currentEventNow < WHEEL_EVENT_START_TIME) {
+          showToast("Sự kiện Vòng Quay May Mắn chưa đến thời gian mở!", "info");
+        } else {
+          showToast("Sự kiện Vòng Quay May Mắn đã chính thức kết thúc!", "info");
+        }
       }
       setCurrentView('dashboard');
     }
-  }, [currentView, hasActiveWheelRewards, isWheelEventExpired]);
+  }, [currentView, hasActiveWheelRewards, isWheelEventExpired, wheelConfig?.status, currentEventNow, WHEEL_EVENT_START_TIME]);
 
   // --- LOGIC ẨN / HIỆN & PHÂN QUYỀN SỰ KIỆN PHÙ THỦY ---
   const isWizardEventOpen = useMemo(() => {
@@ -8420,7 +8491,9 @@ const App = () => {
             </div>
 
             {/* TẦNG 2: THẺ TIẾN TRÌNH BẢO HIỂM GIÀY THẦN TỐC (Legendary Shoes Pity Hub) */}
-            {playMode === 'spin' && (
+            {playMode === 'spin' && (() => {
+              const pityLimit = Number(wheelConfig?.pityTarget) || 120;
+              return (
               <div className="p-3.5 sm:p-4 bg-gradient-to-r from-amber-500/[0.05] via-rose-500/[0.03] to-transparent">
                 
                 {/* Header hàng 1: Thông tin Trang Bị (Trái) & Hạn Chót Đếm Ngược (Phải) */}
@@ -8455,7 +8528,7 @@ const App = () => {
                   <div className="bg-[#030712]/90 border border-slate-800 px-3 py-1 rounded-xl text-xs shrink-0 shadow-inner flex items-center gap-1.5">
                     <span className="text-slate-400 text-[11px] font-medium">Bảo hiểm:</span>
                     <strong className="font-mono font-black text-amber-400 text-xs sm:text-sm">
-                      {shoesPity} <span className="text-slate-500 font-normal text-[11px]">/ 120</span>
+                      {shoesPity} <span className="text-slate-500 font-normal text-[11px]">/ {pityLimit}</span>
                     </strong>
                   </div>
                 </div>
@@ -8468,21 +8541,21 @@ const App = () => {
                     <div className="flex items-center gap-1.5 text-slate-300">
                       <span className="text-slate-400 font-medium text-xs">Tiến độ bảo hiểm:</span>
                       <strong className="font-mono font-black text-amber-400 text-sm sm:text-base">
-                        {shoesPity} <span className="text-slate-500 font-normal text-xs">/ 120</span>
+                        {shoesPity} <span className="text-slate-500 font-normal text-xs">/ {pityLimit}</span>
                       </strong>
                     </div>
 
                     <div className="text-right">
-                      {shoesPity >= 120 ? (
+                      {shoesPity >= pityLimit ? (
                         <span className="text-rose-400 font-black text-xs sm:text-sm animate-pulse flex items-center gap-1">
-                          🔥 LẦN 121: 100% TRÚNG GIÀY!
+                          🔥 LẦN {pityLimit + 1}: 100% TRÚNG GIÀY!
                         </span>
                       ) : (
                         <span className="text-xs">
                           <span className="text-slate-400 font-medium">Còn </span>
-                          <strong className="font-mono font-black text-yellow-300 text-sm">{120 - shoesPity}</strong>
+                          <strong className="font-mono font-black text-yellow-300 text-sm">{Math.max(0, pityLimit - shoesPity)}</strong>
                           <span className="text-slate-400 font-medium"> lượt </span>
-                          <span className="text-emerald-400 font-bold ml-1 hidden sm:inline">• Lần 121 chắc chắn trúng</span>
+                          <span className="text-emerald-400 font-bold ml-1 hidden sm:inline">• Lần {pityLimit + 1} chắc chắn trúng</span>
                         </span>
                       )}
                     </div>
@@ -8492,23 +8565,24 @@ const App = () => {
                   <div className="w-full h-3 sm:h-3.5 bg-[#02050c] rounded-full overflow-hidden border border-slate-800 p-0.5 shadow-inner">
                     <div
                       className={`h-full rounded-full transition-all duration-500 relative ${
-                        shoesPity >= 120
+                        shoesPity >= pityLimit
                           ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-yellow-300 shadow-[0_0_14px_rgba(244,63,94,0.95)] animate-pulse'
                           : 'bg-gradient-to-r from-indigo-500 via-amber-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.5)]'
                       }`}
-                      style={{ width: `${Math.min(100, Math.max(3, Math.round((shoesPity / 120) * 100)))}%` }}
+                      style={{ width: `${Math.min(100, Math.max(3, Math.round((shoesPity / pityLimit) * 100)))}%` }}
                     ></div>
                   </div>
 
-                  {/* Dòng mốc 0 lượt và 120 lượt bên dưới thanh bar */}
+                  {/* Dòng mốc 0 lượt và N lượt bên dưới thanh bar */}
                   <div className="flex items-center justify-between mt-1.5 text-[11px] text-slate-500 font-mono">
                     <span>0 lượt</span>
-                    <span>120 lượt</span>
+                    <span>{pityLimit} lượt</span>
                   </div>
                 </div>
 
               </div>
-            )}
+              );
+            })()}
           </div>
 
           {/* KHUNG ĐẾM NGƯỢC HẠN CHÓT SỰ KIỆN GIÀY THẦN TỐC (TÁCH RIÊNG BIỆT - TẬN DỤNG HẾT KHÔNG GIAN) */}
@@ -8527,7 +8601,9 @@ const App = () => {
                         Sự kiện Giày Thần Tốc
                       </span>
                       <span className="bg-rose-500/20 text-rose-300 text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-full border border-rose-500/40 shrink-0 animate-pulse">
-                        Hạn chót: 23h59 16/10
+                        {wheelConfig?.endTime ? (
+                          `Hạn chót: ${new Date(wheelConfig.endTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} ${new Date(wheelConfig.endTime).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}`
+                        ) : 'Hạn chót: 23h59 31/10'}
                       </span>
                     </div>
                     <div className="text-[11px] text-slate-400 font-medium mt-0.5 hidden sm:block">
@@ -10359,6 +10435,24 @@ const App = () => {
       }
     }
 
+    // 4. MÁC KỸ NĂNG GÓC DƯỚI BÊN PHẢI (Bottom-right badge - Dành riêng cho Kỹ năng Miễn Nhiễm của Nón, giống mác Lv.9 của Nhẫn)
+    let hatSkillBadgeLabel = '';
+    let hatSkillBadgeBg = '';
+    let hatSkillBadgeGlow = '';
+
+    if (isHat) {
+      let hSkillLvl = Number(item.skill_level || 0);
+      if (!hSkillLvl && (isHT || Number(item.skill_proc_rate || 0) > 0)) {
+        hSkillLvl = 1;
+      }
+      if (hSkillLvl > 0) {
+        hatSkillBadgeLabel = `Lv.${hSkillLvl}`;
+        const isMaxH = (hSkillLvl >= 9);
+        hatSkillBadgeBg = isMaxH ? 'linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #00f2fe 100%)' : 'linear-gradient(135deg, #a855f7, #6366f1)';
+        hatSkillBadgeGlow = '0 0 12px rgba(168,85,247,0.95), 0 0 6px rgba(0,242,254,0.9), 0 2px 4px rgba(0,0,0,0.8)';
+      }
+    }
+
     const imgUrl = getBossItemAsset(item, cat);
     const rotStyle = isWeapon ? { transform: 'rotate(15deg) scale(1.12)' } : {};
     const gradId = `goldGrad_web_${cat}_${Math.abs(String(item.name || '').split('').reduce((a, b) => (a << 5) - a + b.charCodeAt(0), 0)) % 10000}`;
@@ -10459,7 +10553,7 @@ const App = () => {
           </div>
         )}
 
-        {/* MÁC GÓC TRÊN BÊN PHẢI */}
+        {/* MÁC GÓC TRÊN BÊN PHẢI (CƯỜNG HÓA HOẶC LEVEL NHẪN/PET) */}
         {badgeLabel && (
           <div
             className="absolute -top-1.5 -right-1.5 z-25 text-white text-[9.5px] font-black px-1.5 py-0.5 rounded-md leading-none border border-white whitespace-nowrap"
@@ -10474,7 +10568,22 @@ const App = () => {
           </div>
         )}
 
-        {/* VƯƠNG MIỆN CÁNH KIM RIÊNG CHO GIÀY HUYỀN THOẠI */}
+        {/* MÁC KỸ NĂNG MIỄN NHIỄM GÓC DƯỚI BÊN PHẢI (CHO BẢO VẬT NÓN - GIỐNG MÁC NHẪN) */}
+        {hatSkillBadgeLabel && (
+          <div
+            className="absolute -bottom-1.5 -right-1.5 z-25 text-white text-[9.5px] font-black px-1.5 py-0.5 rounded-md leading-none border border-white whitespace-nowrap pointer-events-none"
+            style={{
+              background: hatSkillBadgeBg,
+              boxShadow: hatSkillBadgeGlow,
+              letterSpacing: '0.2px',
+              textShadow: '0 1px 2px #000'
+            }}
+          >
+            {hatSkillBadgeLabel}
+          </div>
+        )}
+
+        {/* VƯƠNG MIỆN CÁNH KIM RIÊNG CHO GIÀY & NÓN HUYỀN THOẠI */}
         {isHT && (
           <img
             src="/game-assets/frame_banana_wings_slim.png"
@@ -11550,6 +11659,41 @@ const App = () => {
                         </div>
                         <div className="text-[10px] text-slate-400 italic pt-0.5">
                           * Giúp người chơi xuất chiêu cực nhanh, chiếm ưu thế đòn đánh khi săn Boss Thế Giới!
+                        </div>
+                      </>
+                    );
+                  })()}
+
+                  {category === 'hat' && (() => {
+                    const hPlus = Number(item.plus || 0);
+                    const hEnhMult = 1.0 + 0.25 * hPlus;
+                    const basePen = Number(item.base_armor_pen_pct || 300);
+                    const baseReduc = Number(item.base_dmg_reduction_pct || 300);
+                    const baseDefPct = Number(item.base_def_pct || 3000);
+                    const totPen = Math.round(basePen * hEnhMult);
+                    const totReduc = Math.round(baseReduc * hEnhMult);
+                    const totDefPct = Math.round(baseDefPct * hEnhMult);
+                    const hSkillLvl = Number(item.skill_level || 0) || (item.tier?.toLowerCase().includes('huyền thoại') ? 1 : 0);
+                    const hSkillProc = Number(item.skill_proc_rate || 0) || (item.tier?.toLowerCase().includes('huyền thoại') ? 0.01 : 0);
+                    const hSkillPct = Math.round(hSkillProc * 100);
+                    return (
+                      <>
+                        <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                          <span className="text-slate-400">Xuyên Giáp & Giảm ST:</span>
+                          <span className="font-bold text-rose-300 text-xs">+{totPen.toLocaleString()}% / +{totReduc.toLocaleString()}%</span>
+                        </div>
+                        <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                          <span className="text-slate-400">Tăng Phòng Thủ (DEF):</span>
+                          <span className="font-bold text-cyan-300 text-xs">+{totDefPct.toLocaleString()}% DEF</span>
+                        </div>
+                        {(hSkillPct > 0 || hSkillLvl > 0) && (
+                          <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                            <span className="text-amber-400 font-bold">Kỹ Năng Miễn Nhiễm:</span>
+                            <span className="font-black text-amber-300 text-xs">Lv.{hSkillLvl || 1} (Tỉ lệ: {hSkillPct || 1}%) 🛡️</span>
+                          </div>
+                        )}
+                        <div className="text-[10px] text-slate-400 italic pt-0.5">
+                          * Bảo vật nón tối thượng mang lại khả năng miễn nhiễm sát thương và phòng thủ siêu cấp!
                         </div>
                       </>
                     );
@@ -12649,6 +12793,9 @@ const App = () => {
                       const totPen = Math.round(basePen * hEnhMult);
                       const totReduc = Math.round(baseReduc * hEnhMult);
                       const totDefPct = Math.round(baseDefPct * hEnhMult);
+                      const hSkillLvl = Number(item.skill_level || 0) || ((isHT || Number(item.skill_proc_rate || 0) > 0) ? 1 : 0);
+                      const hSkillProc = Number(item.skill_proc_rate || 0) || (isHT ? 0.01 : 0);
+                      const hSkillPct = Math.round(hSkillProc * 100);
                       return (
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-bold text-rose-400 bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 rounded">
@@ -12660,6 +12807,11 @@ const App = () => {
                           <span className="font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 px-1.5 py-0.5 rounded">
                             🛡️ +{totDefPct.toLocaleString()}% DEF
                           </span>
+                          {(hSkillPct > 0 || hSkillLvl > 0) && (
+                            <span className="font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded text-[10px]">
+                              🛡️ Miễn Nhiễm: {hSkillPct || 1}% (Lv.{hSkillLvl || 1})
+                            </span>
+                          )}
                         </div>
                       );
                     })()}
@@ -13796,6 +13948,42 @@ const App = () => {
                                         <span className="text-rose-400 block font-semibold">
                                           🐾 +{pStats.bonusDmg.toLocaleString()} DMG • <span className="text-emerald-400">❤️+{pStats.baseHp.toLocaleString()} HP</span> • <span className="text-cyan-400">🛡️+{pStats.baseDef.toLocaleString()} DEF</span> {item.level ? `(Lv.${item.level})` : ''}
                                         </span>
+                                      );
+                                    })()}
+                                    {category === 'shoes' && (() => {
+                                      const sTier = (item.tier || '').toLowerCase();
+                                      const sPlus = Number(item.plus || 0);
+                                      let baseAgi = Number(item.base_agility || (sTier.includes('huyền thoại') || sTier.includes('legendary') ? 300 : 80));
+                                      const enhanceBonusAgi = Math.round(baseAgi * sPlus * 0.25);
+                                      return (
+                                        <span className="text-pink-400 block font-semibold">
+                                          👟 +{baseAgi.toLocaleString()} Tốc Độ {sPlus > 0 ? `(+${enhanceBonusAgi.toLocaleString()})` : ''}
+                                        </span>
+                                      );
+                                    })()}
+                                    {category === 'hat' && (() => {
+                                      const hPlus = Number(item.plus || 0);
+                                      const hEnhMult = 1.0 + 0.25 * hPlus;
+                                      const basePen = Number(item.base_armor_pen_pct || 300);
+                                      const baseReduc = Number(item.base_dmg_reduction_pct || 300);
+                                      const baseDefPct = Number(item.base_def_pct || 3000);
+                                      const totPen = Math.round(basePen * hEnhMult);
+                                      const totReduc = Math.round(baseReduc * hEnhMult);
+                                      const totDefPct = Math.round(baseDefPct * hEnhMult);
+                                      const hSkillLvl = Number(item.skill_level || 0) || (item.tier?.toLowerCase().includes('huyền thoại') ? 1 : 0);
+                                      const hSkillProc = Number(item.skill_proc_rate || 0) || (item.tier?.toLowerCase().includes('huyền thoại') ? 0.01 : 0);
+                                      const hSkillPct = Math.round(hSkillProc * 100);
+                                      return (
+                                        <>
+                                          <span className="text-rose-400 block font-semibold">
+                                            👑 🗡️+{totPen.toLocaleString()}% Xuyên Giáp • 🔰+{totReduc.toLocaleString()}% Giảm ST • 🛡️+{totDefPct.toLocaleString()}% DEF
+                                          </span>
+                                          {(hSkillPct > 0 || hSkillLvl > 0) && (
+                                            <span className="text-amber-300 block text-[9.5px]">
+                                              🛡️ Miễn Nhiễm Sát Thương: {hSkillPct || 1}% (Lv.{hSkillLvl || 1})
+                                            </span>
+                                          )}
+                                        </>
                                       );
                                     })()}
                                     {category === 'material' && (
@@ -16958,41 +17146,328 @@ const App = () => {
             {/* TAB VÒNG QUAY */}
             {adminTab === 'wheel' && (
               <div className="p-6">
-                <div className="bg-[#0B1120] border border-blue-500/30 p-5 rounded-2xl mb-8 shadow-lg">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                    <h3 className="text-blue-400 font-bold flex items-center gap-2">
-                      <Settings2 size={18} /> Cài đặt Chi Phí Vòng Quay
-                    </h3>
+                {/* 1. KHỐI CẤU HÌNH TRẠNG THÁI, THỜI GIAN & MỐC NỔ BẢO HIỂM VQMM */}
+                <div className="bg-gradient-to-br from-[#0B1120] via-[#0e1629] to-[#070b14] border border-amber-500/40 p-5 sm:p-6 rounded-2xl mb-8 shadow-2xl space-y-6">
+                  {/* HEADER & TRẠNG THÁI REALTIME */}
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500/20 via-rose-500/20 to-yellow-500/10 border border-amber-500/40 flex items-center justify-center text-2xl shrink-0 shadow-inner">
+                        🎡
+                      </div>
+                      <div>
+                        <h3 className="text-white font-black text-lg sm:text-xl flex items-center gap-2 tracking-wide">
+                          Cấu Hình Sự Kiện & Quản Lý Vòng Quay May Mắn (VQMM)
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          Quản lý ẩn/mở sự kiện toàn website, hẹn giờ bắt đầu - kết thúc, mốc nổ bảo hiểm Giày Thần Tốc và chi phí quay.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* BADGE TRẠNG THÁI HIỆN TẠI & ĐỒNG HỒ ĐẾM NGƯỢC */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {wheelConfig.status === 'hidden' ? (
+                        <span className="px-3.5 py-1.5 rounded-full text-xs font-black bg-rose-500/20 text-rose-300 border border-rose-500/50 flex items-center gap-1.5 shadow-[0_0_15px_rgba(244,63,94,0.35)]">
+                          <EyeOff size={14} /> SỰ KIỆN ĐANG ẨN (CHỈ ADMIN TEST)
+                        </span>
+                      ) : wheelConfig.status === 'closed' ? (
+                        <span className="px-3.5 py-1.5 rounded-full text-xs font-black bg-slate-500/20 text-slate-400 border border-slate-600/50 flex items-center gap-1.5">
+                          <AlertCircle size={14} /> SỰ KIỆN ĐÃ ĐÓNG / TẠM DỪNG
+                        </span>
+                      ) : wheelConfig.status === 'auto' ? (
+                        <span className="px-3.5 py-1.5 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/50 flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                          <Clock size={14} /> TỰ ĐỘNG THEO LỊCH TRÌNH
+                        </span>
+                      ) : (
+                        <span className="px-3.5 py-1.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.35)] animate-pulse">
+                          <CheckCircle2 size={14} /> SỰ KIỆN ĐANG MỞ (CÔNG KHAI)
+                        </span>
+                      )}
+
+                      {/* Đếm ngược / Hạn hiệu lực */}
+                      <span className="px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-slate-900/80 text-amber-400 border border-amber-500/30">
+                        ⏳ {wheelCountdown.isExpired ? 'Đã hết hạn' : wheelCountdown.isUpcoming ? `Mở sau: ${wheelCountdown.days}N ${wheelCountdown.hours}:${wheelCountdown.minutes}:${wheelCountdown.seconds}` : `Còn: ${wheelCountdown.days}N ${wheelCountdown.hours}:${wheelCountdown.minutes}:${wheelCountdown.seconds}`}
+                      </span>
+                    </div>
                   </div>
 
-                  <form onSubmit={async (e) => {
-                    e.preventDefault();
-                    const newConfig = {
-                      ...wheelConfig,
-                      moneyCost: parseInt(e.target.moneyCost.value) || 20000,
-                      spinCost: parseInt(e.target.spinCost.value) || 1,
-                    };
-                    setWheelConfig(newConfig);
-                    localStorage.setItem('shop_wheel_config', JSON.stringify(newConfig));
-                    try {
-                      await supabase.from('site_config').upsert({ id: 'wheel_config', value: newConfig });
-                    } catch (err) {}
-                    showToast("Lưu cài đặt chi phí Vòng Quay thành công!");
-                  }} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                    <div>
-                      <label className="text-xs text-slate-400 font-bold block mb-1">Giá Quay Tiền (VNĐ/lần)</label>
-                      <input name="moneyCost" type="number" defaultValue={wheelConfig.moneyCost} className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-emerald-400 font-bold outline-none focus:border-emerald-500" required />
-                    </div>
-                    <div>
-                      <label className="text-xs text-slate-400 font-bold block mb-1">Giá Quay Lượt (Số lượt/lần)</label>
-                      <input name="spinCost" type="number" defaultValue={wheelConfig.spinCost} className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-rose-400 font-bold outline-none focus:border-rose-500" required />
-                    </div>
-                    <div>
-                      <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-lg font-bold text-sm transition-colors shadow-lg shadow-blue-600/20">
-                        Lưu Cài Đặt
+                  {/* THANH THAO TÁC NHANH 1-CHẠM (QUICK ACTION BUTTONS) */}
+                  <div className="bg-slate-950/70 p-3 sm:p-3.5 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                    <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <Zap size={14} className="text-amber-400" /> Thao tác nhanh 1 chạm:
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const newConfig = { ...wheelConfig, status: 'active', updated_at: new Date().toISOString() };
+                          setWheelConfig(newConfig);
+                          localStorage.setItem('shop_wheel_config', JSON.stringify(newConfig));
+                          try {
+                            await supabase.from('site_config').upsert({ id: 'wheel_config', value: newConfig });
+                          } catch (e) {}
+                          showToast("Đã MỞ sự kiện Vòng Quay May Mắn công khai cho toàn bộ khách hàng!", "success");
+                        }}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                          wheelConfig.status === 'active'
+                            ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-2 ring-emerald-400 scale-105'
+                            : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20'
+                        }`}
+                      >
+                        <Eye size={14} /> 🟢 Mở Sự Kiện (Hiện Toàn Web)
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const newConfig = { ...wheelConfig, status: 'hidden', updated_at: new Date().toISOString() };
+                          setWheelConfig(newConfig);
+                          localStorage.setItem('shop_wheel_config', JSON.stringify(newConfig));
+                          try {
+                            await supabase.from('site_config').upsert({ id: 'wheel_config', value: newConfig });
+                          } catch (e) {}
+                          showToast("Đã ẨN sự kiện Vòng Quay May Mắn (Chỉ Admin thấy để test)!", "info");
+                        }}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                          wheelConfig.status === 'hidden'
+                            ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 ring-2 ring-rose-400 scale-105'
+                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20'
+                        }`}
+                      >
+                        <EyeOff size={14} /> 🔴 Ẩn Sự Kiện (Chỉ Admin Thấy)
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const newConfig = { ...wheelConfig, status: 'auto', updated_at: new Date().toISOString() };
+                          setWheelConfig(newConfig);
+                          localStorage.setItem('shop_wheel_config', JSON.stringify(newConfig));
+                          try {
+                            await supabase.from('site_config').upsert({ id: 'wheel_config', value: newConfig });
+                          } catch (e) {}
+                          showToast("Đã chuyển sang chế độ TỰ ĐỘNG THEO LỊCH (Bắt đầu & Kết thúc)!", "success");
+                        }}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                          wheelConfig.status === 'auto'
+                            ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 ring-2 ring-amber-400 scale-105'
+                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20'
+                        }`}
+                      >
+                        <Clock size={14} /> ⏰ Chế Độ Tự Động Theo Giờ
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const newConfig = { ...wheelConfig, status: 'closed', updated_at: new Date().toISOString() };
+                          setWheelConfig(newConfig);
+                          localStorage.setItem('shop_wheel_config', JSON.stringify(newConfig));
+                          try {
+                            await supabase.from('site_config').upsert({ id: 'wheel_config', value: newConfig });
+                          } catch (e) {}
+                          showToast("Đã TẮT / ĐÓNG sự kiện Vòng Quay May Mắn!", "info");
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                          wheelConfig.status === 'closed'
+                            ? 'bg-slate-700 text-white ring-2 ring-slate-400'
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                        }`}
+                      >
+                        <X size={13} /> ⛔ Đóng Sự Kiện
                       </button>
                     </div>
+                  </div>
+
+                  {/* FORM CẤU HÌNH CHI TIẾT */}
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const form = e.target;
+                      const rawStart = form.startTime.value;
+                      const rawEnd = form.endTime.value;
+
+                      const formattedStartTime = rawStart ? (rawStart.includes('+') ? rawStart : `${rawStart}:00+07:00`) : (wheelConfig.startTime || '2026-10-15T00:00:00+07:00');
+                      const formattedEndTime = rawEnd ? (rawEnd.includes('+') ? rawEnd : `${rawEnd}:00+07:00`) : (wheelConfig.endTime || '2026-10-31T23:59:59+07:00');
+
+                      const newConfig = {
+                        ...wheelConfig,
+                        status: form.status.value,
+                        startTime: formattedStartTime,
+                        endTime: formattedEndTime,
+                        pityTarget: Math.max(1, parseInt(form.pityTarget.value) || 120),
+                        moneyCost: Math.max(1000, parseInt(form.moneyCost.value) || 20000),
+                        spinCost: Math.max(1, parseInt(form.spinCost.value) || 1),
+                        ticketPrice: Math.max(1000, parseInt(form.ticketPrice?.value) || 20000),
+                        updated_at: new Date().toISOString()
+                      };
+
+                      setWheelConfig(newConfig);
+                      localStorage.setItem('shop_wheel_config', JSON.stringify(newConfig));
+                      try {
+                        await supabase.from('site_config').upsert({ id: 'wheel_config', value: newConfig });
+                      } catch (err) {
+                        console.warn("Lỗi lưu site_config wheel_config:", err);
+                      }
+                      showToast("Lưu toàn bộ cài đặt Vòng Quay May Mắn thành công!", "success");
+                    }}
+                    className="space-y-4"
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* TRƯỜNG 1: TRẠNG THÁI SỰ KIỆN */}
+                      <div>
+                        <label className="text-xs text-slate-300 font-bold block mb-1.5 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <Settings size={14} className="text-amber-400" />
+                            Trạng Thái Sự Kiện
+                          </span>
+                        </label>
+                        <select
+                          name="status"
+                          defaultValue={wheelConfig.status || 'active'}
+                          className="w-full p-3 bg-[#151D2F] border border-amber-500/40 rounded-xl text-sm font-bold text-amber-300 outline-none focus:border-amber-400 transition-colors"
+                        >
+                          <option value="active">🟢 Luôn Mở (Khách quay bình thường)</option>
+                          <option value="hidden">🔴 Đang Ẩn (Chỉ Admin thấy để test)</option>
+                          <option value="auto">⏰ Tự Động (Theo giờ Bắt đầu & Kết thúc)</option>
+                          <option value="closed">⛔ Đã Kết Thúc (Tắt sự kiện)</option>
+                        </select>
+                        <span className="text-[11px] text-slate-400 block mt-1">
+                          Nút ẩn/mở sự kiện toàn website
+                        </span>
+                      </div>
+
+                      {/* TRƯỜNG 2: THỜI GIAN BẮT ĐẦU */}
+                      <div>
+                        <label className="text-xs text-slate-300 font-bold block mb-1.5 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <Clock size={14} className="text-blue-400" />
+                            Thời Gian Bắt Đầu (UTC+7)
+                          </span>
+                        </label>
+                        <input
+                          name="startTime"
+                          type="datetime-local"
+                          defaultValue={formatDateTimeLocal(wheelConfig.startTime || '2026-10-15T00:00:00+07:00')}
+                          className="w-full p-3 bg-[#151D2F] border border-blue-500/40 rounded-xl text-sm font-bold text-white outline-none focus:border-blue-400 transition-colors"
+                          required
+                        />
+                        <span className="text-[11px] text-slate-400 block mt-1">
+                          Thời điểm chính thức mở sự kiện
+                        </span>
+                      </div>
+
+                      {/* TRƯỜNG 3: THỜI GIAN KẾT THÚC */}
+                      <div>
+                        <label className="text-xs text-slate-300 font-bold block mb-1.5 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <Clock size={14} className="text-rose-400" />
+                            Thời Gian Kết Thúc (UTC+7)
+                          </span>
+                        </label>
+                        <input
+                          name="endTime"
+                          type="datetime-local"
+                          defaultValue={formatDateTimeLocal(wheelConfig.endTime || '2026-10-31T23:59:59+07:00')}
+                          className="w-full p-3 bg-[#151D2F] border border-rose-500/40 rounded-xl text-sm font-bold text-white outline-none focus:border-rose-400 transition-colors"
+                          required
+                        />
+                        <span className="text-[11px] text-slate-400 block mt-1">
+                          Hạn chót đếm ngược kết thúc sự kiện
+                        </span>
+                      </div>
+
+                      {/* TRƯỜNG 4: MỐC NỔ BẢO HIỂM */}
+                      <div>
+                        <label className="text-xs text-slate-300 font-bold block mb-1.5 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <Shield size={14} className="text-yellow-400" />
+                            Mốc Nổ Bảo Hiểm (Số Lượt)
+                          </span>
+                          <span className="text-[11px] text-amber-400 font-mono font-bold">Lần {Number(wheelConfig.pityTarget || 120) + 1} nổ 100%</span>
+                        </label>
+                        <input
+                          name="pityTarget"
+                          type="number"
+                          min="1"
+                          max="1000"
+                          defaultValue={wheelConfig.pityTarget || 120}
+                          className="w-full p-3 bg-[#151D2F] border border-yellow-500/40 rounded-xl text-sm font-bold text-yellow-300 outline-none focus:border-yellow-400 transition-colors"
+                          required
+                        />
+                        <span className="text-[11px] text-slate-400 block mt-1">
+                          Quay đủ {wheelConfig.pityTarget || 120} lượt chưa ra đồ hiếm -&gt; Lần {(wheelConfig.pityTarget || 120) + 1} nổ Giày Thần Tốc
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* HÀNG 2: CHI PHÍ QUAY & NÚT LƯU */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end pt-2 border-t border-slate-800/80">
+                      <div>
+                        <label className="text-xs text-slate-400 font-bold block mb-1">Giá Quay Tiền (VNĐ/lần)</label>
+                        <input
+                          name="moneyCost"
+                          type="number"
+                          step="1000"
+                          defaultValue={wheelConfig.moneyCost || 20000}
+                          className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-xl text-sm text-emerald-400 font-bold outline-none focus:border-emerald-500"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-slate-400 font-bold block mb-1">Giá Quay Lượt (Số vé/lần)</label>
+                        <input
+                          name="spinCost"
+                          type="number"
+                          min="1"
+                          defaultValue={wheelConfig.spinCost || 1}
+                          className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-xl text-sm text-rose-400 font-bold outline-none focus:border-rose-500"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-slate-400 font-bold block mb-1">Giá Mua Vé Lẻ (VNĐ/vé)</label>
+                        <input
+                          name="ticketPrice"
+                          type="number"
+                          step="1000"
+                          defaultValue={wheelConfig.ticketPrice || 20000}
+                          className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-xl text-sm text-indigo-400 font-bold outline-none focus:border-indigo-500"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <button
+                          type="submit"
+                          className="w-full bg-gradient-to-r from-amber-600 via-rose-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500 text-white p-3 rounded-xl font-black text-sm transition-all shadow-lg shadow-rose-600/25 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 cursor-pointer"
+                        >
+                          <Save size={16} /> Lưu Cài Đặt Vòng Quay
+                        </button>
+                      </div>
+                    </div>
                   </form>
+
+                  {/* LIVE PREVIEW THÔNG TIN TÓM TẮT DÀNH CHO ADMIN */}
+                  <div className="bg-[#070b14]/90 p-3.5 rounded-xl border border-slate-800 text-xs flex flex-wrap items-center justify-between gap-3 text-slate-300">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-slate-500 font-bold">Tóm tắt cấu hình:</span>
+                      <span className="bg-slate-800 px-2.5 py-1 rounded-md text-amber-300 font-bold">
+                        Bảo hiểm: Mốc {wheelConfig.pityTarget || 120} lượt (Lần {(wheelConfig.pityTarget || 120) + 1} nổ 100%)
+                      </span>
+                      <span className="bg-slate-800 px-2.5 py-1 rounded-md text-emerald-400 font-bold">
+                        Bắt đầu: {wheelConfig.startTime ? new Date(wheelConfig.startTime).toLocaleString('vi-VN') : '15/10/2026'}
+                      </span>
+                      <span className="bg-slate-800 px-2.5 py-1 rounded-md text-rose-400 font-bold">
+                        Kết thúc: {wheelConfig.endTime ? new Date(wheelConfig.endTime).toLocaleString('vi-VN') : '31/10/2026'}
+                      </span>
+                    </div>
+                    <div className="text-slate-400 italic">
+                      💡 Mọi thay đổi sẽ đồng bộ ngay lập tức cho toàn bộ người chơi trên website.
+                    </div>
+                  </div>
                 </div>
 
                 {/* TAB CHỌN LOẠI VÒNG QUAY ĐỂ SỬA */}
@@ -17006,9 +17481,10 @@ const App = () => {
                   {adminWheelType === 'spin' && (
                     <button
                       onClick={() => {
+                        const targetPity = Number(wheelConfig?.pityTarget) || 120;
                         setConfirmDialog({
                           title: 'Cài Đặt Mẫu Quà In-Game & Giày Huyền Thoại',
-                          message: 'Bạn có muốn tự động cài đặt 8 phần thưởng chuẩn cho Vòng Quay Lượt gồm: Giày Thần Tốc (Huyền Thoại 0.5% - Bảo hiểm 121), Đá Tinh Hoa (10%), Viên Tinh Thể (10%), Lượt Đánh Boss (15%), Hòm Boss (20%), Hòm Hoàng Kim (5%), 20 Xu Nâng Cấp (5%), và Trượt (34.5%) không? (Mặc định chỉ Giày Thần Tốc mới bật thông báo Discord, các món còn lại tắt thông báo để tránh spam).',
+                          message: `Bạn có muốn tự động cài đặt 8 phần thưởng chuẩn cho Vòng Quay Lượt gồm: Giày Thần Tốc (Huyền Thoại 0.5% - Bảo hiểm ${targetPity + 1}), Đá Tinh Hoa (10%), Viên Tinh Thể (10%), Lượt Đánh Boss (15%), Hòm Boss (20%), Hòm Hoàng Kim (5%), 20 Xu Nâng Cấp (5%), và Trượt (34.5%) không? (Mặc định chỉ Giày Thần Tốc mới bật thông báo Discord, các món còn lại tắt thông báo để tránh spam).`,
                           onConfirm: async () => {
                             const sampleItems = [
                               { id: `WHEEL_SHOES_${Date.now()}`, name: 'Giày Thần Tốc (Huyền Thoại)', type: 'game_shoes_legendary', value: 1, rate: '0.5%', quantity: 999, color: '#f59e0b', image: LEGENDARY_SHOES_IMG, wheel_type: 'spin', notify_on_win: true },
@@ -17093,7 +17569,7 @@ const App = () => {
                           <p className="text-white font-bold">{w.name}</p>
                           <p className="text-[10px] text-slate-400 uppercase flex flex-wrap gap-2">
                             <span className="font-bold text-amber-400">{
-                              w.type === 'game_shoes_legendary' ? '👟 Giày HT (Pity 121)' :
+                              w.type === 'game_shoes_legendary' ? `👟 Giày HT (Pity ${(Number(wheelConfig?.pityTarget) || 120) + 1})` :
                               w.type === 'game_essence_stone' ? '💎 Đá Tinh Hoa' :
                               w.type === 'game_ring_crystal' ? '🔮 Viên Tinh Thể' :
                               w.type === 'game_attacks' ? '⚔️ Lượt Đánh' :
@@ -18163,7 +18639,7 @@ const App = () => {
                         <option value="game_boss_chests">📦 Hòm Boss Thường (In-Game)</option>
                         <option value="game_royal_chests">👑 Hòm Hoàng Kim (In-Game)</option>
                         <option value="game_coins">🪙 Xu Nâng Cấp Boss (In-Game)</option>
-                        <option value="game_shoes_legendary">👟 Giày Thần Tốc (Huyền Thoại - Bảo Hiểm 121)</option>
+                        <option value="game_shoes_legendary">👟 Giày Thần Tốc (Huyền Thoại - Bảo Hiểm {(Number(wheelConfig?.pityTarget) || 120) + 1})</option>
                       </optgroup>
                       <optgroup label="🌐 TÀI KHOẢN WEB">
                         <option value="spin">🎟️ Lượt / Vé Quay Web</option>
@@ -18180,7 +18656,7 @@ const App = () => {
                       {adminWheelRewardType === 'game_boss_chests' && '📦 Tự động gửi Hòm Boss thường vào túi đồ nhân vật game.'}
                       {adminWheelRewardType === 'game_royal_chests' && '👑 Tự động gửi Hòm Hoàng Kim cao cấp vào túi đồ nhân vật game.'}
                       {adminWheelRewardType === 'game_coins' && '🪙 Tự động cộng Xu Nâng Cấp Boss vào nhân vật game.'}
-                      {adminWheelRewardType === 'game_shoes_legendary' && '👟 Trang bị Huyền Thoại (+300 Tốc độ). Áp dụng cơ chế Bảo hiểm 121 lần quay.'}
+                      {adminWheelRewardType === 'game_shoes_legendary' && `👟 Trang bị Huyền Thoại (+300 Tốc độ). Áp dụng cơ chế Bảo hiểm ${(Number(wheelConfig?.pityTarget) || 120) + 1} lần quay.`}
                       {adminWheelRewardType === 'spin' && '🎟️ Tự động cộng thêm lượt quay Vòng Quay cho tài khoản web.'}
                       {adminWheelRewardType === 'money' && '💵 Tự động cộng tiền VNĐ vào số dư ví chính trên web.'}
                       {adminWheelRewardType === 'fund' && '🏦 Tự động cộng tiền vào Quỹ Thuê Acc trên web.'}

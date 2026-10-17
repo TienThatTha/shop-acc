@@ -789,43 +789,43 @@ export default function WizardCardFlip(props) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0518] text-slate-100 font-sans pb-28 pt-4 px-2 sm:px-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0a0518] text-slate-100 font-sans pb-24 sm:pb-28 pt-2 sm:pt-4 px-2 sm:px-4 relative overflow-hidden">
       {/* Background mystical cosmic gradients & arcane runes */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-purple-600/15 via-indigo-600/10 to-transparent blur-[120px] pointer-events-none"></div>
       <div className="absolute top-40 right-10 w-96 h-96 bg-fuchsia-600/10 blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-20 left-10 w-96 h-96 bg-amber-500/10 blur-[100px] pointer-events-none"></div>
 
-      <div className="w-full max-w-6xl mx-auto space-y-6 relative z-10">
+      <div className="w-full max-w-6xl mx-auto space-y-3 sm:space-y-6 relative z-10">
         
         {/* HEADER SỰ KIỆN PHÙ THỦY */}
-        <div className="text-center space-y-3 pt-2">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-900/40 border border-purple-500/30 text-purple-300 text-xs md:text-sm font-bold shadow-[0_0_15px_rgba(168,85,247,0.3)] animate-pulse">
-            <Sparkles size={16} className="text-amber-300" />
+        <div className="text-center space-y-2 sm:space-y-3 pt-1 sm:pt-2">
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-purple-900/40 border border-purple-500/30 text-purple-300 text-[11px] sm:text-xs md:text-sm font-bold shadow-[0_0_15px_rgba(168,85,247,0.3)] animate-pulse">
+            <Sparkles size={14} className="text-amber-300 sm:w-4 sm:h-4" />
             <span>SỰ KIỆN GIỚI HẠN: LẬT THẺ PHÙ THỦY HUYỀN BÍ</span>
-            <span className="bg-amber-400 text-purple-950 text-[10px] px-2 py-0.5 rounded-full font-black">HOT</span>
+            <span className="bg-amber-400 text-purple-950 text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded-full font-black">HOT</span>
           </div>
           
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-200 to-amber-300 tracking-tight drop-shadow-[0_0_25px_rgba(168,85,247,0.6)]">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-200 to-amber-300 tracking-tight drop-shadow-[0_0_25px_rgba(168,85,247,0.6)]">
             LẬT THẺ BÀI PHÙ THỦY
           </h1>
           
-          <p className="text-slate-300 text-xs sm:text-sm md:text-base max-w-2xl mx-auto font-medium leading-relaxed">
+          <p className="text-slate-300 text-xs sm:text-sm md:text-base max-w-2xl mx-auto font-medium leading-relaxed px-1">
             Hóa thân thành đại pháp sư mở ra kho tàng bảo vật ma thuật. Chạm mốc bảo hiểm <span className="text-amber-300 font-extrabold underline decoration-amber-400 decoration-2">120/120 Thẻ</span> chắc chắn <span className="text-amber-300 font-black">100% NỔ NÓN HUYỀN THOẠI</span>!
           </p>
         </div>
 
         {/* STATS BAR: THẺ MAY MẮN & THANH BẢO HIỂM 120 LƯỢT */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-[#130b29]/90 border border-purple-500/30 p-4 sm:p-5 rounded-3xl shadow-[0_0_30px_rgba(147,51,234,0.15)] backdrop-blur-md">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 sm:gap-4 items-center bg-[#130b29]/90 border border-purple-500/30 p-2.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-[0_0_30px_rgba(147,51,234,0.15)] backdrop-blur-md">
           
           {/* Số Thẻ May Mắn hiện có */}
-          <div className="md:col-span-4 flex items-center justify-between md:justify-start gap-4 p-3 bg-purple-950/40 border border-purple-500/20 rounded-2xl">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-600/40 shrink-0">
-                <Gift size={24} className="text-amber-300 animate-bounce" />
+          <div className="md:col-span-4 flex items-center justify-between md:justify-start gap-2.5 sm:gap-4 p-2.5 sm:p-3 bg-purple-950/40 border border-purple-500/20 rounded-xl sm:rounded-2xl">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-600/40 shrink-0">
+                <Gift className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300 animate-bounce" />
               </div>
               <div>
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Thẻ may mắn của bạn</span>
-                <div className="text-2xl font-black text-amber-300 flex items-center gap-1.5">
+                <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Thẻ may mắn của bạn</span>
+                <div className="text-xl sm:text-2xl font-black text-amber-300 flex items-center gap-1.5 leading-tight">
                   <span>{currentSpins.toLocaleString('vi-VN')}</span>
                   <span className="text-xs text-purple-300 font-normal">thẻ</span>
                 </div>
@@ -836,25 +836,25 @@ export default function WizardCardFlip(props) {
               onClick={() => {
                 if (typeof setCurrentView === 'function') setCurrentView('naptien');
               }}
-              className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-purple-950 font-black text-xs rounded-xl shadow-md transition-transform hover:scale-105 shrink-0"
+              className="px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-purple-950 font-black text-xs rounded-xl shadow-md transition-transform hover:scale-105 shrink-0"
             >
               + Nạp Thẻ
             </button>
           </div>
 
           {/* Thanh Tiến Trình Bảo Hiểm 120/120 */}
-          <div className="md:col-span-8 flex flex-col justify-center space-y-2 p-3 bg-purple-950/40 border border-purple-500/20 rounded-2xl">
+          <div className="md:col-span-8 flex flex-col justify-center space-y-1.5 sm:space-y-2 p-2.5 sm:p-3 bg-purple-950/40 border border-purple-500/20 rounded-xl sm:rounded-2xl">
             <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
               <span className="flex items-center gap-1.5 text-purple-200">
-                <Shield size={16} className="text-amber-400" />
-                Tiến độ nổ Nón Huyền Thoại (Bảo hiểm):
+                <Shield size={15} className="text-amber-400" />
+                <span>Tiến độ nổ Nón Huyền Thoại (Bảo hiểm):</span>
               </span>
-              <span className="text-amber-300 font-black tracking-wide text-sm sm:text-base">
+              <span className="text-amber-300 font-black tracking-wide text-xs sm:text-base">
                 {wizardPity} / {pityThreshold} thẻ
               </span>
             </div>
 
-            <div className="w-full h-4 bg-slate-900/80 rounded-full border border-purple-500/30 overflow-hidden relative p-0.5">
+            <div className="w-full h-3 sm:h-4 bg-slate-900/80 rounded-full border border-purple-500/30 overflow-hidden relative p-0.5">
               <div 
                 className="h-full rounded-full bg-gradient-to-r from-purple-600 via-pink-500 to-amber-400 transition-all duration-700 relative shadow-[0_0_15px_rgba(245,158,11,0.8)]"
                 style={{ width: `${Math.min(100, Math.max(3, (wizardPity / pityThreshold) * 100))}%` }}
@@ -863,11 +863,11 @@ export default function WizardCardFlip(props) {
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
+            <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400">
               <span>Lượt 1 - {pityThreshold - 1}: Rơi quà theo tỉ lệ %</span>
               <span className="text-amber-300 font-bold flex items-center gap-1">
                 <Crown size={12} className="text-amber-400" />
-                Lượt {pityThreshold}: Chắc chắn 100% nổ Nón Huyền Thoại!
+                Lượt {pityThreshold}: Chắc chắn 100% nổ Nón!
               </span>
             </div>
           </div>
@@ -875,7 +875,7 @@ export default function WizardCardFlip(props) {
         </div>
 
         {/* NAVIGATION TABS BÊN DƯỚI */}
-        <div className="flex items-center justify-center gap-2 border-b border-purple-900/40 pb-3">
+        <div className="flex items-center justify-start sm:justify-center gap-1.5 sm:gap-2 border-b border-purple-900/40 pb-2.5 sm:pb-3 overflow-x-auto no-scrollbar">
           {[
             { id: 'arena', label: 'Bàn Bài Ma Thuật', icon: <Sparkles size={16} /> },
             { id: 'rules', label: 'Thể Lệ & Tỉ Lệ', icon: <Info size={16} /> },
@@ -885,7 +885,7 @@ export default function WizardCardFlip(props) {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
                 activeTab === tab.id
                   ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(147,51,234,0.5)] border border-purple-400/50'
                   : 'text-purple-300 hover:text-white hover:bg-purple-950/50'
@@ -899,38 +899,39 @@ export default function WizardCardFlip(props) {
 
         {/* TAB 1: BÀN BÀI MA THUẬT (THE ARENA) */}
         {activeTab === 'arena' && (
-          <div className="space-y-8">
+          <div className="space-y-4 sm:space-y-8">
             
             {/* VÙNG BÀN BÀI TRUNG TÂM (MAGIC CARD TABLE: 10 THẺ SẴN SÀNG) */}
-            <div className="relative p-4 sm:p-8 rounded-3xl bg-gradient-to-b from-[#180f33] via-[#120827] to-[#0c051a] border-2 border-purple-500/40 shadow-[0_0_50px_rgba(147,51,234,0.2)] flex flex-col items-center justify-center">
+            <div className="relative p-2.5 sm:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-[#180f33] via-[#120827] to-[#0c051a] border-2 border-purple-500/40 shadow-[0_0_50px_rgba(147,51,234,0.2)] flex flex-col items-center justify-center">
               
               {/* Vòng tròn phép thuật hào quang ma trận */}
-              <div className="absolute w-[450px] h-[450px] sm:w-[650px] sm:h-[650px] rounded-full border border-purple-500/15 border-dashed animate-[spin_60s_linear_infinite] pointer-events-none"></div>
-              <div className="absolute w-[350px] h-[350px] sm:w-[500px] sm:h-[500px] rounded-full border border-fuchsia-500/15 animate-[spin_40s_linear_infinite_reverse] pointer-events-none"></div>
+              <div className="absolute w-[280px] h-[280px] sm:w-[650px] sm:h-[650px] rounded-full border border-purple-500/15 border-dashed animate-[spin_60s_linear_infinite] pointer-events-none"></div>
+              <div className="absolute w-[200px] h-[200px] sm:w-[500px] sm:h-[500px] rounded-full border border-fuchsia-500/15 animate-[spin_40s_linear_infinite_reverse] pointer-events-none"></div>
 
               {/* Thanh điều khiển Bàn Bài: Tiêu đề & Nút Xáo/Úp Bài */}
-              <div className="w-full flex items-center justify-between mb-5 z-10 px-1 sm:px-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
-                  <span className="text-xs sm:text-sm font-black text-purple-200 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles size={16} className="text-amber-400" /> Bàn Bài Ma Thuật (10 Lá Phù Thủy Sẵn Sàng)
+              <div className="w-full flex items-center justify-between mb-2.5 sm:mb-5 z-10 px-0.5 sm:px-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                  <span className="text-[11px] sm:text-sm font-black text-purple-200 uppercase tracking-wider flex items-center gap-1 sm:gap-1.5">
+                    <Sparkles size={14} className="text-amber-400 sm:w-4 sm:h-4" /> 
+                    <span>Bàn Bài Ma Thuật (10 Lá Sẵn Sàng)</span>
                   </span>
                 </div>
                 
                 <button
                   onClick={handleResetTable}
                   disabled={isFlipping}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-950/60 hover:bg-purple-900/80 border border-purple-500/30 text-purple-300 hover:text-white text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                  className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl bg-purple-950/60 hover:bg-purple-900/80 border border-purple-500/30 text-purple-300 hover:text-white text-[11px] sm:text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
                   title="Úp lại toàn bộ 10 thẻ bài"
                 >
-                  <RefreshCw size={14} className={isFlipping ? 'animate-spin' : ''} />
+                  <RefreshCw size={12} className={isFlipping ? 'animate-spin sm:w-3.5 sm:h-3.5' : 'sm:w-3.5 sm:h-3.5'} />
                   <span className="hidden sm:inline">Xáo / Úp Lại Bài</span>
                   <span className="sm:hidden">Úp Lại</span>
                 </button>
               </div>
 
               {/* BỐ CỤC 10 LÁ BÀI MA THUẬT (2 hàng x 5 cột) */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 w-full max-w-5xl mb-7 z-10">
+              <div className="grid grid-cols-5 gap-1.5 sm:gap-4 w-full max-w-5xl mb-3 sm:mb-7 z-10">
                 {tableCards.map((card, idx) => {
                   const isCardHat = card.isHat || card.item?.is_hat || card.item?.type === 'game_hat_legendary' || (card.item?.name && card.item?.name.includes('Nón Huyền Thoại'));
                   return (
@@ -944,12 +945,12 @@ export default function WizardCardFlip(props) {
                       }}
                     >
                       <div 
-                        className={`w-full h-full relative rounded-2xl transition-transform duration-700 transform-style-3d cursor-pointer select-none shadow-[0_8px_25px_rgba(0,0,0,0.7)] ${
-                          card.isFlipped ? 'rotate-y-180' : 'hover:-translate-y-2 hover:shadow-[0_0_25px_rgba(168,85,247,0.6)]'
+                        className={`w-full h-full relative rounded-xl sm:rounded-2xl transition-transform duration-700 transform-style-3d cursor-pointer select-none shadow-[0_4px_15px_rgba(0,0,0,0.7)] sm:shadow-[0_8px_25px_rgba(0,0,0,0.7)] ${
+                          card.isFlipped ? 'rotate-y-180' : 'hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_0_25px_rgba(168,85,247,0.6)]'
                         }`}
                       >
                         {/* MẶT SAU: ẢNH HALLOWEEN PHÙ THỦY MA MỊ */}
-                        <div className="absolute inset-0 backface-hidden rounded-2xl overflow-hidden border-2 border-amber-400/60 hover:border-amber-300 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] bg-[#120826] group">
+                        <div className="absolute inset-0 backface-hidden rounded-xl sm:rounded-2xl overflow-hidden border sm:border-2 border-amber-400/60 hover:border-amber-300 shadow-[inset_0_0_15px_rgba(0,0,0,0.8)] sm:shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] bg-[#120826] group">
                           <img 
                             src={CARD_BACK_IMG} 
                             alt="Mặt sau thẻ bài Halloween Phù Thủy"
@@ -959,47 +960,47 @@ export default function WizardCardFlip(props) {
                           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/45 pointer-events-none"></div>
                           
                           {/* Số thứ tự thẻ */}
-                          <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-purple-950/85 border border-amber-400/50 text-[10px] font-black text-amber-300 backdrop-blur-sm shadow-md">
+                          <div className="absolute top-1 left-1 sm:top-2 sm:left-2 px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded sm:rounded-md bg-purple-950/85 border border-amber-400/50 text-[8px] sm:text-[10px] font-black text-amber-300 backdrop-blur-sm shadow-md">
                             #{idx + 1}
                           </div>
 
                           {/* Ký hiệu ma thuật góc trên */}
-                          <div className="absolute top-2 right-2 text-amber-300/80 text-xs font-serif">
+                          <div className="absolute top-1 right-1 sm:top-2 sm:right-2 text-amber-300/80 text-[8px] sm:text-xs font-serif">
                             ✦
                           </div>
 
                           {/* Nhãn hướng dẫn lật */}
-                          <div className="absolute bottom-2.5 inset-x-2 text-center pointer-events-none">
-                            <span className="text-[10px] sm:text-[11px] font-black text-amber-300 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,1)] uppercase block bg-purple-950/80 py-0.5 rounded-lg border border-purple-500/30">
+                          <div className="absolute bottom-1 inset-x-1 sm:bottom-2.5 sm:inset-x-2 text-center pointer-events-none">
+                            <span className="text-[7.5px] sm:text-[11px] font-black text-amber-300 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,1)] uppercase block bg-purple-950/85 py-0.5 rounded sm:rounded-lg border border-purple-500/30 truncate">
                               LẬT THẺ
                             </span>
                           </div>
                         </div>
 
                         {/* MẶT TRƯỚC: PHẦN THƯỞNG KHI ĐÃ LẬT */}
-                        <div className={`absolute inset-0 backface-hidden rotate-y-180 rounded-2xl border-2 p-2 sm:p-3 flex flex-col items-center justify-between overflow-hidden ${
+                        <div className={`absolute inset-0 backface-hidden rotate-y-180 rounded-xl sm:rounded-2xl border sm:border-2 p-1 sm:p-3 flex flex-col items-center justify-between overflow-hidden ${
                           isCardHat
-                            ? 'bg-gradient-to-b from-amber-950/95 via-purple-950/95 to-black border-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.8)] ring-2 ring-amber-400/70'
+                            ? 'bg-gradient-to-b from-amber-950/95 via-purple-950/95 to-black border-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.8)] ring-1 sm:ring-2 ring-amber-400/70'
                             : 'bg-gradient-to-b from-[#1e113b] via-[#140b2a] to-[#0d071c] border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.4)]'
                         }`}>
                           {/* Header bên trong thẻ đã lật */}
-                          <div className="w-full flex justify-between items-center text-[9px] sm:text-[10px] font-black text-amber-300">
-                            <span className="flex items-center gap-1">
-                              {isCardHat && <Crown size={12} className="text-amber-400" />}
-                              {isCardHat ? 'HUYỀN THOẠI' : `#${idx + 1}`}
+                          <div className="w-full flex justify-between items-center text-[7.5px] sm:text-[10px] font-black text-amber-300 leading-none">
+                            <span className="flex items-center gap-0.5 sm:gap-1 truncate">
+                              {isCardHat && <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-400 shrink-0" />}
+                              <span>{isCardHat ? 'NÓN VÀNG' : `#${idx + 1}`}</span>
                             </span>
                             {card.isPityTrigger ? (
-                              <span className="bg-amber-400 text-purple-950 px-1 py-0.2 rounded font-black text-[8px] sm:text-[9px]">
+                              <span className="bg-amber-400 text-purple-950 px-1 py-0.2 rounded font-black text-[7px] sm:text-[9px] shrink-0">
                                 120/120
                               </span>
                             ) : (
-                              <span className="text-purple-300/80 text-[9px]">ĐÃ MỞ</span>
+                              <span className="text-purple-300/80 text-[7px] sm:text-[9px] shrink-0">ĐÃ MỞ</span>
                             )}
                           </div>
 
                           {/* Hình ảnh & Tên phần thưởng */}
-                          <div className="flex flex-col items-center justify-center my-auto space-y-1.5 w-full">
-                            <div className={`w-14 h-14 sm:w-20 sm:h-20 rounded-xl flex items-center justify-center p-1.5 relative overflow-hidden ${
+                          <div className="flex flex-col items-center justify-center my-auto w-full py-0.5">
+                            <div className={`w-7 h-7 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl flex items-center justify-center p-0.5 sm:p-1.5 relative overflow-hidden ${
                               isCardHat ? 'bg-amber-500/20 border border-amber-400/50' : 'bg-purple-950/60 border border-purple-500/30'
                             }`}>
                               {card.item?.image ? (
@@ -1012,11 +1013,11 @@ export default function WizardCardFlip(props) {
                                   onError={(e) => { e.target.src = '/game-assets/hat_huyen_thoai.png'; }}
                                 />
                               ) : (
-                                <span className="text-2xl sm:text-3xl">✨</span>
+                                <span className="text-base sm:text-3xl">✨</span>
                               )}
                             </div>
 
-                            <span className={`text-[11px] sm:text-xs font-black text-center line-clamp-2 px-0.5 leading-tight ${
+                            <span className={`text-[7.5px] sm:text-xs font-black text-center line-clamp-1 sm:line-clamp-2 px-0.5 leading-none mt-1 ${
                               isCardHat ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]' : 'text-slate-100'
                             }`}>
                               {card.item?.name || 'Phần thưởng'}
@@ -1024,12 +1025,22 @@ export default function WizardCardFlip(props) {
                           </div>
 
                           {/* Huy hiệu trạng thái dưới chân thẻ */}
-                          <div className={`w-full text-center py-0.5 sm:py-1 rounded text-[9px] sm:text-[10px] font-bold ${
+                          <div className={`w-full text-center py-0.5 sm:py-1 rounded text-[6.5px] sm:text-[10px] font-bold leading-none truncate ${
                             isCardHat 
                               ? 'bg-amber-500 text-purple-950 font-black shadow-md' 
                               : 'bg-purple-950/70 border border-purple-500/30 text-purple-200'
                           }`}>
-                            {isCardHat ? 'BẢO VẬT TỐI THƯỢNG' : 'Đã nhận vào túi'}
+                            {isCardHat ? (
+                              <>
+                                <span className="sm:hidden">BẢO VẬT</span>
+                                <span className="hidden sm:inline">BẢO VẬT TỐI THƯỢNG</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="sm:hidden">Đã nhận</span>
+                                <span className="hidden sm:inline">Đã nhận vào túi</span>
+                              </>
+                            )}
                           </div>
                         </div>
 
@@ -1040,21 +1051,21 @@ export default function WizardCardFlip(props) {
               </div>
 
               {/* NÚT BẤM LẬT THẺ: 1 DÒNG GỌN ĐẸP & CHUẨN GAMING */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5 w-full max-w-2xl px-2 z-10">
+              <div className="flex flex-row items-center justify-center gap-2 sm:gap-5 w-full max-w-2xl px-1 sm:px-2 z-10">
                 {/* NÚT LẬT 1 THẺ */}
                 <button
                   disabled={isFlipping}
                   onClick={() => handleFlip(1)}
-                  className={`w-full sm:w-auto sm:flex-1 py-3.5 px-6 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-3 transition-all duration-200 whitespace-nowrap select-none border ${
+                  className={`flex-1 w-auto py-2.5 sm:py-3.5 px-2 sm:px-6 rounded-xl sm:rounded-2xl font-black text-xs sm:text-base flex items-center justify-center gap-1.5 sm:gap-3 transition-all duration-200 whitespace-nowrap select-none border ${
                     isFlipping
                       ? 'bg-slate-800/80 border-slate-700 text-slate-500 cursor-not-allowed'
                       : 'bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white border-purple-400/40 shadow-[0_4px_20px_rgba(147,51,234,0.45)] hover:shadow-[0_6px_30px_rgba(147,51,234,0.7)] hover:-translate-y-0.5 active:translate-y-0 active:scale-95'
                   }`}
                   title="Lật ngẫu nhiên 1 lá bài đang úp hoặc bấm trực tiếp vào lá bài muốn mở"
                 >
-                  <Sparkles size={18} className="text-amber-300 shrink-0" />
+                  <Sparkles className="w-3.5 h-3.5 sm:w-[18px] sm:h-[18px] text-amber-300 shrink-0" />
                   <span className="tracking-wide">LẬT 1 THẺ</span>
-                  <span className="text-xs text-amber-300 font-black bg-black/40 px-2.5 py-0.5 rounded-lg border border-purple-400/30 shadow-inner shrink-0">
+                  <span className="text-[10px] sm:text-xs text-amber-300 font-black bg-black/40 px-1.5 sm:px-2.5 py-0.5 rounded-md sm:rounded-lg border border-purple-400/30 shadow-inner shrink-0">
                     -1 Thẻ
                   </span>
                 </button>
@@ -1063,16 +1074,16 @@ export default function WizardCardFlip(props) {
                 <button
                   disabled={isFlipping}
                   onClick={() => handleFlip(10)}
-                  className={`w-full sm:w-auto sm:flex-1 py-3.5 px-6 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-3 transition-all duration-200 whitespace-nowrap select-none border ${
+                  className={`flex-1 w-auto py-2.5 sm:py-3.5 px-2 sm:px-6 rounded-xl sm:rounded-2xl font-black text-xs sm:text-base flex items-center justify-center gap-1.5 sm:gap-3 transition-all duration-200 whitespace-nowrap select-none border ${
                     isFlipping
                       ? 'bg-slate-800/80 border-slate-700 text-slate-500 cursor-not-allowed'
                       : 'bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white border-amber-300/50 shadow-[0_4px_25px_rgba(245,158,11,0.5)] hover:shadow-[0_6px_35px_rgba(245,158,11,0.8)] hover:-translate-y-0.5 active:translate-y-0 active:scale-95'
                   }`}
                   title="Mở toàn bộ 10 thẻ bài trực tiếp trên bàn"
                 >
-                  <Flame size={18} className="text-amber-200 shrink-0 animate-pulse" />
+                  <Flame className="w-3.5 h-3.5 sm:w-[18px] sm:h-[18px] text-amber-200 shrink-0 animate-pulse" />
                   <span className="tracking-wide">LẬT 10 THẺ</span>
-                  <span className="text-xs text-amber-200 font-black bg-black/45 px-2.5 py-0.5 rounded-lg border border-amber-400/40 shadow-inner shrink-0">
+                  <span className="text-[10px] sm:text-xs text-amber-200 font-black bg-black/45 px-1.5 sm:px-2.5 py-0.5 rounded-md sm:rounded-lg border border-amber-400/40 shadow-inner shrink-0">
                     -10 Thẻ
                   </span>
                 </button>
@@ -1081,25 +1092,25 @@ export default function WizardCardFlip(props) {
             </div>
 
             {/* DANH SÁCH CÁC PHẦN THƯỞNG NỔI BẬT TRONG SỰ KIỆN */}
-            <div className="space-y-4">
-              <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-                <Crown size={20} className="text-amber-400" />
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="text-base sm:text-xl font-bold text-white flex items-center gap-2">
+                <Crown size={18} className="text-amber-400 sm:w-5 sm:h-5" />
                 Kho Phần Thưởng Ma Thuật Có Thể Lật Trúng
               </h3>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+              <div className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-3">
                 {wizardItems.map((item, idx) => {
                   const isHat = item.is_special || item.type === 'game_hat_legendary' || (item.name && item.name.includes('Nón Huyền Thoại'));
                   return (
                     <div 
                       key={item.id || idx}
-                      className={`p-3 rounded-2xl flex flex-col items-center text-center justify-between border transition-all duration-300 hover:-translate-y-1 ${
+                      className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl flex flex-col items-center text-center justify-between border transition-all duration-300 hover:-translate-y-1 ${
                         isHat 
                           ? 'bg-gradient-to-b from-amber-950/60 to-purple-950/80 border-amber-400/70 shadow-[0_0_20px_rgba(245,158,11,0.3)] ring-1 ring-amber-400/40' 
                           : 'bg-[#130b29]/80 border-purple-500/20 hover:border-purple-500/40'
                       }`}
                     >
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-purple-950/40 flex items-center justify-center p-2 mb-2 relative">
+                      <div className="w-11 h-11 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl bg-purple-950/40 flex items-center justify-center p-1 sm:p-2 mb-1 sm:mb-2 relative">
                         {item.image ? (
                           <img 
                             src={item.image} 
@@ -1108,20 +1119,20 @@ export default function WizardCardFlip(props) {
                             onError={(e) => { e.target.src = '/game-assets/mystery_box_closed.png'; }}
                           />
                         ) : (
-                          <span className="text-2xl">💨</span>
+                          <span className="text-lg sm:text-2xl">💨</span>
                         )}
                         {isHat && (
-                          <span className="absolute -top-1 -right-1 bg-amber-400 text-purple-950 text-[9px] font-black px-1.5 py-0.5 rounded-full">
+                          <span className="absolute -top-1 -right-1 bg-amber-400 text-purple-950 text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded-full">
                             TOP 1
                           </span>
                         )}
                       </div>
 
                       <div className="space-y-0.5 w-full">
-                        <span className={`text-xs font-bold block truncate ${isHat ? 'text-amber-300' : 'text-slate-200'}`}>
+                        <span className={`text-[10px] sm:text-xs font-bold block truncate ${isHat ? 'text-amber-300' : 'text-slate-200'}`}>
                           {item.name}
                         </span>
-                        <span className="text-[10px] text-purple-300/80 font-medium block">
+                        <span className="text-[8.5px] sm:text-[10px] text-purple-300/80 font-medium block truncate">
                           Tỉ lệ: {item.rate || '10%'}
                         </span>
                       </div>
