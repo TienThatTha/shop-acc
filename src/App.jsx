@@ -11179,6 +11179,7 @@ const App = () => {
     const lowerName = itemName.toLowerCase();
     const itemId = String(item.id || '').toLowerCase();
     const isShoes = (category === 'shoes') || String(item.category || '').toLowerCase() === 'shoes' || lowerName.includes('giày');
+    const isHat = (category === 'hat') || String(item.category || '').toLowerCase() === 'hat' || lowerName.includes('nón') || lowerName.includes('mũ');
 
     // DÀNH CHO NGUYÊN LIỆU (MATERIAL)
     let matInfo = null;
@@ -13881,10 +13882,11 @@ const App = () => {
                           { id: 'all', label: `Tất Cả (${unequippedInventory.length})` },
                           { id: 'weapon', label: '⚔️ Vũ Khí' },
                           { id: 'armor', label: '🛡️ Áo Giáp' },
-    { id: 'pants', label: '👖 Quần Chiến' },
+                          { id: 'pants', label: '👖 Quần Chiến' },
                           { id: 'necklace', label: '📿 Dây Chuyền' },
                           { id: 'ring', label: '💍 Nhẫn' },
                           { id: 'shoes', label: '👟 Giày' },
+                          { id: 'hat', label: '👑 Nón' },
                           { id: 'pet', label: '🐾 Linh Thú' },
                           { id: 'material', label: '💎 Nguyên Liệu' },
                         ].map(tab => (
@@ -14584,10 +14586,11 @@ const App = () => {
                           { id: 'all', label: 'Tất Cả' },
                           { id: 'weapon', label: '⚔️ Vũ Khí' },
                           { id: 'armor', label: '🛡️ Áo Giáp' },
-    { id: 'pants', label: '👖 Quần Chiến' },
+                          { id: 'pants', label: '👖 Quần Chiến' },
                           { id: 'necklace', label: '📿 Dây Chuyền' },
                           { id: 'ring', label: '💍 Nhẫn' },
                           { id: 'shoes', label: '👟 Giày' },
+                          { id: 'hat', label: '👑 Nón' },
                           { id: 'pet', label: '🐾 Linh Thú' },
                           { id: 'material', label: '💎 Nguyên Liệu' },
                         ].map(f => (
@@ -14764,6 +14767,31 @@ const App = () => {
                                         {category === 'shoes' && (() => {
                                           const agi = Number(item.agility || item.base_agility || 300);
                                           return <span className="text-pink-400">👟 +{agi.toLocaleString()} Tốc Độ</span>;
+                                        })()}
+                                        {category === 'hat' && (() => {
+                                          const hPlus = Number(item.plus || 0);
+                                          const hEnhMult = 1.0 + 0.25 * hPlus;
+                                          const basePen = Number(item.base_armor_pen_pct || 300);
+                                          const baseReduc = Number(item.base_dmg_reduction_pct || 300);
+                                          const baseDefPct = Number(item.base_def_pct || 3000);
+                                          const totPen = Math.round(basePen * hEnhMult);
+                                          const totReduc = Math.round(baseReduc * hEnhMult);
+                                          const totDefPct = Math.round(baseDefPct * hEnhMult);
+                                          const hSkillLvl = Number(item.skill_level || 0) || (item.tier?.toLowerCase().includes('huyền thoại') ? 1 : 0);
+                                          const hSkillProc = Number(item.skill_proc_rate || 0) || (item.tier?.toLowerCase().includes('huyền thoại') ? 0.01 : 0);
+                                          const hSkillPct = Math.round(hSkillProc * 100);
+                                          return (
+                                            <div className="space-y-0.5">
+                                              <span className="text-rose-400 block font-semibold">
+                                                👑 🗡️+{totPen.toLocaleString()}% Xuyên • 🔰+{totReduc.toLocaleString()}% Giảm ST • 🛡️+{totDefPct.toLocaleString()}% DEF
+                                              </span>
+                                              {(hSkillPct > 0 || hSkillLvl > 0) && (
+                                                <span className="text-amber-300 block text-[9.5px]">
+                                                  🛡️ Miễn Nhiễm: {hSkillPct || 1}% (Lv.{hSkillLvl || 1})
+                                                </span>
+                                              )}
+                                            </div>
+                                          );
                                         })()}
                                         {category === 'material' && (
                                           <span className="text-cyan-400">💎 x{Number(item.quantity || 1).toLocaleString()} {item.id === 'item_essence_stone' || (item.name || '').toLowerCase().includes('tinh hoa') ? 'Viên' : 'Tinh Thể'}</span>
