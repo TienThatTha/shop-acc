@@ -14238,21 +14238,21 @@ const App = () => {
 
           return (
             <div
-              className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+              className="fixed inset-0 z-[110] flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto"
               onClick={(e) => { if (e.target === e.currentTarget) setShowListItemModal(false); }}
             >
-              <div className="bg-gradient-to-br from-[#12192c] via-[#0e1526] to-[#080d1a] border-2 border-amber-500/70 rounded-3xl w-full max-w-md shadow-[0_0_60px_rgba(245,158,11,0.35)] p-5 sm:p-6 text-white animate-zoom-in relative">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-amber-500/20 pb-3 mb-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-lg text-amber-400">
+              <div className="bg-gradient-to-br from-[#12192c] via-[#0e1526] to-[#080d1a] border-2 border-amber-500/70 rounded-3xl w-full max-w-md max-h-[90vh] max-h-[92dvh] shadow-[0_0_60px_rgba(245,158,11,0.35)] p-4 sm:p-6 text-white animate-zoom-in relative flex flex-col my-auto overflow-hidden">
+                {/* Header (Cố định ở trên) */}
+                <div className="flex items-center justify-between border-b border-amber-500/20 pb-2.5 sm:pb-3 mb-3 shrink-0">
+                  <div className="flex items-center gap-2 sm:gap-2.5">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-base sm:text-lg text-amber-400 shrink-0">
                       🏷️
                     </div>
                     <div>
-                      <h3 className="font-black text-base text-white tracking-wide">
+                      <h3 className="font-black text-sm sm:text-base text-white tracking-wide">
                         TREO ĐẤU GIÁ VẬT PHẨM
                       </h3>
-                      <p className="text-[11px] text-amber-300/80 font-medium">
+                      <p className="text-[10px] sm:text-[11px] text-amber-300/80 font-medium">
                         Giao dịch bằng Xu • Phí sàn 20% khi khớp lệnh
                       </p>
                     </div>
@@ -14260,151 +14260,154 @@ const App = () => {
                   <button
                     type="button"
                     onClick={() => setShowListItemModal(false)}
-                    className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-rose-600 text-slate-400 hover:text-white flex items-center justify-center transition-colors border border-slate-700 cursor-pointer"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-800/80 hover:bg-rose-600 text-slate-400 hover:text-white flex items-center justify-center transition-colors border border-slate-700 cursor-pointer shrink-0"
                   >
                     <X size={15} />
                   </button>
                 </div>
 
-                {/* Card xem trước vật phẩm */}
-                <div
-                  className="rounded-2xl p-3 bg-gradient-to-r from-slate-900 to-[#151D2F] border flex items-center gap-3.5 mb-4 shadow-inner cursor-pointer hover:border-amber-400/60 transition-all"
-                  style={{ borderColor: tier.border }}
-                  onMouseEnter={(e) => showItemTooltip(item, e, category)}
-                  onMouseMove={updateItemTooltipPos}
-                  onMouseLeave={hideItemTooltip}
-                  onClick={(e) => handleItemCardClick(item, e, category)}
-                >
-                  {renderUniversalItemThumb(item, category, { sizeClass: 'w-14 h-14', imgSizeClass: 'w-11 h-11' })}
-                  <div className="min-w-0 flex-1">
-                    <div className="font-black text-sm text-white truncate" title={item.name}>
-                      {item.name}
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span
-                        className="text-[9px] font-black px-1.5 py-0.5 rounded uppercase"
-                        style={{ color: tier.color, background: tier.bg, borderColor: tier.border }}
-                      >
-                        {tier.label}
-                      </span>
-                      {!isShoes && !isHat && category !== 'material' && starsCount > 0 && (
-                        <span className="text-[9px] font-black text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                          {starsCount}⭐
+                {/* Phần nội dung cuộn linh hoạt trên điện thoại */}
+                <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar min-h-0">
+                  {/* Card xem trước vật phẩm */}
+                  <div
+                    className="rounded-2xl p-2.5 sm:p-3 bg-gradient-to-r from-slate-900 to-[#151D2F] border flex items-center gap-3 shadow-inner cursor-pointer hover:border-amber-400/60 transition-all shrink-0"
+                    style={{ borderColor: tier.border }}
+                    onMouseEnter={(e) => showItemTooltip(item, e, category)}
+                    onMouseMove={updateItemTooltipPos}
+                    onMouseLeave={hideItemTooltip}
+                    onClick={(e) => handleItemCardClick(item, e, category)}
+                  >
+                    {renderUniversalItemThumb(item, category, { sizeClass: 'w-12 h-12 sm:w-14 sm:h-14', imgSizeClass: 'w-10 h-10 sm:w-11 sm:h-11' })}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-black text-sm text-white truncate" title={item.name}>
+                        {item.name}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span
+                          className="text-[9px] font-black px-1.5 py-0.5 rounded uppercase"
+                          style={{ color: tier.color, background: tier.bg, borderColor: tier.border }}
+                        >
+                          {tier.label}
                         </span>
-                      )}
-                      {isStackable && (
-                        <span className="text-[10px] font-bold text-cyan-300 bg-cyan-950/50 border border-cyan-500/30 px-1.5 py-0.5 rounded">
-                          Túi có: x{Number(maxQty).toLocaleString()}
-                        </span>
-                      )}
+                        {!isShoes && !isHat && category !== 'material' && starsCount > 0 && (
+                          <span className="text-[9px] font-black text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                            {starsCount}⭐
+                          </span>
+                        )}
+                        {isStackable && (
+                          <span className="text-[10px] font-bold text-cyan-300 bg-cyan-950/50 border border-cyan-500/30 px-1.5 py-0.5 rounded">
+                            Túi có: x{Number(maxQty).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Form thiết lập giá & số lượng */}
-                <div className="space-y-3.5">
-                  {isStackable && maxQty > 1 && (
+                  {/* Form thiết lập giá & số lượng */}
+                  <div className="space-y-3">
+                    {isStackable && maxQty > 1 && (
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 mb-1">
+                          Số Lượng Treo Đấu Giá (Tối đa: {maxQty}):
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max={maxQty}
+                          value={listingSellQuantity}
+                          onChange={(e) => {
+                            const v = Math.max(1, Math.min(maxQty, parseInt(e.target.value) || 1));
+                            setListingSellQuantity(v);
+                          }}
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-sm focus:border-amber-400 focus:outline-none"
+                        />
+                      </div>
+                    )}
+
                     <div>
                       <label className="block text-xs font-bold text-slate-300 mb-1">
-                        Số Lượng Treo Đấu Giá (Tối đa: {maxQty}):
+                        Giá Treo Đấu Giá (<span className="text-amber-400">Xu</span>):
                       </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="1"
+                          max="1000000"
+                          value={listingPrice}
+                          onChange={(e) => setListingPrice(Math.max(1, parseInt(e.target.value) || 0))}
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-amber-500/40 text-amber-300 font-black text-sm sm:text-base focus:border-amber-400 focus:outline-none pr-12"
+                          placeholder="Nhập số xu..."
+                        />
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-amber-400">
+                          XU
+                        </span>
+                      </div>
+
+                      {/* Nút chọn nhanh giá */}
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {[50, 100, 200, 500, 1000, 2000].map(pVal => (
+                          <button
+                            key={pVal}
+                            type="button"
+                            onClick={() => setListingPrice(pVal)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${listingPrice === pVal
+                                ? 'bg-amber-500 text-black border-amber-400 font-black'
+                                : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-700'
+                              }`}
+                          >
+                            {pVal.toLocaleString()} xu
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Mục tạo mật mã khi treo bán */}
+                    <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-700/80">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                          <span>🔒 Mật mã mua hàng:</span>
+                          <span className="text-[10px] font-normal text-slate-400">(Tùy chọn)</span>
+                        </label>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${listingPassword.trim() ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'text-slate-500'}`}>
+                          {listingPassword.trim() ? 'Đã cài pass' : 'Bán công khai'}
+                        </span>
+                      </div>
                       <input
-                        type="number"
-                        min="1"
-                        max={maxQty}
-                        value={listingSellQuantity}
-                        onChange={(e) => {
-                          const v = Math.max(1, Math.min(maxQty, parseInt(e.target.value) || 1));
-                          setListingSellQuantity(v);
-                        }}
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-sm focus:border-amber-400 focus:outline-none"
+                        type="text"
+                        maxLength={30}
+                        value={listingPassword}
+                        onChange={(e) => setListingPassword(e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-slate-700 focus:border-amber-400 text-white font-medium text-xs placeholder:text-slate-500 focus:outline-none"
+                        placeholder="Nhập pass riêng cho người mua (bỏ trống nếu bán tự do)..."
                       />
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1">
-                      Giá Treo Đấu Giá (<span className="text-amber-400">Xu</span>):
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="1"
-                        max="1000000"
-                        value={listingPrice}
-                        onChange={(e) => setListingPrice(Math.max(1, parseInt(e.target.value) || 0))}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-amber-500/40 text-amber-300 font-black text-base focus:border-amber-400 focus:outline-none pr-12"
-                        placeholder="Nhập số xu..."
-                      />
-                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-amber-400">
-                        XU
-                      </span>
+                      <p className="text-[10px] text-slate-400 mt-1.5 leading-normal">
+                        💡 Ai muốn mua vật phẩm này trên website bắt buộc phải <strong>nhập đúng mật mã</strong> mới được mua.
+                      </p>
                     </div>
 
-                    {/* Nút chọn nhanh giá */}
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {[50, 100, 200, 500, 1000, 2000].map(pVal => (
-                        <button
-                          key={pVal}
-                          type="button"
-                          onClick={() => setListingPrice(pVal)}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${listingPrice === pVal
-                              ? 'bg-amber-500 text-black border-amber-400 font-black'
-                              : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-700'
-                            }`}
-                        >
-                          {pVal.toLocaleString()} xu
-                        </button>
-                      ))}
+                    {/* Bảng tính chi phí minh bạch */}
+                    <div className="p-3 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-xs space-y-1.5">
+                      <div className="flex justify-between items-center text-slate-300">
+                        <span>🪙 Giá niêm yết:</span>
+                        <strong className="text-amber-300 font-black">{safePrice.toLocaleString()} Xu</strong>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-400">
+                        <span>⚖️ Phí sàn giao dịch (20%):</span>
+                        <span className="text-rose-400 font-bold">-{feeCoins.toLocaleString()} Xu</span>
+                      </div>
+                      <div className="border-t border-amber-500/20 pt-1.5 flex justify-between items-center">
+                        <span className="font-bold text-white">💰 Thực nhận về ví (80%):</span>
+                        <strong className="text-emerald-400 font-black text-sm">+{netReceive.toLocaleString()} Xu</strong>
+                      </div>
+                      <p className="text-[10px] text-slate-400 italic pt-1 leading-normal">
+                        * Món đồ sẽ được chuyển lên sàn. Bạn có thể <strong>Thu Hồi về túi bất kỳ lúc nào</strong> nếu chưa có ai mua.
+                      </p>
                     </div>
-                  </div>
-
-                  {/* Mục tạo mật mã khi treo bán */}
-                  <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-700/80">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                        <span>🔒 Mật mã mua hàng:</span>
-                        <span className="text-[10px] font-normal text-slate-400">(Tùy chọn)</span>
-                      </label>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${listingPassword.trim() ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'text-slate-500'}`}>
-                        {listingPassword.trim() ? 'Đã cài pass' : 'Bán công khai'}
-                      </span>
-                    </div>
-                    <input
-                      type="text"
-                      maxLength={30}
-                      value={listingPassword}
-                      onChange={(e) => setListingPassword(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-slate-700 focus:border-amber-400 text-white font-medium text-xs placeholder:text-slate-500 focus:outline-none"
-                      placeholder="Nhập pass riêng cho người mua (bỏ trống nếu bán tự do)..."
-                    />
-                    <p className="text-[10px] text-slate-400 mt-1.5 leading-normal">
-                      💡 Ai muốn mua vật phẩm này trên website bắt buộc phải <strong>nhập đúng mật mã</strong> mới được mua.
-                    </p>
-                  </div>
-
-                  {/* Bảng tính chi phí minh bạch */}
-                  <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-xs space-y-1.5">
-                    <div className="flex justify-between items-center text-slate-300">
-                      <span>🪙 Giá niêm yết:</span>
-                      <strong className="text-amber-300 font-black">{safePrice.toLocaleString()} Xu</strong>
-                    </div>
-                    <div className="flex justify-between items-center text-slate-400">
-                      <span>⚖️ Phí sàn giao dịch (20%):</span>
-                      <span className="text-rose-400 font-bold">-{feeCoins.toLocaleString()} Xu</span>
-                    </div>
-                    <div className="border-t border-amber-500/20 pt-1.5 flex justify-between items-center">
-                      <span className="font-bold text-white">💰 Thực nhận về ví (80%):</span>
-                      <strong className="text-emerald-400 font-black text-sm">+{netReceive.toLocaleString()} Xu</strong>
-                    </div>
-                    <p className="text-[10px] text-slate-400 italic pt-1 leading-normal">
-                      * Món đồ sẽ được chuyển lên sàn. Bạn có thể <strong>Thu Hồi về túi bất kỳ lúc nào</strong> nếu chưa có ai mua.
-                    </p>
                   </div>
                 </div>
 
-                {/* 2 Nút hành động */}
-                <div className="flex items-center gap-2.5 mt-5 pt-3 border-t border-slate-800">
+                {/* 2 Nút hành động (Cố định ở dưới đáy modal, không bao giờ bị tràn/mất trên điện thoại) */}
+                <div className="flex items-center gap-2.5 mt-3 pt-3 border-t border-slate-800 shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowListItemModal(false)}
@@ -15028,10 +15031,10 @@ const App = () => {
         {/* MODAL NHẬP MẬT MÃ MUA HÀNG ĐẤU GIÁ */}
         {buyingLockedListing && (
           <div
-            className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+            className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto"
             onClick={(e) => { if (e.target === e.currentTarget) { setBuyingLockedListing(null); setBuyPasscodePrompt(''); } }}
           >
-            <div className="bg-gradient-to-br from-[#12192c] via-[#0e1526] to-[#080d1a] border-2 border-amber-500/70 rounded-3xl w-full max-w-sm shadow-[0_0_60px_rgba(245,158,11,0.4)] p-5 text-white animate-zoom-in relative">
+            <div className="bg-gradient-to-br from-[#12192c] via-[#0e1526] to-[#080d1a] border-2 border-amber-500/70 rounded-3xl w-full max-w-sm shadow-[0_0_60px_rgba(245,158,11,0.4)] p-5 text-white animate-zoom-in relative my-auto">
               <div className="flex items-center justify-between border-b border-amber-500/20 pb-3 mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 text-base">
