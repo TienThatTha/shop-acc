@@ -5,7 +5,7 @@ import {
   LogOut, Key, Wallet, Search, Gamepad2, X, Menu, Clock, Flame,
   Settings, Edit, Trash2, PlusCircle, Image as ImageIcon,
   History, Target, Gift, Save, Upload, Plus, Unlock, QrCode,
-  Download, Copy, Check, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ZoomIn,
+  Download, Copy, Check, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ZoomIn, ChevronLeft, ChevronRight,
   Sparkles, TrendingUp, Users, Ticket, Settings2, MessageCircle, Send, Eye, EyeOff,
   ArrowLeftRight, RotateCcw, MoreVertical, AlertTriangle, ArrowLeft, Loader2, Swords, Crown, Zap, Shield, Gem, Package, Link, BarChart2,
   ShoppingCart, Bell, BellOff
@@ -91,9 +91,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-emerald-500 to-teal-500',
     coins: 200,
     royalChests: 2,
-    bossChests: 20,
-    attacks: 20000,
-    extraDesc: '200 Xu + 2 Rương Hoàng Kim + 20 Rương Boss + 20.000 Lượt Đánh',
+    bossChests: 200,
+    attacks: 200000,
+    extraDesc: '200 Xu + 2 Rương Hoàng Kim + 200 Rương Boss + 200.000 Lượt Đánh',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -105,9 +105,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-blue-500 to-cyan-500',
     coins: 500,
     royalChests: 5,
-    bossChests: 50,
-    attacks: 50000,
-    extraDesc: '500 Xu + 5 Rương Hoàng Kim + 50 Rương Boss + 50.000 Lượt Đánh',
+    bossChests: 500,
+    attacks: 500000,
+    extraDesc: '500 Xu + 5 Rương Hoàng Kim + 500 Rương Boss + 500.000 Lượt Đánh',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -119,9 +119,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-indigo-500 to-purple-500',
     coins: 1000,
     royalChests: 10,
-    bossChests: 100,
-    attacks: 100000,
-    extraDesc: '1.000 Xu + 10 Rương Hoàng Kim + 100 Rương Boss + 100.000 Lượt Đánh',
+    bossChests: 1000,
+    attacks: 1000000,
+    extraDesc: '1.000 Xu + 10 Rương Hoàng Kim + 1.000 Rương Boss + 1.000.000 Lượt Đánh',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -133,9 +133,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-purple-500 to-pink-500',
     coins: 2000,
     royalChests: 20,
-    bossChests: 200,
-    attacks: 200000,
-    extraDesc: '2.000 Xu + 20 Rương Hoàng Kim + 200 Rương Boss + 200.000 Lượt Đánh',
+    bossChests: 2000,
+    attacks: 2000000,
+    extraDesc: '2.000 Xu + 20 Rương Hoàng Kim + 2.000 Rương Boss + 2.000.000 Lượt Đánh',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -147,9 +147,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-amber-500 to-orange-500',
     coins: 6000,
     royalChests: 60,
-    bossChests: 600,
-    attacks: 600000,
-    extraDesc: '6.000 Xu Game VIP + 60 Rương Hoàng Kim + 600 Rương Boss + 600.000 Lượt Đánh (KM +20%)',
+    bossChests: 6000,
+    attacks: 6000000,
+    extraDesc: '6.000 Xu Game VIP + 60 Rương Hoàng Kim + 6.000 Rương Boss + 6.000.000 Lượt Đánh (KM +20%)',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -161,9 +161,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-rose-500 to-red-600',
     coins: 13000,
     royalChests: 130,
-    bossChests: 1300,
-    attacks: 1300000,
-    extraDesc: '13.000 Xu Game VIP + 130 Rương Hoàng Kim + 1.300 Rương Boss + 1.300.000 Lượt Đánh (KM +30%)',
+    bossChests: 13000,
+    attacks: 13000000,
+    extraDesc: '13.000 Xu Game VIP + 130 Rương Hoàng Kim + 13.000 Rương Boss + 13.000.000 Lượt Đánh (KM +30%)',
     image: '/game-assets/royal_chest.png',
     items: []
   },
@@ -175,9 +175,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-emerald-400 to-green-600 shadow-[0_0_15px_rgba(16,185,129,0.4)]',
     coins: 20000,
     royalChests: 200,
-    bossChests: 2000,
-    attacks: 2000000,
-    extraDesc: '20.000 Xu + 200 Rương HK + 2.000 Rương Boss + 2.000.000 Lượt + 💥 1x Nhẫn Cổ Đại 5⭐',
+    bossChests: 20000,
+    attacks: 20000000,
+    extraDesc: '20.000 Xu + 200 Rương HK + 20.000 Rương Boss + 20.000.000 Lượt + 💥 1x Nhẫn Cổ Đại 5⭐',
     image: '/game-assets/ring_codai.png',
     items: [
       {
@@ -203,9 +203,9 @@ const BOSS_GAME_PACKAGES = [
     badgeColor: 'from-yellow-400 via-amber-500 to-red-600 shadow-[0_0_20px_rgba(234,179,8,0.6)] animate-pulse',
     coins: 37500,
     royalChests: 375,
-    bossChests: 3750,
-    attacks: 3750000,
-    extraDesc: '37.500 Xu + 375 Rương HK + 3.750 Rương Boss + 3.750.000 Lượt + 🌌 1x Nhẫn Thượng Cổ 1⭐',
+    bossChests: 37500,
+    attacks: 37500000,
+    extraDesc: '37.500 Xu + 375 Rương HK + 37.500 Rương Boss + 37.500.000 Lượt + 🌌 1x Nhẫn Thượng Cổ 1⭐',
     image: '/game-assets/ring_thuongco.png',
     items: [
       {
@@ -394,7 +394,7 @@ const ImageCarousel = ({ images, title, setFullScreenImage, index, isFeatured })
   return (
     <div
       className="relative w-full bg-slate-900 cursor-pointer overflow-hidden mt-1 md:mt-2 group/img cursor-zoom-in"
-      onClick={() => setFullScreenImage(currentImage)}
+      onClick={() => setFullScreenImage({ images, index: currentIndex, title })}
       title="Bấm để phóng to ảnh"
     >
       <img
@@ -614,6 +614,116 @@ const App = () => {
   const [toast, setToast] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [fullScreenImage, setFullScreenImage] = useState(null);
+
+  // Chuẩn hóa dữ liệu ảnh cho bộ phóng to ảnh (Hỗ trợ cả chuỗi đơn lẻ lẫn danh sách ảnh kèm vị trí)
+  const activeFullScreenData = useMemo(() => {
+    if (!fullScreenImage) return null;
+    if (typeof fullScreenImage === 'string') {
+      return { images: [fullScreenImage], index: 0, title: '' };
+    }
+    if (Array.isArray(fullScreenImage)) {
+      const valid = fullScreenImage.filter(Boolean);
+      return { images: valid, index: 0, title: '' };
+    }
+    const imgs = Array.isArray(fullScreenImage.images)
+      ? fullScreenImage.images.filter(Boolean)
+      : (fullScreenImage.url ? [fullScreenImage.url] : []);
+    const idx = typeof fullScreenImage.index === 'number' && fullScreenImage.index >= 0 && fullScreenImage.index < imgs.length
+      ? fullScreenImage.index
+      : 0;
+    return {
+      images: imgs,
+      index: idx,
+      title: fullScreenImage.title || ''
+    };
+  }, [fullScreenImage]);
+
+  const handlePrevFullScreenImage = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (!activeFullScreenData || activeFullScreenData.images.length <= 1) return;
+    const newIndex = (activeFullScreenData.index - 1 + activeFullScreenData.images.length) % activeFullScreenData.images.length;
+    setFullScreenImage(prev => ({
+      ...(typeof prev === 'object' && prev !== null ? prev : {}),
+      images: activeFullScreenData.images,
+      index: newIndex,
+      title: activeFullScreenData.title
+    }));
+    setSelectedImageIndex(newIndex);
+  };
+
+  const handleNextFullScreenImage = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (!activeFullScreenData || activeFullScreenData.images.length <= 1) return;
+    const newIndex = (activeFullScreenData.index + 1) % activeFullScreenData.images.length;
+    setFullScreenImage(prev => ({
+      ...(typeof prev === 'object' && prev !== null ? prev : {}),
+      images: activeFullScreenData.images,
+      index: newIndex,
+      title: activeFullScreenData.title
+    }));
+    setSelectedImageIndex(newIndex);
+  };
+
+  // Điều khiển bằng phím mũi tên Trái / Phải & Phím Esc để thoát
+  useEffect(() => {
+    if (!fullScreenImage) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setFullScreenImage(null);
+      } else if (e.key === 'ArrowLeft' && activeFullScreenData && activeFullScreenData.images.length > 1) {
+        e.preventDefault();
+        handlePrevFullScreenImage();
+      } else if (e.key === 'ArrowRight' && activeFullScreenData && activeFullScreenData.images.length > 1) {
+        e.preventDefault();
+        handleNextFullScreenImage();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [fullScreenImage, activeFullScreenData]);
+
+  // Hỗ trợ vuốt tay chuyển ảnh trên màn hình cảm ứng điện thoại (Fullscreen Viewer)
+  const fsTouchStartXRef = useRef(0);
+  const fsTouchStartYRef = useRef(0);
+  const handleFullScreenTouchStart = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    fsTouchStartXRef.current = e.touches[0].clientX;
+    fsTouchStartYRef.current = e.touches[0].clientY;
+  };
+  const handleFullScreenTouchEnd = (e) => {
+    if (!e.changedTouches || e.changedTouches.length === 0) return;
+    const diffX = e.changedTouches[0].clientX - fsTouchStartXRef.current;
+    const diffY = e.changedTouches[0].clientY - fsTouchStartYRef.current;
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      if (diffX > 0) {
+        handlePrevFullScreenImage();
+      } else {
+        handleNextFullScreenImage();
+      }
+    }
+  };
+
+  // Hỗ trợ vuốt tay chuyển ảnh trên màn hình cảm ứng điện thoại trong modal chi tiết acc
+  const modalTouchStartXRef = useRef(0);
+  const modalTouchStartYRef = useRef(0);
+  const handleModalTouchStart = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    modalTouchStartXRef.current = e.touches[0].clientX;
+    modalTouchStartYRef.current = e.touches[0].clientY;
+  };
+  const handleModalTouchEnd = (e, total) => {
+    if (!e.changedTouches || e.changedTouches.length === 0 || !total || total <= 1) return;
+    const diffX = e.changedTouches[0].clientX - modalTouchStartXRef.current;
+    const diffY = e.changedTouches[0].clientY - modalTouchStartYRef.current;
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      if (diffX > 0) {
+        setSelectedImageIndex(prev => (prev - 1 + total) % total);
+      } else {
+        setSelectedImageIndex(prev => (prev + 1) % total);
+      }
+    }
+  };
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State quản lý menu trên điện thoại
   const [showUserDropdown, setShowUserDropdown] = useState(false); // State dropdown menu user
 
@@ -5239,7 +5349,7 @@ const App = () => {
       rewards: {
         attacks: pkg.attacks || 0,
         royal_chests: pkg.royalChests || 0,
-        boss_chests: pkg.bossChests || (pkg.royalChests ? pkg.royalChests * 10 : 0),
+        boss_chests: pkg.bossChests || (pkg.royalChests ? pkg.royalChests * 100 : 0),
         coins: pkg.coins || 0,
         has_x2_rate: Boolean(pkg.hasX2Rate),
         items: pkg.items || []
@@ -12289,7 +12399,7 @@ const App = () => {
                       </div>
                       <div className="flex items-center gap-2 text-amber-300 font-semibold px-1">
                         <Package size={15} className="text-amber-400 shrink-0" />
-                        <span>+{new Intl.NumberFormat('vi-VN').format(pkg.bossChests || pkg.royalChests * 10)} Rương Boss (Tặng Kèm)</span>
+                        <span>+{new Intl.NumberFormat('vi-VN').format(pkg.bossChests || pkg.royalChests * 100)} Rương Boss (Tặng Kèm)</span>
                       </div>
                       <div className="flex items-center gap-2 text-slate-200 font-semibold px-1">
                         <Swords size={15} className="text-rose-400 shrink-0" />
@@ -12407,7 +12517,7 @@ const App = () => {
                       <span>+{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.coins)} Xu Game (Tiền Tệ Quý Mua Đồ Shop)</span>
                     </p>
                     <p>• +{selectedBossPackage.royalChests} Rương Hoàng Kim VIP</p>
-                    <p className="text-amber-300 font-bold">• +{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.bossChests || selectedBossPackage.royalChests * 10)} Rương Boss Chiến Tích (Tặng kèm)</p>
+                    <p className="text-amber-300 font-bold">• +{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.bossChests || selectedBossPackage.royalChests * 100)} Rương Boss Chiến Tích (Tặng kèm)</p>
                     <p>• +{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.attacks)} Lượt Đánh Boss</p>
                     {selectedBossPackage.items && selectedBossPackage.items.length > 0 && (
                       <p className="text-amber-300 font-bold">• 💥 Tặng kèm: x1 {selectedBossPackage.items[0].name} ({selectedBossPackage.items[0].stars}⭐)</p>
@@ -19517,19 +19627,121 @@ const App = () => {
           </div>
         )}
 
-        {/* Viewer Phóng to ảnh */}
-        {fullScreenImage && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-fade-in">
-            <button onClick={() => setFullScreenImage(null)} className="absolute top-4 right-4 p-2 bg-slate-800/50 hover:bg-rose-600 rounded-full text-white transition-colors z-[101]">
-              <X size={28} />
-            </button>
-            <img src={fullScreenImage} className="max-w-full max-h-[90vh] w-auto h-auto object-contain shadow-2xl border border-slate-800 rounded" alt="Full Screen" />
+        {/* Viewer Phóng to ảnh (Hỗ trợ chuyển ảnh Trái/Phải, Phím mũi tên, Vuốt cảm ứng điện thoại & Thanh Thumbnail) */}
+        {activeFullScreenData && (
+          <div
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-between bg-black/95 backdrop-blur-md p-2 md:p-4 animate-fade-in select-none"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setFullScreenImage(null);
+              }
+            }}
+            onTouchStart={handleFullScreenTouchStart}
+            onTouchEnd={handleFullScreenTouchEnd}
+          >
+            {/* THANH ĐIỀU HƯỚNG TRÊN CÙNG: TIÊU ĐỀ, ĐẾM SỐ ẢNH & NÚT ĐÓNG */}
+            <div className="w-full flex items-center justify-between px-2 md:px-6 py-2 z-[102]">
+              <div className="flex items-center gap-2 md:gap-3 max-w-[70%]">
+                {activeFullScreenData.images.length > 1 && (
+                  <span className="bg-blue-600/90 text-white text-xs md:text-sm font-black px-3 py-1 rounded-full border border-blue-400/40 shadow-lg tracking-wider shrink-0">
+                    {activeFullScreenData.index + 1} / {activeFullScreenData.images.length}
+                  </span>
+                )}
+                {activeFullScreenData.title && (
+                  <span className="text-xs md:text-sm text-slate-300 font-bold truncate hidden sm:inline-block">
+                    {activeFullScreenData.title}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setFullScreenImage(null)}
+                className="p-2 md:p-2.5 bg-slate-800/80 hover:bg-rose-600 active:scale-95 rounded-full text-white transition-all border border-slate-700/80 shadow-lg cursor-pointer"
+                title="Đóng phóng to (Esc)"
+              >
+                <X size={24} className="md:w-6 md:h-6 w-5 h-5" />
+              </button>
+            </div>
+
+            {/* KHU VỰC CHÍNH: NÚT TRÁI - ẢNH PHÓNG TO - NÚT PHẢI */}
+            <div
+              className="relative w-full flex-1 flex items-center justify-center min-h-0 my-auto"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setFullScreenImage(null);
+                }
+              }}
+            >
+              {/* NÚT CHUYỂN ẢNH TRÁI (PREV) */}
+              {activeFullScreenData.images.length > 1 && (
+                <button
+                  type="button"
+                  onClick={handlePrevFullScreenImage}
+                  className="absolute left-2 md:left-6 z-[103] p-2.5 md:p-4 bg-slate-900/85 hover:bg-blue-600 active:scale-90 text-white rounded-full border border-white/20 shadow-[0_4px_25px_rgba(0,0,0,0.9)] backdrop-blur-md transition-all cursor-pointer group"
+                  title="Ảnh trước (Phím ←)"
+                >
+                  <ChevronLeft size={28} className="md:w-8 md:h-8 w-6 h-6 transition-transform group-hover:-translate-x-0.5" />
+                </button>
+              )}
+
+              {/* HÌNH ẢNH ĐƯỢC PHÓNG TO */}
+              <img
+                key={activeFullScreenData.images[activeFullScreenData.index]}
+                src={activeFullScreenData.images[activeFullScreenData.index]}
+                className="max-w-full max-h-[72vh] md:max-h-[82vh] w-auto h-auto object-contain shadow-2xl border border-slate-800 rounded-xl transition-all duration-200 select-none"
+                alt={`Ảnh ${activeFullScreenData.index + 1}`}
+              />
+
+              {/* NÚT CHUYỂN ẢNH PHẢI (NEXT) */}
+              {activeFullScreenData.images.length > 1 && (
+                <button
+                  type="button"
+                  onClick={handleNextFullScreenImage}
+                  className="absolute right-2 md:right-6 z-[103] p-2.5 md:p-4 bg-slate-900/85 hover:bg-blue-600 active:scale-90 text-white rounded-full border border-white/20 shadow-[0_4px_25px_rgba(0,0,0,0.9)] backdrop-blur-md transition-all cursor-pointer group"
+                  title="Ảnh tiếp theo (Phím →)"
+                >
+                  <ChevronRight size={28} className="md:w-8 md:h-8 w-6 h-6 transition-transform group-hover:translate-x-0.5" />
+                </button>
+              )}
+            </div>
+
+            {/* THANH THUMBNAIL PHÍA DƯỚI CHO PHÉP NHẢY NHANH ĐẾN ẢNH BẤT KỲ */}
+            {activeFullScreenData.images.length > 1 && (
+              <div className="w-full max-w-2xl px-2 py-2 z-[102] flex items-center justify-center">
+                <div className="flex gap-2 overflow-x-auto max-w-full py-1.5 px-2.5 custom-scrollbar bg-slate-900/70 backdrop-blur-md rounded-2xl border border-slate-800/80 shadow-2xl">
+                  {activeFullScreenData.images.map((img, idx) => (
+                    <button
+                      type="button"
+                      key={idx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFullScreenImage(prev => ({
+                          ...(typeof prev === 'object' && prev !== null ? prev : {}),
+                          images: activeFullScreenData.images,
+                          index: idx,
+                          title: activeFullScreenData.title
+                        }));
+                        setSelectedImageIndex(idx);
+                      }}
+                      className={`relative flex-shrink-0 w-12 h-9 md:w-16 md:h-11 rounded-lg overflow-hidden border-2 transition-all ${
+                        activeFullScreenData.index === idx
+                          ? 'border-blue-500 ring-2 ring-blue-500/50 scale-105 opacity-100'
+                          : 'border-transparent opacity-50 hover:opacity-100 hover:scale-100'
+                      }`}
+                    >
+                      <img src={img} className="w-full h-full object-cover" alt={`Thumbnail ${idx + 1}`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* POPUP CHI TIẾT TÀI KHOẢN */}
         {viewingAcc && (() => {
-          const viewingAllImages = [viewingAcc.coverImage, ...(viewingAcc.detailImages || [])];
+          const viewingAllImages = [viewingAcc.coverImage, ...(viewingAcc.detailImages || [])].filter(Boolean);
           const isCurrentlyRented = viewingAcc.rentedUntil && viewingAcc.rentedUntil > Date.now();
 
           return (
@@ -19547,18 +19759,53 @@ const App = () => {
 
                   <div className="w-full md:w-1/2 bg-[#0B1120] p-3 md:p-4 flex flex-col gap-2 md:overflow-y-auto md:custom-scrollbar">
                     <div
-                      className="relative w-full shrink-0 rounded-xl overflow-hidden border border-slate-800 bg-black cursor-zoom-in group"
-                      onClick={() => setFullScreenImage(viewingAllImages[selectedImageIndex])}
+                      className="relative w-full shrink-0 rounded-xl overflow-hidden border border-slate-800 bg-black cursor-zoom-in group select-none"
+                      onClick={() => setFullScreenImage({ images: viewingAllImages, index: selectedImageIndex, title: viewingAcc.title })}
+                      onTouchStart={handleModalTouchStart}
+                      onTouchEnd={(e) => handleModalTouchEnd(e, viewingAllImages.length)}
                     >
-                      <img src={viewingAllImages[selectedImageIndex]} className="w-full h-auto block" alt="Main View" />
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <img src={viewingAllImages[selectedImageIndex] || viewingAllImages[0]} className="w-full h-auto block select-none pointer-events-none" alt="Main View" />
+                      
+                      {/* Lớp phủ hover với icon phóng to */}
+                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
                         <div className="bg-black/60 p-3 rounded-full text-white flex items-center gap-2"><ZoomIn size={24} /></div>
                       </div>
+
+                      {/* Nút chuyển ảnh Trái/Phải và Huy hiệu đếm số ảnh trực tiếp trên khung xem chi tiết */}
+                      {viewingAllImages.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedImageIndex(prev => (prev - 1 + viewingAllImages.length) % viewingAllImages.length);
+                            }}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/60 hover:bg-blue-600 active:scale-90 text-white rounded-full transition-all border border-white/20 shadow-lg z-10"
+                            title="Ảnh trước"
+                          >
+                            <ChevronLeft size={20} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedImageIndex(prev => (prev + 1) % viewingAllImages.length);
+                            }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/60 hover:bg-blue-600 active:scale-90 text-white rounded-full transition-all border border-white/20 shadow-lg z-10"
+                            title="Ảnh tiếp"
+                          >
+                            <ChevronRight size={20} />
+                          </button>
+                          <div className="absolute bottom-2 right-2 bg-black/75 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-white/20 shadow pointer-events-none z-10">
+                            {selectedImageIndex + 1} / {viewingAllImages.length}
+                          </div>
+                        </>
+                      )}
                     </div>
                     {viewingAllImages.length > 1 && (
                       <div className="flex gap-2 overflow-x-auto custom-scrollbar py-2 shrink-0">
                         {viewingAllImages.map((img, idx) => (
-                          <button key={idx} onClick={() => setSelectedImageIndex(idx)} className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-all ${selectedImageIndex === idx ? 'border-blue-500' : 'border-transparent opacity-50 hover:opacity-100'}`}>
+                          <button key={idx} onClick={() => setSelectedImageIndex(idx)} className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-all ${selectedImageIndex === idx ? 'border-blue-500 ring-2 ring-blue-500/50 scale-105' : 'border-transparent opacity-50 hover:opacity-100'}`}>
                             <img src={img} className="w-full h-full object-cover" />
                           </button>
                         ))}
