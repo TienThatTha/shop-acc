@@ -620,17 +620,17 @@
     "glow_color": "#ff00ff",
     "border_class": "rainbow-aura-box"
   },
-  "tinh thể cường hóa": {
-    "name": "Tinh Thể Cường Hóa",
-    "image": "ring_crystal.png",
+  "viên tăng bậc": {
+    "name": "Viên Tăng Bậc",
+    "image": "item_tinh_the.png",
     "category": "material",
     "tier": "Thượng Cổ",
     "color": "#ff00ff",
     "glow_color": null,
     "border_class": ""
   },
-  "đá tinh hoa": {
-    "name": "Đá Tinh Hoa",
+  "đá nâng kĩ năng": {
+    "name": "Đá Nâng Kĩ Năng",
     "image": "da_tinh_hoa.png",
     "category": "material",
     "tier": "Thượng Cổ",
