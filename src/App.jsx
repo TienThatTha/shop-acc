@@ -11190,6 +11190,465 @@ const App = () => {
     return activeList;
   };
 
+  // SSOT: TÍNH TOÁN FULL THUỘC TÍNH CHIẾN ĐẤU & SÁT THƯƠNG CHUẨN DISCORD / GAME_CORE (KHÔNG BỊ PHÔ TRƯƠNG)
+  const calculatePlayerFullStats = (p) => {
+    if (!p) return {
+      totalAttack: 150,
+      displayCp: 0,
+      calculatedCp: 0,
+      maxHp: 1000,
+      currentHp: 1000,
+      hpPct: 100,
+      totalDef: 0,
+      rawGearReducPct: '0.0',
+      effectiveGearReducPct: 0,
+      rawCritPct: 15,
+      effectiveCritPct: 15,
+      critDamageMultiplier: 1.8,
+      critTotalPct: 180,
+      armorPenDisplay: '0.0',
+      rawCritResPctDisplay: '0.0',
+      effectiveCritResPct: 0,
+      totalAgility: 80,
+      dodgePct: '0.0',
+      ringSkillProcRate: 0.001
+    };
+
+    const lvl = Number(p.level || 1);
+    const getStarMult = (stars) => 1.0 + (Math.max(1, Math.min(5, Number(stars || 1))) - 1) * 0.50;
+    const getRingStarMult = (stars) => Math.pow(3, Math.max(1, Math.min(5, Number(stars || 1))) - 1);
+    const getPlusMult = (plus) => 1.0 + (Number(plus || 0) * 0.25);
+    const getStepMult = (it) => 1.0 + ((Number(it?.tier_step || it?.step || 0) || 0) * 0.10);
+
+    const baseUserDmg = 100 + (lvl * 25);
+    const baseUserHp = 1000 + (lvl * 150);
+
+    let gearDmgPctBonus = 0.0;
+    let critDamageMultiplier = 1.8;
+    let gearCritChanceBonus = 0.0;
+    let armorPenPct = 0.0;
+    let extraGearHpPct = 0.0;
+    let extraGearDefPct = 0.0;
+    let rawGearDmgReduc = 0.0;
+    let rawCritResPct = 0.0;
+    let expBonusMultiplier = 1.0;
+    let necklaceCpMult = 1.0;
+    let armorCpMult = 1.0;
+    let ringCpMult = 1.0;
+    let hatCpMult = 1.0;
+    let gearCpMult = 0.0;
+
+    const parseSubs = (it) => {
+      if (!it) return [];
+      let subs = [];
+      if (Array.isArray(it.sub_stats)) subs.push(...it.sub_stats);
+      else if (typeof it.sub_stats === 'string' && it.sub_stats.trim()) {
+        try { const j = JSON.parse(it.sub_stats); if (Array.isArray(j)) subs.push(...j); else subs.push(it.sub_stats); } catch (e) { subs.push(it.sub_stats); }
+      }
+      if (Array.isArray(it.star_sub_stats)) subs.push(...it.star_sub_stats);
+      else if (typeof it.star_sub_stats === 'string' && it.star_sub_stats.trim()) {
+        try { const j = JSON.parse(it.star_sub_stats); if (Array.isArray(j)) subs.push(...j); else subs.push(it.star_sub_stats); } catch (e) { subs.push(it.star_sub_stats); }
+      }
+      return subs.filter(Boolean);
+    };
+
+    // 1. WEAPON
+    let weaponDmg = 0;
+    const w = p.weapon || p.boss_weapon;
+    if (w && w.name) {
+      const wStats = getWeaponStats(w);
+      const wBase = Number(w.base_dmg || wStats.baseDmg || 300000);
+      const wStarMult = getStarMult(w.stars);
+      const wStepMult = getStepMult(w);
+      const wPlusMult = getPlusMult(w.plus);
+      weaponDmg = Math.round(wBase * wPlusMult * wStarMult * wStepMult);
+      const wTier = String(w.tier || '').toLowerCase();
+      if (wTier.includes('thượng cổ')) {
+        gearDmgPctBonus += 60.0;
+        critDamageMultiplier = 2.5;
+      } else if (wTier.includes('cổ đại')) {
+        gearDmgPctBonus += 20.0;
+      }
+      parseSubs(w).forEach(sub => {
+        const m = String(sub).match(/\+(\d+)%/);
+        const val = m ? parseInt(m[1], 10) : 20;
+        const sLow = String(sub).toLowerCase();
+        if (sLow.includes('st chí mạng') || sLow.includes('st bạo kích') || sLow.includes('sát thương bạo kích') || sLow.includes('sát thương chí mạng')) {
+          critDamageMultiplier += val / 100.0;
+        } else if (sLow.includes('chí mạng') || sLow.includes('bạo kích') || sLow.includes('crit')) {
+          gearCritChanceBonus += val / 100.0;
+        } else if (sLow.includes('xuyên giáp') || sLow.includes('phá giáp')) {
+          gearDmgPctBonus += val;
+          armorPenPct += val / 100.0;
+        } else {
+          gearDmgPctBonus += val;
+        }
+      });
+    }
+
+    // 2. ARMOR
+    let armorDmg = 0;
+    let armorHp = 0;
+    let armorDef = 0;
+    const a = p.armor || p.boss_armor;
+    if (a && a.name) {
+      const aStats = getArmorStats(a);
+      const aBaseDmg = Number(a.base_dmg || 30);
+      const aBaseHp = Number(a.base_hp || aStats.baseHp || (String(a.tier || '').toLowerCase().includes('thượng cổ') ? 900000 : 30000));
+      const aBaseDef = Number(a.base_def || aStats.baseDef || (String(a.tier || '').toLowerCase().includes('thượng cổ') ? 90000 : 3000));
+      const aStarMult = getStarMult(a.stars);
+      const aStepMult = getStepMult(a);
+      const aPlusMult = getPlusMult(a.plus);
+      armorDmg = Math.round(aBaseDmg * aPlusMult * aStarMult * aStepMult);
+      armorHp = Math.round(aBaseHp * aPlusMult * aStarMult * aStepMult);
+      armorDef = Math.round(aBaseDef * aPlusMult * aStarMult * aStepMult);
+      const aTier = String(a.tier || '').toLowerCase();
+      if (aTier.includes('thượng cổ')) {
+        gearDmgPctBonus += 50.0;
+      } else if (aTier.includes('cổ đại')) {
+        gearDmgPctBonus += 15.0;
+      }
+      parseSubs(a).forEach(sub => {
+        const m = String(sub).match(/\+(\d+)%/);
+        const val = m ? parseInt(m[1], 10) : 20;
+        const sLow = String(sub).toLowerCase();
+        if (sLow.includes('giảm sát thương') || sLow.includes('giảm st') || sLow.includes('kháng phản đòn')) {
+          rawGearDmgReduc += val / 100.0;
+        } else if (sLow.includes('phòng thủ') || sLow.includes('def') || sLow.includes('giáp') || sLow.includes('kim cang')) {
+          extraGearDefPct += val / 100.0;
+        } else if (sLow.includes('sinh lực') || sLow.includes('hp') || sLow.includes('máu')) {
+          extraGearHpPct += val / 100.0;
+        } else if (sLow.includes('kháng sát thương bạo kích') || sLow.includes('kháng bạo kích') || sLow.includes('kháng chí mạng')) {
+          rawCritResPct += val / 100.0;
+        } else if (sLow.includes('sát thương') || sLow.includes('công phá') || sLow.includes('phản kích')) {
+          gearDmgPctBonus += val;
+        }
+      });
+    }
+
+    // 3. PANTS
+    let pantsHp = 0;
+    let pantsDef = 0;
+    let pantsHpPct = 0.0;
+    let pantsDefPct = 0.0;
+    const pn = p.pants || p.boss_pants;
+    if (pn && pn.name) {
+      const pStats = getPantsStats(pn);
+      const pnBaseHp = Number(pn.base_hp || pStats.baseHp || (String(pn.tier || '').toLowerCase().includes('thượng cổ') ? 480000 : 20000));
+      const pnBaseDef = Number(pn.base_def || pStats.baseDef || (String(pn.tier || '').toLowerCase().includes('thượng cổ') ? 48000 : 2000));
+      const pnStarMult = getStarMult(pn.stars);
+      const pnStepMult = getStepMult(pn);
+      const pnPlusMult = getPlusMult(pn.plus);
+      pantsHp = Math.round(pnBaseHp * pnPlusMult * pnStarMult * pnStepMult);
+      pantsDef = Math.round(pnBaseDef * pnPlusMult * pnStarMult * pnStepMult);
+      const pnBaseHpPct = Number(pn.base_hp_percent || pn.hp_percent || pStats.hpPercent || (String(pn.tier || '').toLowerCase().includes('thượng cổ') ? 200 : 15));
+      const pnBaseDefPct = Number(pn.base_def_percent || pn.def_percent || pStats.defPercent || (String(pn.tier || '').toLowerCase().includes('thượng cổ') ? 200 : 15));
+      pantsHpPct = pnBaseHpPct * pnPlusMult * pnStarMult * pnStepMult;
+      pantsDefPct = pnBaseDefPct * pnPlusMult * pnStarMult * pnStepMult;
+      parseSubs(pn).forEach(sub => {
+        const m = String(sub).match(/\+(\d+)%/);
+        const val = m ? parseInt(m[1], 10) : 20;
+        const sLow = String(sub).toLowerCase();
+        if (sLow.includes('giảm sát thương') || sLow.includes('giảm st')) {
+          rawGearDmgReduc += val / 100.0;
+        } else if (sLow.includes('phòng thủ') || sLow.includes('def')) {
+          extraGearDefPct += val / 100.0;
+        } else if (sLow.includes('sinh lực') || sLow.includes('hp') || sLow.includes('máu')) {
+          extraGearHpPct += val / 100.0;
+        } else if (sLow.includes('kháng sát thương bạo kích') || sLow.includes('kháng bạo kích') || sLow.includes('kháng chí mạng')) {
+          rawCritResPct += val / 100.0;
+        }
+      });
+    }
+
+    // 4. PET
+    let petDmg = 0;
+    let petHp = 0;
+    let petDef = 0;
+    let petCritBonus = 0.0;
+    let petLevelCritDmg = 0.0;
+    let petLevelCp = 0;
+    const pt = p.pet || p.boss_pet;
+    if (pt && pt.name) {
+      const petS = getPetStats(pt);
+      const ptStarMult = getStarMult(pt.stars);
+      const ptStepMult = getStepMult(pt);
+      const ptBaseDmg = Number(pt.bonus_dmg || petS.bonusDmg || (String(pt.tier || '').toLowerCase().includes('thượng cổ') ? 80000 : 8000));
+      const ptBaseHp = Number(pt.base_hp || petS.baseHp || (String(pt.tier || '').toLowerCase().includes('thượng cổ') ? 2000000 : 150000));
+      const ptBaseDef = Number(pt.base_def || petS.baseDef || (String(pt.tier || '').toLowerCase().includes('thượng cổ') ? 200000 : 15000));
+
+      const ptLvl = Number(pt.level || 1);
+      const ptLvlBonusDmg = Number(pt.level_bonus_dmg || ((ptLvl - 1) * 45000));
+      const ptLvlBonusHp = Number(pt.level_bonus_hp || ((ptLvl - 1) * 350000));
+      const ptLvlBonusDef = Number(pt.level_bonus_def || ((ptLvl - 1) * 35000));
+      const ptLvlCritRate = Number(pt.level_crit_rate || ((ptLvl - 1) * 0.005));
+      const ptLvlCritDmg = Number(pt.level_crit_dmg || ((ptLvl - 1) * 0.03));
+      const ptLvlBonusCp = Number(pt.level_bonus_cp || ((ptLvl - 1) * 1500));
+
+      petDmg = Math.round(ptBaseDmg * ptStarMult * ptStepMult) + ptLvlBonusDmg;
+      petHp = Math.round(ptBaseHp * ptStarMult * ptStepMult) + ptLvlBonusHp;
+      petDef = Math.round(ptBaseDef * ptStarMult * ptStepMult) + ptLvlBonusDef;
+      petCritBonus = Number(pt.crit_rate || (String(pt.tier || '').toLowerCase().includes('thượng cổ') ? 0.50 : 0.20)) + ptLvlCritRate;
+      petLevelCritDmg = ptLvlCritDmg;
+      petLevelCp = ptLvlBonusCp;
+
+      const ptTier = String(pt.tier || '').toLowerCase();
+      if (ptTier.includes('thượng cổ')) {
+        gearDmgPctBonus += 45.0;
+        expBonusMultiplier += 0.25;
+      } else if (ptTier.includes('cổ đại')) {
+        gearDmgPctBonus += 15.0;
+        expBonusMultiplier += 0.15;
+      }
+      parseSubs(pt).forEach(sub => {
+        const m = String(sub).match(/\+(\d+)%/);
+        const val = m ? parseInt(m[1], 10) : 20;
+        const sLow = String(sub).toLowerCase();
+        if (sLow.includes('st chí mạng') || sLow.includes('st bạo kích') || sLow.includes('sát thương bạo kích') || sLow.includes('sát thương chí mạng')) {
+          critDamageMultiplier += val / 100.0;
+        } else if (sLow.includes('chí mạng') || sLow.includes('bạo kích') || sLow.includes('crit')) {
+          gearCritChanceBonus += val / 100.0;
+        } else if (sLow.includes('xuyên giáp') || sLow.includes('phá giáp')) {
+          gearDmgPctBonus += val;
+          armorPenPct += val / 100.0;
+        } else if (sLow.includes('exp') || sLow.includes('kinh nghiệm')) {
+          expBonusMultiplier += val / 100.0;
+        } else {
+          gearDmgPctBonus += val;
+        }
+      });
+    }
+    critDamageMultiplier += petLevelCritDmg;
+
+    // 5. NECKLACE
+    let necklaceDmgPct = 0;
+    let necklaceHpPct = 0;
+    let necklaceDefPct = 0;
+    const nk = p.necklace || p.boss_necklace;
+    if (nk && nk.name) {
+      const nStats = getNecklaceStats(nk);
+      const nStarMult = getStarMult(nk.stars);
+      const nStepMult = getStepMult(nk);
+      const nPlus = Number(nk.plus || 0);
+      const nBasePct = Number(nk.dmg_percent || nStats.dmgPercent || (String(nk.tier || '').toLowerCase().includes('thượng cổ') ? 300 : 50));
+      const baseUpgradePct = nBasePct + Math.max(nPlus, Math.round(nBasePct * (getPlusMult(nPlus) - 1.0)));
+      necklaceDmgPct = Math.round(baseUpgradePct * nStarMult * nStepMult);
+      necklaceHpPct = necklaceDmgPct;
+      necklaceDefPct = necklaceDmgPct;
+      const nTier = String(nk.tier || '').toLowerCase();
+      if (nTier.includes('thượng cổ')) {
+        critDamageMultiplier = Math.max(critDamageMultiplier, 3.0);
+        necklaceCpMult += 0.35;
+      } else if (nTier.includes('cổ đại')) {
+        critDamageMultiplier = Math.max(critDamageMultiplier, 2.2);
+        necklaceCpMult += 0.20;
+      }
+      parseSubs(nk).forEach(sub => {
+        const m = String(sub).match(/\+(\d+)%/);
+        const val = m ? parseInt(m[1], 10) : 20;
+        const sLow = String(sub).toLowerCase();
+        if (sLow.includes('st chí mạng') || sLow.includes('st bạo kích') || sLow.includes('sát thương bạo kích') || sLow.includes('sát thương chí mạng')) {
+          critDamageMultiplier += val / 100.0;
+        } else if (sLow.includes('chí mạng') || sLow.includes('bạo kích') || sLow.includes('crit')) {
+          gearCritChanceBonus += val / 100.0;
+        } else if (sLow.includes('xuyên giáp') || sLow.includes('phá giáp')) {
+          necklaceDmgPct += val;
+          armorPenPct += val / 100.0;
+        } else if (sLow.includes('lực chiến cp')) {
+          necklaceCpMult += val / 100.0;
+        } else {
+          necklaceDmgPct += val;
+        }
+      });
+    }
+
+    // 6. RING
+    let ringDmgPct = 0;
+    let ringHpPct = 0;
+    let ringDefPct = 0;
+    let ringSkillProcRate = 0.001;
+    const rg = p.ring || p.boss_ring;
+    if (rg && rg.name) {
+      const rStats = getRingStats(rg);
+      const rStarMult = getRingStarMult(rg.stars);
+      const rStep = Number(rg.tier_step || rg.step || 0) || 0;
+      const rBasePct = Number(rg.base_dmg_percent || rStats.baseDmgPercent || (String(rg.tier || '').toLowerCase().includes('thượng cổ') ? 150 : 30));
+      ringDmgPct = Math.round(rBasePct * rStarMult) + (rStep * 1000);
+      ringHpPct = ringDmgPct;
+      ringDefPct = ringDmgPct;
+      ringSkillProcRate = Number(rg.skill_proc_rate || (rg.skill_level ? rg.skill_level * 0.05 : 0.5));
+      const rTier = String(rg.tier || '').toLowerCase();
+      if (rTier.includes('thượng cổ')) ringCpMult += 0.50;
+      else if (rTier.includes('cổ đại')) ringCpMult += 0.30;
+      else if (rTier.includes('tối thượng')) ringCpMult += 0.20;
+
+      parseSubs(rg).forEach(sub => {
+        const m = String(sub).match(/\+(\d+)%/);
+        const val = m ? parseInt(m[1], 10) : 20;
+        const sLow = String(sub).toLowerCase();
+        if (sLow.includes('st chí mạng') || sLow.includes('st bạo kích') || sLow.includes('sát thương bạo kích') || sLow.includes('sát thương chí mạng')) {
+          critDamageMultiplier += val / 100.0;
+        } else if (sLow.includes('chí mạng') || sLow.includes('bạo kích') || sLow.includes('crit')) {
+          gearCritChanceBonus += val / 100.0;
+        } else if (sLow.includes('xuyên giáp') || sLow.includes('phá giáp')) {
+          ringDmgPct += val;
+          armorPenPct += val / 100.0;
+        } else if (sLow.includes('lực chiến cp')) {
+          ringCpMult += val / 100.0;
+        } else if (!sLow.includes('sinh lực') && !sLow.includes('hp') && !sLow.includes('phòng thủ') && !sLow.includes('def') && !sLow.includes('kháng')) {
+          ringDmgPct += val;
+        }
+      });
+    }
+
+    // 7. SHOES (Bảo Vật Đôi Giày)
+    let totalAgility = 80;
+    let shoeBonusPct = 0.0;
+    const sh = p.shoes || p.boss_shoes;
+    if (sh && sh.name) {
+      const sPlus = Number(sh.plus || 0);
+      const shBaseAgi = Number(sh.base_agility || (String(sh.tier || '').toLowerCase().includes('huyền thoại') ? 300 : 80));
+      parseSubs(sh).forEach(sub => {
+        const m = String(sub).match(/\+(\d+)%/);
+        if (m) shoeBonusPct += parseFloat(m[1]);
+      });
+      const agiPlusMult = getPlusMult(sPlus);
+      const sStepMult = getStepMult(sh);
+      totalAgility = Math.round(shBaseAgi * agiPlusMult * (1.0 + (shoeBonusPct / 100.0)) * sStepMult);
+    }
+
+    // 8. HAT (Bảo Vật Nón)
+    const ht = p.hat || p.boss_hat;
+    if (ht && ht.name) {
+      const hPlus = Number(ht.plus || 0);
+      const basePen = Number(ht.base_armor_pen_pct || 300.0);
+      armorPenPct += (basePen / 100.0) * getPlusMult(hPlus);
+      hatCpMult += 0.50;
+      parseSubs(ht).forEach(sub => {
+        const m = String(sub).match(/\+(\d+)%/);
+        const val = m ? parseInt(m[1], 10) : 20;
+        const sLow = String(sub).toLowerCase();
+        if (sLow.includes('st chí mạng') || sLow.includes('st bạo kích') || sLow.includes('sát thương bạo kích') || sLow.includes('sát thương chí mạng')) {
+          critDamageMultiplier += val / 100.0;
+        } else if (sLow.includes('chí mạng') || sLow.includes('bạo kích') || sLow.includes('crit')) {
+          gearCritChanceBonus += val / 100.0;
+        } else if (sLow.includes('xuyên giáp') || sLow.includes('phá giáp')) {
+          gearDmgPctBonus += val;
+          armorPenPct += val / 100.0;
+        } else {
+          gearDmgPctBonus += val;
+        }
+      });
+    }
+
+    // 9. SET BONUSES
+    let setAtkPct = 0.0;
+    let setHpPct = 0.0;
+    let setDefPct = 0.0;
+    let setCritDmgPct = 0.0;
+    let allStatsBonus = 0.0;
+
+    const slots6 = [w, a, pn, nk, rg, pt];
+    const tcCount = slots6.filter(it => it && String(it.tier || '').toLowerCase().includes('thượng cổ')).length;
+    if (tcCount >= 6) {
+      setAtkPct = 0.90;
+      setHpPct = 2.80;
+      setDefPct = 1.80;
+      setCritDmgPct = 2.20;
+      allStatsBonus = 0.60;
+    } else if (tcCount >= 4) {
+      setAtkPct = 0.50;
+      setHpPct = 1.60;
+      setDefPct = 1.10;
+    } else if (tcCount >= 2) {
+      setHpPct = 0.75;
+      setDefPct = 0.50;
+    }
+    critDamageMultiplier += setCritDmgPct;
+
+    // 10. CÔNG THỨC SÁT THƯƠNG BUFF MỚI (ADDITIVE)
+    const rawGearDmg = weaponDmg + armorDmg + petDmg;
+    const totalDmgPct = (gearDmgPctBonus / 100.0)
+      + (necklaceDmgPct / 100.0)
+      + (ringDmgPct / 100.0)
+      + setAtkPct
+      + allStatsBonus;
+
+    const totalGearMultiplier = 1.0 + totalDmgPct;
+    const effectiveGearDmg = rawGearDmg * totalGearMultiplier;
+    let totalAttack = baseUserDmg + Math.round(effectiveGearDmg);
+    if (p.has_buff) totalAttack *= 2;
+
+    // 11. CRIT & CRIT DMG
+    const rawCritChance = 0.15 + petCritBonus + gearCritChanceBonus;
+    const effectiveCritChance = Math.min(0.95, Math.max(0.05, rawCritChance));
+    const rawCritPct = Math.round(rawCritChance * 1000) / 10;
+    const effectiveCritPct = Math.round(effectiveCritChance * 1000) / 10;
+    const critTotalPct = Math.round(critDamageMultiplier * 100);
+
+    // 12. XUYÊN GIÁP
+    const effectiveArmorPen = Math.min(0.70, Math.max(0.0, armorPenPct));
+    const armorPenDisplay = (Math.round(effectiveArmorPen * 1000) / 10).toFixed(1);
+
+    // 13. HP & DEF
+    const totalHpBonusPct = (extraGearHpPct / 100.0) + (pantsHpPct / 100.0) + (necklaceHpPct / 100.0) + (ringHpPct / 100.0) + setHpPct + allStatsBonus;
+    const totalDefBonusPct = (extraGearDefPct / 100.0) + (pantsDefPct / 100.0) + (necklaceDefPct / 100.0) + (ringDefPct / 100.0) + setDefPct + allStatsBonus;
+    const rawHp = baseUserHp + armorHp + pantsHp + petHp;
+    const rawDef = armorDef + pantsDef + petDef;
+    const maxHp = Number(p.max_hp !== undefined && p.max_hp > 0 ? p.max_hp : Math.round(rawHp * (1.0 + totalHpBonusPct)));
+    const totalDef = Number(p.total_def !== undefined && p.total_def > 0 ? p.total_def : Math.round(rawDef * (1.0 + totalDefBonusPct)));
+    const currentHp = Number(p.current_hp !== undefined ? p.current_hp : maxHp);
+    const hpPct = Math.min(100, Math.max(0, (currentHp / Math.max(1, maxHp)) * 100));
+
+    // Giảm ST
+    const effectiveGearReducPct = Math.min(80.0, Math.round(rawGearDmgReduc * 1000) / 10);
+    const rawGearReducPct = (Math.round(rawGearDmgReduc * 1000) / 10).toFixed(1);
+
+    // Kháng chí mạng
+    const effectiveCritResPct = Math.min(95.0, Math.round(rawCritResPct * 1000) / 10);
+    const rawCritResPctDisplay = (Math.round(rawCritResPct * 1000) / 10).toFixed(1);
+
+    // Tốc độ & Né đòn
+    const dodgeRate = totalAgility > 0 ? Math.min(0.60, totalAgility / (totalAgility + 800.0)) : 0.0;
+    const dodgePct = (Math.round(dodgeRate * 1000) / 10).toFixed(1);
+
+    // 14. LỰC CHIẾN (CP)
+    const cpBonusMult = 1.0
+      + Math.max(0.0, necklaceCpMult - 1.0)
+      + Math.max(0.0, armorCpMult - 1.0)
+      + Math.max(0.0, ringCpMult - 1.0)
+      + Math.max(0.0, hatCpMult - 1.0)
+      + gearCpMult;
+    const atkCp = Math.round(totalAttack * (1.0 + effectiveCritChance) * cpBonusMult) + petLevelCp;
+    const critResCpMult = 1.0 + (effectiveCritResPct / 100.0);
+    const defCp = Math.round((maxHp * 0.5 + totalDef * 3.0) * critResCpMult);
+    const agiCp = Math.round(totalAgility * 6.0);
+    const calculatedCp = atkCp + defCp + agiCp;
+    const displayCp = (p.cp && Number(p.cp) > 0) ? Number(p.cp) : calculatedCp;
+
+    return {
+      totalAttack,
+      displayCp,
+      calculatedCp,
+      maxHp,
+      currentHp,
+      hpPct,
+      totalDef,
+      rawGearReducPct,
+      effectiveGearReducPct,
+      rawCritPct,
+      effectiveCritPct,
+      critDamageMultiplier,
+      critTotalPct,
+      armorPenDisplay,
+      rawCritResPctDisplay,
+      effectiveCritResPct,
+      totalAgility,
+      dodgePct,
+      ringSkillProcRate
+    };
+  };
+
   const showItemTooltip = (item, e, customCat, isPinned = false) => {
     if (!item) return;
     if (hideTooltipTimerRef.current) clearTimeout(hideTooltipTimerRef.current);
@@ -12629,6 +13088,12 @@ const App = () => {
           </div>
         )}
 
+        {/* HELPER TÍNH TOÁN FULL THUỘC TÍNH CHIẾN ĐẤU & SÁT THƯƠNG CHUẨN DISCORD / GAME_CORE */}
+        {(() => {
+          // Placeholder for inline helper attachment if needed
+          return null;
+        })()}
+
         {/* MODAL PROFILE & TRANG BỊ NGƯỜI CHƠI (GIỐNG DASHBOARD ADMIN) */}
         {showBossProfileModal && bossPlayerSummary && (() => {
           const p = bossPlayerSummary;
@@ -12637,43 +13102,9 @@ const App = () => {
           const expNeeded = Math.floor(500 * Math.pow(2, Math.max(0, lvl - 1)));
           const expPct = Math.min(100, Math.max(0, (exp / Math.max(1, expNeeded)) * 100));
 
-          // Tính toán All DMG
-          const baseUserDmg = 100 + (lvl * 25);
-          let wpDmg = 0;
-          if (p.weapon) {
-            const wpBase = getWeaponStats(p.weapon).baseDmg;
-            const wpPlus = Number(p.weapon.plus || 0);
-            const wpStars = Math.max(1, Math.min(5, Number(p.weapon.stars || 1)));
-            wpDmg = Math.round(wpBase * (1.0 + wpPlus * 0.25) * Math.pow(2, wpStars - 1));
-          }
-          let arDmg = 0;
-          if (p.armor) {
-            const arBase = Number(p.armor.base_dmg || 0);
-            const arPlus = Number(p.armor.plus || 0);
-            const arStars = Math.max(1, Math.min(5, Number(p.armor.stars || 1)));
-            arDmg = Math.round(arBase * (1.0 + arPlus * 0.25) * Math.pow(2, arStars - 1));
-          }
-          let petDmg = 0;
-          if (p.pet) {
-            const pBase = getPetStats(p.pet).bonusDmg;
-            const pStars = Math.max(1, Math.min(5, Number(p.pet.stars || 1)));
-            petDmg = Math.round(pBase * Math.pow(2, pStars - 1));
-          }
-          let baseTotalDmg = baseUserDmg + wpDmg + arDmg + petDmg;
-          let nkPct = 0;
-          if (p.necklace) {
-            const bPct = getNecklaceStats(p.necklace).dmgPercent;
-            const uPct = Math.max(Number(p.necklace.plus || 0), Math.round(bPct * (p.necklace.plus || 0) * 0.25));
-            const nStars = Math.max(1, Math.min(5, Number(p.necklace.stars || 1)));
-            nkPct = (bPct + uPct) * Math.pow(2, nStars - 1);
-          }
-          let ringDmgPct = 0;
-          if (p.ring) {
-            const rBase = getRingStats(p.ring).baseDmgPercent;
-            const rS = Math.max(1, Math.min(5, Number(p.ring.stars || 1)));
-            ringDmgPct = Math.round(rBase * Math.pow(3, rS - 1));
-          }
-          const allAttack = Math.round(baseTotalDmg * (1.0 + (nkPct / 100.0)) * (1.0 + (ringDmgPct / 100.0)));
+          // Tính toán Full Combat Stats bằng công thức chuẩn Discord SSOT
+          const st = calculatePlayerFullStats(p);
+          const allAttack = st.totalAttack;
 
           const renderEquipSlot = (item, category, defaultIcon, defaultTitle, slotCmd = '') => {
             if (!item || !item.name) {
@@ -13104,7 +13535,7 @@ const App = () => {
                       <div>
                         <div className="text-[10.5px] font-black text-amber-400 uppercase tracking-wider">Lực Chiến (CP)</div>
                         <div className="text-xl sm:text-2xl font-black text-white drop-shadow-[0_0_10px_#ff4500] font-sans">
-                          {new Intl.NumberFormat('vi-VN').format(p.cp || 0)} CP
+                          {new Intl.NumberFormat('vi-VN').format(st.displayCp)} CP
                         </div>
                       </div>
                     </div>
@@ -13249,110 +13680,12 @@ const App = () => {
           );
         })()}
 
-        {/* MODAL STAT CHI TIẾT THUỘC TÍNH CHIẾN ĐẤU (HP, CÔNG, THỦ, CRIT) */}
+        {/* MODAL STAT CHI TIẾT THUỘC TÍNH CHIẾN ĐẤU (HP, CÔNG, THỦ, CRIT) - CHUẨN DISCORD / TIKTOK LIVE OBS */}
         {showBossStatModal && bossPlayerSummary && (() => {
           const p = bossPlayerSummary;
           const lvl = Number(p.level || 1);
-
-          // 1. MÁU (HP) & PHÒNG THỦ (DEF)
-          const baseHp = 1000 + lvl * 150;
-          let armorHp = 0;
-          let armorDef = 0;
-          if (p.armor) {
-            const aStats = getArmorStats(p.armor);
-            const aPlus = Number(p.armor.plus || 0);
-            const aStars = Math.max(1, Math.min(5, Number(p.armor.stars || 1)));
-            const starMultMath = Math.pow(2, Math.max(0, aStars - 1));
-            armorHp = Math.round(aStats.baseHp * (1 + 0.25 * aPlus) * starMultMath);
-            armorDef = Math.round(aStats.baseDef * (1 + 0.25 * aPlus) * starMultMath);
-          }
-
-          let pantsHp = 0;
-          let pantsDef = 0;
-          if (p.pants) {
-            const pStats = getPantsStats(p.pants);
-            const pPlus = Number(p.pants.plus || 0);
-            const pStars = Math.max(1, Math.min(5, Number(p.pants.stars || 1)));
-            const starMultMath = Math.pow(2, Math.max(0, pStars - 1));
-            pantsHp = Math.round(pStats.baseHp * (1 + 0.25 * pPlus) * starMultMath);
-            pantsDef = Math.round(pStats.baseDef * (1 + 0.25 * pPlus) * starMultMath);
-          }
-
-          let ringHpMult = 1.0;
-          let ringDefMult = 1.0;
-          if (p.ring) {
-            const rStats = getRingStats(p.ring);
-            const rS = Math.max(1, Math.min(5, Number(p.ring.stars || 1)));
-            const starMult = Math.pow(3, rS - 1);
-            ringHpMult = 1.0 + ((rStats.baseHpPercent || rStats.baseDmgPercent) * starMult / 100.0);
-            ringDefMult = 1.0 + ((rStats.baseDefPercent || rStats.baseDmgPercent) * starMult / 100.0);
-          }
-          let petHp = 0;
-          let petDef = 0;
-          if (p.pet) {
-            const petS = getPetStats(p.pet);
-            const pStars = Math.max(1, Math.min(5, Number(p.pet.stars || 1)));
-            const starMultMath = Math.pow(2, Math.max(0, pStars - 1));
-            petHp = Math.round(petS.baseHp * starMultMath);
-            petDef = Math.round(petS.baseDef * starMultMath);
-          }
-          const maxHp = Number(p.max_hp !== undefined ? p.max_hp : Math.round((baseHp + armorHp + pantsHp + petHp) * ringHpMult));
-          const currentHp = Number(p.current_hp !== undefined ? p.current_hp : maxHp);
-          const hpPct = Math.min(100, Math.max(0, (currentHp / Math.max(1, maxHp)) * 100));
-          const totalDef = Number(p.total_def !== undefined ? p.total_def : Math.round((armorDef + pantsDef + petDef) * ringDefMult));
-          const dmgReducPct = Number(p.dmg_reduction_pct !== undefined ? p.dmg_reduction_pct : (totalDef > 0 ? (totalDef / (totalDef + 2500) * 100) : 0));
-          const isDead = Boolean(p.is_dead);
-          const respawnTime = Number(p.respawn_seconds_left || 0);
-
-          // 2. TẤN CÔNG (ATK / ALL DMG)
-          const baseUserDmg = 100 + (lvl * 25);
-          let wpDmg = 0;
-          if (p.weapon) {
-            const wpBase = getWeaponStats(p.weapon).baseDmg;
-            const wpPlus = Number(p.weapon.plus || 0);
-            const wpStars = Math.max(1, Math.min(5, Number(p.weapon.stars || 1)));
-            wpDmg = Math.round(wpBase * (1.0 + wpPlus * 0.25) * Math.pow(2, wpStars - 1));
-          }
-          let arDmg = 0;
-          if (p.armor) {
-            const arBase = Number(p.armor.base_dmg || 0);
-            const arPlus = Number(p.armor.plus || 0);
-            const arStars = Math.max(1, Math.min(5, Number(p.armor.stars || 1)));
-            arDmg = Math.round(arBase * (1.0 + arPlus * 0.25) * Math.pow(2, arStars - 1));
-          }
-          let petDmg = 0;
-          if (p.pet) {
-            const pBase = getPetStats(p.pet).bonusDmg;
-            const pStars = Math.max(1, Math.min(5, Number(p.pet.stars || 1)));
-            petDmg = Math.round(pBase * Math.pow(2, pStars - 1));
-          }
-          let baseTotalDmg = baseUserDmg + wpDmg + arDmg + petDmg;
-          let nkPct = 0;
-          if (p.necklace) {
-            const bPct = getNecklaceStats(p.necklace).dmgPercent;
-            const uPct = Math.max(Number(p.necklace.plus || 0), Math.round(bPct * (p.necklace.plus || 0) * 0.25));
-            const nStars = Math.max(1, Math.min(5, Number(p.necklace.stars || 1)));
-            nkPct = (bPct + uPct) * Math.pow(2, nStars - 1);
-          }
-          let ringDmgPct = 0;
-          if (p.ring) {
-            const rBase = getRingStats(p.ring).baseDmgPercent;
-            const rS = Math.max(1, Math.min(5, Number(p.ring.stars || 1)));
-            ringDmgPct = Math.round(rBase * Math.pow(3, rS - 1));
-          }
-          const allAttack = Number(p.total_attack || Math.round(baseTotalDmg * (1.0 + (nkPct / 100.0)) * (1.0 + (ringDmgPct / 100.0))));
-
-          // 3. CHÍ MẠNG (CRIT & CRIT DMG TỔNG %)
-          let fallbackCrit = 15;
-          if (p.pet && p.pet.tier) {
-            const tLow = (p.pet.tier || '').toLowerCase();
-            fallbackCrit = tLow.includes('thượng cổ') ? 50 : (tLow.includes('cổ đại') ? 35 : (tLow.includes('tối thượng') ? 25 : (tLow.includes('thần thoại') ? 20 : (tLow.includes('epic') ? 15 : 10))));
-          }
-          const critRate = Number((p.crit_chance !== undefined && p.crit_chance > 0) ? p.crit_chance : fallbackCrit);
-          const critMul = Number(p.crit_multiplier !== undefined ? p.crit_multiplier : 1.8);
-          const critTotalPct = Math.round(critMul * 100);
-
-          const ringProcStr = p.ring ? getRingSkillProcStr(p.ring) : 'Chưa mở khóa';
+          const st = calculatePlayerFullStats(p);
+          const isDead = Boolean(p.is_dead) || st.currentHp <= 0;
 
           let potionCount = Number(p.potions !== undefined ? p.potions : 0);
           let reviveCount = Number(p.revives !== undefined ? p.revives : 0);
@@ -13377,10 +13710,18 @@ const App = () => {
               className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in"
               onClick={(e) => { if (e.target === e.currentTarget) setShowBossStatModal(false); }}
             >
-              <div className="bg-gradient-to-br from-[#090e1c] via-[#0b1224] to-[#04060c] border-2 border-cyan-400 rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-[0_0_55px_rgba(0,229,255,0.4)] p-5 sm:p-6 flex flex-col relative text-white animate-zoom-in overflow-hidden">
-                {/* Header */}
-                <div className="flex justify-between items-start border-b border-cyan-500/25 pb-4 mb-4 shrink-0">
-                  <div className="flex items-center gap-3.5 min-w-0">
+              <div
+                className="w-full max-w-2xl max-h-[92vh] rounded-2xl sm:rounded-3xl p-4 sm:p-5 flex flex-col relative text-white animate-zoom-in overflow-hidden shadow-2xl"
+                style={{
+                  background: 'linear-gradient(135deg, #110e26 0%, #070512 100%)',
+                  border: '2px solid #00e5ff',
+                  boxShadow: '0 20px 50px rgba(0, 229, 255, 0.35), inset 0 0 25px rgba(0, 229, 255, 0.18)'
+                }}
+              >
+                {/* HEADER: THÔNG TIN TƯỚNG & LỰC CHIẾN TỔNG (CHUẨN DISCORD) */}
+                <div className="flex items-center justify-between pb-3 mb-2.5 border-b border-cyan-500/25 shrink-0 gap-2 flex-wrap">
+                  {/* LEFT: AVATAR & IDENTITY */}
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="relative shrink-0">
                       <img
                         src={p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id)}`}
@@ -13389,40 +13730,60 @@ const App = () => {
                           e.currentTarget.onerror = null;
                           e.currentTarget.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.user_id || 'player')}`;
                         }}
-                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-[2.5px] border-cyan-400 shadow-[0_0_16px_rgba(0,229,255,0.7)] object-cover bg-slate-900"
+                        className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl border-[2.2px] border-[#00e5ff] shadow-[0_0_16px_rgba(0,229,255,0.7)] object-cover bg-slate-900"
                       />
-                      <div className="absolute -bottom-1.5 -right-1.5 bg-blue-600 text-white font-black text-[10px] sm:text-xs px-1.5 py-0.5 rounded-md border border-blue-400 shadow-[0_2px_8px_rgba(37,99,235,0.6)]">
+                      <div className="absolute -bottom-1.5 -right-1.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-black text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded-md border border-blue-400 shadow-[0_2px_6px_rgba(0,0,0,0.6)] font-sans">
                         Lv.{lvl}
                       </div>
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex flex-col gap-0.5">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-black text-lg sm:text-xl text-white tracking-wide truncate max-w-[200px] sm:max-w-[280px]">
+                        <span className="font-black text-base sm:text-lg text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.5)] truncate max-w-[170px] sm:max-w-[240px]">
                           {p.nickname}
                         </span>
-                        <span className="text-[10px] font-black text-cyan-400 bg-cyan-400/15 border border-cyan-400/40 rounded px-2 py-0.5">
-                          Cấp {lvl}
-                        </span>
-                        <span className="text-[10px] font-black text-yellow-400 bg-yellow-400/15 border border-yellow-400/40 rounded px-2 py-0.5">
-                          ⚔️ Chiến Thần
-                        </span>
+                        {isDead && (
+                          <span className="text-[10px] font-black text-red-400 bg-red-500/20 border border-red-500/60 rounded px-1.5 py-0.5 shrink-0">
+                            💀 GỤC NGÃ
+                          </span>
+                        )}
                       </div>
-                      <div className="text-xs text-slate-400 font-mono mt-0.5 truncate">
-                        @{p.user_id}
-                      </div>
-                      <div className="text-[11px] text-cyan-300 font-bold mt-1 flex items-center gap-1">
-                        📊 BẢNG THUỘC TÍNH CHIẾN ĐẤU (HP, CÔNG, THỦ, CRIT)
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] sm:text-[11px] font-extrabold text-yellow-300 bg-yellow-400/15 border border-yellow-400/50 rounded px-2 py-0.5">
+                          {p.title || '⚔️ Chiến Thần'}
+                        </span>
+                        <span className="text-[10.5px] text-cyan-400/80 font-mono truncate">
+                          @{p.user_id}
+                        </span>
                       </div>
                     </div>
                   </div>
 
+                  {/* RIGHT: LỰC CHIẾN CP HERO BOX & ACTIONS (CHUẨN DISCORD) */}
                   <div className="flex items-center gap-2 shrink-0">
+                    {/* HERO BOX CP */}
+                    <div
+                      className="rounded-xl px-3 py-1.5 text-right shrink-0"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(236, 72, 153, 0.15))',
+                        border: '1.5px solid rgba(192, 132, 252, 0.6)',
+                        boxShadow: '0 0 14px rgba(168, 85, 247, 0.25)'
+                      }}
+                    >
+                      <div className="text-[9.5px] font-extrabold text-purple-200 tracking-wider uppercase">
+                        👑 LỰC CHIẾN (CP)
+                      </div>
+                      <div className="text-base sm:text-lg font-black text-fuchsia-300 drop-shadow-[0_0_12px_rgba(240,171,252,0.85)] font-sans whitespace-nowrap mt-0.5">
+                        {new Intl.NumberFormat('vi-VN').format(st.displayCp)} <span className="text-xs text-purple-300 font-extrabold">CP</span>
+                      </div>
+                    </div>
+
                     {renderPvpRankHeaderBadge(p)}
+
                     <button
                       type="button"
                       onClick={() => { setShowBossStatModal(false); setShowBossProfileModal(true); }}
-                      className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-xs rounded-xl border border-indigo-400/50 shadow flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105"
-                      title="Xem Profile & Trang Bị"
+                      className="px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-xs rounded-xl border border-indigo-400/50 shadow flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 shrink-0"
+                      title="Chuyển sang xem Profile & Trang Bị"
                     >
                       <Eye size={14} />
                       <span className="hidden sm:inline">Xem Profile</span>
@@ -13437,180 +13798,271 @@ const App = () => {
                   </div>
                 </div>
 
-                {/* Scrollable Content */}
-                <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-3.5 flex-1">
-                  {/* Highlight Bar: Trạng Thái Sinh Mệnh (HP) (Hòa chung thanh máu & đưa Bình Máu + Bùa Phục Sinh lên ngay trên số máu bự) */}
-                  <div className="bg-gradient-to-r from-rose-950/40 via-red-900/25 to-slate-900/60 border border-rose-500/50 rounded-2xl p-3.5 flex flex-col gap-2.5 shadow-[0_0_20px_rgba(244,63,94,0.25)]">
-                    {/* Hàng trên: Tiêu đề + 🧪 Bình Máu & ✨ Bùa Phục Sinh */}
+                {/* SCROLLABLE CONTENT */}
+                <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-2.5 flex-1">
+                  {/* 1. SINH MỆNH (HP) & VẬT PHẨM SINH TỒN (CHUẨN DISCORD) */}
+                  <div
+                    className="rounded-xl sm:rounded-2xl p-3 sm:p-3.5 flex flex-col gap-2 shrink-0"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(153, 27, 27, 0.3))',
+                      border: '1.5px solid rgba(239, 68, 68, 0.65)',
+                      boxShadow: '0 0 18px rgba(239, 68, 68, 0.25)'
+                    }}
+                  >
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="text-[10.5px] font-black text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <span>❤️ Tình Trạng Sinh Lực (HP)</span>
+                      {/* HP Label & Pct */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">❤️</span>
+                        <span className="text-xs font-black text-rose-200 tracking-wider uppercase">SINH MỆNH (HP)</span>
+                        <span className="text-[11px] font-extrabold text-rose-200 bg-red-500/30 border border-red-500/50 px-2 py-0.5 rounded-md">
+                          {st.hpPct.toFixed(1)}%
+                        </span>
                       </div>
+                      {/* Vật phẩm sinh tồn */}
                       <div className="flex items-center gap-2 flex-wrap">
-                        <div className="bg-rose-500/20 border border-rose-500/50 rounded-xl px-2.5 py-1 flex items-center gap-1.5 shadow-sm">
+                        <div className="bg-red-500/25 border border-red-500/70 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-[0_0_8px_rgba(239,68,68,0.2)]">
                           <span className="text-xs">🧪</span>
-                          <span className="text-[10px] font-bold text-rose-300 uppercase">Bình Máu:</span>
+                          <span className="text-[11px] text-rose-300 font-bold">Máu:</span>
                           <span className="text-xs font-black text-white">{potionCount.toLocaleString()} Bình</span>
                         </div>
-                        <div className="bg-amber-500/20 border border-amber-500/50 rounded-xl px-2.5 py-1 flex items-center gap-1.5 shadow-sm">
+                        <div className="bg-amber-500/25 border border-amber-500/70 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-[0_0_8px_rgba(234,179,8,0.2)]">
                           <span className="text-xs">✨</span>
-                          <span className="text-[10px] font-bold text-amber-300 uppercase">Bùa Phục Sinh:</span>
+                          <span className="text-[11px] text-yellow-300 font-bold">Hồi Sinh:</span>
                           <span className="text-xs font-black text-white">{reviveCount.toLocaleString()} Bùa</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Hàng giữa: Số máu bự */}
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="text-2xl sm:text-3xl font-black text-white font-sans drop-shadow-[0_0_12px_rgba(244,63,94,0.85)]">
-                        {currentHp.toLocaleString()} <span className="text-sm font-bold text-slate-400">/ {maxHp.toLocaleString()} HP</span>
-                      </div>
+                    {/* HP Large Numbers */}
+                    <div className="text-center text-xl sm:text-2xl font-black text-white tracking-wide drop-shadow-[0_0_14px_rgba(239,68,68,0.95)] font-sans">
+                      {new Intl.NumberFormat('vi-VN').format(st.currentHp)} <span className="text-sm font-bold text-slate-400">/</span> {new Intl.NumberFormat('vi-VN').format(st.maxHp)}
                     </div>
 
-                    {/* Hàng dưới: Thanh máu neon hòa chung với số máu bự */}
-                    <div className="w-full h-2.5 bg-slate-900/90 rounded-full overflow-hidden border border-rose-500/40 shadow-inner">
+                    {/* HP Bar */}
+                    <div className="w-full h-2.5 bg-black/65 rounded-full overflow-hidden border border-red-500/45 shadow-inner">
                       <div
-                        className="h-full bg-gradient-to-r from-rose-500 to-red-600 rounded-full shadow-[0_0_10px_#f43f5e] transition-all duration-300"
-                        style={{ width: `${hpPct}%` }}
+                        className="h-full bg-gradient-to-r from-[#ef4444] to-[#f43f5e] rounded-full shadow-[0_0_10px_#ef4444] transition-all duration-300"
+                        style={{ width: `${st.hpPct}%` }}
                       />
                     </div>
                   </div>
 
-                  {/* 3 CORE COMBAT STATS (CÔNG, THỦ, CRIT) - Cân đối 3 cột */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {/* CARD 1: TẤN CÔNG (ATK / ALL DMG) */}
-                    <div className="bg-emerald-950/20 border border-emerald-500/40 rounded-2xl p-3.5 relative overflow-hidden shadow-[0_4px_15px_rgba(16,185,129,0.1)]">
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-xs font-black text-emerald-400 uppercase flex items-center gap-1.5">
-                          ⚔️ Sức Tấn Công (ATK)
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-bold">All Real DMG</span>
+                  {/* 2. CÁC KHỐI THUỘC TÍNH CHIẾN ĐẤU CHI TIẾT (CHUẨN DISCORD 8 Ô) */}
+                  {/* HÀNG 1: CÔNG KÍCH & SÁT THƯƠNG (4 KHỐI) */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {/* 1. TẤN CÔNG */}
+                    <div
+                      className="rounded-xl p-2.5 flex flex-col justify-between"
+                      style={{
+                        background: 'rgba(16, 185, 129, 0.12)',
+                        border: '1.5px solid rgba(16, 185, 129, 0.5)',
+                        boxShadow: '0 0 12px rgba(16, 185, 129, 0.18)'
+                      }}
+                    >
+                      <div className="text-[10px] font-extrabold text-[#34d399] tracking-wider uppercase flex items-center gap-1">
+                        <span>⚔️</span> TẤN CÔNG
                       </div>
-                      <div className="text-xl font-black text-emerald-300 font-sans drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]">
-                        {allAttack > 0 ? allAttack.toLocaleString() : '0'} DMG
+                      <div className="text-[14px] sm:text-[15px] font-black text-[#00ffaa] drop-shadow-[0_0_10px_rgba(0,255,170,0.6)] font-sans my-0.5 truncate" title={`${new Intl.NumberFormat('vi-VN').format(st.totalAttack)} DMG`}>
+                        {new Intl.NumberFormat('vi-VN').format(st.totalAttack)} DMG
                       </div>
-                      <div className="text-[11px] text-slate-400 mt-2 font-medium">
-                        Sát thương thực tế mỗi đòn chém Boss
-                      </div>
-                    </div>
-
-                    {/* CARD 2: PHÒNG THỦ (DEF) */}
-                    <div className="bg-sky-950/20 border border-sky-500/40 rounded-2xl p-3.5 relative overflow-hidden shadow-[0_4px_15px_rgba(14,165,233,0.1)]">
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-xs font-black text-sky-400 uppercase flex items-center gap-1.5">
-                          🛡️ Phòng Thủ (DEF)
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-bold">Giảm Sát Thương</span>
-                      </div>
-                      <div className="text-xl font-black text-sky-300 font-sans drop-shadow-[0_0_8px_rgba(14,165,233,0.6)]">
-                        {totalDef.toLocaleString()} DEF
-                      </div>
-                      <div className="text-[11.5px] text-sky-400 font-bold mt-2">
-                        🛡️ Giảm Sát Thương: {dmgReducPct.toFixed(1)}%
+                      <div className="text-[9.5px] text-slate-400 truncate">
+                        Sát thương / đòn
                       </div>
                     </div>
 
-                    {/* CARD 3: CRIT & CRIT DMG (TỔNG %) */}
-                    <div className="bg-pink-950/20 border border-pink-500/40 rounded-2xl p-3.5 relative overflow-hidden shadow-[0_4px_15px_rgba(244,63,94,0.1)]">
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-xs font-black text-pink-400 uppercase flex items-center gap-1.5">
-                          ⚡ Bạo Kích & Sát Thương (Crit)
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-bold">Chí Mạng</span>
+                    {/* 2. XUYÊN GIÁP */}
+                    <div
+                      className="rounded-xl p-2.5 flex flex-col justify-between"
+                      style={{
+                        background: 'rgba(245, 158, 11, 0.12)',
+                        border: '1.5px solid rgba(245, 158, 11, 0.5)',
+                        boxShadow: '0 0 12px rgba(245, 158, 11, 0.18)'
+                      }}
+                    >
+                      <div className="text-[10px] font-extrabold text-[#fbbf24] tracking-wider uppercase flex items-center gap-1">
+                        <span>🏹</span> XUYÊN GIÁP
                       </div>
-                      <div className="text-xl font-black text-rose-400 font-sans drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]">
-                        ⚡ {critRate.toFixed(1)}% | 💥 {critTotalPct}%
+                      <div className="text-[14px] sm:text-[15px] font-black text-[#fde047] drop-shadow-[0_0_10px_rgba(253,224,71,0.6)] font-sans my-0.5 truncate">
+                        {st.armorPenDisplay}%
                       </div>
-                      <div className="text-[11px] text-rose-300 font-bold mt-2">
-                        💥 Sát Thương Chí Mạng: {critTotalPct}%
+                      <div className="text-[9.5px] text-[#fef08a] truncate">
+                        Đục Giảm ST • Max 70% DEF
+                      </div>
+                    </div>
+
+                    {/* 3. CHÍ MẠNG */}
+                    <div
+                      className="rounded-xl p-2.5 flex flex-col justify-between"
+                      style={{
+                        background: 'rgba(244, 63, 94, 0.12)',
+                        border: '1.5px solid rgba(244, 63, 94, 0.5)',
+                        boxShadow: '0 0 12px rgba(244, 63, 94, 0.18)'
+                      }}
+                    >
+                      <div className="text-[10px] font-extrabold text-[#fb7185] tracking-wider uppercase flex items-center gap-1">
+                        <span>⚡</span> CHÍ MẠNG
+                      </div>
+                      <div className="text-[14px] sm:text-[15px] font-black text-[#ff0055] drop-shadow-[0_0_10px_rgba(255,0,85,0.6)] font-sans my-0.5 truncate">
+                        {st.rawCritPct}%
+                      </div>
+                      <div className="text-[9.5px] text-[#fda4af] truncate">
+                        Thực: {st.effectiveCritPct}% • Max 95%
+                      </div>
+                    </div>
+
+                    {/* 4. ST CHÍ MẠNG */}
+                    <div
+                      className="rounded-xl p-2.5 flex flex-col justify-between"
+                      style={{
+                        background: 'rgba(168, 85, 247, 0.12)',
+                        border: '1.5px solid rgba(168, 85, 247, 0.5)',
+                        boxShadow: '0 0 12px rgba(168, 85, 247, 0.18)'
+                      }}
+                    >
+                      <div className="text-[10px] font-extrabold text-[#c084fc] tracking-wider uppercase flex items-center gap-1">
+                        <span>💥</span> ST CHÍ MẠNG
+                      </div>
+                      <div className="text-[14px] sm:text-[15px] font-black text-[#e879f9] drop-shadow-[0_0_10px_rgba(232,121,249,0.6)] font-sans my-0.5 truncate">
+                        {st.critTotalPct}%
+                      </div>
+                      <div className="text-[9.5px] text-[#f0abfc] truncate">
+                        Hệ số: x{st.critDamageMultiplier.toFixed(2)}
                       </div>
                     </div>
                   </div>
 
-                  {/* KỸ NĂNG THẦN BINH & ĐẶC QUYỀN (Đã bỏ xu nâng cấp, chuyển bình máu & bùa lên trên) */}
-                  <div>
-                    <div className="text-xs font-black text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      🔮 Kỹ Năng Thần Binh & Đặc Quyền Tích Lũy
+                  {/* HÀNG 2: PHÒNG THỦ & CƠ ĐỘNG (4 KHỐI ĐỐI XỨNG) */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {/* 5. PHÒNG THỦ */}
+                    <div
+                      className="rounded-xl p-2.5 flex flex-col justify-between"
+                      style={{
+                        background: 'rgba(14, 165, 233, 0.12)',
+                        border: '1.5px solid rgba(14, 165, 233, 0.5)',
+                        boxShadow: '0 0 12px rgba(14, 165, 233, 0.18)'
+                      }}
+                    >
+                      <div className="text-[10px] font-extrabold text-[#38bdf8] tracking-wider uppercase flex items-center gap-1">
+                        <span>🛡️</span> PHÒNG THỦ
+                      </div>
+                      <div className="text-[14px] sm:text-[15px] font-black text-[#38bdf8] drop-shadow-[0_0_10px_rgba(56,189,248,0.6)] font-sans my-0.5 truncate" title={`${new Intl.NumberFormat('vi-VN').format(st.totalDef)} DEF`}>
+                        {new Intl.NumberFormat('vi-VN').format(st.totalDef)} DEF
+                      </div>
+                      <div className="text-[9.5px] text-[#a5f3fc] font-bold truncate">
+                        Trừ thẳng sát thương
+                      </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">💍 Nhẫn Thần Binh</div>
-                        <div className="text-sm font-extrabold text-purple-400 mt-1 truncate">
-                          {ringProcStr}
-                        </div>
+
+                    {/* 6. GIẢM ST */}
+                    <div
+                      className="rounded-xl p-2.5 flex flex-col justify-between"
+                      style={{
+                        background: 'rgba(99, 102, 241, 0.12)',
+                        border: '1.5px solid rgba(99, 102, 241, 0.5)',
+                        boxShadow: '0 0 12px rgba(99, 102, 241, 0.18)'
+                      }}
+                    >
+                      <div className="text-[10px] font-extrabold text-[#818cf8] tracking-wider uppercase flex items-center gap-1">
+                        <span>🔰</span> GIẢM ST
                       </div>
-                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase flex items-center justify-between">
-                          <span>👟 Giày Thần Tốc</span>
-                          {p.shoes && <span className="text-[9px] text-cyan-400 font-bold">{p.shoes.name}{p.shoes.plus > 0 ? ` +${p.shoes.plus}` : ''}</span>}
-                        </div>
-                        <div className="text-sm font-extrabold text-cyan-300 mt-1 truncate">
-                          {p.shoes ? (() => {
-                            const sTier = (p.shoes.tier || '').toLowerCase();
-                            const sPlus = Number(p.shoes.plus || 0);
-                            let baseAgi = Number(p.shoes.base_agility || (sTier.includes('huyền thoại') || sTier.includes('legendary') ? 300 : 80));
-                            if ((sTier.includes('thường') || (p.shoes.name || '').toLowerCase().includes('thường')) && baseAgi < 80) baseAgi = 80;
-                            let shoeBonusPct = 0;
-                            const subs = p.shoes.sub_stats || [];
-                            for (const sub of subs) {
-                              if (sub && (sub.includes('Nhanh Nhẹn') || sub.includes('Nhanh Nhen') || sub.includes('Agility') || sub.includes('Tốc Độ'))) {
-                                const m = sub.match(/(\d+)%/);
-                                if (m) shoeBonusPct += parseInt(m[1], 10);
-                              }
-                            }
-                            const plusMult = 1.0 + (sPlus * 0.25);
-                            const totAgi = Math.round(baseAgi * plusMult * (1.0 + shoeBonusPct / 100.0));
-                            return `🌪️ +${totAgi} Tốc Độ (${shoeBonusPct > 0 ? `+${shoeBonusPct}%` : 'Tiên Cơ'})`;
-                          })() : 'Chưa trang bị'}
-                        </div>
+                      <div className="text-[14px] sm:text-[15px] font-black text-[#a5b4fc] drop-shadow-[0_0_10px_rgba(165,180,252,0.6)] font-sans my-0.5 truncate">
+                        {st.rawGearReducPct}%
                       </div>
-                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">📈 Thưởng EXP Đòn Đánh</div>
-                        <div className="text-sm font-extrabold text-sky-400 mt-1">
-                          +{(p.exp_bonus_multiplier || 0).toFixed(1)}% EXP
-                        </div>
+                      <div className="text-[9.5px] text-[#c7d2fe] font-bold truncate">
+                        Thực: {st.effectiveGearReducPct}% • Max 80%
+                      </div>
+                    </div>
+
+                    {/* 7. KHÁNG CHÍ MẠNG */}
+                    <div
+                      className="rounded-xl p-2.5 flex flex-col justify-between"
+                      style={{
+                        background: 'rgba(236, 72, 153, 0.12)',
+                        border: '1.5px solid rgba(236, 72, 153, 0.5)',
+                        boxShadow: '0 0 12px rgba(236, 72, 153, 0.18)'
+                      }}
+                    >
+                      <div className="text-[10px] font-extrabold text-[#f472b6] tracking-wider uppercase flex items-center gap-1">
+                        <span>🛡️</span> KHÁNG CHÍ MẠNG
+                      </div>
+                      <div className="text-[14px] sm:text-[15px] font-black text-[#f472b6] drop-shadow-[0_0_10px_rgba(244,114,182,0.6)] font-sans my-0.5 truncate">
+                        {st.rawCritResPctDisplay}%
+                      </div>
+                      <div className="text-[9.5px] text-[#fbcfe8] font-bold truncate">
+                        Thực: {st.effectiveCritResPct}% • Max 95%
+                      </div>
+                    </div>
+
+                    {/* 8. TỐC ĐỘ */}
+                    <div
+                      className="rounded-xl p-2.5 flex flex-col justify-between"
+                      style={{
+                        background: 'rgba(6, 182, 212, 0.12)',
+                        border: '1.5px solid rgba(6, 182, 212, 0.5)',
+                        boxShadow: '0 0 12px rgba(6, 182, 212, 0.18)'
+                      }}
+                    >
+                      <div className="text-[10px] font-extrabold text-[#22d3ee] tracking-wider uppercase flex items-center gap-1">
+                        <span>🌪️</span> TỐC ĐỘ
+                      </div>
+                      <div className="text-[14px] sm:text-[15px] font-black text-[#00e5ff] drop-shadow-[0_0_10px_rgba(0,229,255,0.6)] font-sans my-0.5 truncate">
+                        {new Intl.NumberFormat('vi-VN').format(st.totalAgility)}
+                      </div>
+                      <div className="text-[9.5px] text-[#a5f3fc] font-bold truncate">
+                        Né đòn: {st.dodgePct}% • Kháng xấu
                       </div>
                     </div>
                   </div>
-                  {/* KÍCH HOẠT BỘ SET TRANG BỊ 2 - 4 - 6 */}
+
+                  {/* 3. KÍCH HOẠT SET ĐỒ (SET BONUS) (CHUẨN DISCORD) */}
                   {(() => {
                     const activeSets = getPlayerActiveSets(p);
                     return (
-                      <div>
-                        <div className="text-xs font-black text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <span>👑</span> Hiệu Ứng Bộ Set Trang Bị (2 - 4 - 6 Món)
+                      <div
+                        className="rounded-xl p-3 flex flex-col gap-2 shrink-0"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.12), rgba(168, 85, 247, 0.12))',
+                          border: '1.5px solid rgba(255, 215, 0, 0.45)',
+                          boxShadow: '0 0 14px rgba(255, 215, 0, 0.15)'
+                        }}
+                      >
+                        <div className="flex items-center justify-between pb-1.5 border-b border-amber-500/30">
+                          <div className="text-[11.5px] font-black text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.6)] uppercase flex items-center gap-1.5">
+                            <span>✨</span> KÍCH HOẠT SET ĐỒ (SET BONUS)
                           </div>
                           {activeSets.length > 0 && (
-                            <span className="text-[10px] font-bold text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/40">
+                            <span className="text-[10px] font-bold text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/40">
                               {activeSets.length} Mốc Kích Hoạt
                             </span>
                           )}
                         </div>
                         {activeSets.length > 0 ? (
-                          <div className="space-y-2">
-                            {activeSets.map((act, aIdx) => (
-                              <div
-                                key={aIdx}
-                                className="bg-gradient-to-r from-slate-900/90 to-slate-950/90 border rounded-xl p-2.5 flex items-start gap-2.5"
-                                style={{ borderColor: `${act.color}50` }}
-                              >
-                                <span
-                                  className="text-[10px] font-black px-2 py-0.5 rounded uppercase shrink-0 mt-0.5"
-                                  style={{ color: act.color, backgroundColor: `${act.color}20`, border: `1px solid ${act.color}40` }}
+                          <div className="space-y-1.5">
+                            {activeSets.map((s, sIdx) => {
+                              const badgeCol = s.color || '#ffd700';
+                              return (
+                                <div
+                                  key={sIdx}
+                                  className="bg-white/[0.04] rounded-md p-2 flex items-start gap-2.5"
+                                  style={{ borderLeft: `3px solid ${badgeCol}` }}
                                 >
-                                  Set {act.count}
-                                </span>
-                                <div className="text-xs leading-snug">
-                                  <span className="font-black" style={{ color: act.color }}>{act.name}: </span>
-                                  <span className="text-amber-200 font-bold">{act.desc.replace(/^.*?:\s*/, '')}</span>
+                                  <span
+                                    className="text-[10px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 mt-0.5"
+                                    style={{ color: badgeCol, backgroundColor: `${badgeCol}20`, border: `1px solid ${badgeCol}40` }}
+                                  >
+                                    Set {s.count}
+                                  </span>
+                                  <div className="text-[11px] leading-snug">
+                                    <div className="font-extrabold" style={{ color: badgeCol }}>{s.name}</div>
+                                    <div className="text-[10px] text-slate-300 mt-0.5">{s.desc ? s.desc.replace(/^.*?:\s*/, '') : ''}</div>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         ) : (
-                          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-xs text-slate-400 italic">
-                            Chưa kích hoạt hiệu ứng Set nào. Mặc từ 2, 4, 6 món cùng hệ (Vũ khí, Giáp, Quần, Dây chuyền, Nhẫn, Linh thú) để kích hoạt thêm hàng chục % All Thuộc Tính!
+                          <div className="bg-black/30 border border-white/5 rounded-lg p-2.5 text-[11px] text-slate-400 italic">
+                            Chưa kích hoạt hiệu ứng Set nào. Mặc từ 2, 4, 6 món cùng hệ để kích hoạt thêm hàng chục % All Thuộc Tính!
                           </div>
                         )}
                       </div>
@@ -13618,21 +14070,21 @@ const App = () => {
                   })()}
                 </div>
 
-                {/* Footer Action */}
-                <div className="border-t border-slate-800 pt-3 mt-3 flex justify-between items-center shrink-0 flex-wrap gap-2">
+                {/* FOOTER ACTIONS */}
+                <div className="border-t border-slate-800 pt-3 mt-1 flex justify-between items-center shrink-0 flex-wrap gap-2">
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => { setShowBossStatModal(false); setShowBossProfileModal(true); }}
-                      className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105"
                     >
                       <Eye size={14} />
-                      <span>Xem Profile & 6 Trang Bị</span>
+                      <span>Xem Profile & 8 Trang Bị</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => { setShowBossStatModal(false); setShowBagModal(true); }}
-                      className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-purple-300 font-bold text-xs rounded-xl border border-purple-500/30 flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-purple-300 font-bold text-xs rounded-xl border border-purple-500/30 flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105"
                     >
                       <Package size={14} />
                       <span>Mở Túi Đồ</span>
