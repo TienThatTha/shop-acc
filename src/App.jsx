@@ -225,6 +225,11 @@ const BOSS_GAME_PACKAGES = [
   }
 ];
 
+// Sự kiện 11.11: x2 tài nguyên gói nạp (chỉ HIỂN THỊ — server mới là nơi cộng thật). Không x2 nhẫn.
+const EVENT_1111_START_MS = 1794330000000;
+const EVENT_1111_END_MS = 1794589200000;
+const EVENT_1111_MULT = 2;
+
 const calculateBoostPrice = (currentPoints, targetPoints, rankTiers = []) => {
   if (!rankTiers || rankTiers.length === 0) return 0;
   if (currentPoints == null || targetPoints == null || currentPoints >= targetPoints) return 0;
@@ -474,6 +479,11 @@ const App = () => {
 
 
   // --- STATE CHO GAME MỘNG THIÊN HUYỄN & LIÊN KẾT TÀI KHOẢN ---
+  const [event1111Now, setEvent1111Now] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setEvent1111Now(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   const [bossTargetId, setBossTargetId] = useState('');
   const [bossPlayerSummary, setBossPlayerSummary] = useState(null);
   const [bossPlayerNotFound, setBossPlayerNotFound] = useState(false);
@@ -5339,89 +5349,31 @@ const App = () => {
     const dateStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN');
     const targetUid = (bossPlayerSummary.user_id || bossTargetId).trim().replace(/^@/, '');
 
-    const orderDetails = {
-      order_id: orderId,
-      user_id: targetUid,
-      nickname: bossPlayerSummary?.nickname || bossTargetId.trim(),
-      package_id: pkg.id,
-      package_name: pkg.name,
-      price: pkg.price,
-      rewards: {
-        attacks: pkg.attacks || 0,
-        royal_chests: pkg.royalChests || 0,
-        boss_chests: pkg.bossChests || (pkg.royalChests ? pkg.royalChests * 100 : 0),
-        coins: pkg.coins || 0,
-        has_x2_rate: Boolean(pkg.hasX2Rate),
-        items: pkg.items || []
-      },
-      web_user: currentUser.id
-    };
-
-    const txPayload = {
-      id: orderId,
-      user: currentUser.name,
-      action: `Nạp ${pkg.name} [${bossTargetId.trim()}]`,
-      amount: pkg.price,
-      date: dateStr,
-      status: 'Đã hoàn tất',
-      type: 'boss_game_topup',
-      isSpinCost: false,
-      accDetails: orderDetails
-    };
-
     try {
-      // 1. Trừ tiền ví web qua RPC hoặc update bảng users
-      let spendSuccess = false;
-      try {
-        const { data: rpcRes, error: rpcErr } = await supabase.rpc('rpc_client_spend', {
-          p_amount: pkg.price,
-          p_fund_amount: 0,
-          p_tx_data: txPayload
-        });
-        if (!rpcErr && rpcRes?.success) {
-          spendSuccess = true;
-        }
-      } catch (e) { }
+      // Trừ tiền + ghi giao dịch + tạo đơn trong 1 transaction an toàn phía Supabase (giá & phần thưởng do server tự tra)
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('rpc_buy_boss_package', {
+        p_package_id: pkg.id,
+        p_target_uid: targetUid,
+        p_nickname: bossPlayerSummary?.nickname || bossTargetId.trim()
+      });
+      if (rpcErr) throw rpcErr;
+      if (!rpcRes?.success) throw new Error(rpcRes?.message || 'Thanh toán thất bại!');
 
-      if (!spendSuccess) {
-        const newBal = (currentUser.balance || 0) - pkg.price;
-        const { error: updErr } = await supabase.from('users').update({ balance: newBal }).eq('id', currentUser.id);
-        if (updErr) throw updErr;
-        await supabase.from('transactions').insert([txPayload]);
-        spendSuccess = true;
-      }
+      const finalOrderId = rpcRes.order_id || orderId;
+      const txPayload = {
+        id: finalOrderId,
+        user: currentUser.name,
+        action: `Nạp ${pkg.name} [${bossTargetId.trim()}]`,
+        amount: pkg.price,
+        date: dateStr,
+        status: 'Đã hoàn tất',
+        type: 'boss_game_topup',
+        isSpinCost: false,
+        accDetails: { order_id: finalOrderId, user_id: targetUid, package_id: pkg.id, package_name: pkg.name, price: pkg.price }
+      };
 
-      // 2. Lưu đơn hàng vào Supabase (game_orders hoặc deposit_requests)
-      try {
-        const { error: insErr } = await supabase.from('game_orders').insert([{
-          id: orderId,
-          user_id: targetUid,
-          nickname: bossPlayerSummary?.nickname || bossTargetId.trim(),
-          web_user: currentUser.id,
-          package_id: pkg.id,
-          package_name: pkg.name,
-          price: pkg.price,
-          rewards: orderDetails.rewards,
-          status: 'pending'
-        }]);
-        if (insErr) {
-          await supabase.from('deposit_requests').insert([{
-            id: orderId,
-            user: currentUser.name,
-            userId: currentUser.id,
-            amount: pkg.price,
-            status: 'pending',
-            date: dateStr,
-            type: 'boss_game_topup',
-            details: JSON.stringify(orderDetails)
-          }]);
-        }
-      } catch (e) { }
-
-      // 3. Đơn nạp tự động lưu vào Supabase Cloud (game_orders), máy chủ game sẽ tự động đọc và duyệt realtime
-
-      // 4. Cập nhật state client
-      const updatedUser = { ...currentUser, balance: (currentUser.balance || 0) - pkg.price };
+      // Cập nhật state client
+      const updatedUser = { ...currentUser, balance: Number(rpcRes.new_balance) };
       setCurrentUser(updatedUser);
       localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
       setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
@@ -5431,7 +5383,7 @@ const App = () => {
       setBossSuccessModal({
         pkg,
         targetId: bossTargetId.trim(),
-        orderId
+        orderId: finalOrderId
       });
       showToast(`Nạp ${pkg.name} thành công! Vật phẩm đang được chuyển tự động vào game.`);
       sendAdminAlert('NẠP GAME BOSS MỘNG THIÊN HUYỄN', `Khách ${currentUser.name} vừa nạp ${pkg.name} (${new Intl.NumberFormat('vi-VN').format(pkg.price)}đ) cho ID: ${bossTargetId.trim()}`);
@@ -10535,7 +10487,7 @@ const App = () => {
     } else if (isPet) {
       const pLvl = Number(item.level || 1);
       if (pLvl > 0) {
-        badgeLabel = `Lv.${pLvl}`;
+        badgeLabel = (pLvl >= 100) ? 'MAX' : `Lv.${pLvl}`;
         const isMax = (pLvl >= 100);
         badgeBg = isMax ? 'linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #f59e0b 100%)' : 'linear-gradient(135deg, #10b981, #059669)';
         badgeGlow = '0 0 12px rgba(16,185,129,0.95), 0 0 6px rgba(6,182,212,0.9), 0 2px 4px rgba(0,0,0,0.8)';
@@ -10847,6 +10799,73 @@ const App = () => {
       else { bonusDmg = 400; baseHp = 6000; baseDef = 600; critRate = 0.05; }
     }
     return { bonusDmg, baseHp, baseDef, critRate: critRate || 0.05 };
+  };
+
+  // --- CHỈ SỐ HIỂN THỊ LINH THÚ CHUẨN DISCORD /profile (SSOT: display_stats do server game_core tính) ---
+  const PET_GROWTH_JS = [
+    ['thượng cổ', { dmg: 15000, hp: 35000, def: 9750, cdmg: 0.03, every: 2, crit: 0.50, tcdmg: 0.45 }],
+    ['cổ đại', { dmg: 7000, hp: 15000, def: 4550, cdmg: 0.025, every: 3, crit: 0.35, tcdmg: 0.15 }],
+    ['tối thượng', { dmg: 3500, hp: 7000, def: 2275, cdmg: 0.02, every: 4, crit: 0.25, tcdmg: 0 }],
+    ['thần thoại', { dmg: 1500, hp: 3000, def: 975, cdmg: 0.015, every: 5, crit: 0.20, tcdmg: 0 }],
+    ['epic', { dmg: 600, hp: 1200, def: 390, cdmg: 0.01, every: 6, crit: 0.15, tcdmg: 0 }],
+    ['hiếm', { dmg: 250, hp: 450, def: 165, cdmg: 0.008, every: 8, crit: 0.10, tcdmg: 0 }],
+  ];
+  const getPetDisplay = (it) => {
+    if (!it) return null;
+    const ds = it.display_stats;
+    if (ds && ds.dmg != null) {
+      const lv = Math.min(100, Math.max(1, Number(ds.level || it.level || 1)));
+      return {
+        dmg: Number(ds.dmg || 0), hp: Number(ds.hp || 0), def: Number(ds.def || 0),
+        critPct: Number(ds.crit_pct || 0), critDmgPct: Number(ds.crit_dmg_pct || 0),
+        level: lv, isMax: lv >= 100, exp: Number(ds.exp || it.exp || 0),
+        reqExp: Number(ds.req_exp || (lv < 100 ? Math.floor(50 * Math.pow(lv, 1.3)) : 0))
+      };
+    }
+    // Fallback (bản ghi cũ chưa có display_stats): sao chép công thức game_core.get_pet_display_stats
+    const t = String(it.tier || '').toLowerCase();
+    const g = (PET_GROWTH_JS.find(([k]) => t.includes(k)) || [null, { dmg: 100, hp: 150, def: 65, cdmg: 0.005, every: 10, crit: 0.05, tcdmg: 0 }])[1];
+    const lv = Math.min(100, Math.max(1, Number(it.level || 1)));
+    const extra = lv - 1;
+    const stars = Math.min(5, Math.max(1, Number(it.stars || 1)));
+    const starMult = 1 + (stars - 1) * 0.5;
+    const stepMult = 1 + Math.max(0, Number(it.tier_step || 0));
+    const base = getPetStats(it);
+    const baseDmg = Number(it.bonus_dmg || 0) >= 400 ? Number(it.bonus_dmg) : base.bonusDmg;
+    const baseHp = Number(it.base_hp || 0) >= 6000 ? Number(it.base_hp) : base.baseHp;
+    const baseDef = Number(it.base_hp || 0) >= 6000 ? Number(it.base_def || Math.floor(Number(it.base_hp) / 10)) : base.baseDef;
+    let crit = g.crit + (stars - 1) * 0.03 + Math.floor(extra / g.every) * 0.01;
+    if (Number(it.crit_rate || 0) > 0) crit = Math.max(crit, Number(it.crit_rate));
+    return {
+      dmg: Math.round(baseDmg * starMult * stepMult + Math.floor(extra * g.dmg * starMult)),
+      hp: Math.round(baseHp * starMult * stepMult + Math.floor(extra * g.hp * starMult)),
+      def: Math.round(baseDef * starMult * stepMult + Math.floor(extra * g.def * starMult)),
+      critPct: Math.round(crit * 100),
+      critDmgPct: Math.round((g.tcdmg + extra * g.cdmg) * 100),
+      level: lv, isMax: lv >= 100, exp: Number(it.exp || 0),
+      reqExp: lv < 100 ? Math.floor(50 * Math.pow(lv, 1.3)) : 0
+    };
+  };
+
+  // Badge chỉ số Linh Thú dùng chung (Profile / Túi Đồ / Sàn Đấu Giá) - y hệt ảnh /profile Discord
+  const renderPetStatBadges = (item, opts = {}) => {
+    const d = getPetDisplay(item);
+    if (!d) return null;
+    const cls = opts.small ? 'px-1 py-0.5 text-[9px]' : 'px-1.5 py-0.5';
+    return (
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className={`font-bold text-yellow-300 bg-yellow-400/10 border border-yellow-400/30 rounded ${cls}`}>⚔️ +{d.dmg.toLocaleString()} DMG</span>
+        <span className={`font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 rounded ${cls}`}>❤️ +{d.hp.toLocaleString()} HP</span>
+        <span className={`font-bold text-sky-400 bg-sky-400/10 border border-sky-400/30 rounded ${cls}`}>🛡️ +{d.def.toLocaleString()} DEF</span>
+        <span className={`font-bold text-orange-400 bg-orange-400/10 border border-orange-400/30 rounded ${cls}`}>🎯 +{d.critPct.toLocaleString()}% Crit</span>
+        {d.critDmgPct > 0 && (
+          <span className={`font-bold text-red-400 bg-red-500/10 border border-red-500/30 rounded ${cls}`}>💥 +{d.critDmgPct.toLocaleString()}% ST Crit</span>
+        )}
+        {!d.isMax && (
+          <span className={`font-bold text-emerald-200 bg-emerald-500/15 border border-emerald-500/30 rounded ${cls}`}>EXP: {d.exp.toLocaleString()}/{d.reqExp.toLocaleString()}</span>
+        )}
+      </div>
+    );
   };
 
   // --- HÀM TÍNH TOÁN VỊ TRÍ & ĐIỀU KHIỂN POPUP TOOLTIP CHI TIẾT VẬT PHẨM THÔNG MINH ---
@@ -11370,42 +11389,44 @@ const App = () => {
     let petLevelCp = 0;
     const pt = p.pet || p.boss_pet;
     if (pt && pt.name) {
-      const petS = getPetStats(pt);
-      const ptStarMult = getStarMult(pt.stars);
-      const ptStepMult = getStepMult(pt);
-      const ptBaseDmg = Number(pt.bonus_dmg || petS.bonusDmg || (String(pt.tier || '').toLowerCase().includes('thượng cổ') ? 80000 : 8000));
-      const ptBaseHp = Number(pt.base_hp || petS.baseHp || (String(pt.tier || '').toLowerCase().includes('thượng cổ') ? 2000000 : 150000));
-      const ptBaseDef = Number(pt.base_def || petS.baseDef || (String(pt.tier || '').toLowerCase().includes('thượng cổ') ? 200000 : 15000));
+      // SSOT: dùng chỉ số hiển thị chuẩn Discord (display_stats từ server, fallback công thức game_core)
+      const pd = getPetDisplay(pt);
+      const ptTierLow = String(pt.tier || '').toLowerCase();
+      const ptLvl = pd.level;
+      const ptTierCdmg = ptTierLow.includes('thượng cổ') ? 0.45 : (ptTierLow.includes('cổ đại') ? 0.15 : 0);
+      const ptCpPerLvl = ptTierLow.includes('thượng cổ') ? 1500 : ptTierLow.includes('cổ đại') ? 700 : ptTierLow.includes('tối thượng') ? 350 : ptTierLow.includes('thần thoại') ? 150 : ptTierLow.includes('epic') ? 60 : ptTierLow.includes('hiếm') ? 20 : 10;
 
-      const ptLvl = Number(pt.level || 1);
-      const ptLvlBonusDmg = Number(pt.level_bonus_dmg || ((ptLvl - 1) * 45000));
-      const ptLvlBonusHp = Number(pt.level_bonus_hp || ((ptLvl - 1) * 350000));
-      const ptLvlBonusDef = Number(pt.level_bonus_def || ((ptLvl - 1) * 35000));
-      const ptLvlCritRate = Number(pt.level_crit_rate || ((ptLvl - 1) * 0.005));
-      const ptLvlCritDmg = Number(pt.level_crit_dmg || ((ptLvl - 1) * 0.03));
-      const ptLvlBonusCp = Number(pt.level_bonus_cp || ((ptLvl - 1) * 1500));
-
-      petDmg = Math.round(ptBaseDmg * ptStarMult * ptStepMult) + ptLvlBonusDmg;
-      petHp = Math.round(ptBaseHp * ptStarMult * ptStepMult) + ptLvlBonusHp;
-      petDef = Math.round(ptBaseDef * ptStarMult * ptStepMult) + ptLvlBonusDef;
-      petCritBonus = Number(pt.crit_rate || (String(pt.tier || '').toLowerCase().includes('thượng cổ') ? 0.50 : 0.20)) + ptLvlCritRate;
-      petLevelCritDmg = ptLvlCritDmg;
-      petLevelCp = ptLvlBonusCp;
+      petDmg = pd.dmg;
+      petHp = pd.hp;
+      petDef = pd.def;
+      petCritBonus = pd.critPct / 100;
+      petLevelCritDmg = Math.max(0, pd.critDmgPct / 100 - ptTierCdmg); // phần nội tại Tier được cộng riêng bên dưới
+      petLevelCp = Number(pt.level_bonus_cp || ((ptLvl - 1) * ptCpPerLvl));
 
       const ptTier = String(pt.tier || '').toLowerCase();
       if (ptTier.includes('thượng cổ')) {
-        gearDmgPctBonus += 45.0;
-        expBonusMultiplier += 0.25;
+        critDamageMultiplier += 0.45;
+        rawCritResPct += 0.25;
       } else if (ptTier.includes('cổ đại')) {
-        gearDmgPctBonus += 15.0;
-        expBonusMultiplier += 0.15;
+        critDamageMultiplier += 0.15;
+        rawCritResPct += 0.15;
       }
       parseSubs(pt).forEach(sub => {
         const m = String(sub).match(/\+(\d+)%/);
         const val = m ? parseInt(m[1], 10) : 20;
         const sLow = String(sub).toLowerCase();
         if (sLow.includes('st chí mạng') || sLow.includes('st bạo kích') || sLow.includes('sát thương bạo kích') || sLow.includes('sát thương chí mạng')) {
-          critDamageMultiplier += val / 100.0;
+          if ((ptTier.includes('thượng cổ') && val === 45) || (ptTier.includes('cổ đại') && val === 15)) {
+            // Đã tính ở nội tại tier
+          } else {
+            critDamageMultiplier += val / 100.0;
+          }
+        } else if (sLow.includes('kháng sát thương bạo kích') || sLow.includes('kháng bạo kích') || sLow.includes('kháng chí mạng') || sLow.includes('kháng crit')) {
+          if ((ptTier.includes('thượng cổ') && val === 25) || (ptTier.includes('cổ đại') && val === 15)) {
+            // Đã tính ở nội tại tier
+          } else {
+            rawCritResPct += val / 100.0;
+          }
         } else if (sLow.includes('chí mạng') || sLow.includes('bạo kích') || sLow.includes('crit')) {
           gearCritChanceBonus += val / 100.0;
         } else if (sLow.includes('xuyên giáp') || sLow.includes('phá giáp')) {
@@ -11767,8 +11788,7 @@ const App = () => {
             'Gia tăng chỉ số Lực Chiến (CP) toàn diện và kích hoạt hiệu ứng chém Boss màu Thần Binh trên Overlay live stream.'
           ],
           howToUse: [
-            'Gõ lệnh [/dap nhan] trên livestream TikTok khi đang có Đá Tinh Hoa trong túi đồ.',
-            'Hệ thống tự động ưu tiên nâng cấp Level Kỹ Năng Nhẫn trước khi người chơi có đủ đá.',
+            'Dùng lệnh [/cuonghoa mon_do:✨ Kỹ Năng Nhẫn] hoặc [mcuonghoa nhan skill] trên Discord/TikTok.',
             'Cơ chế Bảo Hiểm Pity: Không bao giờ bị rớt cấp kỹ năng khi thất bại. Xịt càng nhiều lần thì lần sau tỉ lệ thành công càng tăng (đạt 100% khi đủ mốc).',
             'Có thể bấm nút [Treo Đấu Giá] ở Túi Đồ để bán lấy Xu từ người chơi khác.'
           ],
@@ -11873,10 +11893,12 @@ const App = () => {
     const totalBasePlus = baseDmg + plusBonus;
     const starMult = (starsCount === 5 ? 2.5 : (starsCount === 4 ? 2.0 : (starsCount === 3 ? 1.6 : (starsCount === 2 ? 1.3 : 1.0))));
     const totalEstDmg = Math.round(totalBasePlus * starMult);
-    const bonusDmg = petStats.bonusDmg;
-    const petHp = petStats.baseHp;
-    const petDef = petStats.baseDef;
-    const critRatePct = Math.round(petStats.critRate * 100);
+    const petDisp = (category === 'pet') ? (getPetDisplay(item) || {}) : {};
+    const bonusDmg = Number(petDisp.dmg ?? petStats.bonusDmg);
+    const petHp = Number(petDisp.hp ?? petStats.baseHp);
+    const petDef = Number(petDisp.def ?? petStats.baseDef);
+    const critRatePct = Number(petDisp.critPct ?? Math.round(petStats.critRate * 100));
+    const petCritDmgPct = Number(petDisp.critDmgPct || 0);
     const dmgPercent = necklaceStats.dmgPercent;
     const baseDmgPercent = ringStats.baseDmgPercent;
     const baseHpPercent = ringStats.baseHpPercent || baseDmgPercent;
@@ -12223,12 +12245,18 @@ const App = () => {
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
                         <span className="text-rose-400 font-bold">Cấp độ Linh Thú:</span>
-                        <span className="font-bold text-rose-300">Cấp {petLevel} / 100</span>
+                        <span className="font-bold text-rose-300">{petLevel >= 100 ? 'MAX' : `Cấp ${petLevel} / 100`}</span>
                       </div>
-                      <div className="flex justify-between items-center pt-0.5">
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-800/50">
                         <span className="text-amber-400">Tỉ lệ Chí Mạng Linh Thú:</span>
-                        <span className="font-bold text-amber-300">+{critRatePct}% Crit ⚡</span>
+                        <span className="font-bold text-amber-300">+{critRatePct}% Crit 🎯</span>
                       </div>
+                      {petCritDmgPct > 0 && (
+                        <div className="flex justify-between items-center pt-0.5">
+                          <span className="text-red-400">Sát thương Chí Mạng Linh Thú:</span>
+                          <span className="font-bold text-red-300">+{petCritDmgPct.toLocaleString()}% ST Crit 💥</span>
+                        </div>
+                      )}
                     </>
                   )}
 
@@ -12431,7 +12459,7 @@ const App = () => {
                 ) : category === 'necklace' ? (
                   <div>• Gõ lệnh <code className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-bold font-mono">/dap chuyen</code> (hoặc <code>mdap chuyen</code> / <code>/cuonghoa</code>) trên <strong>Live TikTok</strong> hoặc <strong>Discord</strong> để cường hóa tăng cấp (+plus).</div>
                 ) : category === 'ring' ? (
-                  <div>• Dùng <strong>Tinh Thể & Xu</strong>, gõ lệnh <code className="px-1.5 py-0.5 rounded bg-slate-800 text-purple-300 font-bold font-mono">/dap nhan</code> (hoặc <code>mdap nhan</code> / <code>/cuonghoa</code>) trên <strong>Live TikTok</strong> hoặc <strong>Discord</strong> để nâng Cấp Tuyệt Kỹ & Đột phá Sao.</div>
+                  <div>• Dùng <strong>Viên Tăng Bậc & Xu</strong>, gõ lệnh <code className="px-1.5 py-0.5 rounded bg-slate-800 text-purple-300 font-bold font-mono">/dap nhan</code> (hoặc <code>mdap nhan</code> / <code>/cuonghoa</code>) để Tăng Sao & Tăng Bậc. Để nâng Kỹ Năng nhẫn, dùng <strong>Đá Nâng Kĩ Năng</strong> gõ <code className="px-1.5 py-0.5 rounded bg-slate-800 text-purple-300 font-bold font-mono">/cuonghoa nhan skill</code>.</div>
                 ) : category === 'pet' ? (
                   <div>• Dùng Lượt đánh, gõ lệnh <code className="px-1.5 py-0.5 rounded bg-slate-800 text-rose-300 font-bold font-mono">/feed</code> (hoặc <code>/feed &lt;số lượt&gt;</code>, <code>mfeed</code>, <code>/nuoi</code>) trên <strong>Live TikTok</strong> hoặc <strong>Discord</strong> để cho ăn tăng cấp (Level) và tăng sức mạnh Linh Thú.</div>
                 ) : (
@@ -12769,11 +12797,81 @@ const App = () => {
             )}
           </div>
 
+          {/* BANNER ĐẾM NGƯỢC SỰ KIỆN 11.11 X2 */}
+          {(() => {
+            const isEvent1111 = event1111Now >= EVENT_1111_START_MS && event1111Now < EVENT_1111_END_MS;
+            if (!isEvent1111) return null;
+            const rem = Math.max(0, EVENT_1111_END_MS - event1111Now);
+            const d = Math.floor(rem / (1000 * 60 * 60 * 24));
+            const h = Math.floor((rem / (1000 * 60 * 60)) % 24);
+            const m = Math.floor((rem / (1000 * 60)) % 60);
+            const s = Math.floor((rem / 1000) % 60);
+            return (
+              <div className="mb-6 relative overflow-hidden rounded-2xl bg-gradient-to-r from-red-950 via-rose-900 to-amber-950 border-2 border-amber-400/80 p-4 md:p-6 shadow-[0_0_35px_rgba(245,158,11,0.35)]">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
+                  <div className="flex items-center gap-3 text-left">
+                    <div className="w-12 h-12 rounded-xl bg-amber-400/20 border border-amber-400/50 flex items-center justify-center shrink-0 text-2xl shadow-inner">
+                      🔥
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-red-500 text-black font-black text-xs uppercase tracking-wider shadow">
+                          SIÊU SỰ KIỆN 11.11
+                        </span>
+                        <span className="text-amber-300 font-extrabold text-xs">00:00 11/11 → 23:59 13/11</span>
+                      </div>
+                      <h3 className="text-lg md:text-xl font-black text-white mt-0.5">
+                        NHÂN ĐÔI TOÀN BỘ TÀI NGUYÊN NẠP GÓI <span className="text-yellow-400 underline decoration-amber-400">X2 GIÁ TRỊ</span>
+                      </h3>
+                      <p className="text-xs text-amber-200/90 mt-0.5">
+                        x2 Xu Game VIP, x2 Rương Hoàng Kim, x2 Rương Boss, x2 Lượt Đánh (Giá nạp và Nhẫn giữ nguyên)!
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 bg-black/40 backdrop-blur-md px-4 py-2.5 rounded-xl border border-amber-400/40 shadow-lg">
+                    <div className="flex items-center gap-1.5 text-xs text-amber-300 font-bold mr-1">
+                      <Clock size={16} className="text-amber-400" />
+                      <span>HẾT HẠN SAU:</span>
+                    </div>
+                    <div className="flex items-center gap-1 font-mono text-center">
+                      <div className="bg-slate-900/90 px-2 py-1 rounded border border-amber-400/30">
+                        <span className="text-base font-black text-amber-300">{String(d).padStart(2, '0')}</span>
+                        <span className="text-[9px] block text-slate-400">NGÀY</span>
+                      </div>
+                      <span className="text-amber-400 font-bold">:</span>
+                      <div className="bg-slate-900/90 px-2 py-1 rounded border border-amber-400/30">
+                        <span className="text-base font-black text-amber-300">{String(h).padStart(2, '0')}</span>
+                        <span className="text-[9px] block text-slate-400">GIỜ</span>
+                      </div>
+                      <span className="text-amber-400 font-bold">:</span>
+                      <div className="bg-slate-900/90 px-2 py-1 rounded border border-amber-400/30">
+                        <span className="text-base font-black text-amber-300">{String(m).padStart(2, '0')}</span>
+                        <span className="text-[9px] block text-slate-400">PHÚT</span>
+                      </div>
+                      <span className="text-amber-400 font-bold">:</span>
+                      <div className="bg-slate-900/90 px-2 py-1 rounded border border-amber-400/30">
+                        <span className="text-base font-black text-amber-300">{String(s).padStart(2, '0')}</span>
+                        <span className="text-[9px] block text-slate-400">GIÂY</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* GRID 8 GÓI NẠP */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {BOSS_GAME_PACKAGES.map((pkg) => {
+              const isEvent1111 = event1111Now >= EVENT_1111_START_MS && event1111Now < EVENT_1111_END_MS;
               const isAffordable = currentUser ? (currentUser.balance || 0) >= pkg.price : false;
               const hasRing = pkg.items && pkg.items.length > 0;
+              const baseBossChests = pkg.bossChests || (pkg.royalChests ? pkg.royalChests * 100 : 0);
+              const coinsVal = isEvent1111 ? pkg.coins * EVENT_1111_MULT : pkg.coins;
+              const royalVal = isEvent1111 ? pkg.royalChests * EVENT_1111_MULT : pkg.royalChests;
+              const bossVal = isEvent1111 ? baseBossChests * EVENT_1111_MULT : baseBossChests;
+              const attacksVal = isEvent1111 ? pkg.attacks * EVENT_1111_MULT : pkg.attacks;
 
               return (
                 <div
@@ -12784,7 +12882,12 @@ const App = () => {
                     }`}
                 >
                   {/* BADGE KHUYẾN MÃI / LOẠI GÓI */}
-                  <div className="absolute top-3 right-3 z-10">
+                  <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1">
+                    {isEvent1111 && (
+                      <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full text-black bg-gradient-to-r from-yellow-300 via-amber-400 to-red-500 shadow-[0_0_12px_rgba(250,204,21,0.7)] animate-pulse font-mono tracking-wider">
+                        🔥 x2 11.11
+                      </span>
+                    )}
                     <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full text-white bg-gradient-to-r ${pkg.badgeColor} shadow-md`}>
                       {pkg.badge}
                     </span>
@@ -12813,7 +12916,7 @@ const App = () => {
                             </div>
                           </div>
 
-                          {/* SỐ LƯỢNG x1 NẰM Ở GÓC NGOÀI (GÓC DƯỚI BÊN PHẢI CỦA KHUNG ẢNH) */}
+                          {/* SỐ LƯỢNG x1 NẰM Ở GÓC NGOÀI (GÓI 7 & 8 KHÔNG NHÂN NHẪN) */}
                           <div className="absolute bottom-0 right-1 px-2 py-0.5 rounded-lg bg-slate-950/95 backdrop-blur-md border border-amber-400/60 shadow-[0_0_10px_rgba(0,0,0,0.8)] z-20">
                             <span className="text-xs font-black text-amber-300 tracking-wider drop-shadow">
                               x1
@@ -12842,9 +12945,16 @@ const App = () => {
                           <span className="text-xl shrink-0 leading-none">🪙</span>
                           <div>
                             <span className="text-[9px] uppercase font-bold text-amber-300/80 block leading-tight tracking-wider">TIỀN TỆ MUA ĐỒ SHOP</span>
-                            <span className="text-base font-black text-amber-300 drop-shadow">
-                              +{new Intl.NumberFormat('vi-VN').format(pkg.coins)} XU GAME
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-base font-black text-amber-300 drop-shadow">
+                                +{new Intl.NumberFormat('vi-VN').format(coinsVal)} XU GAME
+                              </span>
+                              {isEvent1111 && (
+                                <span className="text-[11px] line-through text-slate-400 font-bold">
+                                  {new Intl.NumberFormat('vi-VN').format(pkg.coins)}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <span className="text-[9px] font-bold text-amber-200 bg-amber-500/30 px-2 py-0.5 rounded-md border border-amber-400/30 whitespace-nowrap">
@@ -12854,15 +12964,30 @@ const App = () => {
 
                       <div className="flex items-center gap-2 text-slate-200 font-semibold px-1">
                         <Crown size={15} className="text-yellow-400 shrink-0" />
-                        <span>+{pkg.royalChests} Rương Hoàng Kim VIP</span>
+                        <span>
+                          +{royalVal} Rương Hoàng Kim VIP
+                          {isEvent1111 && (
+                            <span className="text-xs line-through text-slate-400 ml-1.5">({pkg.royalChests})</span>
+                          )}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 text-amber-300 font-semibold px-1">
                         <Package size={15} className="text-amber-400 shrink-0" />
-                        <span>+{new Intl.NumberFormat('vi-VN').format(pkg.bossChests || pkg.royalChests * 100)} Rương Boss (Tặng Kèm)</span>
+                        <span>
+                          +{new Intl.NumberFormat('vi-VN').format(bossVal)} Rương Boss (Tặng Kèm)
+                          {isEvent1111 && (
+                            <span className="text-xs line-through text-slate-400 ml-1.5">({new Intl.NumberFormat('vi-VN').format(baseBossChests)})</span>
+                          )}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 text-slate-200 font-semibold px-1">
                         <Swords size={15} className="text-rose-400 shrink-0" />
-                        <span>+{new Intl.NumberFormat('vi-VN').format(pkg.attacks)} Lượt Đánh Boss</span>
+                        <span>
+                          +{new Intl.NumberFormat('vi-VN').format(attacksVal)} Lượt Đánh Boss
+                          {isEvent1111 && (
+                            <span className="text-xs line-through text-slate-400 ml-1.5">({new Intl.NumberFormat('vi-VN').format(pkg.attacks)})</span>
+                          )}
+                        </span>
                       </div>
                       {hasRing && (
                         <div className="flex items-start gap-2 text-amber-300 font-black pt-2 border-t border-amber-500/30 px-1">
@@ -13175,11 +13300,6 @@ const App = () => {
                           {Math.max(1, Math.min(5, Number(item.stars || 1)))}⭐
                         </span>
                       )}
-                      {category === 'pet' && item.level && (
-                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-600 text-white shadow-sm shrink-0">
-                          Lv.{item.level}
-                        </span>
-                      )}
                     </div>
                     {/* Nút Tháo Trang Bị về Túi Đồ nếu đang xem profile của chính mình */}
                     {bossPlayerSummary && String(bossPlayerSummary.user_id).toLowerCase() === String(p.user_id).toLowerCase() && (
@@ -13291,25 +13411,7 @@ const App = () => {
                         </div>
                       );
                     })()}
-                    {category === 'pet' && (() => {
-                      const pStats = getPetStats(item);
-                      return (
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="font-bold text-rose-400 bg-rose-400/10 border border-rose-400/30 px-1.5 py-0.5 rounded">
-                            +{pStats.bonusDmg.toLocaleString()} DMG
-                          </span>
-                          <span className="font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded">
-                            ❤️ +{pStats.baseHp.toLocaleString()} HP
-                          </span>
-                          <span className="font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 px-1.5 py-0.5 rounded">
-                            🛡️ +{pStats.baseDef.toLocaleString()} DEF
-                          </span>
-                          <span className="font-bold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.5 rounded">
-                            ⚡ +{Math.round(pStats.critRate * 100)}% Crit
-                          </span>
-                        </div>
-                      );
-                    })()}
+                    {category === 'pet' && renderPetStatBadges(item)}
                     {category === 'shoes' && (() => {
                       const sTier = (item.tier || '').toLowerCase();
                       const sPlus = Number(item.plus || 0);
@@ -14598,14 +14700,7 @@ const App = () => {
                                         </>
                                       );
                                     })()}
-                                    {category === 'pet' && (() => {
-                                      const pStats = getPetStats(item);
-                                      return (
-                                        <span className="text-rose-400 block font-semibold">
-                                          🐾 +{pStats.bonusDmg.toLocaleString()} DMG • <span className="text-emerald-400">❤️+{pStats.baseHp.toLocaleString()} HP</span> • <span className="text-cyan-400">🛡️+{pStats.baseDef.toLocaleString()} DEF</span> {item.level ? `(Lv.${item.level})` : ''}
-                                        </span>
-                                      );
-                                    })()}
+                                    {category === 'pet' && <div className="mt-0.5">{renderPetStatBadges(item, { small: true })}</div>}
                                     {category === 'shoes' && (() => {
                                       const sTier = (item.tier || '').toLowerCase();
                                       const sPlus = Number(item.plus || 0);
@@ -15321,14 +15416,7 @@ const App = () => {
                                             </span>
                                           );
                                         })()}
-                                        {category === 'pet' && (() => {
-                                          const pStats = getPetStats(item);
-                                          return (
-                                            <span className="text-rose-400">
-                                              🐾 +{pStats.bonusDmg.toLocaleString()} DMG • <span className="text-emerald-400">❤️+{pStats.baseHp.toLocaleString()} HP</span> • <span className="text-cyan-400">🛡️+{pStats.baseDef.toLocaleString()} DEF</span> • <span className="text-amber-400">⚡+{Math.round(pStats.critRate * 100)}% Crit</span>
-                                            </span>
-                                          );
-                                        })()}
+                                        {category === 'pet' && <div className="mt-0.5">{renderPetStatBadges(item, { small: true })}</div>}
                                         {category === 'shoes' && (() => {
                                           const agi = Number(item.agility || item.base_agility || 300);
                                           return <span className="text-pink-400">👟 +{agi.toLocaleString()} Tốc Độ</span>;

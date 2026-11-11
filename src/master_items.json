@@ -638,6 +638,60 @@
     "glow_color": null,
     "border_class": ""
   },
+  "đá phôi": {
+    "name": "Đá Phôi",
+    "image": "item_da_phoi.png",
+    "category": "material",
+    "tier": "Thượng Cổ",
+    "color": "#00f0ff",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "da phoi": {
+    "name": "Đá Phôi",
+    "image": "item_da_phoi.png",
+    "category": "material",
+    "tier": "Thượng Cổ",
+    "color": "#00f0ff",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "đá phôi 5 sao": {
+    "name": "Đá Phôi",
+    "image": "item_da_phoi.png",
+    "category": "material",
+    "tier": "Thượng Cổ",
+    "color": "#00f0ff",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "đá phôi thần thoại": {
+    "name": "Đá Phôi",
+    "image": "item_da_phoi.png",
+    "category": "material",
+    "tier": "Thượng Cổ",
+    "color": "#00f0ff",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "item_da_phoi": {
+    "name": "Đá Phôi",
+    "image": "item_da_phoi.png",
+    "category": "material",
+    "tier": "Thượng Cổ",
+    "color": "#00f0ff",
+    "glow_color": null,
+    "border_class": ""
+  },
+  "da_phoi": {
+    "name": "Đá Phôi",
+    "image": "item_da_phoi.png",
+    "category": "material",
+    "tier": "Thượng Cổ",
+    "color": "#00f0ff",
+    "glow_color": null,
+    "border_class": ""
+  },
   "gói 5 lượt đánh boss": {
     "name": "Gói 5 Lượt Đánh Boss",
     "image": "item_attack_turn.png",
