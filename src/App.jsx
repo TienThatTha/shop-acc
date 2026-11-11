@@ -13088,26 +13088,64 @@ const App = () => {
                 </div>
 
                 {/* Thông tin gói */}
-                <div className="p-3.5 rounded-xl bg-[#0B1120] border border-slate-800">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-amber-400 font-bold text-sm">{selectedBossPackage.name}</span>
-                    <span className="text-emerald-400 font-black text-sm">
-                      {new Intl.NumberFormat('vi-VN').format(selectedBossPackage.price)}đ
-                    </span>
-                  </div>
-                  <div className="text-xs text-slate-300 space-y-1.5">
-                    <p className="text-amber-300 font-black text-sm pb-1 border-b border-amber-500/20 flex items-center gap-2">
-                      <span className="text-base leading-none">🪙</span>
-                      <span>+{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.coins)} Xu Game (Tiền Tệ Quý Mua Đồ Shop)</span>
-                    </p>
-                    <p>• +{selectedBossPackage.royalChests} Rương Hoàng Kim VIP</p>
-                    <p className="text-amber-300 font-bold">• +{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.bossChests || selectedBossPackage.royalChests * 100)} Rương Boss Chiến Tích (Tặng kèm)</p>
-                    <p>• +{new Intl.NumberFormat('vi-VN').format(selectedBossPackage.attacks)} Lượt Đánh Boss</p>
-                    {selectedBossPackage.items && selectedBossPackage.items.length > 0 && (
-                      <p className="text-amber-300 font-bold">• 💥 Tặng kèm: x1 {selectedBossPackage.items[0].name} ({selectedBossPackage.items[0].stars}⭐)</p>
-                    )}
-                  </div>
-                </div>
+                {(() => {
+                  const isEvent1111 = event1111Now >= EVENT_1111_START_MS && event1111Now < EVENT_1111_END_MS;
+                  const baseBossChests = selectedBossPackage.bossChests || (selectedBossPackage.royalChests ? selectedBossPackage.royalChests * 100 : 0);
+                  const coinsVal = isEvent1111 ? selectedBossPackage.coins * EVENT_1111_MULT : selectedBossPackage.coins;
+                  const royalVal = isEvent1111 ? selectedBossPackage.royalChests * EVENT_1111_MULT : selectedBossPackage.royalChests;
+                  const bossVal = isEvent1111 ? baseBossChests * EVENT_1111_MULT : baseBossChests;
+                  const attacksVal = isEvent1111 ? selectedBossPackage.attacks * EVENT_1111_MULT : selectedBossPackage.attacks;
+
+                  return (
+                    <div className="p-3.5 rounded-xl bg-[#0B1120] border border-slate-800">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-amber-400 font-bold text-sm">{selectedBossPackage.name}</span>
+                          {isEvent1111 && (
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full text-black bg-gradient-to-r from-yellow-300 via-amber-400 to-red-500 shadow-[0_0_12px_rgba(250,204,21,0.7)] animate-pulse font-mono tracking-wider">
+                              🔥 x2 11.11
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-emerald-400 font-black text-sm">
+                          {new Intl.NumberFormat('vi-VN').format(selectedBossPackage.price)}đ
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-300 space-y-1.5">
+                        <p className="text-amber-300 font-black text-sm pb-1 border-b border-amber-500/20 flex items-center gap-2">
+                          <span className="text-base leading-none">🪙</span>
+                          <span>+{new Intl.NumberFormat('vi-VN').format(coinsVal)} Xu Game (Tiền Tệ Quý Mua Đồ Shop)</span>
+                          {isEvent1111 && (
+                            <span className="text-[11px] line-through text-slate-400 font-bold ml-1">
+                              {new Intl.NumberFormat('vi-VN').format(selectedBossPackage.coins)}
+                            </span>
+                          )}
+                        </p>
+                        <p>
+                          • +{royalVal} Rương Hoàng Kim VIP
+                          {isEvent1111 && (
+                            <span className="text-xs line-through text-slate-400 ml-1.5">({selectedBossPackage.royalChests})</span>
+                          )}
+                        </p>
+                        <p className="text-amber-300 font-bold">
+                          • +{new Intl.NumberFormat('vi-VN').format(bossVal)} Rương Boss Chiến Tích (Tặng kèm)
+                          {isEvent1111 && (
+                            <span className="text-xs line-through text-slate-400 ml-1.5">({new Intl.NumberFormat('vi-VN').format(baseBossChests)})</span>
+                          )}
+                        </p>
+                        <p>
+                          • +{new Intl.NumberFormat('vi-VN').format(attacksVal)} Lượt Đánh Boss
+                          {isEvent1111 && (
+                            <span className="text-xs line-through text-slate-400 ml-1.5">({new Intl.NumberFormat('vi-VN').format(selectedBossPackage.attacks)})</span>
+                          )}
+                        </p>
+                        {selectedBossPackage.items && selectedBossPackage.items.length > 0 && (
+                          <p className="text-amber-300 font-bold">• 💥 Tặng kèm: x1 {selectedBossPackage.items[0].name} ({selectedBossPackage.items[0].stars}⭐)</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Kiểm tra số dư */}
                 <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs space-y-1.5">
