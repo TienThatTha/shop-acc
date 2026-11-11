@@ -1646,29 +1646,15 @@ const App = () => {
                 .or(spinFilter);
 
               if (pendingSpinOrders && pendingSpinOrders.length > 0) {
-                let totalAddSpins = 0;
-                const completedIds = [];
-                for (const spo of pendingSpinOrders) {
-                  const spCount = parseInt(spo.rewards?.spins || spo.rewards?.tickets || 0, 10);
-                  if (spCount > 0) {
-                    totalAddSpins += spCount;
-                    completedIds.push(spo.id);
-                  }
-                }
-                if (totalAddSpins > 0) {
-                  const newSp = (enrichedUser.spins || 0) + totalAddSpins;
-                  const { error: updSpErr } = await supabase
-                    .from('users')
-                    .update({ spins: newSp })
-                    .eq('id', user.id);
-                  if (!updSpErr) {
-                    enrichedUser.spins = newSp;
-                    await supabase
-                      .from('game_orders')
-                      .update({ status: 'completed', completed_at: new Date().toISOString() })
-                      .in('id', completedIds);
+                const pendingIds = pendingSpinOrders.map(spo => spo.id).filter(Boolean);
+                if (pendingIds.length > 0) {
+                  const { data: claimRes, error: claimErr } = await supabase.rpc('rpc_claim_spin_tickets', {
+                    p_order_ids: pendingIds
+                  });
+                  if (!claimErr && claimRes?.success && claimRes.claimed_spins > 0) {
+                    enrichedUser.spins = claimRes.new_spins;
                     setTimeout(() => {
-                      showToast(`🎉 Bạn vừa nhận được +${totalAddSpins} Lượt Quay Vòng Quay từ nhân vật game!`, 'success');
+                      showToast(`🎉 Bạn vừa nhận được +${claimRes.claimed_spins} Lượt Quay Vòng Quay từ nhân vật game!`, 'success');
                     }, 1200);
                   }
                 }
@@ -2017,12 +2003,12 @@ const App = () => {
             const addedSpins = parseInt(ord.rewards?.spins || ord.rewards?.tickets || 0, 10);
             if (addedSpins > 0) {
               if (ord.status === 'pending') {
-                const newSpins = (me.spins || 0) + addedSpins;
-                const { error: updErr } = await supabase.from('users').update({ spins: newSpins }).eq('id', me.id);
-                if (!updErr) {
-                  await supabase.from('game_orders').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', ord.id);
-                  setCurrentUser(prev => prev ? ({ ...prev, spins: newSpins }) : prev);
-                  showToast(`🎉 Nhận thành công +${addedSpins} Lượt Quay Vòng Quay từ nhân vật game!`, 'success');
+                const { data: claimRes, error: claimErr } = await supabase.rpc('rpc_claim_spin_tickets', {
+                  p_order_ids: [ord.id]
+                });
+                if (!claimErr && claimRes?.success && claimRes.claimed_spins > 0) {
+                  setCurrentUser(prev => prev ? ({ ...prev, spins: claimRes.new_spins }) : prev);
+                  showToast(`🎉 Nhận thành công +${claimRes.claimed_spins} Lượt Quay Vòng Quay từ nhân vật game!`, 'success');
                 }
               } else {
                 showToast(`🎉 Nhận thành công +${addedSpins} Lượt Quay Vòng Quay từ nhân vật game!`, 'success');
