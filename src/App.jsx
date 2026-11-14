@@ -456,6 +456,16 @@ const enforceNumberInput = (e) => {
   e.target.value = e.target.value.replace(/[^0-9]/g, '');
 };
 
+// HÀM XỬ LÝ SĐT (BẮT BUỘC BẮT ĐẦU BẰNG SỐ 0, TỐI ĐA 11 SỐ)
+const enforcePhoneZeroInput = (e) => {
+  let digits = e.target.value.replace(/[^0-9]/g, '');
+  const zeroIdx = digits.indexOf('0');
+  digits = zeroIdx === -1 ? '' : digits.slice(zeroIdx, zeroIdx + 11);
+  e.target.value = digits;
+};
+const isValidVnPhone = (val) => /^0\d{9,10}$/.test(String(val || '').trim());
+const isValidGmail = (val) => /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(String(val || '').trim());
+
 let isProcessingAction = false;
 
 // --- TÍCH HỢP IMGBB TỰ ĐỘNG ---
@@ -2800,86 +2810,31 @@ const App = () => {
     setIsLoggingIn(true);
 
     try {
-      // 1. Thêm .trim() để cắt bỏ mọi khoảng trắng thừa (dấu cách) nếu khách lỡ nhập
       const contact = e.target.contact.value.trim();
       const password = e.target.password.value;
 
       if (!contact) {
-        return showToast("Vui lòng nhập Tài khoản, SĐT hoặc Email!", 'error');
+        return showToast("Vui lòng nhập Số điện thoại (0...) hoặc Email (@gmail.com)!", 'error');
       }
 
       let loginEmails = [];
 
-      // 2. Nếu khách không nhập Email -> kiểm tra SĐT (hỗ trợ +84, 84, 0..., khoảng trắng/dấu gạch) hoặc Tên tài khoản
+      // Chỉ cho phép đăng nhập theo đúng Email (@gmail.com) hoặc SĐT (bắt đầu bằng số 0, 10-11 số)
       if (contact.includes('@')) {
-        loginEmails = [contact];
-      } else {
-        const hasLetters = /[a-zA-Z]/.test(contact);
-        const digits = !hasLetters ? contact.replace(/\D+/g, '') : '';
-        const phoneCandidates = [];
-        const addPhoneCand = (val) => {
-          const clean = String(val || '').trim();
-          if (clean && !phoneCandidates.includes(clean)) {
-            phoneCandidates.push(clean);
-          }
-        };
-
-        if (digits.length >= 9 && digits.length <= 13) {
-          if (contact.startsWith('+')) addPhoneCand('+' + digits);
-          addPhoneCand(digits);
-          if (digits.startsWith('84') && digits.length >= 10) {
-            const noCode = digits.slice(2);
-            addPhoneCand('0' + noCode);
-            addPhoneCand(noCode);
-            addPhoneCand('+84' + noCode);
-          } else if (digits.startsWith('0')) {
-            const noZero = digits.slice(1);
-            addPhoneCand(noZero);
-            addPhoneCand('84' + noZero);
-            addPhoneCand('+84' + noZero);
-          } else if (digits.length === 9) {
-            addPhoneCand('0' + digits);
-            addPhoneCand('84' + digits);
-            addPhoneCand('+84' + digits);
-          }
+        if (!isValidGmail(contact)) {
+          return showToast("Email đăng nhập phải đúng định dạng @gmail.com!", 'error');
         }
+        const { data: candidates } = await supabase
+          .from('users')
+          .select('email, balance')
+          .ilike('email', contact)
+          .limit(25);
 
-        let matchedUsers = [];
-        if (phoneCandidates.length > 0) {
-          const safeDigitCands = phoneCandidates.filter((p) => /^\d+$/.test(p));
-          const orFilters = safeDigitCands.map((p) => `phone.ilike.%${p}%`);
-          orFilters.push(`name.ilike.%${contact}%`);
-
-          const { data: candidates } = await supabase
-            .from('users')
-            .select('email, phone, name, balance')
-            .or(orFilters.join(','))
-            .limit(25);
-
-          const phoneDigitSet = new Set(safeDigitCands);
-          matchedUsers = (candidates || []).filter((u) => {
-            const dbPhoneTrim = (u.phone || '').trim();
-            const dbPhoneDigits = dbPhoneTrim.replace(/\D+/g, '');
-            const dbNameTrim = (u.name || '').trim().toLowerCase();
-            return (
-              phoneCandidates.includes(dbPhoneTrim) ||
-              (dbPhoneDigits && phoneDigitSet.has(dbPhoneDigits)) ||
-              dbNameTrim === contact.toLowerCase()
-            );
-          });
-        } else {
-          const { data: candidates } = await supabase
-            .from('users')
-            .select('email, name, balance')
-            .ilike('name', `%${contact}%`)
-            .limit(25);
-
-          matchedUsers = (candidates || []).filter(
-            (u) => (u.name || '').trim().toLowerCase() === contact.toLowerCase()
-          );
-        }
-
+        const matchedUsers = (candidates || []).filter(
+          (u) => (u.email || '').trim().toLowerCase() === contact.toLowerCase()
+        );
         matchedUsers.sort((a, b) => Number(b.balance || 0) - Number(a.balance || 0));
+
         const seenEmails = new Set();
         for (const u of matchedUsers) {
           const em = (u.email || '').trim();
@@ -2891,16 +2846,39 @@ const App = () => {
         }
 
         if (loginEmails.length === 0) {
-          return showToast(
-            phoneCandidates.length > 0
-              ? "Số điện thoại này chưa được đăng ký!"
-              : "Tên tài khoản này chưa được đăng ký!",
-            'error'
-          );
+          return showToast("Email này chưa được đăng ký!", 'error');
+        }
+      } else {
+        if (!isValidVnPhone(contact)) {
+          return showToast("Vui lòng đăng nhập bằng Số điện thoại (bắt đầu bằng số 0, 10-11 số) hoặc Email (@gmail.com)!", 'error');
+        }
+        const { data: candidates } = await supabase
+          .from('users')
+          .select('email, phone, balance')
+          .eq('phone', contact)
+          .limit(25);
+
+        const matchedUsers = (candidates || []).filter(
+          (u) => (u.phone || '').trim() === contact
+        );
+        matchedUsers.sort((a, b) => Number(b.balance || 0) - Number(a.balance || 0));
+
+        const seenEmails = new Set();
+        for (const u of matchedUsers) {
+          const em = (u.email || '').trim();
+          const emKey = em.toLowerCase();
+          if (em && !seenEmails.has(emKey)) {
+            seenEmails.add(emKey);
+            loginEmails.push(em);
+          }
+        }
+
+        if (loginEmails.length === 0) {
+          return showToast("Số điện thoại này chưa được đăng ký!", 'error');
         }
       }
 
-      // Đăng nhập bằng danh sách Email ứng viên (xử lý được trường hợp trùng SĐT / trùng tên khác hoa thường)
+      // Đăng nhập bằng Email liên kết khớp chính xác SĐT/Email đã nhập
       let authData = null;
       let authError = null;
       for (const candidateEmail of loginEmails) {
@@ -2993,25 +2971,35 @@ const App = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    const email = e.target.email.value.trim();
+    const email = e.target.email.value.trim().toLowerCase();
     const password = e.target.password.value;
     const name = e.target.name.value.trim();
     const phone = e.target.phone.value.trim();
 
-    // KIỂM TRA TRÙNG LẶP TRONG DATABASE TRƯỚC
-    const { data: existingUsers, error: checkError } = await supabase
-      .from('users')
-      .select('name, email, phone')
-      .or(`email.eq.${email},phone.eq.${phone},name.eq.${name}`);
+    if (name.length < 3) {
+      return showToast("Họ và tên phải có ít nhất 3 ký tự!", "error");
+    }
+    if (!isValidVnPhone(phone)) {
+      return showToast("Số điện thoại phải bắt đầu bằng số 0 và gồm 10-11 chữ số!", "error");
+    }
+    if (!isValidGmail(email)) {
+      return showToast("Email phải đúng định dạng @gmail.com (ví dụ: tenban@gmail.com)!", "error");
+    }
+    if (password.length < 6) {
+      return showToast("Mật khẩu phải có ít nhất 6 ký tự!", "error");
+    }
 
-    if (existingUsers && existingUsers.length > 0) {
-      const isNameExist = existingUsers.some(u => u.name.toLowerCase() === name.toLowerCase());
-      const isEmailExist = existingUsers.some(u => u.email.toLowerCase() === email.toLowerCase());
-      const isPhoneExist = existingUsers.some(u => u.phone === phone);
+    // KIỂM TRA TRÙNG LẶP SĐT HOẶC EMAIL TRONG DATABASE TRƯỚC (2 truy vấn độc lập)
+    const [{ data: dupPhones }, { data: dupEmails }] = await Promise.all([
+      supabase.from('users').select('id, phone').eq('phone', phone).limit(1),
+      supabase.from('users').select('id, email').ilike('email', email).limit(1),
+    ]);
 
-      if (isNameExist) return showToast("Tên tài khoản này đã có người sử dụng!", "error");
-      if (isEmailExist) return showToast("Email này đã được đăng ký!", "error");
-      if (isPhoneExist) return showToast("Số điện thoại này đã được đăng ký!", "error");
+    if (dupPhones && dupPhones.length > 0) {
+      return showToast("Số điện thoại này đã được đăng ký! Không được tạo thêm tài khoản trùng SĐT.", "error");
+    }
+    if (dupEmails && dupEmails.length > 0) {
+      return showToast("Email này đã được đăng ký! Không được tạo thêm tài khoản trùng Email.", "error");
     }
 
     // 1. Tạo tài khoản bảo mật trong Supabase Auth
@@ -3048,8 +3036,11 @@ const App = () => {
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     if (isRecovering) return;
+    const email = e.target.email.value.trim().toLowerCase();
+    if (!isValidGmail(email)) {
+      return showToast("Email khôi phục phải đúng định dạng @gmail.com!", 'error');
+    }
     setIsRecovering(true);
-    const email = e.target.email.value.trim();
     const { error } = await supabase.auth.resetPasswordForEmail(email);
     setIsRecovering(false);
     if (error) return showToast("Lỗi: " + error.message, 'error');
@@ -3904,9 +3895,9 @@ const App = () => {
         <h2 className="text-2xl font-bold text-white mb-2 text-center">Khôi phục mật khẩu</h2>
         {forgotPasswordStep === 1 && (
           <>
-            <p className="text-slate-400 text-sm text-center mb-6">Nhập Email bạn đã đăng ký, chúng tôi sẽ gửi mã xác thực gồm 6 số.</p>
+            <p className="text-slate-400 text-sm text-center mb-6">Nhập Email (@gmail.com) bạn đã đăng ký, chúng tôi sẽ gửi mã xác thực gồm 6 số.</p>
             <form onSubmit={handleForgotPassword} className="space-y-4">
-              <input name="email" type="email" required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 outline-none focus:border-blue-500" placeholder="Nhập Email của bạn..." />
+              <input name="email" type="email" pattern="[a-zA-Z0-9._%+\-]+@[gG][mM][aA][iI][lL]\.[cC][oO][mM]" required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 outline-none focus:border-blue-500" placeholder="Nhập Email (@gmail.com) của bạn..." title="Vui lòng nhập đúng định dạng Email @gmail.com" />
               <button type="submit" disabled={isRecovering} className={`w-full ${isRecovering ? 'bg-blue-800 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'} text-white font-bold py-3 rounded-lg shadow-lg flex items-center justify-center gap-2 transition-colors`}>
                 {isRecovering ? <><RefreshCw className="animate-spin" size={20} /> Đang gửi mã...</> : 'Gửi Mã Xác Thực'}
               </button>
@@ -3962,8 +3953,8 @@ const App = () => {
         <div className="p-8">
           <form className="space-y-4" onSubmit={handleLogin}>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Tài khoản (Tên/SĐT/Email)</label>
-              <input name="contact" type="text" required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 focus:border-blue-500 outline-none" placeholder="Nhập Tên tài khoản, SĐT hoặc Email..." />
+              <label className="block text-sm text-slate-400 mb-1">Tài khoản (SĐT hoặc Email @gmail.com)</label>
+              <input name="contact" type="text" required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 focus:border-blue-500 outline-none" placeholder="Nhập SĐT (bắt đầu bằng 0) hoặc Email (@gmail.com)..." />
             </div>
             <div className="relative">
               <label className="block text-sm text-slate-400 mb-1">Mật khẩu</label>
@@ -4003,9 +3994,9 @@ const App = () => {
       <div className="max-w-md w-full bg-[#151D2F] border border-slate-800 rounded-2xl shadow-2xl p-8">
         <h2 className="text-2xl font-bold text-white mb-6 text-center">Tạo tài khoản mới</h2>
         <form className="space-y-4" onSubmit={handleRegister}>
-          <input name="name" type="text" required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 outline-none" placeholder="Họ và tên" />
-          <input name="phone" type="tel" pattern="[0-9]{10,11}" maxLength="11" onInput={enforceNumberInput} required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 outline-none" placeholder="Số điện thoại (10-11 số)" title="Vui lòng nhập đúng 10 đến 11 số" />
-          <input name="email" type="email" required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 outline-none" placeholder="Email" />
+          <input name="name" type="text" minLength="3" required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 outline-none" placeholder="Họ và tên hiển thị (ít nhất 3 ký tự)" />
+          <input name="phone" type="tel" pattern="0[0-9]{9,10}" maxLength="11" onInput={enforcePhoneZeroInput} required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 outline-none" placeholder="Số điện thoại (bắt đầu bằng số 0, 10-11 số)" title="Số điện thoại phải bắt đầu bằng số 0 và gồm 10-11 chữ số" />
+          <input name="email" type="email" pattern="[a-zA-Z0-9._%+\-]+@[gG][mM][aA][iI][lL]\.[cC][oO][mM]" required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 outline-none" placeholder="Email (@gmail.com)" title="Vui lòng nhập Email đúng định dạng @gmail.com" />
           <div className="relative">
             <input name="password" type={showPassword ? "text" : "password"} required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 outline-none pr-10" placeholder="Mật khẩu" />
             <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-slate-500 hover:text-white transition-colors">
@@ -17005,14 +16996,14 @@ const App = () => {
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-5 border-b border-slate-800">
               <div className="flex-1 space-y-2">
                 <label className="text-xs font-black uppercase tracking-wider text-amber-400 block">
-                  Tên Đăng Nhập (hoặc UID) Tài Khoản Trong Game Mộng Thiên Cửu
+                  Số Điện Thoại (0...) / Email (@gmail.com) Hoặc UID Tài Khoản
                 </label>
                 <div className="flex flex-col sm:flex-row gap-2.5">
                   <input
                     type="text"
                     value={mtcUsername}
                     onChange={(e) => setMtcUsername(e.target.value)}
-                    placeholder="Ví dụ: google_player (tên tài khoản đăng nhập game)"
+                    placeholder="Ví dụ: 0912345678, tenban@gmail.com hoặc UID 9 số"
                     className="flex-1 px-4 py-3 bg-[#0B1120] border border-slate-700 focus:border-amber-500 rounded-xl text-white font-bold text-sm outline-none"
                   />
                   <select
@@ -17042,7 +17033,7 @@ const App = () => {
                       {mtcAccountInfo.nickname || mtcAccountInfo.username} <span className="text-slate-400 font-mono">(UID: {mtcAccountInfo.uid})</span>
                     </p>
                     <p className="text-emerald-400 font-bold mt-0.5">
-                      Số dư Ví Game hiện tại: {mtcAccountInfo.rmb}k {mtcAccountInfo.lv > 0 ? `• Lv.${mtcAccountInfo.lv}` : ''}
+                      Số dư Ví hiện tại: {new Intl.NumberFormat('vi-VN').format((mtcAccountInfo.rmb || 0) * 1000)}đ {mtcAccountInfo.lv > 0 ? `• Lv.${mtcAccountInfo.lv}` : ''}
                     </p>
                   </div>
                 </div>
@@ -22207,7 +22198,7 @@ const App = () => {
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <div><input name="awesunId" placeholder="ID App (9 số)" pattern="[0-9]{9}" maxLength="9" onInput={enforceNumberInput} title="Vui lòng nhập đúng 9 số" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white font-mono outline-none" required /></div>
                       <div><input name="awesunPass" placeholder="Mật khẩu" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white font-mono outline-none" required /></div>
-                      <div className="col-span-2"><input name="phone" type="tel" pattern="[0-9]{10,11}" maxLength="11" onInput={enforceNumberInput} placeholder="SĐT liên hệ (10-11 số)" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white outline-none" required /></div>
+                      <div className="col-span-2"><input name="phone" type="tel" pattern="0[0-9]{9,10}" maxLength="11" onInput={enforcePhoneZeroInput} placeholder="SĐT liên hệ (bắt đầu bằng số 0, 10-11 số)" title="Số điện thoại phải bắt đầu bằng số 0 và gồm 10-11 chữ số" className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white outline-none" required /></div>
                     </div>
                   </div>
 
