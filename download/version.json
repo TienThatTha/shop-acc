@@ -1,0 +1,21 @@
+{
+  "app_id": "plus.fshx.yzf",
+  "app_name": "Mộng Thiên Cửu Beta",
+  "server": "s0-beta",
+  "version_name": "2.5.6",
+  "version_code": 20506,
+  "wgt_code": 1,
+  "force_update": false,
+  "online_url": "https://careers-kijiji-comparative-piece.trycloudflare.com/?server=s0-beta",
+  "base_url": "https://careers-kijiji-comparative-piece.trycloudflare.com",
+  "lan_url": "http://192.168.1.14:81/?server=s0-beta",
+  "apk_url": "https://shoptiengaming.com/download/MongThienCuu_s0_beta_online.apk",
+  "apk_filename": "MongThienCuu_s0_beta_online.apk",
+  "wgt_filename": "mtc_hotupdate.wgt",
+  "apk_size": 6457091,
+  "apk_md5": "be5d6d0371e002249af1cf10bcac6f6c",
+  "wgt_size": 1609245,
+  "wgt_md5": "54cdcae13fadd39ae705e261f2b2072c",
+  "changelog": "Tích hợp Tự động cập nhật trong ứng dụng (In-App OTA) & Tự động đồng bộ đường truyền Online 4G/5G.",
+  "updated_at": 1794649195
+}
