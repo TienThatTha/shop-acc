@@ -230,6 +230,131 @@ const EVENT_1111_START_MS = 1794330000000;
 const EVENT_1111_END_MS = 1794589200000;
 const EVENT_1111_MULT = 2;
 
+// =============================================================================
+// CÁC GÓI NẠP MỘNG THIÊN CỬU H5 (CỘNG XU VÍ NỀN TẢNG: 1k = 1.000đ = 4 LINH NGỌC)
+// =============================================================================
+const MTC_GAME_PACKAGES = [
+  {
+    id: 'mtc_rmb_20k',
+    name: 'Gói Ví Game 20k',
+    subtitle: 'Đổi 80 Linh Ngọc / Gói 20k trong game',
+    price: 20000,
+    rmbAdd: 20,
+    jadeEquivalent: 80,
+    bonusBGold: 20,
+    bonusCoin: 500000,
+    badge: 'Khởi Đầu',
+    badgeColor: 'from-sky-500 to-blue-600',
+    highlights: [
+      '+20k Số Dư Ví Game (rmb)',
+      'Đổi được 80 Linh Ngọc hoặc Gói Săn Sale 5k/10k/20k',
+      'Thư tặng: 20 Ngọc Khóa + 500.000 Đồng'
+    ]
+  },
+  {
+    id: 'mtc_rmb_50k',
+    name: 'Gói Ví Game 50k',
+    subtitle: 'Đổi 200 Linh Ngọc / Thẻ Tuần 40k',
+    price: 50000,
+    rmbAdd: 50,
+    jadeEquivalent: 200,
+    bonusBGold: 50,
+    bonusCoin: 1500000,
+    badge: 'Phổ Biến',
+    badgeColor: 'from-emerald-500 to-teal-600',
+    highlights: [
+      '+50k Số Dư Ví Game (rmb)',
+      'Đủ mua Thẻ Tuần (40k) + dư 10k, hoặc 200 Linh Ngọc',
+      'Thư tặng: 50 Ngọc Khóa + 1.500.000 Đồng'
+    ]
+  },
+  {
+    id: 'mtc_rmb_100k',
+    name: 'Gói Ví Game 100k',
+    subtitle: 'Đổi 400 Linh Ngọc / Thẻ Tháng 100k',
+    price: 100000,
+    rmbAdd: 100,
+    jadeEquivalent: 400,
+    bonusBGold: 120,
+    bonusCoin: 3000000,
+    badge: '🔥 Bán Chạy',
+    badgeColor: 'from-amber-500 to-orange-600',
+    highlights: [
+      '+100k Số Dư Ví Game (rmb)',
+      'Đổi được 400 Linh Ngọc hoặc Thẻ Tháng (100k)',
+      'Thư tặng: 120 Ngọc Khóa + 3.000.000 Đồng'
+    ]
+  },
+  {
+    id: 'mtc_rmb_200k',
+    name: 'Gói Ví Game 200k',
+    subtitle: 'Đổi 800 Linh Ngọc (Full Mốc Đầu)',
+    price: 200000,
+    rmbAdd: 200,
+    jadeEquivalent: 800,
+    bonusBGold: 300,
+    bonusCoin: 6000000,
+    badge: '💎 Giá Trị Cao',
+    badgeColor: 'from-purple-500 to-indigo-600',
+    highlights: [
+      '+200k Số Dư Ví Game (rmb)',
+      'Đổi 800 Linh Ngọc hoặc combo Thẻ Tháng + Săn Sale',
+      'Thư tặng: 300 Ngọc Khóa + 6.000.000 Đồng'
+    ]
+  },
+  {
+    id: 'mtc_rmb_500k',
+    name: 'Gói Ví Game 500k',
+    subtitle: 'Tặng +10% => Nhận 550k Số Dư Ví',
+    price: 500000,
+    rmbAdd: 550,
+    jadeEquivalent: 2200,
+    bonusBGold: 800,
+    bonusCoin: 15000000,
+    badge: '🎁 KM +10% Ví',
+    badgeColor: 'from-rose-500 to-pink-600',
+    highlights: [
+      '+550k Số Dư Ví Game (Thêm +50k Free)',
+      'Đổi tối đa 2.200 Linh Ngọc + full Quà Tích Lũy',
+      'Thư tặng: 800 Ngọc Khóa + 15.000.000 Đồng'
+    ]
+  },
+  {
+    id: 'mtc_rmb_1000k',
+    name: 'Gói Ví Game 1 Triệu',
+    subtitle: 'Tặng +15% => Nhận 1.150k Số Dư Ví',
+    price: 1000000,
+    rmbAdd: 1150,
+    jadeEquivalent: 4600,
+    bonusBGold: 2000,
+    bonusCoin: 35000000,
+    badge: '👑 KM +15% VIP',
+    badgeColor: 'from-yellow-400 via-amber-500 to-orange-600',
+    highlights: [
+      '+1tr15 Số Dư Ví Game (Thêm +150k Free)',
+      'Đổi tối đa 4.600 Linh Ngọc hoặc Gói VIP 1tr',
+      'Thư tặng: 2.000 Ngọc Khóa + 35.000.000 Đồng'
+    ]
+  },
+  {
+    id: 'mtc_rmb_2000k',
+    name: 'Gói Ví Game 2 Triệu',
+    subtitle: 'Tặng +20% => Nhận 2.400k Số Dư Ví',
+    price: 2000000,
+    rmbAdd: 2400,
+    jadeEquivalent: 9600,
+    bonusBGold: 5000,
+    bonusCoin: 80000000,
+    badge: '🐉 Chí Tôn +20%',
+    badgeColor: 'from-amber-400 via-rose-500 to-purple-600',
+    highlights: [
+      '+2tr4 Số Dư Ví Game (Thêm +400k Free)',
+      'Đổi tối đa 9.600 Linh Ngọc + Thần Trang Tích Nạp',
+      'Thư tặng: 5.000 Ngọc Khóa + 80.000.000 Đồng'
+    ]
+  }
+];
+
 const calculateBoostPrice = (currentPoints, targetPoints, rankTiers = []) => {
   if (!rankTiers || rankTiers.length === 0) return 0;
   if (currentPoints == null || targetPoints == null || currentPoints >= targetPoints) return 0;
@@ -428,7 +553,43 @@ const ImageCarousel = ({ images, title, setFullScreenImage, index, isFeatured })
   );
 };
 
+const parseDepositDeepLink = () => {
+  if (typeof window === 'undefined') return { isDepositDeepLink: false, method: null, hasQuery: false };
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const viewParam = (params.get('view') || '').trim().toLowerCase();
+    const depositParam = (params.get('deposit') || '').trim().toLowerCase();
+    const methodParam = (params.get('method') || '').trim().toLowerCase();
+    const isDepositDeepLink = viewParam === 'naptien' || depositParam === '1' || depositParam === 'true';
+    let method = null;
+    if (methodParam === 'card') method = 'card';
+    else if (methodParam === 'banking' || methodParam === 'qr') method = 'banking';
+    return {
+      isDepositDeepLink,
+      method,
+      hasQuery: isDepositDeepLink || Boolean(method)
+    };
+  } catch (e) {
+    return { isDepositDeepLink: false, method: null, hasQuery: false };
+  }
+};
+
+const hasCachedAuthUser = () => {
+  try {
+    const raw = localStorage.getItem('shop_cached_user');
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return Boolean(parsed && parsed.id);
+  } catch (e) {
+    return false;
+  }
+};
+
 const App = () => {
+  const initialDeepLinkRef = useRef(null);
+  if (initialDeepLinkRef.current === null) {
+    initialDeepLinkRef.current = parseDepositDeepLink();
+  }
 
   // --- BỘ ĐÀM GỬI EMAIL & TELEGRAM BÁO CHO ADMIN ---
   const sendAdminAlert = (actionName, detailMessage) => {
@@ -565,8 +726,12 @@ const App = () => {
     const saved = localStorage.getItem('shop_accounts_db');
     return saved ? JSON.parse(saved) : [];
   });
-  // Tự động nhớ vị trí màn hình hiện tại
+  // Tự động nhớ vị trí màn hình hiện tại (ưu tiên deep-link nạp tiền từ game)
   const [currentView, setCurrentView] = useState(() => {
+    const deepLink = initialDeepLinkRef.current;
+    if (deepLink?.isDepositDeepLink) {
+      return hasCachedAuthUser() ? 'naptien' : 'login';
+    }
     return localStorage.getItem('shop_current_view') || 'dashboard';
   });
 
@@ -860,6 +1025,29 @@ const App = () => {
       bannerSubtitle: 'Lật bài săn Nón Huyền Thoại Phù Thủy - Chắc chắn trúng ở mốc 120 thẻ!'
     };
   });
+
+  // --- CẤU HÌNH & STATE CỔNG GAME MỘNG THIÊN CỬU H5 (MẶC ĐỊNH ẨN, ADMIN BẬT/TẮT TRONG DASHBOARD) ---
+  const [mtcGameConfig, setMtcGameConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem('shop_mtc_game_config');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      status: 'hidden', // 'hidden' (Chỉ Admin thấy) | 'public' (Hiển thị công khai)
+      apkUrl: '/download/MongThienCuu_s0_beta_online.apk',
+      webPlayUrl: 'https://careers-kijiji-comparative-piece.trycloudflare.com/?server=s0-beta',
+      version: '2.5.6-s0-beta',
+      notice: 'Tải APK 1 link cố định vĩnh viễn. Nạp Ví Game tự động 100%, không qua CH Play / App Store.'
+    };
+  });
+  const [mtcServerRegistry, setMtcServerRegistry] = useState(null);
+  const [mtcUsername, setMtcUsername] = useState(() => localStorage.getItem('shop_mtc_username') || '');
+  const [mtcServerId, setMtcServerId] = useState('1');
+  const [mtcAccountInfo, setMtcAccountInfo] = useState(null);
+  const [isCheckingMtcAccount, setIsCheckingMtcAccount] = useState(false);
+  const [selectedMtcPackage, setSelectedMtcPackage] = useState(null);
+  const [isBuyingMtcPackage, setIsBuyingMtcPackage] = useState(false);
+  const [mtcSuccessModal, setMtcSuccessModal] = useState(null);
 
   const [wizardCardItems, setWizardCardItems] = useState(() => {
     try {
@@ -1269,6 +1457,23 @@ const App = () => {
     }
   }, [currentView, isWizardEventAccessible]);
 
+  // --- LOGIC ẨN / HIỆN CỔNG GAME MỘNG THIÊN CỬU H5 ---
+  const isMtcGameOpen = useMemo(() => mtcGameConfig?.status === 'public', [mtcGameConfig?.status]);
+  const isMtcGameVisible = useMemo(() => {
+    if (currentUser?.role === 'admin') return true;
+    return isMtcGameOpen;
+  }, [currentUser?.role, isMtcGameOpen]);
+  const isMtcGameAccessible = isMtcGameVisible;
+
+  useEffect(() => {
+    if (currentView === 'mongthiencuu' && !isMtcGameAccessible) {
+      if (typeof showToast === 'function') {
+        showToast('Cổng Mộng Thiên Cửu H5 hiện đang tạm ẩn để bảo trì!', 'warning');
+      }
+      setCurrentView('dashboard');
+    }
+  }, [currentView, isMtcGameAccessible]);
+
   // Tự động tải các giao dịch quay thưởng mới nhất từ cộng đồng để hiển thị lên thanh vinh danh
   useEffect(() => {
     let isSubscribed = true;
@@ -1302,7 +1507,55 @@ const App = () => {
 
   const [depositStep, setDepositStep] = useState(1);
   const [isDepositing, setIsDepositing] = useState(false);
-  const [depositMethod, setDepositMethod] = useState('banking');
+  const [depositMethod, setDepositMethod] = useState(() => {
+    const deepLink = initialDeepLinkRef.current;
+    if (deepLink?.method) return deepLink.method;
+    const savedPostLoginMethod = sessionStorage.getItem('post_login_deposit_method');
+    if (savedPostLoginMethod === 'card' || savedPostLoginMethod === 'banking') {
+      return savedPostLoginMethod;
+    }
+    return 'banking';
+  });
+
+  // Xử lý deep-link nạp tiền từ game (?view=naptien&method=banking|card hoặc ?deposit=1)
+  useEffect(() => {
+    const deepLink = parseDepositDeepLink();
+    if (!deepLink.hasQuery) return;
+
+    const isAuth = hasCachedAuthUser();
+    if (deepLink.method) {
+      setDepositMethod(deepLink.method);
+    }
+
+    if (deepLink.isDepositDeepLink) {
+      if (isAuth) {
+        setCurrentView('naptien');
+      } else {
+        sessionStorage.setItem('post_login_view', 'naptien');
+        if (deepLink.method) {
+          sessionStorage.setItem('post_login_deposit_method', deepLink.method);
+        }
+        setCurrentView('login');
+      }
+    } else if (deepLink.method && !isAuth) {
+      sessionStorage.setItem('post_login_deposit_method', deepLink.method);
+    }
+
+    try {
+      const url = new URL(window.location.href);
+      let changed = false;
+      ['view', 'deposit', 'method'].forEach((param) => {
+        if (url.searchParams.has(param)) {
+          url.searchParams.delete(param);
+          changed = true;
+        }
+      });
+      if (changed) {
+        const cleanUrl = `${url.pathname}${url.searchParams.toString() ? `?${url.searchParams.toString()}` : ''}${url.hash}`;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    } catch (e) {}
+  }, []);
   const [depositAmount, setDepositAmount] = useState('');
   const [voucherInput, setVoucherInput] = useState('');
   const [pendingDeposit, setPendingDeposit] = useState(null);
@@ -1586,6 +1839,22 @@ const App = () => {
         }
       });
 
+      supabase.from('site_config').select('*').eq('id', 'mtc_game_config').maybeSingle().then(({ data: mtcCfgData }) => {
+        if (mtcCfgData && mtcCfgData.value) {
+          setMtcGameConfig(prev => {
+            const merged = { ...prev, ...mtcCfgData.value };
+            try { localStorage.setItem('shop_mtc_game_config', JSON.stringify(merged)); } catch (e) {}
+            return merged;
+          });
+        }
+      });
+
+      supabase.from('site_config').select('*').eq('id', 'mtc_server_registry').maybeSingle().then(({ data: mtcRegData }) => {
+        if (mtcRegData && mtcRegData.value) {
+          setMtcServerRegistry(mtcRegData.value);
+        }
+      });
+
       // 2. KIỂM TRA ĐĂNG NHẬP NGẦM & TẢI DỮ LIỆU THEO CHỨC VỤ (CHẠY SONG SONG VỚI PUBLIC DATA)
       const userDataPromise = (async () => {
         const { data: { session } } = await supabase.auth.getSession();
@@ -1665,6 +1934,20 @@ const App = () => {
 
             setCurrentUser(enrichedUser);
             localStorage.setItem('shop_cached_user', JSON.stringify(enrichedUser));
+            const pendingView = initialDeepLinkRef.current?.isDepositDeepLink
+              ? 'naptien'
+              : sessionStorage.getItem('post_login_view');
+            const pendingMethod = initialDeepLinkRef.current?.method
+              || sessionStorage.getItem('post_login_deposit_method');
+            initialDeepLinkRef.current = { isDepositDeepLink: false, method: null, hasQuery: false };
+            sessionStorage.removeItem('post_login_view');
+            sessionStorage.removeItem('post_login_deposit_method');
+            if (pendingMethod === 'card' || pendingMethod === 'banking') {
+              setDepositMethod(pendingMethod);
+            }
+            if (pendingView) {
+              setCurrentView(pendingView);
+            }
 
             // GIẢI QUYẾT LỖI MẤT QUYỀN ADMIN (Chữ Hoa/Thường)
             const role = (user.role || 'user').toLowerCase();
@@ -1763,6 +2046,14 @@ const App = () => {
             localStorage.removeItem('shop_msg_db');
             localStorage.removeItem('shop_comments_db');
             setCurrentUser(null);
+            if (initialDeepLinkRef.current?.isDepositDeepLink) {
+              sessionStorage.setItem('post_login_view', 'naptien');
+              if (initialDeepLinkRef.current.method) {
+                sessionStorage.setItem('post_login_deposit_method', initialDeepLinkRef.current.method);
+              }
+            } else if (initialDeepLinkRef.current?.method) {
+              sessionStorage.setItem('post_login_deposit_method', initialDeepLinkRef.current.method);
+            }
             setCurrentView('login');
             showToast("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!", "error");
           }
@@ -2513,21 +2804,39 @@ const App = () => {
       const contact = e.target.contact.value.trim();
       const password = e.target.password.value;
 
+      if (!contact) {
+        return showToast("Vui lòng nhập Tài khoản, SĐT hoặc Email!", 'error');
+      }
+
       let loginEmail = contact;
 
-      // 2. Nếu khách nhập SĐT (toàn số), tìm email tương ứng
-      if (/^\d+$/.test(contact)) {
-        // Dùng maybeSingle() thay vì single() để tránh làm sập code nếu không tìm thấy
-        const { data: foundUser, error } = await supabase
-          .from('users')
-          .select('email')
-          .eq('phone', contact)
-          .maybeSingle();
+      // 2. Nếu khách không nhập Email -> kiểm tra SĐT (toàn số) hoặc Tên tài khoản
+      if (!contact.includes('@')) {
+        if (/^\d+$/.test(contact)) {
+          // Dùng maybeSingle() thay vì single() để tránh làm sập code nếu không tìm thấy
+          const { data: foundUser } = await supabase
+            .from('users')
+            .select('email')
+            .eq('phone', contact)
+            .maybeSingle();
 
-        if (foundUser && foundUser.email) {
-          loginEmail = foundUser.email;
+          if (foundUser && foundUser.email) {
+            loginEmail = foundUser.email;
+          } else {
+            return showToast("Số điện thoại này chưa được đăng ký!", 'error');
+          }
         } else {
-          return showToast("Số điện thoại này chưa được đăng ký!", 'error');
+          const { data: foundUser } = await supabase
+            .from('users')
+            .select('email')
+            .ilike('name', contact)
+            .maybeSingle();
+
+          if (foundUser && foundUser.email) {
+            loginEmail = foundUser.email;
+          } else {
+            return showToast("Tên tài khoản này chưa được đăng ký!", 'error');
+          }
         }
       }
 
@@ -2595,7 +2904,14 @@ const App = () => {
           }
         }
 
-        setCurrentView('dashboard');
+        const postLoginView = sessionStorage.getItem('post_login_view');
+        const postLoginDepositMethod = sessionStorage.getItem('post_login_deposit_method');
+        sessionStorage.removeItem('post_login_view');
+        sessionStorage.removeItem('post_login_deposit_method');
+        if (postLoginDepositMethod === 'card' || postLoginDepositMethod === 'banking') {
+          setDepositMethod(postLoginDepositMethod);
+        }
+        setCurrentView(postLoginView || 'dashboard');
         showToast(`Chào mừng ${userData.name} quay trở lại!`, 'success');
       } else {
         showToast("Lỗi: Tài khoản Auth tồn tại nhưng không tìm thấy Data trong bảng Users!", 'error');
@@ -3124,6 +3440,13 @@ const App = () => {
                 isWizard: true,
                 badge: !isWizardEventOpen ? 'Admin Test' : 'Mới'
               }] : []),
+              ...(isMtcGameVisible ? [{
+                name: '🐉 Mộng Thiên Cửu H5',
+                view: 'mongthiencuu',
+                auth: false,
+                icon: <Flame size={20} className="text-amber-400" />,
+                badge: !isMtcGameOpen ? 'Đang ẩn' : 'Mới'
+              }] : []),
               { name: 'Lịch Sử Giao Dịch', view: 'lichsu', auth: true, icon: <History size={20} /> },
               {
                 name: '🎮 Discord Chơi Game',
@@ -3184,6 +3507,8 @@ const App = () => {
                     localStorage.removeItem('shop_user_id');
                     localStorage.removeItem('shop_boss_target_id');
                     localStorage.removeItem('shop_linked_game_player');
+                    sessionStorage.removeItem('post_login_view');
+                    sessionStorage.removeItem('post_login_deposit_method');
                     setBossPlayerSummary(null);
                     setBossTargetId('');
                     setCurrentUser(null);
@@ -3210,6 +3535,7 @@ const App = () => {
           { id: 'naptien', name: 'Nạp tiền', icon: <Wallet size={22} />, auth: true },
           ...(hasActiveWheelRewards && !isWheelEventExpired ? [{ id: 'vongquay', name: 'Vòng quay', icon: <Gift size={22} />, auth: false }] : []),
           ...(isWizardEventVisible ? [{ id: 'wizard', name: 'Phù Thủy', icon: <Sparkles size={22} className="text-purple-400" />, auth: false }] : []),
+          ...(isMtcGameVisible ? [{ id: 'mongthiencuu', name: 'Thiên Cửu', icon: <Flame size={22} className="text-amber-400" />, auth: false }] : []),
           { id: 'security', name: 'Cá nhân', icon: <User size={22} />, auth: true }
         ].map(item => {
           const isActive = currentView === item.id;
@@ -3293,6 +3619,12 @@ const App = () => {
                 auth: false,
                 isWizard: true
               }] : []),
+              ...(isMtcGameVisible ? [{
+                name: '🐉 Mộng Thiên Cửu',
+                view: 'mongthiencuu',
+                auth: false,
+                isMtcGame: true
+              }] : []),
               { name: 'Lịch Sử', view: 'lichsu', auth: true }
             ].map((item, idx) => (
               <button
@@ -3320,6 +3652,9 @@ const App = () => {
                 <span>{item.name}</span>
                 {item.isWizard && !isWizardEventOpen && currentUser?.role === 'admin' && (
                   <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1 py-0.5 rounded border border-amber-500/30">Admin</span>
+                )}
+                {item.isMtcGame && !isMtcGameOpen && currentUser?.role === 'admin' && (
+                  <span className="text-[9px] bg-rose-500/20 text-rose-300 px-1 py-0.5 rounded border border-rose-500/30">Ẩn</span>
                 )}
               </button>
             ))}
@@ -3467,7 +3802,7 @@ const App = () => {
                         )}
 
                         <div className="border-t border-slate-700 my-1"></div>
-                        <button onClick={() => { setShowUserDropdown(false); setConfirmDialog({ title: 'Đăng xuất', message: 'Bạn có chắc muốn đăng xuất?', onConfirm: async () => { await supabase.auth.signOut(); localStorage.removeItem('shop_cached_user'); localStorage.removeItem('shop_user_id'); localStorage.removeItem('shop_boss_target_id'); localStorage.removeItem('shop_linked_game_player'); setBossPlayerSummary(null); setBossTargetId(''); setCurrentUser(null); setCurrentView('dashboard'); showToast('Đã đăng xuất an toàn!'); } }); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-rose-400 hover:bg-rose-600/20 hover:text-rose-300 transition-colors flex items-center gap-3">
+                        <button onClick={() => { setShowUserDropdown(false); setConfirmDialog({ title: 'Đăng xuất', message: 'Bạn có chắc muốn đăng xuất?', onConfirm: async () => { await supabase.auth.signOut(); localStorage.removeItem('shop_cached_user'); localStorage.removeItem('shop_user_id'); localStorage.removeItem('shop_boss_target_id'); localStorage.removeItem('shop_linked_game_player'); sessionStorage.removeItem('post_login_view'); sessionStorage.removeItem('post_login_deposit_method'); setBossPlayerSummary(null); setBossTargetId(''); setCurrentUser(null); setCurrentView('dashboard'); showToast('Đã đăng xuất an toàn!'); } }); }} className="w-full px-4 py-3 text-left text-sm font-semibold text-rose-400 hover:bg-rose-600/20 hover:text-rose-300 transition-colors flex items-center gap-3">
                           <LogOut size={18} /> Đăng xuất
                         </button>
                       </div>
@@ -3558,7 +3893,7 @@ const App = () => {
           <form className="space-y-4" onSubmit={handleLogin}>
             <div>
               <label className="block text-sm text-slate-400 mb-1">Tài khoản (Tên/SĐT/Email)</label>
-              <input name="contact" type="text" required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 focus:border-blue-500 outline-none" placeholder="Nhập tài khoản..." />
+              <input name="contact" type="text" required className="w-full px-4 py-3 bg-[#0B1120] text-white rounded-lg border border-slate-700 focus:border-blue-500 outline-none" placeholder="Nhập Tên tài khoản, SĐT hoặc Email..." />
             </div>
             <div className="relative">
               <label className="block text-sm text-slate-400 mb-1">Mật khẩu</label>
@@ -5378,6 +5713,266 @@ const App = () => {
       showToast("Lỗi khi thanh toán: " + (err.message || err), "error");
     } finally {
       setIsBuyingBossPackage(false);
+    }
+  };
+
+  // --- CÁC HÀM XỬ LÝ GAME MỘNG THIÊN CỬU H5 (TẢI GAME CỐ ĐỊNH + NẠP XU VÍ GAME) ---
+  const handleSaveMtcGameConfig = async (newCfg, toastMsg = 'Đã lưu cấu hình Mộng Thiên Cửu H5!') => {
+    setMtcGameConfig(newCfg);
+    try { localStorage.setItem('shop_mtc_game_config', JSON.stringify(newCfg)); } catch (e) {}
+    try {
+      await supabase.from('site_config').upsert({ id: 'mtc_game_config', value: newCfg });
+    } catch (e) {
+      console.warn('Lỗi lưu mtc_game_config:', e);
+    }
+    if (toastMsg) showToast(toastMsg, 'success');
+  };
+
+  const handleRefreshMtcTunnel = async (silent = false) => {
+    try {
+      const { data: regData } = await supabase.from('site_config').select('value').eq('id', 'mtc_server_registry').maybeSingle();
+      if (regData?.value?.server_url) {
+        setMtcServerRegistry(regData.value);
+        if (!silent) showToast('Đã đồng bộ link máy chủ online mới nhất!', 'success');
+        return regData.value;
+      }
+      const resp = await fetch('https://ntfy.sh/mtc_s0_beta_registry_f8a9d2c4e1b7/raw?poll=1&since=all', { cache: 'no-store' });
+      if (resp.ok) {
+        const txt = await resp.text();
+        const lines = txt.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length > 0) {
+          const last = JSON.parse(lines[lines.length - 1]);
+          if (last?.online_url) {
+            const synced = { server_url: last.online_url, base_url: last.base_url, version: `${last.version_name || '2.5.6'}-${last.server || 's0-beta'}`, updated_at: last.ts };
+            setMtcServerRegistry(synced);
+            if (!silent) showToast('Đã cập nhật link Web H5 mới nhất từ Cloud Registry!', 'success');
+            return synced;
+          }
+        }
+      }
+    } catch (e) {
+      if (!silent) showToast('Không thể làm mới link server lúc này!', 'warning');
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    if (currentView === 'mongthiencuu') {
+      handleRefreshMtcTunnel(true);
+    }
+  }, [currentView]);
+
+  const handleVerifyMtcAccount = async () => {
+    const cleanTarget = mtcUsername.trim().replace(/^@/, '');
+    if (!cleanTarget) {
+      showToast('Vui lòng nhập Tên đăng nhập (hoặc UID) trong game Mộng Thiên Cửu!', 'error');
+      return;
+    }
+    try { localStorage.setItem('shop_mtc_username', cleanTarget); } catch (e) {}
+    setIsCheckingMtcAccount(true);
+    setMtcAccountInfo(null);
+    const checkId = `MTC_CHK_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    try {
+      const { error: insErr } = await supabase.from('game_orders').insert([{
+        id: checkId,
+        user_id: cleanTarget,
+        nickname: cleanTarget,
+        web_user: currentUser?.id || 'guest',
+        package_id: 'mtc_verify_account',
+        package_name: 'Kiểm tra tài khoản Mộng Thiên Cửu',
+        price: 0,
+        rewards: { game: 'mongthiencuu', server_id: mtcServerId },
+        status: 'pending'
+      }]);
+      if (insErr) throw insErr;
+
+      let resolved = null;
+      for (let i = 0; i < 10; i++) {
+        await new Promise(r => setTimeout(r, 1200));
+        const { data: row } = await supabase.from('game_orders').select('status, result').eq('id', checkId).maybeSingle();
+        if (row && (row.status === 'completed' || row.status === 'failed')) {
+          resolved = row;
+          break;
+        }
+      }
+      if (!resolved) {
+        showToast('Server game đang bận hoặc Bridge chưa chạy — bạn vẫn có thể nạp bình thường!', 'warning');
+      } else if (resolved.status === 'completed' && resolved.result?.success) {
+        setMtcAccountInfo(resolved.result);
+        showToast(`Tìm thấy tài khoản: ${resolved.result.username} (${resolved.result.nickname})!`, 'success');
+      } else {
+        showToast(resolved.result?.message || 'Không tìm thấy tài khoản này trong game!', 'error');
+      }
+    } catch (err) {
+      showToast('Lỗi kiểm tra tài khoản: ' + (err.message || err), 'error');
+    } finally {
+      setIsCheckingMtcAccount(false);
+    }
+  };
+
+  const executeBuyMtcPackage = async (pkg) => {
+    if (!currentUser) return requireAuth('login');
+    const cleanTarget = mtcUsername.trim().replace(/^@/, '');
+    if (!cleanTarget) {
+      showToast('Vui lòng nhập Tên đăng nhập (hoặc UID) tài khoản Mộng Thiên Cửu trước khi nạp!', 'error');
+      return;
+    }
+    if ((currentUser.balance || 0) < pkg.price) {
+      showToast(`Số dư ví không đủ! Cần thêm ${new Intl.NumberFormat('vi-VN').format(pkg.price - (currentUser.balance || 0))}đ.`, 'error');
+      return;
+    }
+    if (isBuyingMtcPackage) return;
+    setIsBuyingMtcPackage(true);
+    try { localStorage.setItem('shop_mtc_username', cleanTarget); } catch (e) {}
+
+    const fallbackOrderId = `MTC_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const dateStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN');
+
+    try {
+      let finalOrderId = fallbackOrderId;
+      let newBalanceVal = (currentUser.balance || 0) - pkg.price;
+
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('rpc_buy_mtc_package', {
+        p_package_id: pkg.id,
+        p_game_username: cleanTarget,
+        p_server_id: mtcServerId
+      });
+
+      const rpcMissing = rpcErr && (
+        String(rpcErr.message || '').toLowerCase().includes('could not find the function') ||
+        rpcErr.code === 'PGRST202' ||
+        rpcErr.code === '42883'
+      );
+
+      if (rpcMissing) {
+        // Fallback an toàn dùng rpc_client_spend + insert game_orders khi chưa chạy SQL mới
+        const fbTx = {
+          id: fallbackOrderId,
+          user: currentUser.name,
+          action: `Nạp ${pkg.name} [TK: ${cleanTarget}]`,
+          amount: pkg.price,
+          date: dateStr,
+          status: 'Đã hoàn tất',
+          type: 'mtc_game_topup',
+          isSpinCost: false,
+          accDetails: {
+            order_id: fallbackOrderId,
+            game: 'mongthiencuu',
+            game_username: cleanTarget,
+            server_id: mtcServerId,
+            package_id: pkg.id,
+            package_name: pkg.name,
+            price: pkg.price,
+            rmb_add: pkg.rmbAdd,
+            web_user: currentUser.id
+          }
+        };
+        const { data: spendRes, error: spendErr } = await supabase.rpc('rpc_client_spend', {
+          p_amount: pkg.price,
+          p_fund_amount: 0,
+          p_tx_data: fbTx
+        });
+        if (spendErr) throw spendErr;
+        if (!spendRes?.success) throw new Error(spendRes?.message || 'Thanh toán thất bại!');
+        newBalanceVal = Number(spendRes.new_balance ?? newBalanceVal);
+
+        const { error: ordErr } = await supabase.from('game_orders').insert([{
+          id: fallbackOrderId,
+          user_id: cleanTarget,
+          nickname: cleanTarget,
+          web_user: currentUser.id,
+          package_id: pkg.id,
+          package_name: pkg.name,
+          price: pkg.price,
+          rewards: {
+            game: 'mongthiencuu',
+            server_id: mtcServerId,
+            rmb_add: pkg.rmbAdd,
+            bonus_bgold: pkg.bonusBGold,
+            bonus_coin: pkg.bonusCoin,
+            web_user_id: currentUser.id,
+            web_user_name: currentUser.name
+          },
+          status: 'pending'
+        }]);
+        if (ordErr) throw ordErr;
+      } else {
+        if (rpcErr) throw rpcErr;
+        if (!rpcRes?.success) throw new Error(rpcRes?.message || 'Thanh toán thất bại!');
+        finalOrderId = rpcRes.order_id || fallbackOrderId;
+        newBalanceVal = Number(rpcRes.new_balance ?? newBalanceVal);
+      }
+
+      const txPayload = {
+        id: finalOrderId,
+        user: currentUser.name,
+        action: `Nạp ${pkg.name} [TK: ${cleanTarget}]`,
+        amount: pkg.price,
+        date: dateStr,
+        status: 'Đã hoàn tất',
+        type: 'mtc_game_topup',
+        isSpinCost: false,
+        accDetails: {
+          order_id: finalOrderId,
+          game: 'mongthiencuu',
+          game_username: cleanTarget,
+          package_id: pkg.id,
+          package_name: pkg.name,
+          price: pkg.price,
+          rmb_add: pkg.rmbAdd
+        }
+      };
+
+      const updatedUser = { ...currentUser, balance: newBalanceVal };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
+      setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
+      setTransactionsDb([txPayload, ...transactionsDb]);
+
+      setSelectedMtcPackage(null);
+      setMtcSuccessModal({
+        pkg,
+        targetUsername: cleanTarget,
+        orderId: finalOrderId,
+        bridgeStatus: 'pending',
+        bridgeResult: null
+      });
+      showToast(`Đã tạo đơn nạp ${pkg.name}! Hệ thống đang cộng +${pkg.rmbAdd}k Số Dư Ví Game...`, 'success');
+      sendAdminAlert('NẠP GAME MỘNG THIÊN CỬU H5', `Khách ${currentUser.name} vừa nạp ${pkg.name} (${new Intl.NumberFormat('vi-VN').format(pkg.price)}đ) cho TK: ${cleanTarget}`);
+
+      // Theo dõi realtime đơn vừa tạo cho tới khi bridge cộng xong
+      (async () => {
+        for (let i = 0; i < 12; i++) {
+          await new Promise(r => setTimeout(r, 1500));
+          const { data: ordState } = await supabase
+            .from('game_orders')
+            .select('status, result')
+            .eq('id', finalOrderId)
+            .maybeSingle();
+          if (ordState && ordState.status !== 'pending') {
+            setMtcSuccessModal(prev => (prev && prev.orderId === finalOrderId)
+              ? { ...prev, bridgeStatus: ordState.status, bridgeResult: ordState.result }
+              : prev
+            );
+            if (ordState.status === 'completed' && ordState.result?.new_rmb !== undefined) {
+              setMtcAccountInfo(prev => ({
+                ...(prev || {}),
+                success: true,
+                uid: ordState.result.uid || prev?.uid,
+                username: ordState.result.username || cleanTarget,
+                nickname: ordState.result.nickname || prev?.nickname,
+                lv: ordState.result.lv ?? prev?.lv,
+                rmb: ordState.result.new_rmb
+              }));
+            }
+            break;
+          }
+        }
+      })();
+    } catch (err) {
+      showToast('Lỗi khi thanh toán: ' + (err.message || err), 'error');
+    } finally {
+      setIsBuyingMtcPackage(false);
     }
   };
 
@@ -16122,6 +16717,471 @@ const App = () => {
     );
   };
 
+  // =============================================================================
+  // MÀN HÌNH CỔNG TẢI APK CỐ ĐỊNH & NẠP VÍ GAME MỘNG THIÊN CỬU H5
+  // =============================================================================
+  const renderMongThienCuuScreen = () => {
+    if (!isMtcGameAccessible) {
+      return (
+        <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24">
+          {renderNavbar()}
+          <div className="max-w-md mx-auto mt-16 px-4 text-center">
+            <div className="bg-[#151D2F] border border-amber-500/30 rounded-2xl p-8 shadow-2xl">
+              <Lock size={44} className="text-amber-400 mx-auto mb-4" />
+              <h3 className="text-xl font-black text-white mb-2">Cổng Mộng Thiên Cửu Đang Tạm Ẩn</h3>
+              <p className="text-sm text-slate-400 mb-6">Admin hiện đang ẩn trang này để bảo trì hoặc thử nghiệm nội bộ. Vui lòng quay lại sau!</p>
+              <button onClick={() => setCurrentView('dashboard')} className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl">
+                Về Trang Chủ
+              </button>
+            </div>
+          </div>
+          {renderFooter()}
+        </div>
+      );
+    }
+
+    const rawApkUrl = (mtcGameConfig?.apkUrl || '/download/MongThienCuu_s0_beta_online.apk').trim();
+    const resolvedFullApkUrl = rawApkUrl.startsWith('http')
+      ? rawApkUrl
+      : `${typeof window !== 'undefined' ? window.location.origin : 'https://shoptiengaming.com'}${rawApkUrl.startsWith('/') ? '' : '/'}${rawApkUrl}`;
+    const resolvedWebPlayUrl = mtcServerRegistry?.server_url || mtcGameConfig?.webPlayUrl || '';
+    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(resolvedFullApkUrl)}`;
+
+    return (
+      <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-16">
+        {renderNavbar()}
+
+        <main className="w-full max-w-7xl mx-auto px-4 lg:px-6 pt-6 space-y-8">
+          {/* THANH TRẠNG THÁI DÀNH RIÊNG CHO ADMIN */}
+          {currentUser?.role === 'admin' && (
+            <div className="bg-gradient-to-r from-[#151D2F] via-[#1E293B] to-[#151D2F] border border-amber-500/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isMtcGameOpen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                  {isMtcGameOpen ? <Eye size={20} /> : <EyeOff size={20} />}
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wider text-white">
+                    Chế độ Admin: Cổng game đang <span className={isMtcGameOpen ? 'text-emerald-400' : 'text-rose-400'}>{isMtcGameOpen ? 'HIỆN CÔNG KHAI' : 'ẨN (CHỈ ADMIN THẤY)'}</span>
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Bấm nút bên cạnh để bật/tắt nhanh cho toàn bộ người chơi, hoặc vào Panel Admin &rarr; tab &quot;🐉 Mộng Thiên Cửu&quot;.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleSaveMtcGameConfig(
+                  { ...mtcGameConfig, status: isMtcGameOpen ? 'hidden' : 'public' },
+                  isMtcGameOpen ? 'Đã ẨN cổng Mộng Thiên Cửu H5 khỏi khách thường!' : 'Đã HIỆN CÔNG KHAI cổng Mộng Thiên Cửu H5!'
+                )}
+                className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 ${isMtcGameOpen ? 'bg-rose-600 hover:bg-rose-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}
+              >
+                {isMtcGameOpen ? <><EyeOff size={15} /> Ẩn Khỏi Khách</> : <><Eye size={15} /> Bật Hiện Công Khai</>}
+              </button>
+            </div>
+          )}
+
+          {/* 1. HERO BANNER + CỔNG TẢI APK CỐ ĐỊNH VĨNH VIỄN + CHƠI WEB H5 */}
+          <div className="relative rounded-3xl overflow-hidden border border-amber-500/40 bg-gradient-to-br from-[#151D2F] via-[#1b243c] to-[#0F172A] p-6 md:p-8 shadow-[0_0_45px_rgba(245,158,11,0.16)]">
+            <div className="absolute -top-24 -left-24 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center relative z-10">
+              <div className="lg:col-span-8 space-y-4">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/40 text-amber-300 font-black text-xs uppercase tracking-wider">
+                  <Flame size={14} className="text-orange-400 animate-pulse" /> Cổng Tải Cố Định &amp; Nạp Tự Động Mộng Thiên Cửu H5
+                </div>
+
+                <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-white">
+                  🐉 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400">MỘNG THIÊN CỬU H5</span>
+                </h1>
+
+                <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-2xl">
+                  {mtcGameConfig?.notice || 'Link tải APK cố định vĩnh viễn trên shoptiengaming.com — tự động dò tìm IP Tunnel mới nhất khi vào game, không cần tải lại mỗi khi đổi link!'}
+                </p>
+
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <a
+                    href={rawApkUrl}
+                    download="MongThienCuu_s0_beta_online.apk"
+                    className="px-5 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-[0_0_25px_rgba(16,185,129,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                  >
+                    <Download size={18} /> Tải APK Android Cố Định ({mtcGameConfig?.version || 'v2.5.6'})
+                  </a>
+
+                  {resolvedWebPlayUrl && (
+                    <a
+                      href={resolvedWebPlayUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-5 py-3.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-black text-sm rounded-2xl shadow-[0_0_25px_rgba(245,158,11,0.35)] transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                    >
+                      <Gamepad2 size={18} /> Chơi Ngay Trên Trình Duyệt (Web H5)
+                    </a>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleRefreshMtcTunnel(false)}
+                    className="px-4 py-3.5 bg-[#0B1120] hover:bg-slate-800 text-cyan-300 border border-cyan-500/40 rounded-2xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Cập nhật link máy chủ Cloud mới nhất"
+                  >
+                    <RefreshCw size={15} /> Làm Mới Link Server
+                  </button>
+                </div>
+
+                <div className="bg-[#0B1120]/80 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-slate-400 shrink-0">Link APK Cố Định:</span>
+                    <code className="text-emerald-400 font-mono truncate">{resolvedFullApkUrl}</code>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(resolvedFullApkUrl)}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer shrink-0"
+                  >
+                    <Copy size={12} /> Copy Link
+                  </button>
+                </div>
+              </div>
+
+              {/* QR CODE QUÉT TẢI NHANH BẰNG ĐIỆN THOẠI */}
+              <div className="lg:col-span-4 flex flex-col items-center justify-center bg-[#0B1120]/90 border border-slate-800 rounded-2xl p-5 text-center">
+                <div className="bg-white p-2.5 rounded-xl mb-3 shadow-lg">
+                  <img src={qrImageUrl} alt="QR Tải APK Mộng Thiên Cửu" className="w-36 h-36 object-contain" />
+                </div>
+                <p className="text-xs font-black text-white flex items-center gap-1.5 mb-1">
+                  <QrCode size={14} className="text-emerald-400" /> Quét QR Tải APK Nhanh
+                </p>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Tải file APK về máy Android &rarr; Mở &amp; cấp quyền &quot;Cài từ nguồn này&quot; &rarr; Mở game tự động kết nối Server!
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* BANNER NỔI BẬT: ĐỒNG BỘ 100% TÀI KHOẢN & VÍ TIỀN (1 VÍ DUY NHẤT) */}
+          <div className="relative overflow-hidden rounded-2xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/60 via-[#151D2F] to-cyan-950/60 p-5 md:p-6 shadow-[0_0_30px_rgba(16,185,129,0.14)]">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="space-y-2 max-w-3xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/40 text-emerald-300 text-[11px] font-black uppercase tracking-wider">
+                  <Wallet size={13} className="text-emerald-400 shrink-0" />
+                  <span>Hệ Thống Liên Thông Shop &amp; Game</span>
+                </div>
+                <h2 className="text-base sm:text-lg font-black text-white leading-snug">
+                  🔗 ĐỒNG BỘ 100% TÀI KHOẢN &amp; VÍ TIỀN (1 VÍ DUY NHẤT)
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Đăng ký &amp; đăng nhập trong game dùng chung tài khoản <strong className="text-white">Shop Tiến Gaming</strong>. Số dư Ví VNĐ trên web (<strong className="text-emerald-400">1.000đ = 1k trong game</strong>) hiển thị trực tiếp trong game để bấm mua mọi gói <strong className="text-amber-300">Linh Ngọc / Thẻ Tháng</strong> (<strong className="text-cyan-300">100% không qua CH Play / App Store</strong>).
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-2.5 shrink-0">
+                {currentUser && (
+                  <div className="text-xs font-bold text-slate-300 bg-[#0B1120]/90 px-3.5 py-2 rounded-xl border border-emerald-500/30 text-center">
+                    Số dư Ví hiện tại: <span className="text-emerald-400 font-black">{new Intl.NumberFormat('vi-VN').format(currentUser.balance || 0)}đ</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!currentUser) {
+                      sessionStorage.setItem('post_login_view', 'naptien');
+                      requireAuth('naptien');
+                      return;
+                    }
+                    requireAuth('naptien');
+                    setCurrentView('naptien');
+                  }}
+                  className="px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-xs sm:text-sm rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.35)] transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <QrCode size={16} />
+                  <span>Nạp Ví Bằng Mã QR / Thẻ Cào</span>
+                  <ArrowRight size={15} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. GIẢI THÍCH CƠ CHẾ NẠP XU VÍ GAME (100% KHÔNG QUA CH PLAY / APP STORE) */}
+          <div className="bg-[#151D2F] border border-cyan-500/30 rounded-2xl p-5 md:p-6 shadow-xl">
+            <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2 mb-3">
+              <ShieldCheck className="text-emerald-400 shrink-0" size={20} />
+              Cơ Chế Nạp Tiền &amp; Quy Đổi Gói Trong Game (100% Không Qua CH Play / App Store)
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs sm:text-sm">
+              <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-4 space-y-1.5">
+                <p className="text-amber-400 font-black uppercase text-xs">Bước 1: Nạp Vào Số Dư Ví Game (rmb)</p>
+                <p className="text-slate-300 leading-relaxed">
+                  Khi mua pack trên Shop Tiến Gaming, hệ thống cộng thẳng tiền vào <strong className="text-white">Số Dư Ví Nền Tảng (Xu Ví Game)</strong> của tài khoản bạn theo tỉ lệ chuẩn <strong className="text-emerald-400">1k = 1.000đ</strong> (ví dụ mua gói 100k &rarr; có <strong className="text-emerald-400">100k</strong> trong Ví Game).
+                </p>
+              </div>
+              <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-4 space-y-1.5">
+                <p className="text-cyan-400 font-black uppercase text-xs">Bước 2: Quy Đổi Linh Ngọc &amp; Gói Quà</p>
+                <p className="text-slate-300 leading-relaxed">
+                  Vào game bấm vào <strong className="text-white">bất kỳ gói Linh Ngọc / Câu Ngọc</strong> (<span className="text-amber-300">20k = 80 Ngọc, 50k = 200 Ngọc, 100k = 400 Ngọc</span>) hoặc <strong className="text-white">Thẻ Tuần (40k), Thẻ Tháng (100k), Gói Săn Sale (5k/10k/20k), Gói Nạp Đầu</strong>.
+                </p>
+              </div>
+              <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-4 space-y-1.5">
+                <p className="text-emerald-400 font-black uppercase text-xs">Bước 3: Xác Nhận Popup Web Nội Bộ</p>
+                <p className="text-slate-300 leading-relaxed">
+                  Game sẽ mở <strong className="text-white">Popup Thanh Toán Web nội bộ</strong> (không bật Google CH Play hay Apple Store). Bạn chỉ cần bấm <strong className="text-emerald-400">&quot;Xác nhận mua&quot;</strong> là Ví Game tự trừ tiền &amp; phát gói ngay lập tức!
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. NHẬP TÀI KHOẢN GAME & CHỌN GÓI NẠP XU VÍ GAME */}
+          <div className="bg-[#151D2F] border border-slate-800 rounded-3xl p-5 md:p-7 shadow-2xl space-y-6">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-5 border-b border-slate-800">
+              <div className="flex-1 space-y-2">
+                <label className="text-xs font-black uppercase tracking-wider text-amber-400 block">
+                  Tên Đăng Nhập (hoặc UID) Tài Khoản Trong Game Mộng Thiên Cửu
+                </label>
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <input
+                    type="text"
+                    value={mtcUsername}
+                    onChange={(e) => setMtcUsername(e.target.value)}
+                    placeholder="Ví dụ: google_player (tên tài khoản đăng nhập game)"
+                    className="flex-1 px-4 py-3 bg-[#0B1120] border border-slate-700 focus:border-amber-500 rounded-xl text-white font-bold text-sm outline-none"
+                  />
+                  <select
+                    value={mtcServerId}
+                    onChange={(e) => setMtcServerId(e.target.value)}
+                    className="px-4 py-3 bg-[#0B1120] border border-slate-700 rounded-xl text-amber-300 font-bold text-sm outline-none"
+                  >
+                    <option value="1">S1 - Mộng Thiên Cửu</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleVerifyMtcAccount}
+                    disabled={isCheckingMtcAccount}
+                    className="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60 shrink-0"
+                  >
+                    {isCheckingMtcAccount ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                    <span>Kiểm Tra TK</span>
+                  </button>
+                </div>
+              </div>
+
+              {mtcAccountInfo && mtcAccountInfo.success && (
+                <div className="bg-emerald-500/10 border border-emerald-500/40 rounded-2xl px-4 py-3 flex items-center gap-4 text-xs">
+                  <CheckCircle2 size={24} className="text-emerald-400 shrink-0" />
+                  <div>
+                    <p className="text-white font-black">
+                      {mtcAccountInfo.nickname || mtcAccountInfo.username} <span className="text-slate-400 font-mono">(UID: {mtcAccountInfo.uid})</span>
+                    </p>
+                    <p className="text-emerald-400 font-bold mt-0.5">
+                      Số dư Ví Game hiện tại: {mtcAccountInfo.rmb}k {mtcAccountInfo.lv > 0 ? `• Lv.${mtcAccountInfo.lv}` : ''}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
+                <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+                  <Gem className="text-amber-400" size={24} /> Chọn Gói Nạp Ví Game &amp; Linh Ngọc
+                </h2>
+                {currentUser && (
+                  <div className="text-xs font-bold text-slate-300 bg-[#0B1120] px-3.5 py-2 rounded-xl border border-slate-800">
+                    Ví Shop của bạn: <span className="text-emerald-400 font-black">{new Intl.NumberFormat('vi-VN').format(currentUser.balance || 0)}đ</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {MTC_GAME_PACKAGES.map((pkg) => (
+                  <div
+                    key={pkg.id}
+                    className="group relative bg-[#0B1120] border border-slate-800 hover:border-amber-500/60 rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 shadow-lg hover:shadow-[0_0_30px_rgba(245,158,11,0.18)]"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase text-white bg-gradient-to-r ${pkg.badgeColor} shadow-md`}>
+                          {pkg.badge}
+                        </span>
+                        <span className="text-xs font-mono font-black text-cyan-400">
+                          ≈ {new Intl.NumberFormat('vi-VN').format(pkg.jadeEquivalent)} Ngọc
+                        </span>
+                      </div>
+
+                      <h3 className="text-lg font-black text-white mb-1 group-hover:text-amber-300 transition-colors">
+                        {pkg.name}
+                      </h3>
+                      <p className="text-xs text-amber-400 font-bold mb-4">{pkg.subtitle}</p>
+
+                      <div className="space-y-2 mb-5 border-t border-slate-800/80 pt-3">
+                        {pkg.highlights.map((line, i) => (
+                          <div key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                            <Check size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                            <span>{line}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] text-slate-400 uppercase font-bold">Giá Thanh Toán</p>
+                        <p className="text-lg font-black text-emerald-400">
+                          {new Intl.NumberFormat('vi-VN').format(pkg.price)}đ
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!currentUser) return requireAuth('login');
+                          if (!mtcUsername.trim()) {
+                            showToast('Vui lòng nhập Tên đăng nhập game ở ô phía trên trước khi bấm Nạp!', 'warning');
+                            return;
+                          }
+                          setSelectedMtcPackage(pkg);
+                        }}
+                        className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-xs font-black uppercase rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>Nạp Ngay</span>
+                        <ArrowRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
+
+        {/* MODAL XÁC NHẬN THANH TOÁN GÓI MỘNG THIÊN CỬU */}
+        {selectedMtcPackage && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-[#151D2F] border border-amber-500/40 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl">
+              <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-[#1A233A]">
+                <h3 className="text-base font-black text-white uppercase flex items-center gap-2">
+                  <Sparkles size={18} className="text-amber-400" /> Xác Nhận Nạp Ví Game
+                </h3>
+                <button type="button" onClick={() => setSelectedMtcPackage(null)} className="text-slate-400 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4">
+                <div className="p-3.5 rounded-xl bg-[#0B1120] border border-slate-800 text-xs space-y-1.5">
+                  <p className="text-slate-400">Tài khoản game nhận: <strong className="text-amber-300 font-mono">{mtcUsername.trim()}</strong> (S{mtcServerId})</p>
+                  <p className="text-slate-400">Gói đã chọn: <strong className="text-white">{selectedMtcPackage.name}</strong></p>
+                  <p className="text-emerald-400 font-bold">• Cộng +{selectedMtcPackage.rmbAdd}k Số Dư Ví Game (Đổi ≈ {new Intl.NumberFormat('vi-VN').format(selectedMtcPackage.jadeEquivalent)} Linh Ngọc)</p>
+                  <p className="text-cyan-300 font-bold">• Thư tặng kèm: +{selectedMtcPackage.bonusBGold} Ngọc Khóa + {new Intl.NumberFormat('vi-VN').format(selectedMtcPackage.bonusCoin)} Đồng</p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs space-y-1.5">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Số dư ví Shop hiện tại:</span>
+                    <span className="font-bold text-white">{new Intl.NumberFormat('vi-VN').format(currentUser?.balance || 0)}đ</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Thanh toán:</span>
+                    <span className="font-bold text-rose-400">-{new Intl.NumberFormat('vi-VN').format(selectedMtcPackage.price)}đ</span>
+                  </div>
+                  <div className="border-t border-slate-800 pt-1.5 flex justify-between font-bold">
+                    <span>Số dư còn lại:</span>
+                    <span className={(currentUser?.balance || 0) >= selectedMtcPackage.price ? 'text-emerald-400' : 'text-rose-400'}>
+                      {new Intl.NumberFormat('vi-VN').format((currentUser?.balance || 0) - selectedMtcPackage.price)}đ
+                    </span>
+                  </div>
+                </div>
+
+                {(currentUser?.balance || 0) < selectedMtcPackage.price && (
+                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-400 flex items-center justify-between">
+                    <span>Số dư ví không đủ!</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedMtcPackage(null);
+                        setCurrentView('naptien');
+                      }}
+                      className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg"
+                    >
+                      Nạp Tiền Ví
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-5 border-t border-slate-800 bg-[#1A233A] flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedMtcPackage(null)}
+                  className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-colors"
+                >
+                  Hủy Bỏ
+                </button>
+                <button
+                  type="button"
+                  disabled={isBuyingMtcPackage || (currentUser?.balance || 0) < selectedMtcPackage.price}
+                  onClick={() => executeBuyMtcPackage(selectedMtcPackage)}
+                  className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-black uppercase rounded-xl transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isBuyingMtcPackage ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                  <span>Xác Nhận Nạp</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL KẾT QUẢ NẠP MỘNG THIÊN CỬU H5 (THEO DÕI REALTIME BRIDGE) */}
+        {mtcSuccessModal && (
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-lg z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-[#151D2F] border-2 border-amber-500/60 w-full max-w-md rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(245,158,11,0.3)] text-center p-6 sm:p-8">
+              <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center text-white shadow-lg mb-4">
+                {mtcSuccessModal.bridgeStatus === 'pending' ? <Loader2 size={32} className="animate-spin" /> : mtcSuccessModal.bridgeStatus === 'failed' ? <AlertCircle size={32} /> : <CheckCircle2 size={32} />}
+              </div>
+
+              <h3 className="text-xl font-black uppercase text-white mb-1">
+                {mtcSuccessModal.bridgeStatus === 'pending' ? '⏳ Đang Chuyển Xu Vào Game...' : mtcSuccessModal.bridgeStatus === 'failed' ? '⚠️ Lỗi Nạp (Đã Xử Lý Hoàn)' : '🎉 Đã Cộng Xu Ví Game Thành Công!'}
+              </h3>
+              <p className="text-amber-400 font-bold text-sm mb-4">
+                {mtcSuccessModal.pkg.name} ({new Intl.NumberFormat('vi-VN').format(mtcSuccessModal.pkg.price)}đ)
+              </p>
+
+              <div className="bg-[#0B1120] p-4 rounded-2xl border border-slate-800 text-xs text-slate-300 space-y-2 mb-6 text-left">
+                <p>Tài khoản game: <strong className="text-white font-mono">{mtcSuccessModal.targetUsername}</strong></p>
+                <p>Mã giao dịch: <strong className="text-amber-400 font-mono">{mtcSuccessModal.orderId}</strong></p>
+                {mtcSuccessModal.bridgeStatus === 'completed' && mtcSuccessModal.bridgeResult && (
+                  <div className="border-t border-slate-800 pt-2 text-emerald-400 font-bold space-y-1">
+                    <p>✓ Nhân vật: {mtcSuccessModal.bridgeResult.nickname || mtcSuccessModal.targetUsername}</p>
+                    <p>✓ Đã cộng +{mtcSuccessModal.bridgeResult.rmb_added}k Ví Game &rarr; Số dư Ví Game mới: {mtcSuccessModal.bridgeResult.new_rmb}k</p>
+                    <p className="text-cyan-300 font-normal">Vào game bấm bất kỳ gói Linh Ngọc / Thẻ Tháng và chọn &quot;Xác nhận mua&quot;!</p>
+                  </div>
+                )}
+                {mtcSuccessModal.bridgeStatus === 'failed' && (
+                  <div className="border-t border-slate-800 pt-2 text-rose-400 font-bold">
+                    {mtcSuccessModal.bridgeResult?.message || 'Không tìm thấy tài khoản trong server game!'}
+                  </div>
+                )}
+                {mtcSuccessModal.bridgeStatus === 'pending' && (
+                  <div className="border-t border-slate-800 pt-2 text-amber-300">
+                    Hệ thống Bridge đang cộng +{mtcSuccessModal.pkg.rmbAdd}k vào Số Dư Ví Game...
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMtcSuccessModal(null)}
+                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-xs font-black uppercase rounded-xl shadow-lg cursor-pointer"
+              >
+                Đóng &amp; Tiếp Tục
+              </button>
+            </div>
+          </div>
+        )}
+
+        {renderFooter()}
+      </div>
+    );
+  };
+
   const renderAdminScreen = () => {
     if (currentUser?.role !== 'admin') {
       return (
@@ -16770,10 +17830,24 @@ const App = () => {
         {renderNavbar()}
         <main className="w-full max-w-[1500px] mx-auto px-4 lg:pr-28 pt-6 space-y-6">
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 pb-2">
-            <h2 className="text-2xl font-black text-white flex items-center gap-2 whitespace-nowrap"><Settings className="text-rose-500" /> PANEL ADMIN</h2>
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="text-2xl font-black text-white flex items-center gap-2 whitespace-nowrap"><Settings className="text-rose-500" /> PANEL ADMIN</h2>
+              <button
+                type="button"
+                onClick={() => handleSaveMtcGameConfig(
+                  { ...mtcGameConfig, status: isMtcGameOpen ? 'hidden' : 'public' },
+                  isMtcGameOpen ? 'Đã ẨN cổng Mộng Thiên Cửu H5 khỏi khách thường!' : 'Đã HIỆN CÔNG KHAI cổng Mộng Thiên Cửu H5!'
+                )}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer ${isMtcGameOpen ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25' : 'bg-rose-500/15 text-rose-300 border-rose-500/40 hover:bg-rose-500/25'}`}
+                title="Bấm để Ẩn / Hiện nhanh menu Mộng Thiên Cửu H5 ngoài trang chủ"
+              >
+                {isMtcGameOpen ? <Eye size={14} /> : <EyeOff size={14} />}
+                <span>🐉 Mộng Thiên Cửu: {isMtcGameOpen ? 'Đang Hiện (Bấm Ẩn)' : 'Đang Ẩn (Bấm Hiện)'}</span>
+              </button>
+            </div>
             <div className="flex bg-[#151D2F] p-1 md:p-1.5 rounded-xl border border-slate-800 whitespace-nowrap shadow-lg overflow-x-auto scrollbar-hide w-full">
-              {['users', 'messages', 'accs', 'deposits', 'rentreqs', 'boosting', 'wheel', 'wizard'].map(tab => {
-                const labels = { users: 'Người Dùng', messages: 'Hộp Thư', accs: 'Kho Nick', deposits: 'Nạp Tiền', rentreqs: 'Thuê Nick', boosting: 'Cày Thuê', wheel: 'Vòng Quay', wizard: '🃏 Lật Thẻ Phù Thủy' };
+              {['users', 'messages', 'accs', 'deposits', 'rentreqs', 'boosting', 'wheel', 'wizard', 'mtc'].map(tab => {
+                const labels = { users: 'Người Dùng', messages: 'Hộp Thư', accs: 'Kho Nick', deposits: 'Nạp Tiền', rentreqs: 'Thuê Nick', boosting: 'Cày Thuê', wheel: 'Vòng Quay', wizard: '🃏 Lật Thẻ Phù Thủy', mtc: '🐉 Mộng Thiên Cửu' };
                 const isHiddenOnMobile = tab === 'accs';
                 return <button key={tab} onClick={() => setAdminTab(tab)} className={`flex-1 text-center px-1.5 md:px-4 py-1.5 md:py-2 text-[11px] md:text-sm font-bold rounded-lg transition-all relative ${isHiddenOnMobile ? 'hidden md:inline-block' : ''} ${adminTab === tab ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   {labels[tab]}
@@ -18523,6 +19597,115 @@ const App = () => {
               />
             )}
 
+            {/* TAB MỘNG THIÊN CỬU H5 (ẨN/HIỆN & CẤU HÌNH CẦU NỐI TẢI + NẠP) */}
+            {adminTab === 'mtc' && (
+              <div className="p-5 sm:p-6 space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0B1120] border border-amber-500/30 p-5 rounded-2xl">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Flame className="text-amber-400" size={20} />
+                      <h3 className="text-lg font-black text-white">Quản Lý Cổng Game Mộng Thiên Cửu H5</h3>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase ${isMtcGameOpen ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'}`}>
+                        {isMtcGameOpen ? '🌐 Đang Công Khai' : '🔒 Đang Ẩn (Chỉ Admin Thấy)'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      Khi đặt ở chế độ <strong>Ẩn</strong>, chỉ tài khoản <strong className="text-amber-400">Admin</strong> nhìn thấy nút &quot;🐉 Mộng Thiên Cửu&quot; trên menu để tải APK và test nạp. Bật <strong>Công Khai</strong> khi sẵn sàng mở cho tất cả người chơi!
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleSaveMtcGameConfig({ ...mtcGameConfig, status: isMtcGameOpen ? 'hidden' : 'public' }, isMtcGameOpen ? 'Đã ẨN cổng Mộng Thiên Cửu H5 khỏi khách thường!' : 'Đã HIỆN CÔNG KHAI cổng Mộng Thiên Cửu H5!')}
+                      className={`px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-lg ${isMtcGameOpen ? 'bg-rose-600 hover:bg-rose-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}
+                    >
+                      {isMtcGameOpen ? <><EyeOff size={16} /> Ẩn Khỏi Khách</> : <><Eye size={16} /> Bật Hiện Công Khai</>}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentView('mongthiencuu')}
+                      className="px-4 py-2.5 rounded-xl font-bold text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Gamepad2 size={16} /> Mở Trang Game
+                    </button>
+                  </div>
+                </div>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSaveMtcGameConfig({
+                      ...mtcGameConfig,
+                      apkUrl: e.target.apkUrl.value.trim() || '/download/MongThienCuu_s0_beta_online.apk',
+                      webPlayUrl: e.target.webPlayUrl.value.trim(),
+                      version: e.target.version.value.trim() || '2.5.6-s0-beta',
+                      notice: e.target.notice.value.trim()
+                    });
+                  }}
+                  className="bg-[#0B1120] border border-slate-800 p-5 rounded-2xl space-y-4"
+                >
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <h4 className="text-sm font-bold text-blue-400 flex items-center gap-2"><Settings2 size={16} /> Cấu Hình Đường Dẫn Tải APK Cố Định &amp; Web H5</h4>
+                    <button
+                      type="button"
+                      onClick={() => handleRefreshMtcTunnel(false)}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-bold rounded-lg flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <RefreshCw size={13} /> Đồng Bộ Link Tunnel Live
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-slate-400 font-bold block mb-1">Link Tải APK Cố Định</label>
+                      <input name="apkUrl" type="text" defaultValue={mtcGameConfig.apkUrl || '/download/MongThienCuu_s0_beta_online.apk'} className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-emerald-400 font-mono outline-none focus:border-emerald-500" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 font-bold block mb-1">Link Dự Phòng Web H5 (Tunnel đang live: {mtcServerRegistry?.server_url || 'Chưa đồng bộ'})</label>
+                      <input name="webPlayUrl" type="text" defaultValue={mtcGameConfig.webPlayUrl || ''} className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-cyan-300 font-mono outline-none focus:border-cyan-500" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 font-bold block mb-1">Phiên Bản Hiển Thị</label>
+                      <input name="version" type="text" defaultValue={mtcGameConfig.version || '2.5.6-s0-beta'} className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white outline-none focus:border-blue-500" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 font-bold block mb-1">Thông Báo Nhanh Ngoài Cổng Game</label>
+                      <input name="notice" type="text" defaultValue={mtcGameConfig.notice || ''} className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-amber-300 outline-none focus:border-amber-500" />
+                    </div>
+                  </div>
+                  <button type="submit" className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl shadow-lg cursor-pointer flex items-center gap-2">
+                    <Save size={16} /> Lưu Cấu Hình
+                  </button>
+                </form>
+
+                <div className="bg-[#0B1120] border border-slate-800 rounded-2xl overflow-hidden">
+                  <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2"><History size={16} className="text-amber-400" /> Lịch Sử Nạp Ví Game Mộng Thiên Cửu H5</h4>
+                    <span className="text-xs text-slate-400">Tổng: {transactionsDb.filter(t => t.type === 'mtc_game_topup').length} đơn</span>
+                  </div>
+                  <div className="overflow-x-auto max-h-[360px] custom-scrollbar">
+                    <table className="w-full text-left text-xs min-w-[600px]">
+                      <thead className="bg-slate-900 text-slate-400 uppercase">
+                        <tr><th className="p-3">Mã Đơn</th><th className="p-3">Khách Web</th><th className="p-3">Chi Tiết Gói</th><th className="p-3">Thời Gian</th><th className="p-3 text-right">Số Tiền</th></tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800">
+                        {transactionsDb.filter(t => t.type === 'mtc_game_topup').length === 0 ? (
+                          <tr><td colSpan="5" className="p-6 text-center text-slate-500 italic">Chưa có đơn nạp Mộng Thiên Cửu H5 nào.</td></tr>
+                        ) : transactionsDb.filter(t => t.type === 'mtc_game_topup').map((tx, idx) => (
+                          <tr key={idx} className="hover:bg-slate-800/40">
+                            <td className="p-3 font-mono text-amber-400">{tx.id}</td>
+                            <td className="p-3 font-bold text-white">{tx.user}</td>
+                            <td className="p-3 text-slate-300">{tx.action}</td>
+                            <td className="p-3 text-slate-400">{tx.date}</td>
+                            <td className="p-3 text-right font-bold text-emerald-400">{new Intl.NumberFormat('vi-VN').format(tx.amount)}đ</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* --- ADMIN MODALS --- */}
@@ -19799,6 +20982,7 @@ const App = () => {
           </div>
         )}
         {currentView === 'bossgame' && renderBossGameScreen()}
+        {currentView === 'mongthiencuu' && renderMongThienCuuScreen()}
         {currentView === 'vip_info' && (
           <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-20">
             {renderNavbar()}
