@@ -2808,45 +2808,115 @@ const App = () => {
         return showToast("Vui lòng nhập Tài khoản, SĐT hoặc Email!", 'error');
       }
 
-      let loginEmail = contact;
+      let loginEmails = [];
 
-      // 2. Nếu khách không nhập Email -> kiểm tra SĐT (toàn số) hoặc Tên tài khoản
-      if (!contact.includes('@')) {
-        if (/^\d+$/.test(contact)) {
-          // Dùng maybeSingle() thay vì single() để tránh làm sập code nếu không tìm thấy
-          const { data: foundUser } = await supabase
-            .from('users')
-            .select('email')
-            .eq('phone', contact)
-            .maybeSingle();
-
-          if (foundUser && foundUser.email) {
-            loginEmail = foundUser.email;
-          } else {
-            return showToast("Số điện thoại này chưa được đăng ký!", 'error');
+      // 2. Nếu khách không nhập Email -> kiểm tra SĐT (hỗ trợ +84, 84, 0..., khoảng trắng/dấu gạch) hoặc Tên tài khoản
+      if (contact.includes('@')) {
+        loginEmails = [contact];
+      } else {
+        const hasLetters = /[a-zA-Z]/.test(contact);
+        const digits = !hasLetters ? contact.replace(/\D+/g, '') : '';
+        const phoneCandidates = [];
+        const addPhoneCand = (val) => {
+          const clean = String(val || '').trim();
+          if (clean && !phoneCandidates.includes(clean)) {
+            phoneCandidates.push(clean);
           }
+        };
+
+        if (digits.length >= 9 && digits.length <= 13) {
+          if (contact.startsWith('+')) addPhoneCand('+' + digits);
+          addPhoneCand(digits);
+          if (digits.startsWith('84') && digits.length >= 10) {
+            const noCode = digits.slice(2);
+            addPhoneCand('0' + noCode);
+            addPhoneCand(noCode);
+            addPhoneCand('+84' + noCode);
+          } else if (digits.startsWith('0')) {
+            const noZero = digits.slice(1);
+            addPhoneCand(noZero);
+            addPhoneCand('84' + noZero);
+            addPhoneCand('+84' + noZero);
+          } else if (digits.length === 9) {
+            addPhoneCand('0' + digits);
+            addPhoneCand('84' + digits);
+            addPhoneCand('+84' + digits);
+          }
+        }
+
+        let matchedUsers = [];
+        if (phoneCandidates.length > 0) {
+          const safeDigitCands = phoneCandidates.filter((p) => /^\d+$/.test(p));
+          const orFilters = safeDigitCands.map((p) => `phone.ilike.%${p}%`);
+          orFilters.push(`name.ilike.%${contact}%`);
+
+          const { data: candidates } = await supabase
+            .from('users')
+            .select('email, phone, name, balance')
+            .or(orFilters.join(','))
+            .limit(25);
+
+          const phoneDigitSet = new Set(safeDigitCands);
+          matchedUsers = (candidates || []).filter((u) => {
+            const dbPhoneTrim = (u.phone || '').trim();
+            const dbPhoneDigits = dbPhoneTrim.replace(/\D+/g, '');
+            const dbNameTrim = (u.name || '').trim().toLowerCase();
+            return (
+              phoneCandidates.includes(dbPhoneTrim) ||
+              (dbPhoneDigits && phoneDigitSet.has(dbPhoneDigits)) ||
+              dbNameTrim === contact.toLowerCase()
+            );
+          });
         } else {
-          const { data: foundUser } = await supabase
+          const { data: candidates } = await supabase
             .from('users')
-            .select('email')
-            .ilike('name', contact)
-            .maybeSingle();
+            .select('email, name, balance')
+            .ilike('name', `%${contact}%`)
+            .limit(25);
 
-          if (foundUser && foundUser.email) {
-            loginEmail = foundUser.email;
-          } else {
-            return showToast("Tên tài khoản này chưa được đăng ký!", 'error');
+          matchedUsers = (candidates || []).filter(
+            (u) => (u.name || '').trim().toLowerCase() === contact.toLowerCase()
+          );
+        }
+
+        matchedUsers.sort((a, b) => Number(b.balance || 0) - Number(a.balance || 0));
+        const seenEmails = new Set();
+        for (const u of matchedUsers) {
+          const em = (u.email || '').trim();
+          const emKey = em.toLowerCase();
+          if (em && !seenEmails.has(emKey)) {
+            seenEmails.add(emKey);
+            loginEmails.push(em);
           }
+        }
+
+        if (loginEmails.length === 0) {
+          return showToast(
+            phoneCandidates.length > 0
+              ? "Số điện thoại này chưa được đăng ký!"
+              : "Tên tài khoản này chưa được đăng ký!",
+            'error'
+          );
         }
       }
 
-      // Đăng nhập bằng Email tìm được
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password,
-      });
+      // Đăng nhập bằng danh sách Email ứng viên (xử lý được trường hợp trùng SĐT / trùng tên khác hoa thường)
+      let authData = null;
+      let authError = null;
+      for (const candidateEmail of loginEmails) {
+        const res = await supabase.auth.signInWithPassword({
+          email: candidateEmail,
+          password,
+        });
+        if (!res.error && res.data?.user) {
+          authData = res.data;
+          authError = null;
+          break;
+        }
+        authError = res.error;
+      }
 
-      if (authError) return showToast("Sai tài khoản hoặc mật khẩu!", 'error');
+      if (authError || !authData?.user) return showToast("Sai tài khoản hoặc mật khẩu!", 'error');
 
       // ... (Giữ nguyên toàn bộ phần code lấy thông tin userData ở bên dưới của bạn) ...
 
