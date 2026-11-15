@@ -384,8 +384,9 @@
         <div id="statusStep" class="portal-step">Đang kiểm tra trạng thái máy chủ...</div>
         <div id="offlineActions" class="portal-actions" style="display: none;">
           <button id="retryNowBtn" type="button" class="btn-primary">🔄 Thử kết nối lại</button>
-          <a href="/download/MongThienCuu_s0_beta_online.apk" download="MongThienCuu_s0_beta_online.apk" class="btn-secondary">📱 Tải APK Android</a>
-          <a href="/" class="btn-secondary">🏠 Về Shop</a>
+          <a id="apkDownloadBtn" href="/download/MongThienCuu_s0_beta_online.apk" download="MongThienCuu_s0_beta_online.apk" class="btn-secondary">📱 Tải APK Android</a>
+          <a id="adminLoginBtn" href="/?view=mongthiencuu" class="btn-secondary" style="display: none;">🔑 Đăng nhập Admin</a>
+          <a id="homeBtn" href="/" class="btn-secondary">🏠 Về Shop</a>
         </div>
       </div>
     </div>
@@ -421,7 +422,9 @@
       var NTFY_REGISTRY_URL = 'https://ntfy.sh/mtc_s0_beta_registry_f8a9d2c4e1b7/raw?poll=1&since=all';
       var LOCAL_VERSION_URL = '/download/version.json';
       var PROBE_TIMEOUT_MS = 6000;
-      var RETRY_INTERVAL_SEC = 8;
+      var RETRY_DELAYS_SEC = [12, 20, 35, 60, 60, 60];
+      var SUPA_CACHE_TTL_MS = 60000;
+      var ADMIN_CACHE_TTL_MS = 600000;
 
       var frameEl = document.getElementById('mtcGameFrame');
       var overlayEl = document.getElementById('statusOverlay');
@@ -432,6 +435,8 @@
       var stepEl = document.getElementById('statusStep');
       var offlineActionsEl = document.getElementById('offlineActions');
       var retryNowBtn = document.getElementById('retryNowBtn');
+      var apkDownloadBtn = document.getElementById('apkDownloadBtn');
+      var adminLoginBtn = document.getElementById('adminLoginBtn');
 
       var hubEl = document.getElementById('floatingHub');
       var toggleBtn = document.getElementById('menuToggleBtn');
@@ -443,6 +448,10 @@
       var countdownTimerId = null;
       var isConnecting = false;
       var toastTimerId = null;
+      var lastSupaFetchMs = 0;
+      var supaConfigCache = null;
+      var autoRetryCount = 0;
+      var pendingVisibilityRetry = false;
 
       function showToast(msg) {
         if (!toastEl) return;
@@ -496,30 +505,70 @@
         });
       }
 
-      async function discoverCandidates() {
-        var candidates = [];
+      async function fetchPortalConfig(forceRefresh) {
+        var nowMs = Date.now();
+        if (!forceRefresh && supaConfigCache && supaConfigCache.fetchedOk && (nowMs - lastSupaFetchMs) < SUPA_CACHE_TTL_MS) {
+          return supaConfigCache;
+        }
 
-        // Tầng 1: Supabase REST site_config -> mtc_server_registry
-        setStep('Tầng 1/3: Đang đọc địa chỉ máy chủ từ Cloud Registry...');
+        // Gộp 1 request duy nhất tới Supabase site_config (mtc_game_config + mtc_server_registry)
+        setStep('Tầng 1/3: Đang kiểm tra trạng thái cổng & Cloud Registry...');
+        var supaCandidates = [];
+        var webPlayStatus = 'hidden';
+        var fetchedOk = false;
+
         try {
-          var supaEndpoint = SUPABASE_URL + '/rest/v1/site_config?id=eq.mtc_server_registry&select=value&apikey=' + encodeURIComponent(SUPABASE_ANON_KEY);
+          var supaEndpoint = SUPABASE_URL + '/rest/v1/site_config?id=in.(mtc_game_config,mtc_server_registry)&select=id,value';
           var res1 = await fetchWithTimeout(supaEndpoint, {
             cache: 'no-store',
             headers: {
               apikey: SUPABASE_ANON_KEY,
               Authorization: 'Bearer ' + SUPABASE_ANON_KEY
             }
-          }, 5000);
+          }, 5500);
           if (res1.ok) {
             var rows = await res1.json();
-            var val = Array.isArray(rows) && rows[0] ? rows[0].value : null;
-            if (val && typeof val === 'object') {
-              addCandidate(candidates, val.base_url);
-              addCandidate(candidates, val.server_url);
-              addCandidate(candidates, val.online_url);
+            if (Array.isArray(rows)) {
+              fetchedOk = true;
+              for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                if (!row || !row.id) continue;
+                var val = row.value;
+                if (row.id === 'mtc_game_config') {
+                  if (val && typeof val === 'object' && val.webPlayStatus === 'public') {
+                    webPlayStatus = 'public';
+                  }
+                } else if (row.id === 'mtc_server_registry') {
+                  if (val && typeof val === 'object') {
+                    addCandidate(supaCandidates, val.base_url);
+                    addCandidate(supaCandidates, val.server_url);
+                    addCandidate(supaCandidates, val.online_url);
+                  }
+                }
+              }
             }
           }
-        } catch (e1) {}
+        } catch (e1) {
+          fetchedOk = false;
+        }
+
+        var cfg = {
+          webPlayStatus: webPlayStatus,
+          candidates: supaCandidates,
+          fetchedOk: fetchedOk
+        };
+        if (fetchedOk) {
+          lastSupaFetchMs = Date.now();
+          supaConfigCache = cfg;
+        }
+        return cfg;
+      }
+
+      async function discoverCandidates(initialCandidates, skipFallbackIfCached) {
+        var candidates = Array.isArray(initialCandidates) ? initialCandidates.slice() : [];
+        if (skipFallbackIfCached && candidates.length > 0) {
+          return candidates;
+        }
 
         // Tầng 2: Dự phòng ntfy.sh
         setStep('Tầng 2/3: Đang kiểm tra kênh dự phòng Cloud...');
@@ -554,6 +603,9 @@
           }
         } catch (e3) {}
 
+        if (supaConfigCache && supaConfigCache.fetchedOk) {
+          supaConfigCache.candidates = candidates.slice();
+        }
         return candidates;
       }
 
@@ -583,12 +635,7 @@
         return sessionObj.access_token.trim();
       }
 
-      function readShopSsoToken() {
-        try {
-          var params = new URLSearchParams(window.location.search);
-          if (params.get('nosso') === '1') return '';
-        } catch (e) {}
-
+      function readRawShopAuthToken() {
         var nowSec = Math.floor(Date.now() / 1000);
         try {
           var keys = [];
@@ -617,12 +664,82 @@
         return '';
       }
 
+      function readShopSsoToken() {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          if (params.get('nosso') === '1') return '';
+        } catch (e) {}
+        return readRawShopAuthToken();
+      }
+
+      function parseJwtSub(token) {
+        try {
+          var parts = String(token || '').split('.');
+          if (parts.length < 2) return '';
+          var b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+          while (b64.length % 4) b64 += '=';
+          var binStr = atob(b64);
+          var bytes = new Uint8Array(binStr.length);
+          for (var i = 0; i < binStr.length; i++) {
+            bytes[i] = binStr.charCodeAt(i);
+          }
+          var jsonStr = typeof TextDecoder !== 'undefined'
+            ? new TextDecoder('utf-8').decode(bytes)
+            : decodeURIComponent(escape(binStr));
+          var payload = JSON.parse(jsonStr);
+          return payload && typeof payload.sub === 'string' ? payload.sub.trim() : '';
+        } catch (e) {
+          return '';
+        }
+      }
+
+      async function verifyShopAdminSession(rawToken) {
+        if (!rawToken) return false;
+        var sub = parseJwtSub(rawToken);
+        if (!sub) return false;
+
+        var cacheKey = 'mtc_play_admin_ok_' + sub;
+        try {
+          var cachedTs = Number(window.sessionStorage.getItem(cacheKey) || '0');
+          if (Number.isFinite(cachedTs) && cachedTs > 0 && (Date.now() - cachedTs) < ADMIN_CACHE_TTL_MS) {
+            return true;
+          }
+        } catch (eCache) {}
+
+        try {
+          var userEndpoint = SUPABASE_URL + '/rest/v1/users?id=eq.' + encodeURIComponent(sub) + '&select=role,is_locked';
+          var res = await fetchWithTimeout(userEndpoint, {
+            cache: 'no-store',
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: 'Bearer ' + rawToken
+            }
+          }, 5000);
+          if (res.ok) {
+            var rows = await res.json();
+            var row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+            if (row && String(row.role || '').toLowerCase() === 'admin' && !row.is_locked) {
+              try {
+                window.sessionStorage.setItem(cacheKey, String(Date.now()));
+              } catch (eSet) {}
+              return true;
+            }
+          }
+        } catch (eVerify) {}
+
+        try {
+          window.sessionStorage.removeItem(cacheKey);
+        } catch (eDel) {}
+        return false;
+      }
+
       function setStep(text) {
         if (stepEl) stepEl.textContent = text;
       }
 
       function showConnectingState() {
         clearTimers();
+        if (hubEl) hubEl.style.display = '';
         overlayEl.classList.remove('hidden');
         badgeEl.classList.remove('offline');
         badgeEl.textContent = 'Cổng Web Cố Định • S0 Beta';
@@ -630,6 +747,48 @@
         titleEl.textContent = 'Đang kết nối máy chủ Tiên Giới...';
         descEl.textContent = 'Hệ thống đang tự động dò tìm đường truyền trực tuyến nhanh nhất và đồng bộ tài khoản ShopTiếnGaming.';
         offlineActionsEl.style.display = 'none';
+      }
+
+      function showInternalLockedState() {
+        clearTimers();
+        pendingVisibilityRetry = false;
+        if (frameEl) {
+          frameEl.onload = null;
+          frameEl.removeAttribute('src');
+        }
+        if (hubEl) hubEl.style.display = 'none';
+        if (isMenuOpen) setMenuOpen(false);
+        overlayEl.classList.remove('hidden');
+        badgeEl.classList.add('offline');
+        badgeEl.textContent = '🔒 Cổng Nội Bộ • Quản Trị Viên';
+        spinnerEl.classList.add('paused');
+        titleEl.textContent = 'Cổng Chơi Trên Web Đang Tạm Ẩn';
+        descEl.textContent = 'Chế độ chơi trực tiếp trên trình duyệt hiện chỉ dành cho nội bộ Quản trị viên sử dụng. Đạo hữu vui lòng tải bản APK Android chính thức để vào game mượt nhất!';
+        setStep('Quản trị viên vui lòng đăng nhập tài khoản Admin tại ShopTiếnGaming.com rồi quay lại trang này.');
+        offlineActionsEl.style.display = 'flex';
+        if (retryNowBtn) retryNowBtn.style.display = 'none';
+        if (apkDownloadBtn) apkDownloadBtn.className = 'btn-primary';
+        if (adminLoginBtn) adminLoginBtn.style.display = '';
+      }
+
+      function showConfigErrorState() {
+        clearTimers();
+        pendingVisibilityRetry = false;
+        if (frameEl) {
+          frameEl.onload = null;
+          frameEl.removeAttribute('src');
+        }
+        overlayEl.classList.remove('hidden');
+        badgeEl.classList.add('offline');
+        badgeEl.textContent = 'Lỗi Kết Nối Cấu Hình';
+        spinnerEl.classList.add('paused');
+        titleEl.textContent = 'Không thể xác minh trạng thái cổng game';
+        descEl.textContent = 'Kết nối tới máy chủ cấu hình tạm thời bị gián đoạn. Vui lòng thử kết nối lại hoặc tải bản APK Android chính thức.';
+        setStep('Bấm "Thử kết nối lại" để kiểm tra lại kết nối.');
+        offlineActionsEl.style.display = 'flex';
+        if (retryNowBtn) retryNowBtn.style.display = '';
+        if (apkDownloadBtn) apkDownloadBtn.className = 'btn-secondary';
+        if (adminLoginBtn) adminLoginBtn.style.display = 'none';
       }
 
       function showOfflineState() {
@@ -641,21 +800,37 @@
         titleEl.textContent = 'Máy chủ game tạm thời chưa trực tuyến';
         descEl.textContent = 'Máy chủ PC có thể đang tắt hoặc bảo trì định kỳ. Trang sẽ tự động thử kết nối lại cho bạn.';
         offlineActionsEl.style.display = 'flex';
+        if (retryNowBtn) retryNowBtn.style.display = '';
+        if (apkDownloadBtn) apkDownloadBtn.className = 'btn-secondary';
+        if (adminLoginBtn) adminLoginBtn.style.display = 'none';
 
-        var secLeft = RETRY_INTERVAL_SEC;
-        setStep('Tự động kết nối lại sau ' + secLeft + ' giây...');
+        if (autoRetryCount >= RETRY_DELAYS_SEC.length) {
+          pendingVisibilityRetry = false;
+          setStep('Máy chủ đang tạm nghỉ — Bấm "Thử kết nối lại" khi máy chủ mở');
+          return;
+        }
+
+        var secLeft = RETRY_DELAYS_SEC[autoRetryCount];
+        var attemptNo = autoRetryCount + 1;
+        setStep('Tự động kết nối lại sau ' + secLeft + ' giây... (lần ' + attemptNo + '/' + RETRY_DELAYS_SEC.length + ')');
         countdownTimerId = setInterval(function () {
           secLeft -= 1;
           if (secLeft > 0) {
-            setStep('Tự động kết nối lại sau ' + secLeft + ' giây...');
+            setStep('Tự động kết nối lại sau ' + secLeft + ' giây... (lần ' + attemptNo + '/' + RETRY_DELAYS_SEC.length + ')');
           } else {
             clearInterval(countdownTimerId);
           }
         }, 1000);
 
         retryTimerId = setTimeout(function () {
-          connectToLiveServer();
-        }, RETRY_INTERVAL_SEC * 1000);
+          if (document.hidden === true) {
+            pendingVisibilityRetry = true;
+            setStep('Đã tạm dừng thử lại vì tab đang ẩn — sẽ tự kết nối lại khi bạn mở lại tab.');
+            return;
+          }
+          autoRetryCount += 1;
+          connectToLiveServer(false);
+        }, secLeft * 1000);
       }
 
       function clearTimers() {
@@ -675,13 +850,41 @@
         }, 250);
       }
 
-      async function connectToLiveServer() {
+      async function connectToLiveServer(forceRefresh) {
         if (isConnecting) return;
+        if (forceRefresh) {
+          autoRetryCount = 0;
+          pendingVisibilityRetry = false;
+        }
         isConnecting = true;
         showConnectingState();
 
         try {
-          var candidates = await discoverCandidates();
+          var rawToken = readRawShopAuthToken();
+          var portalCfg = await fetchPortalConfig(Boolean(forceRefresh));
+
+          if (!portalCfg.fetchedOk) {
+            var isAdminOnError = await verifyShopAdminSession(rawToken);
+            if (!isAdminOnError) {
+              isConnecting = false;
+              showConfigErrorState();
+              return;
+            }
+          } else if (portalCfg.webPlayStatus !== 'public') {
+            var isAdmin = await verifyShopAdminSession(rawToken);
+            if (!isAdmin) {
+              isConnecting = false;
+              showInternalLockedState();
+              return;
+            }
+          }
+
+          if (hubEl) hubEl.style.display = '';
+          if (retryNowBtn) retryNowBtn.style.display = '';
+          if (adminLoginBtn) adminLoginBtn.style.display = 'none';
+
+          var useCachedCandidates = !forceRefresh && supaConfigCache && supaConfigCache.fetchedOk && (Date.now() - lastSupaFetchMs) < SUPA_CACHE_TTL_MS;
+          var candidates = await discoverCandidates(portalCfg.candidates, useCachedCandidates);
           var liveBase = '';
 
           for (var i = 0; i < candidates.length; i++) {
@@ -699,6 +902,8 @@
             return;
           }
 
+          autoRetryCount = 0;
+          pendingVisibilityRetry = false;
           activeBaseUrl = liveBase;
           var ssoToken = readShopSsoToken();
           var targetUrl = liveBase + '/?server=s0-beta&embed=1';
@@ -922,7 +1127,7 @@
         } else if (action === 'topup') {
           window.open('/?view=naptien', '_blank', 'noopener');
         } else if (action === 'reload') {
-          connectToLiveServer();
+          connectToLiveServer(true);
         } else if (action === 'switch-account') {
           try {
             window.history.replaceState(null, '', '/play/?nosso=1');
@@ -939,7 +1144,15 @@
       });
 
       retryNowBtn.addEventListener('click', function () {
-        connectToLiveServer();
+        connectToLiveServer(true);
+      });
+
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden && pendingVisibilityRetry && !isConnecting) {
+          pendingVisibilityRetry = false;
+          autoRetryCount += 1;
+          connectToLiveServer(false);
+        }
       });
 
       window.addEventListener('message', function (event) {
@@ -951,7 +1164,7 @@
       });
 
       initPillPosition();
-      connectToLiveServer();
+      connectToLiveServer(true);
     })();
   </script>
 </body>
