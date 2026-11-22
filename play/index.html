@@ -17,6 +17,10 @@
   <link rel="manifest" href="/play/manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://game.shoptiengaming.com" crossorigin />
+  <link rel="dns-prefetch" href="https://game.shoptiengaming.com" />
+  <link rel="preconnect" href="https://cdn.shoptiengaming.com" crossorigin />
+  <link rel="dns-prefetch" href="https://cdn.shoptiengaming.com" />
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
     :root {
@@ -384,7 +388,7 @@
         <div id="statusStep" class="portal-step">Đang kiểm tra trạng thái máy chủ...</div>
         <div id="offlineActions" class="portal-actions" style="display: none;">
           <button id="retryNowBtn" type="button" class="btn-primary">🔄 Thử kết nối lại</button>
-          <a id="apkDownloadBtn" href="/download/MongThienCuu_s0_beta_online.apk" download="MongThienCuu_s0_beta_online.apk" class="btn-secondary">📱 Tải APK Android</a>
+          <a id="apkDownloadBtn" href="https://cdn.shoptiengaming.com/download/MongThienCuu_s0_beta_online.apk" download="MongThienCuu_s0_beta_online.apk" class="btn-secondary">📱 Tải APK Android</a>
           <a id="adminLoginBtn" href="/?view=mongthiencuu" class="btn-secondary" style="display: none;">🔑 Đăng nhập Admin</a>
           <a id="homeBtn" href="/" class="btn-secondary">🏠 Về Shop</a>
         </div>
@@ -404,7 +408,7 @@
       </div>
       <button type="button" class="menu-item" data-action="fullscreen">⛶ Toàn màn hình</button>
       <button type="button" class="menu-item" data-action="topup">💳 Nạp Ví Shop</button>
-      <a href="/download/MongThienCuu_s0_beta_online.apk" download="MongThienCuu_s0_beta_online.apk" class="menu-item" data-action="apk">📱 Tải APK Android</a>
+      <a href="https://cdn.shoptiengaming.com/download/MongThienCuu_s0_beta_online.apk" download="MongThienCuu_s0_beta_online.apk" class="menu-item" data-action="apk">📱 Tải APK Android</a>
       <button type="button" class="menu-item" data-action="reload">🔄 Đồng bộ / Tải lại</button>
       <button type="button" class="menu-item" data-action="switch-account">🔑 Đổi tài khoản</button>
       <button type="button" class="menu-item" data-action="home">🏠 Về ShopTiếnGaming</button>
@@ -419,8 +423,10 @@
 
       var SUPABASE_URL = 'https://wbtsydwyuwfmzszlmgpm.supabase.co';
       var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndidHN5ZHd5dXdmbXpzemxtZ3BtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxODA0ODUsImV4cCI6MjA5NTc1NjQ4NX0.G_BXuMeGQWpU2DzAYSdZwnldO4GF0-vLqUjdaocN-xM';
+      var FIXED_PRIMARY_URL = 'https://game.shoptiengaming.com';
       var NTFY_REGISTRY_URL = 'https://ntfy.sh/mtc_s0_beta_registry_f8a9d2c4e1b7/raw?poll=1&since=all';
       var LOCAL_VERSION_URL = '/download/version.json';
+      var CONFIG_SESSION_KEY = 'mtc_play_cfg_v2';
       var PROBE_TIMEOUT_MS = 6000;
       var RETRY_DELAYS_SEC = [12, 20, 35, 60, 60, 60];
       var SUPA_CACHE_TTL_MS = 60000;
@@ -510,15 +516,31 @@
         if (!forceRefresh && supaConfigCache && supaConfigCache.fetchedOk && (nowMs - lastSupaFetchMs) < SUPA_CACHE_TTL_MS) {
           return supaConfigCache;
         }
+        if (!forceRefresh) {
+          try {
+            var rawSess = window.sessionStorage.getItem(CONFIG_SESSION_KEY);
+            if (rawSess) {
+              var parsedSess = JSON.parse(rawSess);
+              if (parsedSess && parsedSess.fetchedOk && (nowMs - Number(parsedSess.ts || 0)) < SUPA_CACHE_TTL_MS) {
+                lastSupaFetchMs = Number(parsedSess.ts || nowMs);
+                supaConfigCache = {
+                  webPlayStatus: parsedSess.webPlayStatus === 'public' ? 'public' : 'hidden',
+                  candidates: Array.isArray(parsedSess.candidates) ? parsedSess.candidates : [FIXED_PRIMARY_URL],
+                  fetchedOk: true
+                };
+                return supaConfigCache;
+              }
+            }
+          } catch (eSess) {}
+        }
 
-        // Gộp 1 request duy nhất tới Supabase site_config (mtc_game_config + mtc_server_registry)
-        setStep('Tầng 1/3: Đang kiểm tra trạng thái cổng & Cloud Registry...');
-        var supaCandidates = [];
+        // Chỉ kiểm tra đúng mtc_game_config (giảm tải Supabase, không kéo mtc_server_registry khi tên miền cố định đang chạy)
+        setStep('Đang kết nối thẳng máy chủ cố định & xác minh quyền mở cổng...');
         var webPlayStatus = 'hidden';
         var fetchedOk = false;
 
         try {
-          var supaEndpoint = SUPABASE_URL + '/rest/v1/site_config?id=in.(mtc_game_config,mtc_server_registry)&select=id,value';
+          var supaEndpoint = SUPABASE_URL + '/rest/v1/site_config?id=eq.mtc_game_config&select=id,value';
           var res1 = await fetchWithTimeout(supaEndpoint, {
             cache: 'no-store',
             headers: {
@@ -532,17 +554,10 @@
               fetchedOk = true;
               for (var i = 0; i < rows.length; i++) {
                 var row = rows[i];
-                if (!row || !row.id) continue;
-                var val = row.value;
-                if (row.id === 'mtc_game_config') {
+                if (row && row.id === 'mtc_game_config') {
+                  var val = row.value;
                   if (val && typeof val === 'object' && val.webPlayStatus === 'public') {
                     webPlayStatus = 'public';
-                  }
-                } else if (row.id === 'mtc_server_registry') {
-                  if (val && typeof val === 'object') {
-                    addCandidate(supaCandidates, val.base_url);
-                    addCandidate(supaCandidates, val.server_url);
-                    addCandidate(supaCandidates, val.online_url);
                   }
                 }
               }
@@ -554,24 +569,50 @@
 
         var cfg = {
           webPlayStatus: webPlayStatus,
-          candidates: supaCandidates,
+          candidates: [FIXED_PRIMARY_URL],
           fetchedOk: fetchedOk
         };
         if (fetchedOk) {
           lastSupaFetchMs = Date.now();
           supaConfigCache = cfg;
+          try {
+            window.sessionStorage.setItem(CONFIG_SESSION_KEY, JSON.stringify({
+              webPlayStatus: webPlayStatus,
+              candidates: cfg.candidates,
+              fetchedOk: true,
+              ts: lastSupaFetchMs
+            }));
+          } catch (eSaveSess) {}
         }
         return cfg;
       }
 
-      async function discoverCandidates(initialCandidates, skipFallbackIfCached) {
+      async function discoverFallbackCandidates(initialCandidates) {
         var candidates = Array.isArray(initialCandidates) ? initialCandidates.slice() : [];
-        if (skipFallbackIfCached && candidates.length > 0) {
-          return candidates;
-        }
 
-        // Tầng 2: Dự phòng ntfy.sh
-        setStep('Tầng 2/3: Đang kiểm tra kênh dự phòng Cloud...');
+        // Dự phòng Tầng 1: mtc_server_registry trên Supabase (chỉ gọi khi FIXED_PRIMARY_URL không phản hồi)
+        setStep('Đường truyền chính tạm nghỉ — Đang tìm máy chủ dự phòng...');
+        try {
+          var regEndpoint = SUPABASE_URL + '/rest/v1/site_config?id=eq.mtc_server_registry&select=id,value';
+          var resReg = await fetchWithTimeout(regEndpoint, {
+            cache: 'no-store',
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: 'Bearer ' + SUPABASE_ANON_KEY
+            }
+          }, 5000);
+          if (resReg.ok) {
+            var regRows = await resReg.json();
+            if (Array.isArray(regRows) && regRows[0] && regRows[0].value) {
+              var regVal = regRows[0].value;
+              addCandidate(candidates, regVal.base_url);
+              addCandidate(candidates, regVal.server_url);
+              addCandidate(candidates, regVal.online_url);
+            }
+          }
+        } catch (eReg) {}
+
+        // Dự phòng Tầng 2: ntfy.sh
         try {
           var res2 = await fetchWithTimeout(NTFY_REGISTRY_URL, { cache: 'no-store' }, 5000);
           if (res2.ok) {
@@ -590,8 +631,7 @@
           }
         } catch (e2) {}
 
-        // Tầng 3: Dự phòng /download/version.json
-        setStep('Tầng 3/3: Đang đọc cấu hình dự phòng nội bộ...');
+        // Dự phòng Tầng 3: /download/version.json
         try {
           var res3 = await fetchWithTimeout(LOCAL_VERSION_URL + '?t=' + Date.now(), { cache: 'no-store' }, 4000);
           if (res3.ok) {
@@ -603,9 +643,6 @@
           }
         } catch (e3) {}
 
-        if (supaConfigCache && supaConfigCache.fetchedOk) {
-          supaConfigCache.candidates = candidates.slice();
-        }
         return candidates;
       }
 
@@ -861,7 +898,13 @@
 
         try {
           var rawToken = readRawShopAuthToken();
-          var portalCfg = await fetchPortalConfig(Boolean(forceRefresh));
+          // Khởi động nhanh: kiểm tra trạng thái cổng song song với thăm dò tên miền cố định
+          var parallelRes = await Promise.all([
+            fetchPortalConfig(Boolean(forceRefresh)),
+            probeBaseUrl(FIXED_PRIMARY_URL)
+          ]);
+          var portalCfg = parallelRes[0];
+          var primaryOk = parallelRes[1];
 
           if (!portalCfg.fetchedOk) {
             var isAdminOnError = await verifyShopAdminSession(rawToken);
@@ -883,16 +926,18 @@
           if (retryNowBtn) retryNowBtn.style.display = '';
           if (adminLoginBtn) adminLoginBtn.style.display = 'none';
 
-          var useCachedCandidates = !forceRefresh && supaConfigCache && supaConfigCache.fetchedOk && (Date.now() - lastSupaFetchMs) < SUPA_CACHE_TTL_MS;
-          var candidates = await discoverCandidates(portalCfg.candidates, useCachedCandidates);
-          var liveBase = '';
+          var liveBase = primaryOk ? FIXED_PRIMARY_URL : '';
 
-          for (var i = 0; i < candidates.length; i++) {
-            setStep('Đang kiểm tra đường truyền (' + (i + 1) + '/' + candidates.length + ')...');
-            var ok = await probeBaseUrl(candidates[i]);
-            if (ok) {
-              liveBase = candidates[i];
-              break;
+          if (!liveBase) {
+            var fallbackCandidates = await discoverFallbackCandidates([]);
+            for (var i = 0; i < fallbackCandidates.length; i++) {
+              if (fallbackCandidates[i] === FIXED_PRIMARY_URL) continue;
+              setStep('Đang kiểm tra đường truyền dự phòng (' + (i + 1) + '/' + fallbackCandidates.length + ')...');
+              var ok = await probeBaseUrl(fallbackCandidates[i]);
+              if (ok) {
+                liveBase = fallbackCandidates[i];
+                break;
+              }
             }
           }
 
