@@ -9,8 +9,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist",
+    "deploy": "node -e \"console.error('[STOP] shoptiengaming.com da chuyen sang Cloudflare Pages (tu dong build khi git push origin main). KHONG deploy len gh-pages!'); process.exit(1);\"",
+    "deploy:gh-pages-legacy": "npm run build && gh-pages -d dist",
     "deploy:maintenance": "gh-pages -d maintenance_page -m 'Deploy Maintenance Page'"
   },
   "dependencies": {

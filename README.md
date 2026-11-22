@@ -1,16 +1,24 @@
-# React + Vite
+# Shop Tiến Gaming (`shoptiengaming.com`)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Website thương mại & cổng chơi **Mộng Thiên Cửu H5** (React 19 + Vite 8 + Tailwind CSS).
 
-Currently, two official plugins are available:
+## Kiến trúc vận hành hiện tại
+- **Hosting Web & API Functions**: **Cloudflare Pages** (`shop-tiengaming`), tự động build & deploy từ nhánh **`main`** (`npm run build` -> `dist/`, `NODE_VERSION=22`).
+- **Database, Auth, Nạp tự động & Realtime**: **Supabase** (`supabaseClient.js` + Edge Functions dưới `supabase/functions/`).
+- **Kho ảnh tĩnh, APK & Ảnh upload mới**: **Cloudflare R2** (`https://cdn.shoptiengaming.com`, binding `MTC_CDN` trong `wrangler.toml`) có fallback tự động về tệp tĩnh nội bộ qua `src/utils/cdnAsset.js`.
+- **Cổng chơi game (`/play/`)**: Nối trực tiếp máy chủ cố định `https://game.shoptiengaming.com` (Cloudflare Named Tunnel QUIC), tự động chuyển qua dự phòng 3 tầng nếu máy chủ tạm nghỉ.
+- **Chống spam/bot**: Cloudflare Turnstile (`src/components/TurnstileWidget.jsx` + `functions/api/verify-turnstile.js`), honeypot và cooldown khi đăng ký/bình luận.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Quy trình cập nhật & deploy chuẩn
+> ⚠️ **KHÔNG chạy `npm run deploy` lên nhánh `gh-pages` cũ** — web chính thức đã chuyển sang Cloudflare Pages. Xem chi tiết quy tắc trong [`AGENTS.md`](AGENTS.md).
 
-## React Compiler
+```bash
+# 1. Kiểm tra build cục bộ không lỗi
+npm run build
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+# 2. (Nếu có thêm/sửa ảnh tĩnh hoặc APK trong public/) Đồng bộ lên R2 từ thư mục gốc dự án
+python ../tools/shop_r2_sync.py
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+# 3. Đẩy code lên nhánh main -> Cloudflare Pages tự động build & phát hành
+git push origin main
+```
