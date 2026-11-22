@@ -1,0 +1,25 @@
+{
+  "name": "Mộng Thiên Cửu H5",
+  "short_name": "Mộng Thiên Cửu",
+  "description": "Cổng chơi trực tiếp Mộng Thiên Cửu H5 trên PC, iPhone iOS và Android đồng bộ Ví ShopTiếnGaming.",
+  "start_url": "/play/",
+  "scope": "/play/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070a12",
+  "theme_color": "#070a12",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/mtc-showcase/logo.png",
+      "sizes": "512x261",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

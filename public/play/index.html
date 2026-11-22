@@ -1,0 +1,1216 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Mộng Thiên Cửu H5 — Chơi Trực Tuyến | ShopTiếnGaming</title>
+  <meta name="description" content="Chơi ngay Mộng Thiên Cửu H5 mượt mà trên PC, iPhone (iOS) và Android tại địa chỉ cố định shoptiengaming.com/play — đồng bộ tài khoản & ví ShopTiếnGaming." />
+  <meta name="theme-color" content="#070a12" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Mộng Thiên Cửu H5" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/favicon.png" />
+  <link rel="manifest" href="/play/manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://game.shoptiengaming.com" crossorigin />
+  <link rel="dns-prefetch" href="https://game.shoptiengaming.com" />
+  <link rel="preconnect" href="https://cdn.shoptiengaming.com" crossorigin />
+  <link rel="dns-prefetch" href="https://cdn.shoptiengaming.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-void: #070a12;
+      --bg-card: rgba(13, 19, 34, 0.92);
+      --gold: #f59e0b;
+      --gold-soft: #fde68a;
+      --emerald: #10b981;
+      --rose: #f43f5e;
+      --border-gold: rgba(245, 158, 11, 0.34);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: var(--bg-void);
+      color: #e2e8f0;
+      font-family: 'Be Vietnam Pro', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      overscroll-behavior: none;
+    }
+
+    #appShell {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(245, 158, 11, 0.12), transparent 42%),
+        radial-gradient(circle at 82% 88%, rgba(244, 63, 94, 0.1), transparent 45%),
+        var(--bg-void);
+      overflow: hidden;
+    }
+
+    #mtcGameFrame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: var(--bg-void);
+      display: block;
+      z-index: 1;
+    }
+
+    /* Overlay kết nối & bảo trì phong cách Tiên Hiệp */
+    #statusOverlay {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: calc(16px + var(--safe-top)) calc(16px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(16px + var(--safe-left));
+      background:
+        radial-gradient(circle at 50% 22%, rgba(245, 158, 11, 0.14), transparent 55%),
+        radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.08), transparent 45%),
+        rgba(7, 10, 18, 0.96);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: opacity 0.35s ease, visibility 0.35s ease;
+    }
+
+    #statusOverlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .portal-card {
+      position: relative;
+      width: 100%;
+      max-width: 440px;
+      border-radius: 24px;
+      padding: 28px 24px 24px;
+      background: linear-gradient(160deg, rgba(17, 25, 45, 0.96), rgba(9, 13, 24, 0.98));
+      border: 1px solid var(--border-gold);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.78), 0 0 42px rgba(245, 158, 11, 0.12);
+      text-align: center;
+    }
+
+    .portal-card::before {
+      content: '';
+      position: absolute;
+      inset: 0 24px auto;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.75), transparent);
+    }
+
+    .portal-logo {
+      width: 210px;
+      max-width: 72%;
+      height: auto;
+      margin: 0 auto 14px;
+      display: block;
+      filter: drop-shadow(0 8px 20px rgba(245, 158, 11, 0.25));
+    }
+
+    .portal-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: var(--gold-soft);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .portal-badge.offline {
+      background: rgba(244, 63, 94, 0.14);
+      border-color: rgba(244, 63, 94, 0.4);
+      color: #fecdd3;
+    }
+
+    .spinner-ring {
+      width: 44px;
+      height: 44px;
+      margin: 4px auto 16px;
+      border-radius: 50%;
+      border: 3px solid rgba(245, 158, 11, 0.18);
+      border-top-color: var(--gold);
+      animation: spin 0.9s linear infinite;
+    }
+
+    .spinner-ring.paused {
+      animation: none;
+      border-color: rgba(244, 63, 94, 0.35);
+      border-top-color: var(--rose);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .portal-title {
+      margin: 0 0 8px;
+      font-size: 19px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.3;
+    }
+
+    .portal-desc {
+      margin: 0 0 18px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #94a3b8;
+    }
+
+    .portal-step {
+      font-size: 12px;
+      font-weight: 600;
+      color: #cbd5e1;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(7, 10, 18, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 16px;
+    }
+
+    .portal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+      appearance: none;
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 16px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: transform 0.16s ease, filter 0.16s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      color: #070a12;
+      box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-secondary {
+      background: rgba(30, 41, 59, 0.85);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .btn-primary:active,
+    .btn-secondary:active {
+      transform: scale(0.97);
+    }
+
+    /* Thanh nút nổi kéo thả nhỏ gọn */
+    #floatingHub {
+      position: fixed;
+      z-index: 50;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #menuToggleBtn {
+      appearance: none;
+      border: 1px solid rgba(245, 158, 11, 0.52);
+      background: rgba(7, 10, 18, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: var(--gold-soft);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 7px 11px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: grab;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55), 0 0 14px rgba(245, 158, 11, 0.22);
+      transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      white-space: nowrap;
+    }
+
+    #menuToggleBtn:active {
+      cursor: grabbing;
+    }
+
+    #menuToggleBtn:hover {
+      background: rgba(15, 23, 42, 0.94);
+      border-color: rgba(251, 191, 36, 0.85);
+    }
+
+    #floatingMenuPanel {
+      position: fixed;
+      z-index: 55;
+      width: 224px;
+      max-width: calc(100vw - 20px);
+      border-radius: 16px;
+      padding: 8px;
+      background: rgba(10, 15, 28, 0.96);
+      border: 1px solid rgba(245, 158, 11, 0.42);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 28px rgba(245, 158, 11, 0.16);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      display: none;
+    }
+
+    #floatingMenuPanel.open {
+      display: block;
+    }
+
+    .menu-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px 8px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--gold);
+      letter-spacing: 0.04em;
+    }
+
+    .menu-item {
+      width: 100%;
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: #e2e8f0;
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 700;
+      text-align: left;
+      padding: 9px 10px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .menu-item:hover,
+    .menu-item:active {
+      background: rgba(245, 158, 11, 0.14);
+      color: #fef3c7;
+    }
+
+    .menu-toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(18px + var(--safe-bottom));
+      transform: translateX(-50%);
+      z-index: 60;
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      color: #fef3c7;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      max-width: calc(100vw - 24px);
+      text-align: center;
+    }
+
+    .menu-toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="appShell">
+    <iframe
+      id="mtcGameFrame"
+      title="Mộng Thiên Cửu H5"
+      allow="autoplay; fullscreen; clipboard-read; clipboard-write"
+      allowfullscreen
+      referrerpolicy="no-referrer-when-downgrade"
+    ></iframe>
+
+    <div id="statusOverlay" role="status" aria-live="polite">
+      <div class="portal-card">
+        <img class="portal-logo" src="/mtc-showcase/logo.png" alt="Mộng Thiên Cửu" />
+        <div id="statusBadge" class="portal-badge">Cổng Web Cố Định • S0 Beta</div>
+        <div id="statusSpinner" class="spinner-ring"></div>
+        <h1 id="statusTitle" class="portal-title">Đang kết nối máy chủ Tiên Giới...</h1>
+        <p id="statusDesc" class="portal-desc">
+          Hệ thống đang tự động dò tìm đường truyền trực tuyến nhanh nhất và đồng bộ tài khoản ShopTiếnGaming.
+        </p>
+        <div id="statusStep" class="portal-step">Đang kiểm tra trạng thái máy chủ...</div>
+        <div id="offlineActions" class="portal-actions" style="display: none;">
+          <button id="retryNowBtn" type="button" class="btn-primary">🔄 Thử kết nối lại</button>
+          <a id="apkDownloadBtn" href="https://cdn.shoptiengaming.com/download/MongThienCuu_s0_beta_online.apk" download="MongThienCuu_s0_beta_online.apk" class="btn-secondary">📱 Tải APK Android</a>
+          <a id="adminLoginBtn" href="/?view=mongthiencuu" class="btn-secondary" style="display: none;">🔑 Đăng nhập Admin</a>
+          <a id="homeBtn" href="/" class="btn-secondary">🏠 Về Shop</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="floatingHub">
+      <button id="menuToggleBtn" type="button" aria-expanded="false" aria-controls="floatingMenuPanel" title="Kéo để di chuyển • Bấm để mở menu">
+        <span>🐉 Menu</span>
+      </button>
+    </div>
+
+    <div id="floatingMenuPanel" role="menu" aria-label="Menu điều khiển nhanh">
+      <div class="menu-head">
+        <span>MỘNG THIÊN CỬU H5</span>
+        <span style="opacity: 0.75;">S0</span>
+      </div>
+      <button type="button" class="menu-item" data-action="fullscreen">⛶ Toàn màn hình</button>
+      <button type="button" class="menu-item" data-action="topup">💳 Nạp Ví Shop</button>
+      <a href="https://cdn.shoptiengaming.com/download/MongThienCuu_s0_beta_online.apk" download="MongThienCuu_s0_beta_online.apk" class="menu-item" data-action="apk">📱 Tải APK Android</a>
+      <button type="button" class="menu-item" data-action="reload">🔄 Đồng bộ / Tải lại</button>
+      <button type="button" class="menu-item" data-action="switch-account">🔑 Đổi tài khoản</button>
+      <button type="button" class="menu-item" data-action="home">🏠 Về ShopTiếnGaming</button>
+    </div>
+
+    <div id="menuToast" class="menu-toast"></div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var SUPABASE_URL = 'https://wbtsydwyuwfmzszlmgpm.supabase.co';
+      var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndidHN5ZHd5dXdmbXpzemxtZ3BtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxODA0ODUsImV4cCI6MjA5NTc1NjQ4NX0.G_BXuMeGQWpU2DzAYSdZwnldO4GF0-vLqUjdaocN-xM';
+      var FIXED_PRIMARY_URL = 'https://game.shoptiengaming.com';
+      var NTFY_REGISTRY_URL = 'https://ntfy.sh/mtc_s0_beta_registry_f8a9d2c4e1b7/raw?poll=1&since=all';
+      var LOCAL_VERSION_URL = '/download/version.json';
+      var CONFIG_SESSION_KEY = 'mtc_play_cfg_v2';
+      var PROBE_TIMEOUT_MS = 6000;
+      var RETRY_DELAYS_SEC = [12, 20, 35, 60, 60, 60];
+      var SUPA_CACHE_TTL_MS = 60000;
+      var ADMIN_CACHE_TTL_MS = 600000;
+
+      var frameEl = document.getElementById('mtcGameFrame');
+      var overlayEl = document.getElementById('statusOverlay');
+      var badgeEl = document.getElementById('statusBadge');
+      var spinnerEl = document.getElementById('statusSpinner');
+      var titleEl = document.getElementById('statusTitle');
+      var descEl = document.getElementById('statusDesc');
+      var stepEl = document.getElementById('statusStep');
+      var offlineActionsEl = document.getElementById('offlineActions');
+      var retryNowBtn = document.getElementById('retryNowBtn');
+      var apkDownloadBtn = document.getElementById('apkDownloadBtn');
+      var adminLoginBtn = document.getElementById('adminLoginBtn');
+
+      var hubEl = document.getElementById('floatingHub');
+      var toggleBtn = document.getElementById('menuToggleBtn');
+      var menuPanel = document.getElementById('floatingMenuPanel');
+      var toastEl = document.getElementById('menuToast');
+
+      var activeBaseUrl = '';
+      var retryTimerId = null;
+      var countdownTimerId = null;
+      var isConnecting = false;
+      var toastTimerId = null;
+      var lastSupaFetchMs = 0;
+      var supaConfigCache = null;
+      var autoRetryCount = 0;
+      var pendingVisibilityRetry = false;
+
+      function showToast(msg) {
+        if (!toastEl) return;
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        clearTimeout(toastTimerId);
+        toastTimerId = setTimeout(function () {
+          toastEl.classList.remove('show');
+        }, 2800);
+      }
+
+      function normalizeBaseUrl(rawUrl) {
+        if (!rawUrl || typeof rawUrl !== 'string') return '';
+        var trimmed = rawUrl.trim();
+        if (!trimmed) return '';
+        try {
+          var parsed = new URL(trimmed);
+          if (window.location.protocol === 'https:' && parsed.protocol !== 'https:') {
+            return '';
+          }
+          if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+            return '';
+          }
+          return parsed.origin;
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function addCandidate(list, rawUrl) {
+        var base = normalizeBaseUrl(rawUrl);
+        if (base && list.indexOf(base) === -1) {
+          list.push(base);
+        }
+      }
+
+      function fetchWithTimeout(url, options, timeoutMs) {
+        var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        var timer = null;
+        if (controller) {
+          timer = setTimeout(function () {
+            controller.abort();
+          }, timeoutMs);
+        }
+        var opts = Object.assign({ cache: 'no-store' }, options || {});
+        if (controller) {
+          opts.signal = controller.signal;
+        }
+        return fetch(url, opts).finally(function () {
+          if (timer) clearTimeout(timer);
+        });
+      }
+
+      async function fetchPortalConfig(forceRefresh) {
+        var nowMs = Date.now();
+        if (!forceRefresh && supaConfigCache && supaConfigCache.fetchedOk && (nowMs - lastSupaFetchMs) < SUPA_CACHE_TTL_MS) {
+          return supaConfigCache;
+        }
+        if (!forceRefresh) {
+          try {
+            var rawSess = window.sessionStorage.getItem(CONFIG_SESSION_KEY);
+            if (rawSess) {
+              var parsedSess = JSON.parse(rawSess);
+              if (parsedSess && parsedSess.fetchedOk && (nowMs - Number(parsedSess.ts || 0)) < SUPA_CACHE_TTL_MS) {
+                lastSupaFetchMs = Number(parsedSess.ts || nowMs);
+                supaConfigCache = {
+                  webPlayStatus: parsedSess.webPlayStatus === 'public' ? 'public' : 'hidden',
+                  candidates: Array.isArray(parsedSess.candidates) ? parsedSess.candidates : [FIXED_PRIMARY_URL],
+                  fetchedOk: true
+                };
+                return supaConfigCache;
+              }
+            }
+          } catch (eSess) {}
+        }
+
+        // Chỉ kiểm tra đúng mtc_game_config (giảm tải Supabase, không kéo mtc_server_registry khi tên miền cố định đang chạy)
+        setStep('Đang kết nối thẳng máy chủ cố định & xác minh quyền mở cổng...');
+        var webPlayStatus = 'hidden';
+        var fetchedOk = false;
+
+        try {
+          var supaEndpoint = SUPABASE_URL + '/rest/v1/site_config?id=eq.mtc_game_config&select=id,value';
+          var res1 = await fetchWithTimeout(supaEndpoint, {
+            cache: 'no-store',
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: 'Bearer ' + SUPABASE_ANON_KEY
+            }
+          }, 5500);
+          if (res1.ok) {
+            var rows = await res1.json();
+            if (Array.isArray(rows)) {
+              fetchedOk = true;
+              for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                if (row && row.id === 'mtc_game_config') {
+                  var val = row.value;
+                  if (val && typeof val === 'object' && val.webPlayStatus === 'public') {
+                    webPlayStatus = 'public';
+                  }
+                }
+              }
+            }
+          }
+        } catch (e1) {
+          fetchedOk = false;
+        }
+
+        var cfg = {
+          webPlayStatus: webPlayStatus,
+          candidates: [FIXED_PRIMARY_URL],
+          fetchedOk: fetchedOk
+        };
+        if (fetchedOk) {
+          lastSupaFetchMs = Date.now();
+          supaConfigCache = cfg;
+          try {
+            window.sessionStorage.setItem(CONFIG_SESSION_KEY, JSON.stringify({
+              webPlayStatus: webPlayStatus,
+              candidates: cfg.candidates,
+              fetchedOk: true,
+              ts: lastSupaFetchMs
+            }));
+          } catch (eSaveSess) {}
+        }
+        return cfg;
+      }
+
+      async function discoverFallbackCandidates(initialCandidates) {
+        var candidates = Array.isArray(initialCandidates) ? initialCandidates.slice() : [];
+
+        // Dự phòng Tầng 1: mtc_server_registry trên Supabase (chỉ gọi khi FIXED_PRIMARY_URL không phản hồi)
+        setStep('Đường truyền chính tạm nghỉ — Đang tìm máy chủ dự phòng...');
+        try {
+          var regEndpoint = SUPABASE_URL + '/rest/v1/site_config?id=eq.mtc_server_registry&select=id,value';
+          var resReg = await fetchWithTimeout(regEndpoint, {
+            cache: 'no-store',
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: 'Bearer ' + SUPABASE_ANON_KEY
+            }
+          }, 5000);
+          if (resReg.ok) {
+            var regRows = await resReg.json();
+            if (Array.isArray(regRows) && regRows[0] && regRows[0].value) {
+              var regVal = regRows[0].value;
+              addCandidate(candidates, regVal.base_url);
+              addCandidate(candidates, regVal.server_url);
+              addCandidate(candidates, regVal.online_url);
+            }
+          }
+        } catch (eReg) {}
+
+        // Dự phòng Tầng 2: ntfy.sh
+        try {
+          var res2 = await fetchWithTimeout(NTFY_REGISTRY_URL, { cache: 'no-store' }, 5000);
+          if (res2.ok) {
+            var rawText = await res2.text();
+            var lines = rawText.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+            for (var i = lines.length - 1; i >= 0; i--) {
+              try {
+                var item = JSON.parse(lines[i]);
+                if (item && typeof item === 'object') {
+                  addCandidate(candidates, item.base_url);
+                  addCandidate(candidates, item.online_url);
+                  addCandidate(candidates, item.server_url);
+                }
+              } catch (ignoreLine) {}
+            }
+          }
+        } catch (e2) {}
+
+        // Dự phòng Tầng 3: /download/version.json
+        try {
+          var res3 = await fetchWithTimeout(LOCAL_VERSION_URL + '?t=' + Date.now(), { cache: 'no-store' }, 4000);
+          if (res3.ok) {
+            var vData = await res3.json();
+            if (vData && typeof vData === 'object') {
+              addCandidate(candidates, vData.base_url);
+              addCandidate(candidates, vData.online_url);
+            }
+          }
+        } catch (e3) {}
+
+        return candidates;
+      }
+
+      async function probeBaseUrl(baseUrl) {
+        try {
+          var probeUrl = baseUrl + '/download/version.php?t=' + Date.now();
+          var resp = await fetchWithTimeout(probeUrl, { cache: 'no-store' }, PROBE_TIMEOUT_MS);
+          if (resp.status !== 200) return false;
+          var json = await resp.json();
+          return Boolean(json && typeof json === 'object' && (json.app_id || json.base_url || json.version_code));
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function extractAccessTokenFromParsed(obj, nowSec) {
+        if (!obj || typeof obj !== 'object') return '';
+        var sessionObj = obj.access_token ? obj : (obj.currentSession && obj.currentSession.access_token ? obj.currentSession : null);
+        if (!sessionObj || typeof sessionObj.access_token !== 'string' || !sessionObj.access_token.trim()) {
+          return '';
+        }
+        var expRaw = Number(sessionObj.expires_at);
+        if (Number.isFinite(expRaw) && expRaw > 0) {
+          var expSec = expRaw > 1e12 ? Math.floor(expRaw / 1000) : expRaw;
+          if (expSec <= nowSec + 15) return '';
+        }
+        return sessionObj.access_token.trim();
+      }
+
+      function readRawShopAuthToken() {
+        var nowSec = Math.floor(Date.now() / 1000);
+        try {
+          var keys = [];
+          for (var i = 0; i < window.localStorage.length; i++) {
+            var k = window.localStorage.key(i);
+            if (k) keys.push(k);
+          }
+
+          // Ưu tiên key chuẩn của Supabase: sb-*-auth-token
+          keys.sort(function (a, b) {
+            var aPref = a.indexOf('sb-') === 0 && a.slice(-11) === '-auth-token' ? 0 : 1;
+            var bPref = b.indexOf('sb-') === 0 && b.slice(-11) === '-auth-token' ? 0 : 1;
+            return aPref - bPref;
+          });
+
+          for (var j = 0; j < keys.length; j++) {
+            var rawVal = window.localStorage.getItem(keys[j]);
+            if (!rawVal || rawVal.indexOf('access_token') === -1) continue;
+            try {
+              var parsed = JSON.parse(rawVal);
+              var token = extractAccessTokenFromParsed(parsed, nowSec);
+              if (token) return token;
+            } catch (ignoreParse) {}
+          }
+        } catch (eStorage) {}
+        return '';
+      }
+
+      function readShopSsoToken() {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          if (params.get('nosso') === '1') return '';
+        } catch (e) {}
+        return readRawShopAuthToken();
+      }
+
+      function parseJwtSub(token) {
+        try {
+          var parts = String(token || '').split('.');
+          if (parts.length < 2) return '';
+          var b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+          while (b64.length % 4) b64 += '=';
+          var binStr = atob(b64);
+          var bytes = new Uint8Array(binStr.length);
+          for (var i = 0; i < binStr.length; i++) {
+            bytes[i] = binStr.charCodeAt(i);
+          }
+          var jsonStr = typeof TextDecoder !== 'undefined'
+            ? new TextDecoder('utf-8').decode(bytes)
+            : decodeURIComponent(escape(binStr));
+          var payload = JSON.parse(jsonStr);
+          return payload && typeof payload.sub === 'string' ? payload.sub.trim() : '';
+        } catch (e) {
+          return '';
+        }
+      }
+
+      async function verifyShopAdminSession(rawToken) {
+        if (!rawToken) return false;
+        var sub = parseJwtSub(rawToken);
+        if (!sub) return false;
+
+        var cacheKey = 'mtc_play_admin_ok_' + sub;
+        try {
+          var cachedTs = Number(window.sessionStorage.getItem(cacheKey) || '0');
+          if (Number.isFinite(cachedTs) && cachedTs > 0 && (Date.now() - cachedTs) < ADMIN_CACHE_TTL_MS) {
+            return true;
+          }
+        } catch (eCache) {}
+
+        try {
+          var userEndpoint = SUPABASE_URL + '/rest/v1/users?id=eq.' + encodeURIComponent(sub) + '&select=role,is_locked';
+          var res = await fetchWithTimeout(userEndpoint, {
+            cache: 'no-store',
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: 'Bearer ' + rawToken
+            }
+          }, 5000);
+          if (res.ok) {
+            var rows = await res.json();
+            var row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+            if (row && String(row.role || '').toLowerCase() === 'admin' && !row.is_locked) {
+              try {
+                window.sessionStorage.setItem(cacheKey, String(Date.now()));
+              } catch (eSet) {}
+              return true;
+            }
+          }
+        } catch (eVerify) {}
+
+        try {
+          window.sessionStorage.removeItem(cacheKey);
+        } catch (eDel) {}
+        return false;
+      }
+
+      function setStep(text) {
+        if (stepEl) stepEl.textContent = text;
+      }
+
+      function showConnectingState() {
+        clearTimers();
+        if (hubEl) hubEl.style.display = '';
+        overlayEl.classList.remove('hidden');
+        badgeEl.classList.remove('offline');
+        badgeEl.textContent = 'Cổng Web Cố Định • S0 Beta';
+        spinnerEl.classList.remove('paused');
+        titleEl.textContent = 'Đang kết nối máy chủ Tiên Giới...';
+        descEl.textContent = 'Hệ thống đang tự động dò tìm đường truyền trực tuyến nhanh nhất và đồng bộ tài khoản ShopTiếnGaming.';
+        offlineActionsEl.style.display = 'none';
+      }
+
+      function showInternalLockedState() {
+        clearTimers();
+        pendingVisibilityRetry = false;
+        if (frameEl) {
+          frameEl.onload = null;
+          frameEl.removeAttribute('src');
+        }
+        if (hubEl) hubEl.style.display = 'none';
+        if (isMenuOpen) setMenuOpen(false);
+        overlayEl.classList.remove('hidden');
+        badgeEl.classList.add('offline');
+        badgeEl.textContent = '🔒 Cổng Nội Bộ • Quản Trị Viên';
+        spinnerEl.classList.add('paused');
+        titleEl.textContent = 'Cổng Chơi Trên Web Đang Tạm Ẩn';
+        descEl.textContent = 'Chế độ chơi trực tiếp trên trình duyệt hiện chỉ dành cho nội bộ Quản trị viên sử dụng. Đạo hữu vui lòng tải bản APK Android chính thức để vào game mượt nhất!';
+        setStep('Quản trị viên vui lòng đăng nhập tài khoản Admin tại ShopTiếnGaming.com rồi quay lại trang này.');
+        offlineActionsEl.style.display = 'flex';
+        if (retryNowBtn) retryNowBtn.style.display = 'none';
+        if (apkDownloadBtn) apkDownloadBtn.className = 'btn-primary';
+        if (adminLoginBtn) adminLoginBtn.style.display = '';
+      }
+
+      function showConfigErrorState() {
+        clearTimers();
+        pendingVisibilityRetry = false;
+        if (frameEl) {
+          frameEl.onload = null;
+          frameEl.removeAttribute('src');
+        }
+        overlayEl.classList.remove('hidden');
+        badgeEl.classList.add('offline');
+        badgeEl.textContent = 'Lỗi Kết Nối Cấu Hình';
+        spinnerEl.classList.add('paused');
+        titleEl.textContent = 'Không thể xác minh trạng thái cổng game';
+        descEl.textContent = 'Kết nối tới máy chủ cấu hình tạm thời bị gián đoạn. Vui lòng thử kết nối lại hoặc tải bản APK Android chính thức.';
+        setStep('Bấm "Thử kết nối lại" để kiểm tra lại kết nối.');
+        offlineActionsEl.style.display = 'flex';
+        if (retryNowBtn) retryNowBtn.style.display = '';
+        if (apkDownloadBtn) apkDownloadBtn.className = 'btn-secondary';
+        if (adminLoginBtn) adminLoginBtn.style.display = 'none';
+      }
+
+      function showOfflineState() {
+        clearTimers();
+        overlayEl.classList.remove('hidden');
+        badgeEl.classList.add('offline');
+        badgeEl.textContent = 'Máy Chủ Đang Tạm Nghỉ / Bảo Trì';
+        spinnerEl.classList.add('paused');
+        titleEl.textContent = 'Máy chủ game tạm thời chưa trực tuyến';
+        descEl.textContent = 'Máy chủ PC có thể đang tắt hoặc bảo trì định kỳ. Trang sẽ tự động thử kết nối lại cho bạn.';
+        offlineActionsEl.style.display = 'flex';
+        if (retryNowBtn) retryNowBtn.style.display = '';
+        if (apkDownloadBtn) apkDownloadBtn.className = 'btn-secondary';
+        if (adminLoginBtn) adminLoginBtn.style.display = 'none';
+
+        if (autoRetryCount >= RETRY_DELAYS_SEC.length) {
+          pendingVisibilityRetry = false;
+          setStep('Máy chủ đang tạm nghỉ — Bấm "Thử kết nối lại" khi máy chủ mở');
+          return;
+        }
+
+        var secLeft = RETRY_DELAYS_SEC[autoRetryCount];
+        var attemptNo = autoRetryCount + 1;
+        setStep('Tự động kết nối lại sau ' + secLeft + ' giây... (lần ' + attemptNo + '/' + RETRY_DELAYS_SEC.length + ')');
+        countdownTimerId = setInterval(function () {
+          secLeft -= 1;
+          if (secLeft > 0) {
+            setStep('Tự động kết nối lại sau ' + secLeft + ' giây... (lần ' + attemptNo + '/' + RETRY_DELAYS_SEC.length + ')');
+          } else {
+            clearInterval(countdownTimerId);
+          }
+        }, 1000);
+
+        retryTimerId = setTimeout(function () {
+          if (document.hidden === true) {
+            pendingVisibilityRetry = true;
+            setStep('Đã tạm dừng thử lại vì tab đang ẩn — sẽ tự kết nối lại khi bạn mở lại tab.');
+            return;
+          }
+          autoRetryCount += 1;
+          connectToLiveServer(false);
+        }, secLeft * 1000);
+      }
+
+      function clearTimers() {
+        if (retryTimerId) {
+          clearTimeout(retryTimerId);
+          retryTimerId = null;
+        }
+        if (countdownTimerId) {
+          clearInterval(countdownTimerId);
+          countdownTimerId = null;
+        }
+      }
+
+      function hideOverlaySoon() {
+        setTimeout(function () {
+          overlayEl.classList.add('hidden');
+        }, 250);
+      }
+
+      async function connectToLiveServer(forceRefresh) {
+        if (isConnecting) return;
+        if (forceRefresh) {
+          autoRetryCount = 0;
+          pendingVisibilityRetry = false;
+        }
+        isConnecting = true;
+        showConnectingState();
+
+        try {
+          var rawToken = readRawShopAuthToken();
+          // Khởi động nhanh: kiểm tra trạng thái cổng song song với thăm dò tên miền cố định
+          var parallelRes = await Promise.all([
+            fetchPortalConfig(Boolean(forceRefresh)),
+            probeBaseUrl(FIXED_PRIMARY_URL)
+          ]);
+          var portalCfg = parallelRes[0];
+          var primaryOk = parallelRes[1];
+
+          if (!portalCfg.fetchedOk) {
+            var isAdminOnError = await verifyShopAdminSession(rawToken);
+            if (!isAdminOnError) {
+              isConnecting = false;
+              showConfigErrorState();
+              return;
+            }
+          } else if (portalCfg.webPlayStatus !== 'public') {
+            var isAdmin = await verifyShopAdminSession(rawToken);
+            if (!isAdmin) {
+              isConnecting = false;
+              showInternalLockedState();
+              return;
+            }
+          }
+
+          if (hubEl) hubEl.style.display = '';
+          if (retryNowBtn) retryNowBtn.style.display = '';
+          if (adminLoginBtn) adminLoginBtn.style.display = 'none';
+
+          var liveBase = primaryOk ? FIXED_PRIMARY_URL : '';
+
+          if (!liveBase) {
+            var fallbackCandidates = await discoverFallbackCandidates([]);
+            for (var i = 0; i < fallbackCandidates.length; i++) {
+              if (fallbackCandidates[i] === FIXED_PRIMARY_URL) continue;
+              setStep('Đang kiểm tra đường truyền dự phòng (' + (i + 1) + '/' + fallbackCandidates.length + ')...');
+              var ok = await probeBaseUrl(fallbackCandidates[i]);
+              if (ok) {
+                liveBase = fallbackCandidates[i];
+                break;
+              }
+            }
+          }
+
+          if (!liveBase) {
+            isConnecting = false;
+            showOfflineState();
+            return;
+          }
+
+          autoRetryCount = 0;
+          pendingVisibilityRetry = false;
+          activeBaseUrl = liveBase;
+          var ssoToken = readShopSsoToken();
+          var targetUrl = liveBase + '/?server=s0-beta&embed=1';
+          if (ssoToken) {
+            targetUrl += '&sso_token=' + encodeURIComponent(ssoToken);
+          }
+
+          setStep(ssoToken ? 'Đã đồng bộ tài khoản ShopTiếnGaming, đang vào game...' : 'Đã tìm thấy máy chủ, đang mở cổng game...');
+
+          var settled = false;
+          var fallbackReveal = setTimeout(function () {
+            if (!settled) {
+              settled = true;
+              hideOverlaySoon();
+            }
+          }, 4500);
+
+          frameEl.onload = function () {
+            if (!settled) {
+              settled = true;
+              clearTimeout(fallbackReveal);
+              hideOverlaySoon();
+            }
+          };
+
+          frameEl.src = targetUrl;
+        } catch (err) {
+          showOfflineState();
+        } finally {
+          isConnecting = false;
+        }
+      }
+
+      // --- THANH MENU NỔI KÉO THẢ (CHUỘT + CẢM ỨNG CHẠM) ---
+      var MARGIN = 10;
+      var pillPos = { left: null, top: null };
+      var isMenuOpen = false;
+
+      function clamp(val, min, max) {
+        return Math.max(min, Math.min(max, val));
+      }
+
+      function getViewportBounds() {
+        var w = window.innerWidth || document.documentElement.clientWidth || 360;
+        var h = window.innerHeight || document.documentElement.clientHeight || 640;
+        return { w: w, h: h };
+      }
+
+      function applyPillPosition(left, top) {
+        var bounds = getViewportBounds();
+        var rect = hubEl.getBoundingClientRect();
+        var pw = rect.width || 92;
+        var ph = rect.height || 34;
+
+        var clampedLeft = clamp(left, MARGIN, Math.max(MARGIN, bounds.w - pw - MARGIN));
+        var clampedTop = clamp(top, MARGIN, Math.max(MARGIN, bounds.h - ph - MARGIN));
+        pillPos.left = clampedLeft;
+        pillPos.top = clampedTop;
+
+        hubEl.style.left = clampedLeft + 'px';
+        hubEl.style.top = clampedTop + 'px';
+        hubEl.style.right = 'auto';
+        hubEl.style.bottom = 'auto';
+
+        if (isMenuOpen) {
+          positionMenuPanel();
+        }
+      }
+
+      function initPillPosition() {
+        var bounds = getViewportBounds();
+        var rect = hubEl.getBoundingClientRect();
+        var pw = rect.width || 92;
+        applyPillPosition(bounds.w - pw - 12, 54);
+      }
+
+      function positionMenuPanel() {
+        var bounds = getViewportBounds();
+        var pillRect = hubEl.getBoundingClientRect();
+        var panelW = Math.min(224, bounds.w - 20);
+        var panelH = menuPanel.offsetHeight || 270;
+
+        var left = pillRect.left + pillRect.width - panelW;
+        left = clamp(left, MARGIN, Math.max(MARGIN, bounds.w - panelW - MARGIN));
+
+        var top = pillRect.bottom + 8;
+        if (top + panelH > bounds.h - MARGIN) {
+          top = pillRect.top - panelH - 8;
+        }
+        top = clamp(top, MARGIN, Math.max(MARGIN, bounds.h - panelH - MARGIN));
+
+        menuPanel.style.left = left + 'px';
+        menuPanel.style.top = top + 'px';
+      }
+
+      function setMenuOpen(open) {
+        isMenuOpen = Boolean(open);
+        menuPanel.classList.toggle('open', isMenuOpen);
+        toggleBtn.setAttribute('aria-expanded', isMenuOpen ? 'true' : 'false');
+        if (isMenuOpen) {
+          positionMenuPanel();
+        }
+      }
+
+      (function setupDrag() {
+        var dragging = false;
+        var moved = false;
+        var startX = 0;
+        var startY = 0;
+        var originLeft = 0;
+        var originTop = 0;
+
+        function onStart(clientX, clientY) {
+          var rect = hubEl.getBoundingClientRect();
+          dragging = true;
+          moved = false;
+          startX = clientX;
+          startY = clientY;
+          originLeft = rect.left;
+          originTop = rect.top;
+        }
+
+        function onMove(clientX, clientY) {
+          if (!dragging) return;
+          var dx = clientX - startX;
+          var dy = clientY - startY;
+          if (!moved && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+            moved = true;
+            if (isMenuOpen) setMenuOpen(false);
+          }
+          if (moved) {
+            applyPillPosition(originLeft + dx, originTop + dy);
+          }
+        }
+
+        function onEnd() {
+          if (!dragging) return;
+          dragging = false;
+          if (!moved) {
+            setMenuOpen(!isMenuOpen);
+          }
+        }
+
+        if (window.PointerEvent) {
+          toggleBtn.addEventListener('pointerdown', function (e) {
+            if (e.button !== undefined && e.button !== 0) return;
+            toggleBtn.setPointerCapture(e.pointerId);
+            onStart(e.clientX, e.clientY);
+          });
+          toggleBtn.addEventListener('pointermove', function (e) {
+            onMove(e.clientX, e.clientY);
+          });
+          toggleBtn.addEventListener('pointerup', function () {
+            onEnd();
+          });
+          toggleBtn.addEventListener('pointercancel', function () {
+            dragging = false;
+          });
+        } else {
+          toggleBtn.addEventListener('mousedown', function (e) {
+            onStart(e.clientX, e.clientY);
+          });
+          window.addEventListener('mousemove', function (e) {
+            onMove(e.clientX, e.clientY);
+          });
+          window.addEventListener('mouseup', function () {
+            onEnd();
+          });
+          toggleBtn.addEventListener('touchstart', function (e) {
+            if (!e.touches[0]) return;
+            onStart(e.touches[0].clientX, e.touches[0].clientY);
+          }, { passive: true });
+          window.addEventListener('touchmove', function (e) {
+            if (!dragging || !e.touches[0]) return;
+            onMove(e.touches[0].clientX, e.touches[0].clientY);
+          }, { passive: true });
+          window.addEventListener('touchend', function () {
+            onEnd();
+          });
+        }
+      })();
+
+      document.addEventListener('click', function (e) {
+        if (!isMenuOpen) return;
+        if (!hubEl.contains(e.target) && !menuPanel.contains(e.target)) {
+          setMenuOpen(false);
+        }
+      });
+
+      window.addEventListener('resize', function () {
+        if (pillPos.left !== null && pillPos.top !== null) {
+          applyPillPosition(pillPos.left, pillPos.top);
+        } else {
+          initPillPosition();
+        }
+      });
+
+      menuPanel.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        var action = btn.getAttribute('data-action');
+        setMenuOpen(false);
+
+        if (action === 'fullscreen') {
+          var doc = document;
+          var root = document.documentElement;
+          var fsEl = doc.fullscreenElement || doc.webkitFullscreenElement;
+          if (!fsEl) {
+            var req = root.requestFullscreen || root.webkitRequestFullscreen;
+            if (req) {
+              Promise.resolve(req.call(root)).catch(function () {
+                showToast('Trình duyệt này chưa hỗ trợ toàn màn hình — hãy "Thêm vào Màn hình chính"!');
+              });
+            } else {
+              showToast('Trên iPhone Safari: bấm Chia sẻ -> Thêm vào Màn hình chính để chơi toàn màn hình!');
+            }
+          } else {
+            var exit = doc.exitFullscreen || doc.webkitExitFullscreen;
+            if (exit) exit.call(doc);
+          }
+        } else if (action === 'topup') {
+          window.open('/?view=naptien', '_blank', 'noopener');
+        } else if (action === 'reload') {
+          connectToLiveServer(true);
+        } else if (action === 'switch-account') {
+          try {
+            window.history.replaceState(null, '', '/play/?nosso=1');
+          } catch (ignoreHist) {}
+          if (activeBaseUrl) {
+            frameEl.src = activeBaseUrl + '/action?logout=1&embed=1';
+            showToast('Đang đăng xuất để chuyển tài khoản...');
+          } else {
+            window.location.href = '/play/?nosso=1';
+          }
+        } else if (action === 'home') {
+          window.location.href = '/';
+        }
+      });
+
+      retryNowBtn.addEventListener('click', function () {
+        connectToLiveServer(true);
+      });
+
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden && pendingVisibilityRetry && !isConnecting) {
+          pendingVisibilityRetry = false;
+          autoRetryCount += 1;
+          connectToLiveServer(false);
+        }
+      });
+
+      window.addEventListener('message', function (event) {
+        if (!activeBaseUrl || event.origin !== activeBaseUrl) return;
+        var msg = event.data;
+        if (msg && msg.type === 'mtc_open_topup') {
+          window.open('/?view=naptien', '_blank', 'noopener');
+        }
+      });
+
+      initPillPosition();
+      connectToLiveServer(true);
+    })();
+  </script>
+</body>
+</html>

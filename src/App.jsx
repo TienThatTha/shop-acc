@@ -7,8 +7,8 @@ import {
   History, Target, Gift, Save, Upload, Plus, Unlock, QrCode,
   Download, Copy, Check, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ZoomIn, ChevronLeft, ChevronRight,
   Sparkles, TrendingUp, Users, Ticket, Settings2, MessageCircle, Send, Eye, EyeOff,
-  ArrowLeftRight, RotateCcw, MoreVertical, AlertTriangle, ArrowLeft, Loader2, Swords, Crown, Zap, Shield, Gem, Package, Link, BarChart2,
-  ShoppingCart, Bell, BellOff
+  ArrowLeftRight, RotateCcw, MoreVertical, AlertTriangle, ArrowLeft, Loader2, Swords, Crown, Zap, Shield, Package, Link, BarChart2,
+  ShoppingCart, Bell, BellOff, Globe
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { LEGENDARY_SHOES_IMG, getShoesImage } from './shoesAsset';
@@ -16,6 +16,9 @@ import { LEGENDARY_HAT_IMG, getHatImage } from './hatAsset';
 import masterItemsConfig from './master_items.json';
 import WizardCardFlip from './components/WizardCardFlip';
 import WizardAdminPanel from './components/WizardAdminPanel';
+import MongThienCuuShowcase from './components/MongThienCuuShowcase';
+import TurnstileWidget, { isTurnstileConfigured } from './components/TurnstileWidget';
+import { APK_CDN_URL, toShopCdnUrl } from './utils/cdnAsset';
 
 // Helper lưu cấu hình bật/tắt thông báo cho từng món vòng quay (chống lỗi schema & sync realtime)
 const getWheelNotifyFallback = (itemId) => {
@@ -230,130 +233,31 @@ const EVENT_1111_START_MS = 1794330000000;
 const EVENT_1111_END_MS = 1794589200000;
 const EVENT_1111_MULT = 2;
 
-// =============================================================================
-// CÁC GÓI NẠP MỘNG THIÊN CỬU H5 (CỘNG XU VÍ NỀN TẢNG: 1k = 1.000đ = 4 LINH NGỌC)
-// =============================================================================
-const MTC_GAME_PACKAGES = [
-  {
-    id: 'mtc_rmb_20k',
-    name: 'Gói Ví Game 20k',
-    subtitle: 'Đổi 80 Linh Ngọc / Gói 20k trong game',
-    price: 20000,
-    rmbAdd: 20,
-    jadeEquivalent: 80,
-    bonusBGold: 20,
-    bonusCoin: 500000,
-    badge: 'Khởi Đầu',
-    badgeColor: 'from-sky-500 to-blue-600',
-    highlights: [
-      '+20k Số Dư Ví Game (rmb)',
-      'Đổi được 80 Linh Ngọc hoặc Gói Săn Sale 5k/10k/20k',
-      'Thư tặng: 20 Ngọc Khóa + 500.000 Đồng'
-    ]
-  },
-  {
-    id: 'mtc_rmb_50k',
-    name: 'Gói Ví Game 50k',
-    subtitle: 'Đổi 200 Linh Ngọc / Thẻ Tuần 40k',
-    price: 50000,
-    rmbAdd: 50,
-    jadeEquivalent: 200,
-    bonusBGold: 50,
-    bonusCoin: 1500000,
-    badge: 'Phổ Biến',
-    badgeColor: 'from-emerald-500 to-teal-600',
-    highlights: [
-      '+50k Số Dư Ví Game (rmb)',
-      'Đủ mua Thẻ Tuần (40k) + dư 10k, hoặc 200 Linh Ngọc',
-      'Thư tặng: 50 Ngọc Khóa + 1.500.000 Đồng'
-    ]
-  },
-  {
-    id: 'mtc_rmb_100k',
-    name: 'Gói Ví Game 100k',
-    subtitle: 'Đổi 400 Linh Ngọc / Thẻ Tháng 100k',
-    price: 100000,
-    rmbAdd: 100,
-    jadeEquivalent: 400,
-    bonusBGold: 120,
-    bonusCoin: 3000000,
-    badge: '🔥 Bán Chạy',
-    badgeColor: 'from-amber-500 to-orange-600',
-    highlights: [
-      '+100k Số Dư Ví Game (rmb)',
-      'Đổi được 400 Linh Ngọc hoặc Thẻ Tháng (100k)',
-      'Thư tặng: 120 Ngọc Khóa + 3.000.000 Đồng'
-    ]
-  },
-  {
-    id: 'mtc_rmb_200k',
-    name: 'Gói Ví Game 200k',
-    subtitle: 'Đổi 800 Linh Ngọc (Full Mốc Đầu)',
-    price: 200000,
-    rmbAdd: 200,
-    jadeEquivalent: 800,
-    bonusBGold: 300,
-    bonusCoin: 6000000,
-    badge: '💎 Giá Trị Cao',
-    badgeColor: 'from-purple-500 to-indigo-600',
-    highlights: [
-      '+200k Số Dư Ví Game (rmb)',
-      'Đổi 800 Linh Ngọc hoặc combo Thẻ Tháng + Săn Sale',
-      'Thư tặng: 300 Ngọc Khóa + 6.000.000 Đồng'
-    ]
-  },
-  {
-    id: 'mtc_rmb_500k',
-    name: 'Gói Ví Game 500k',
-    subtitle: 'Tặng +10% => Nhận 550k Số Dư Ví',
-    price: 500000,
-    rmbAdd: 550,
-    jadeEquivalent: 2200,
-    bonusBGold: 800,
-    bonusCoin: 15000000,
-    badge: '🎁 KM +10% Ví',
-    badgeColor: 'from-rose-500 to-pink-600',
-    highlights: [
-      '+550k Số Dư Ví Game (Thêm +50k Free)',
-      'Đổi tối đa 2.200 Linh Ngọc + full Quà Tích Lũy',
-      'Thư tặng: 800 Ngọc Khóa + 15.000.000 Đồng'
-    ]
-  },
-  {
-    id: 'mtc_rmb_1000k',
-    name: 'Gói Ví Game 1 Triệu',
-    subtitle: 'Tặng +15% => Nhận 1.150k Số Dư Ví',
-    price: 1000000,
-    rmbAdd: 1150,
-    jadeEquivalent: 4600,
-    bonusBGold: 2000,
-    bonusCoin: 35000000,
-    badge: '👑 KM +15% VIP',
-    badgeColor: 'from-yellow-400 via-amber-500 to-orange-600',
-    highlights: [
-      '+1tr15 Số Dư Ví Game (Thêm +150k Free)',
-      'Đổi tối đa 4.600 Linh Ngọc hoặc Gói VIP 1tr',
-      'Thư tặng: 2.000 Ngọc Khóa + 35.000.000 Đồng'
-    ]
-  },
-  {
-    id: 'mtc_rmb_2000k',
-    name: 'Gói Ví Game 2 Triệu',
-    subtitle: 'Tặng +20% => Nhận 2.400k Số Dư Ví',
-    price: 2000000,
-    rmbAdd: 2400,
-    jadeEquivalent: 9600,
-    bonusBGold: 5000,
-    bonusCoin: 80000000,
-    badge: '🐉 Chí Tôn +20%',
-    badgeColor: 'from-amber-400 via-rose-500 to-purple-600',
-    highlights: [
-      '+2tr4 Số Dư Ví Game (Thêm +400k Free)',
-      'Đổi tối đa 9.600 Linh Ngọc + Thần Trang Tích Nạp',
-      'Thư tặng: 5.000 Ngọc Khóa + 80.000.000 Đồng'
-    ]
-  }
+const MTC_DEFAULT_SHOWCASE_NOTICE =
+  'Siêu phẩm Tiên Hiệp Huyền Huyễn Hòa Phong — Tứ Đại Hệ Phái tranh bá, săn Đại Yêu Man Hoang, đồng hành cùng Cửu Vĩ Huyền Hồ.';
+
+const LEGACY_MTC_NOTICE_TERMS = [
+  'ch play',
+  'app store',
+  'appstore',
+  'nạp ví game',
+  'nạp tự động',
+  'ip tunnel',
+  'cổng tải cố định',
+  'link tải apk cố định',
+  'web h5'
 ];
+
+const sanitizeMtcShowcaseNotice = (rawNotice) => {
+  if (typeof rawNotice !== 'string') return MTC_DEFAULT_SHOWCASE_NOTICE;
+  const trimmed = rawNotice.trim();
+  if (!trimmed) return MTC_DEFAULT_SHOWCASE_NOTICE;
+  const lower = trimmed.toLowerCase();
+  if (LEGACY_MTC_NOTICE_TERMS.some((term) => lower.includes(term))) {
+    return MTC_DEFAULT_SHOWCASE_NOTICE;
+  }
+  return trimmed;
+};
 
 const calculateBoostPrice = (currentPoints, targetPoints, rankTiers = []) => {
   if (!rankTiers || rankTiers.length === 0) return 0;
@@ -468,17 +372,48 @@ const isValidGmail = (val) => /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(String(val 
 
 let isProcessingAction = false;
 
-// --- TÍCH HỢP IMGBB TỰ ĐỘNG ---
+// --- TÍCH HỢP R2 CDN (ƯU TIÊN CLOUDFLARE PAGES FUNCTION) + DỰ PHÒNG IMGBB ---
 const IMGBB_API_KEY = '129f0f9c5449d2dc93e7cc00b153eeab';
+let r2UploadEndpointMissing = false;
 
-const uploadToImgBB = async (base64String) => {
+const uploadToImgBB = async (base64String, category = 'general') => {
   if (!base64String || !base64String.startsWith('data:image')) return base64String;
   try {
+    // 1. Ưu tiên tải lên Cloudflare R2 qua Pages Function /api/upload-r2 (0đ egress, bền vững vĩnh viễn)
+    const isLocalHost =
+      typeof window !== 'undefined' &&
+      ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    if (typeof window !== 'undefined' && !isLocalHost && !r2UploadEndpointMissing) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          const r2Res = await fetch('/api/upload-r2', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ dataUrl: base64String, category }),
+          });
+          if (r2Res.ok) {
+            const r2Json = await r2Res.json();
+            if (r2Json?.ok && r2Json?.url) {
+              return r2Json.url;
+            }
+          } else if (r2Res.status === 404 || r2Res.status === 405) {
+            r2UploadEndpointMissing = true;
+          }
+        }
+      } catch (r2Err) {
+        console.warn('Chuyển dự phòng ImgBB do /api/upload-r2 chưa sẵn sàng:', r2Err);
+      }
+    }
+
+    // 2. Dự phòng ImgBB (vẫn tuyệt đối không lưu base64 data:image vào Supabase DB)
     const base64Data = base64String.split(',')[1];
     const formData = new FormData();
     formData.append('image', base64Data);
 
-    // Yêu cầu Fetch Upload ImgBB
     const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
       method: 'POST',
       body: formData
@@ -488,7 +423,7 @@ const uploadToImgBB = async (base64String) => {
       return data.data.url;
     } else {
       console.error("Lỗi ImgBB:", data);
-      throw new Error(data.error?.message || "Không thể upload ảnh lên máy chủ ImgBB");
+      throw new Error(data.error?.message || "Không thể upload ảnh lên máy chủ lưu trữ");
     }
   } catch (err) {
     console.error("Lỗi upload ảnh:", err);
@@ -563,6 +498,22 @@ const ImageCarousel = ({ images, title, setFullScreenImage, index, isFeatured })
   );
 };
 
+const parseMtcQueryRedirect = () => {
+  if (typeof window === 'undefined') return { shouldRedirectPlay: false, viewMtc: false };
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const playParam = (params.get('play') || '').trim().toLowerCase();
+    const gameParam = (params.get('game') || '').trim().toLowerCase();
+    const viewParam = (params.get('view') || '').trim().toLowerCase();
+    return {
+      shouldRedirectPlay: playParam === 'mtc' || gameParam === 'mtc',
+      viewMtc: viewParam === 'mongthiencuu'
+    };
+  } catch (e) {
+    return { shouldRedirectPlay: false, viewMtc: false };
+  }
+};
+
 const parseDepositDeepLink = () => {
   if (typeof window === 'undefined') return { isDepositDeepLink: false, method: null, hasQuery: false };
   try {
@@ -599,6 +550,10 @@ const App = () => {
   const initialDeepLinkRef = useRef(null);
   if (initialDeepLinkRef.current === null) {
     initialDeepLinkRef.current = parseDepositDeepLink();
+  }
+  const initialMtcQueryRef = useRef(null);
+  if (initialMtcQueryRef.current === null) {
+    initialMtcQueryRef.current = parseMtcQueryRedirect();
   }
 
   // --- BỘ ĐÀM GỬI EMAIL & TELEGRAM BÁO CHO ADMIN ---
@@ -736,11 +691,14 @@ const App = () => {
     const saved = localStorage.getItem('shop_accounts_db');
     return saved ? JSON.parse(saved) : [];
   });
-  // Tự động nhớ vị trí màn hình hiện tại (ưu tiên deep-link nạp tiền từ game)
+  // Tự động nhớ vị trí màn hình hiện tại (ưu tiên deep-link nạp tiền từ game hoặc ?view=mongthiencuu)
   const [currentView, setCurrentView] = useState(() => {
     const deepLink = initialDeepLinkRef.current;
     if (deepLink?.isDepositDeepLink) {
       return hasCachedAuthUser() ? 'naptien' : 'login';
+    }
+    if (initialMtcQueryRef.current?.viewMtc) {
+      return 'mongthiencuu';
     }
     return localStorage.getItem('shop_current_view') || 'dashboard';
   });
@@ -1036,28 +994,44 @@ const App = () => {
     };
   });
 
-  // --- CẤU HÌNH & STATE CỔNG GAME MỘNG THIÊN CỬU H5 (MẶC ĐỊNH ẨN, ADMIN BẬT/TẮT TRONG DASHBOARD) ---
+  // --- CẤU HÌNH & STATE TRANG SHOWCASE MỘNG THIÊN CỬU ---
   const [mtcGameConfig, setMtcGameConfig] = useState(() => {
+    const defaults = {
+      status: 'public', // 'hidden' (Chỉ Admin thấy) | 'public' (Hiển thị công khai)
+      webPlayStatus: 'hidden', // 'hidden' (Ẩn chơi trên web khỏi khách thường, chỉ Admin nội bộ dùng) | 'public' (Hiện công khai)
+      apkUrl: '/download/MongThienCuu_s0_beta_online.apk',
+      webPlayUrl: 'https://shoptiengaming.com/play/',
+      version: '2.6.0-s0-beta',
+      notice: MTC_DEFAULT_SHOWCASE_NOTICE
+    };
     try {
       const saved = localStorage.getItem('shop_mtc_game_config');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          const normalizedWebUrl =
+            !parsed.webPlayUrl || String(parsed.webPlayUrl).includes('.trycloudflare.com')
+              ? defaults.webPlayUrl
+              : parsed.webPlayUrl;
+          const normalizedWebPlayStatus = parsed.webPlayStatus === 'public' ? 'public' : 'hidden';
+          return {
+            ...defaults,
+            ...parsed,
+            webPlayUrl: normalizedWebUrl,
+            webPlayStatus: normalizedWebPlayStatus
+          };
+        }
+      }
     } catch (e) {}
-    return {
-      status: 'hidden', // 'hidden' (Chỉ Admin thấy) | 'public' (Hiển thị công khai)
-      apkUrl: '/download/MongThienCuu_s0_beta_online.apk',
-      webPlayUrl: 'https://careers-kijiji-comparative-piece.trycloudflare.com/?server=s0-beta',
-      version: '2.5.6-s0-beta',
-      notice: 'Tải APK 1 link cố định vĩnh viễn. Nạp Ví Game tự động 100%, không qua CH Play / App Store.'
-    };
+    return defaults;
   });
+  const [mtcConfigLoaded, setMtcConfigLoaded] = useState(false);
+  const [mtcAuthChecked, setMtcAuthChecked] = useState(false);
   const [mtcServerRegistry, setMtcServerRegistry] = useState(null);
-  const [mtcUsername, setMtcUsername] = useState(() => localStorage.getItem('shop_mtc_username') || '');
-  const [mtcServerId, setMtcServerId] = useState('1');
-  const [mtcAccountInfo, setMtcAccountInfo] = useState(null);
-  const [isCheckingMtcAccount, setIsCheckingMtcAccount] = useState(false);
-  const [selectedMtcPackage, setSelectedMtcPackage] = useState(null);
-  const [isBuyingMtcPackage, setIsBuyingMtcPackage] = useState(false);
-  const [mtcSuccessModal, setMtcSuccessModal] = useState(null);
+  const [registerTurnstileToken, setRegisterTurnstileToken] = useState('');
+  const [registerTurnstileReset, setRegisterTurnstileReset] = useState(0);
+  const lastRegisterAttemptRef = useRef(0);
+  const lastCommentAtRef = useRef(0);
 
   const [wizardCardItems, setWizardCardItems] = useState(() => {
     try {
@@ -1470,10 +1444,44 @@ const App = () => {
   // --- LOGIC ẨN / HIỆN CỔNG GAME MỘNG THIÊN CỬU H5 ---
   const isMtcGameOpen = useMemo(() => mtcGameConfig?.status === 'public', [mtcGameConfig?.status]);
   const isMtcGameVisible = useMemo(() => {
-    if (currentUser?.role === 'admin') return true;
+    if (currentUser?.role?.toLowerCase() === 'admin') return true;
     return isMtcGameOpen;
   }, [currentUser?.role, isMtcGameOpen]);
   const isMtcGameAccessible = isMtcGameVisible;
+  const isMtcWebPlayPublic = useMemo(() => mtcGameConfig?.webPlayStatus === 'public', [mtcGameConfig?.webPlayStatus]);
+  const canUseMtcWebPlay = useMemo(() => currentUser?.role?.toLowerCase() === 'admin' || isMtcWebPlayPublic, [currentUser?.role, isMtcWebPlayPublic]);
+
+  useEffect(() => {
+    if (!initialMtcQueryRef.current?.shouldRedirectPlay) return;
+    if (!mtcConfigLoaded) return;
+    if (!isMtcWebPlayPublic && !mtcAuthChecked) return;
+
+    if (canUseMtcWebPlay) {
+      if (typeof window !== 'undefined') {
+        window.location.replace('/play/');
+      }
+      return;
+    }
+
+    initialMtcQueryRef.current = { ...initialMtcQueryRef.current, shouldRedirectPlay: false };
+    setCurrentView('mongthiencuu');
+    if (typeof window !== 'undefined') {
+      try {
+        const url = new URL(window.location.href);
+        let changed = false;
+        ['play', 'game'].forEach((param) => {
+          if (url.searchParams.has(param)) {
+            url.searchParams.delete(param);
+            changed = true;
+          }
+        });
+        if (changed) {
+          const cleanUrl = `${url.pathname}${url.searchParams.toString() ? `?${url.searchParams.toString()}` : ''}${url.hash}`;
+          window.history.replaceState({}, document.title, cleanUrl);
+        }
+      } catch (e) {}
+    }
+  }, [mtcConfigLoaded, mtcAuthChecked, isMtcWebPlayPublic, canUseMtcWebPlay]);
 
   useEffect(() => {
     if (currentView === 'mongthiencuu' && !isMtcGameAccessible) {
@@ -1604,6 +1612,11 @@ const App = () => {
 
   const [adminTab, setAdminTab] = useState(() => localStorage.getItem('shop_admin_tab') || 'users');
   useEffect(() => { localStorage.setItem('shop_admin_tab', adminTab); }, [adminTab]);
+  useEffect(() => {
+    if (currentUser?.role?.toLowerCase() === 'admin' && currentView === 'admin' && adminTab === 'mtc' && !mtcServerRegistry) {
+      handleRefreshMtcTunnel(true);
+    }
+  }, [currentUser?.role, currentView, adminTab, mtcServerRegistry]);
   const [adminWheelType, setAdminWheelType] = useState('money');
   const [showAccModal, setShowAccModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
@@ -1700,15 +1713,14 @@ const App = () => {
 
       // 1. TẢI CÁC DỮ LIỆU CÔNG KHAI NGAY LẬP TỨC
 
-      // 1. CHẠY SONG SONG CÁC TIẾN TRÌNH ĐỂ GIẢM ĐỘ TRỄ (LATENCY)
+      // 1. CHẠY SONG SONG CÁC TIẾN TRÌNH ĐỂ GIẢM ĐỘ TRỄ & TIẾT KIỆM EGRESS SUPABASE
       const publicDataPromise = Promise.all([
         supabase.from('accounts').select('*'),
         supabase.from('boosting').select('*').order('id', { ascending: false }),
         supabase.from('wheel_items').select('*').order('id', { ascending: true }),
         supabase.from('vouchers').select('*'),
-        supabase.from('boosting_requests').select('*').order('id', { ascending: false }).limit(200), // Hút đơn Cày Thuê
         supabase.from('comments').select('*, users(name, avatar_url, role)').order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(200)
-      ]).then(([accRes, boostRes, wheelRes, voucherRes, boostReqRes, commentsRes]) => {
+      ]).then(([accRes, boostRes, wheelRes, voucherRes, commentsRes]) => {
         if (accRes.data) {
           const fixedAccounts = accRes.data.map(acc => {
             let fixedRentOptions = acc.rentOptions;
@@ -1796,77 +1808,75 @@ const App = () => {
           try { localStorage.setItem('shop_wheel_spin', JSON.stringify(spinItems)); } catch (e) { }
         }
         if (voucherRes.data) setVouchersDb(voucherRes.data);
-        if (boostReqRes.data) {
-          const fixedBoostReqs = boostReqRes.data.map(r => {
-            let parsedInfo = r.info;
-            if (typeof parsedInfo === 'string') {
-              try { parsedInfo = JSON.parse(parsedInfo); } catch (e) { parsedInfo = {}; }
-            }
-            return {
-              ...r,
-              info: parsedInfo || {},
-              boostingTitle: r.boostingTitle || r.boostingtitle || '',
-              boostingId: r.boostingId || r.boostingid || ''
-            };
-          });
-          setBoostingRequests(fixedBoostReqs);
-        }
         if (commentsRes && commentsRes.data) {
           setCommentsDb(commentsRes.data);
           localStorage.setItem('shop_comments_db', JSON.stringify(commentsRes.data));
         }
       });
 
-      const configPromise = supabase.from('site_config').select('*').eq('id', 'deposit_bonus').maybeSingle().then(({ data: configData }) => {
-        if (configData && configData.value) {
-          setDepositBonusConfig(configData.value);
-          localStorage.setItem('shop_deposit_config', JSON.stringify(configData.value));
-        } else {
+      // GỘP 5 TRUY VẤN site_config THÀNH 1 REQUEST DUY NHẤT (tránh tải game_auction_market ~103KB)
+      const configPromise = (async () => {
+        try {
+          const { data: cfgRows } = await supabase
+            .from('site_config')
+            .select('id, value')
+            .in('id', ['deposit_bonus', 'wheel_config', 'wizard_event_config', 'wizard_card_items', 'mtc_game_config']);
+
+          const cfgMap = new Map((cfgRows || []).map((row) => [row.id, row.value]));
+
+          const depositVal = cfgMap.get('deposit_bonus');
+          if (depositVal) {
+            setDepositBonusConfig(depositVal);
+            localStorage.setItem('shop_deposit_config', JSON.stringify(depositVal));
+          } else {
+            const savedDepositConfig = localStorage.getItem('shop_deposit_config');
+            if (savedDepositConfig) {
+              try { setDepositBonusConfig(JSON.parse(savedDepositConfig)); } catch (e) {}
+            }
+          }
+
+          const wheelVal = cfgMap.get('wheel_config');
+          if (wheelVal) {
+            setWheelConfig(prev => ({ ...prev, ...wheelVal }));
+          }
+
+          const wzCfgVal = cfgMap.get('wizard_event_config');
+          if (wzCfgVal) {
+            setWizardEventConfig(prev => ({ ...prev, ...wzCfgVal }));
+            localStorage.setItem('shop_wizard_event_config', JSON.stringify(wzCfgVal));
+          }
+
+          const wzItemsVal = cfgMap.get('wizard_card_items');
+          if (Array.isArray(wzItemsVal) && wzItemsVal.length > 0) {
+            setWizardCardItems(wzItemsVal);
+            localStorage.setItem('shop_wizard_card_items', JSON.stringify(wzItemsVal));
+          }
+
+          const mtcVal = cfgMap.get('mtc_game_config');
+          if (mtcVal) {
+            setMtcGameConfig(prev => {
+              const merged = {
+                ...prev,
+                ...mtcVal,
+                webPlayStatus: mtcVal.webPlayStatus === 'public' ? 'public' : 'hidden'
+              };
+              try { localStorage.setItem('shop_mtc_game_config', JSON.stringify(merged)); } catch (e) {}
+              return merged;
+            });
+          }
+        } catch (e) {
           const savedDepositConfig = localStorage.getItem('shop_deposit_config');
           if (savedDepositConfig) {
-            try { setDepositBonusConfig(JSON.parse(savedDepositConfig)); } catch (e) {}
+            try { setDepositBonusConfig(JSON.parse(savedDepositConfig)); } catch (ignore) {}
           }
+        } finally {
+          setMtcConfigLoaded(true);
         }
-      });
-
-      supabase.from('site_config').select('*').eq('id', 'wheel_config').maybeSingle().then(({ data: wConfigData }) => {
-        if (wConfigData && wConfigData.value) {
-          setWheelConfig(prev => ({ ...prev, ...wConfigData.value }));
-        }
-      });
-
-      supabase.from('site_config').select('*').eq('id', 'wizard_event_config').maybeSingle().then(({ data: wzConfigData }) => {
-        if (wzConfigData && wzConfigData.value) {
-          setWizardEventConfig(prev => ({ ...prev, ...wzConfigData.value }));
-          localStorage.setItem('shop_wizard_event_config', JSON.stringify(wzConfigData.value));
-        }
-      });
-
-      supabase.from('site_config').select('*').eq('id', 'wizard_card_items').maybeSingle().then(({ data: wzItemsData }) => {
-        if (wzItemsData && Array.isArray(wzItemsData.value) && wzItemsData.value.length > 0) {
-          setWizardCardItems(wzItemsData.value);
-          localStorage.setItem('shop_wizard_card_items', JSON.stringify(wzItemsData.value));
-        }
-      });
-
-      supabase.from('site_config').select('*').eq('id', 'mtc_game_config').maybeSingle().then(({ data: mtcCfgData }) => {
-        if (mtcCfgData && mtcCfgData.value) {
-          setMtcGameConfig(prev => {
-            const merged = { ...prev, ...mtcCfgData.value };
-            try { localStorage.setItem('shop_mtc_game_config', JSON.stringify(merged)); } catch (e) {}
-            return merged;
-          });
-        }
-      });
-
-      supabase.from('site_config').select('*').eq('id', 'mtc_server_registry').maybeSingle().then(({ data: mtcRegData }) => {
-        if (mtcRegData && mtcRegData.value) {
-          setMtcServerRegistry(mtcRegData.value);
-        }
-      });
+      })();
 
       // 2. KIỂM TRA ĐĂNG NHẬP NGẦM & TẢI DỮ LIỆU THEO CHỨC VỤ (CHẠY SONG SONG VỚI PUBLIC DATA)
       const userDataPromise = (async () => {
+        try {
         const { data: { session } } = await supabase.auth.getSession();
 
         if (session) {
@@ -2068,6 +2078,9 @@ const App = () => {
             showToast("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!", "error");
           }
         }
+        } finally {
+          setMtcAuthChecked(true);
+        }
       })();
 
       // ĐỢI CẢ 3 TIẾN TRÌNH HOÀN THÀNH (Tiết kiệm được ít nhất 2 vòng chờ mạng)
@@ -2104,224 +2117,10 @@ const App = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
-  // --- HỆ THỐNG LẮNG NGHE DỮ LIỆU REALTIME (THỜI GIAN THỰC) ---
+  // --- HỆ THỐNG LẮNG NGHE DỮ LIỆU REALTIME (GOM KÊNH ĐỂ TIẾT KIỆM FREE TIER SUPABASE) ---
+  // Kênh 1: Dữ liệu công khai chung (1 kênh duy nhất cho wheel_items, comments, accounts, boosting)
   useEffect(() => {
-    // 1. Lắng nghe TIN NHẮN MỚI
-    const messageChannel = supabase.channel('realtime-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        setMessagesDb(prev => {
-          // BỘ LỌC CHỐNG TRÙNG LẶP: Nếu ID tin nhắn đã hiện trên màn hình rồi thì bỏ qua
-          if (prev.find(m => m.id === payload.new.id)) return prev;
-          return [...prev, payload.new];
-        });
-      })
-      .subscribe();
-
-    // 2. Lắng nghe LỆNH NẠP TIỀN MỚI & CẬP NHẬT TRẠNG THÁI
-    // FIX: Phân quyền — Admin nhận TẤT CẢ, Khách chỉ nhận đơn của chính mình
-    const depositChannel = supabase.channel('realtime-deposits')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'deposit_requests' }, (payload) => {
-        const me = currentUserRef.current;
-        const isAdmin = me?.role?.toLowerCase() === 'admin';
-        // Khách chỉ nhận đơn nạp của chính mình, Admin nhận hết
-        const payloadUserId = payload.new.userId || payload.new.userid;
-        if (!isAdmin && payloadUserId !== me?.id) return;
-        setDepositRequests(prev => {
-          if (prev.find(d => d.id === payload.new.id)) return prev;
-          return [payload.new, ...prev];
-        });
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'deposit_requests' }, (payload) => {
-        const me = currentUserRef.current;
-        const isAdmin = me?.role?.toLowerCase() === 'admin';
-
-        // Cập nhật state một cách an toàn: nếu request đã có trong danh sách của user thì cập nhật luôn
-        setDepositRequests(prev => {
-          const exists = prev.some(req => req.id === payload.new.id);
-          if (exists || isAdmin) {
-            return prev.map(req => req.id === payload.new.id ? { ...req, ...payload.new } : req);
-          }
-          return prev;
-        });
-
-        if (!isAdmin && payload.new.type === 'card' && payload.new.status === 'Thất bại') {
-          setDepositRequests(prev => {
-            const matched = prev.find(req => req.id === payload.new.id);
-            if (matched && matched.userId === me?.id) {
-              setLiveCardError(payload.new.details);
-            }
-            return prev;
-          });
-        }
-      })
-      .subscribe();
-
-    // 3. Lắng nghe ĐƠN THUÊ NICK MỚI & CẬP NHẬT TRẠNG THÁI
-    // FIX: Phân quyền — Admin nhận TẤT CẢ, Khách chỉ nhận đơn thuê của chính mình
-    const rentChannel = supabase.channel('realtime-rents')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rent_requests' }, (payload) => {
-        const me = currentUserRef.current;
-        const isAdmin = me?.role?.toLowerCase() === 'admin';
-        const payloadUserId = payload.new.userId || payload.new.userid;
-        if (!isAdmin && payloadUserId !== me?.id) return;
-        setRentRequests(prev => {
-          if (prev.find(r => r.id === payload.new.id)) return prev;
-          return [payload.new, ...prev];
-        });
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rent_requests' }, (payload) => {
-        const me = currentUserRef.current;
-        const isAdmin = me?.role?.toLowerCase() === 'admin';
-        const payloadUserId = payload.new.userId || payload.new.userid;
-        if (!isAdmin && payloadUserId !== me?.id) return;
-        setRentRequests(prev => prev.map(req => req.id === payload.new.id ? payload.new : req));
-      })
-      .subscribe();
-
-    // 4. Lắng nghe ĐƠN CÀY THUÊ MỚI & CẬP NHẬT TRẠNG THÁI
-    const boostReqChannel = supabase.channel('realtime-boosting-requests')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'boosting_requests' }, (payload) => {
-        const me = currentUserRef.current;
-        const isAdmin = me?.role?.toLowerCase() === 'admin';
-        if (!isAdmin && payload.new.user !== me?.name) return;
-        setBoostingRequests(prev => {
-          if (prev.find(r => r.id === payload.new.id)) return prev;
-          let parsedInfo = payload.new.info;
-          if (typeof parsedInfo === 'string') {
-            try { parsedInfo = JSON.parse(parsedInfo); } catch (e) { parsedInfo = {}; }
-          }
-          const fixedPayload = { ...payload.new, info: parsedInfo || {}, boostingTitle: payload.new.boostingTitle || payload.new.boostingtitle || '', boostingId: payload.new.boostingId || payload.new.boostingid || '' };
-          return [fixedPayload, ...prev];
-        });
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'boosting_requests' }, (payload) => {
-        const me = currentUserRef.current;
-        const isAdmin = me?.role?.toLowerCase() === 'admin';
-        if (!isAdmin && payload.new.user !== me?.name) return;
-        let parsedInfo = payload.new.info;
-        if (typeof parsedInfo === 'string') {
-          try { parsedInfo = JSON.parse(parsedInfo); } catch (e) { parsedInfo = {}; }
-        }
-        const fixedPayload = { ...payload.new, info: parsedInfo || {}, boostingTitle: payload.new.boostingTitle || payload.new.boostingtitle || '', boostingId: payload.new.boostingId || payload.new.boostingid || '' };
-        setBoostingRequests(prev => prev.map(r => r.id === fixedPayload.id ? fixedPayload : r));
-      })
-      .subscribe();
-
-    // 5. Lắng nghe LƯỢT TRUY CẬP (SITE STATS)
-    const statsChannel = supabase.channel('realtime-stats')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_stats' }, (payload) => {
-        if (payload.new && payload.new.views !== undefined) {
-          setVisitorCount(payload.new.views);
-        }
-      })
-      .subscribe();
-
-    // Lắng nghe TRANSACTIONS MỚI (Để Admin nhận realtime lịch sử vòng quay/lịch sử mua nick)
-    const transactionsChannel = supabase.channel('realtime-transactions')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' }, (payload) => {
-        const me = currentUserRef.current;
-        const isAdmin = me?.role?.toLowerCase() === 'admin';
-
-        // Tạo biến nhận diện user giống hệt cách webhook lưu
-        const myIdentifier = me?.name || me?.phone || 'Khách Vô Danh';
-
-        // CƠ CHẾ DỰ PHÒNG: Nếu có giao dịch nạp tiền thành công của user này, tắt luôn QR PayOS
-        if (payload.new.type === 'deposit_auto' && payload.new.user === myIdentifier) {
-          setPayosPaymentData(null);
-          setPayosSuccess(true);
-          setDepositAmount('');
-          setVoucherInput('');
-          showToast("Thanh toán tự động thành công!", "success");
-          setTimeout(() => setPayosSuccess(false), 5000);
-
-          // Tự động cập nhật trạng thái trong depositRequests nội bộ để giao diện đồng bộ
-          setDepositRequests(prev => prev.map(req => {
-            if (req.type === 'banking' && req.status !== 'Thành công' && req.status !== 'Đã hủy') {
-              return { ...req, status: 'Thành công' };
-            }
-            return req;
-          }));
-        }
-
-        // Khách chỉ thấy của mình, Admin thấy hết (User name is used in transactions)
-        if (!isAdmin && payload.new.user !== myIdentifier) return;
-        setTransactionsDb(prev => {
-          if (prev.find(t => t.id === payload.new.id)) return prev;
-          return [payload.new, ...prev];
-        });
-      })
-      .subscribe();
-
-    // 5. Lắng nghe USER MỚI & CẬP NHẬT
-    // FIX: Admin cập nhật bảng usersDb. Khách tự cập nhật currentUser (số dư, lượt quay) khi Telegram Bot duyệt.
-    const usersChannel = supabase.channel('realtime-users')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'users' }, (payload) => {
-        const me = currentUserRef.current;
-        const isAdmin = me?.role?.toLowerCase() === 'admin';
-        if (!isAdmin) return; // Khách không cần biết user mới đăng ký
-        setUsersDb(prev => {
-          if (prev.find(u => u.id === payload.new.id)) return prev;
-          return [payload.new, ...prev];
-        });
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users' }, (payload) => {
-        const me = currentUserRef.current;
-        const isAdmin = me?.role?.toLowerCase() === 'admin';
-        // Admin: cập nhật toàn bộ bảng users cho Panel
-        if (isAdmin) {
-          setUsersDb(prev => prev.map(u => u.id === payload.new.id ? payload.new : u));
-        } else if (payload.new.role?.toLowerCase() === 'admin') {
-          // GUEST: Cập nhật thông tin admin để lấy status online realtime
-          setUsersDb(prev => {
-            if (prev.find(u => u.id === payload.new.id)) {
-              return prev.map(u => u.id === payload.new.id ? payload.new : u);
-            }
-            return [...prev, payload.new];
-          });
-        }
-        // TẤT CẢ: Nếu data thay đổi là của chính mình → tự cập nhật số dư, lượt quay, v.v.
-        // (Giải quyết bug: Duyệt qua Telegram nhưng khách phải F5 mới thấy số dư mới)
-        if (payload.new.id === me?.id) {
-          const preservedLinked = payload.new.linked_game_id || me?.linked_game_id || localStorage.getItem(`shop_linked_game_id_${me?.id}`);
-          const mergedMe = { ...payload.new, linked_game_id: preservedLinked };
-          setCurrentUser(mergedMe);
-          localStorage.setItem('shop_cached_user', JSON.stringify(mergedMe));
-        }
-      })
-      .subscribe();
-
-    // Lắng nghe ĐƠN TẶNG VÉ VÒNG QUAY TỪ GAME MỘNG THIÊN HUYỄN REALTIME
-    const spinTicketChannel = supabase.channel('realtime-spin-ticket-orders')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_orders' }, async (payload) => {
-        const ord = payload.new;
-        if (ord && ord.package_id === 'add_spin_tickets') {
-          const me = currentUserRef.current;
-          if (!me) return;
-          const cleanLinked = (me.linked_game_id || '').toLowerCase().replace(/^@/, '');
-          const ordUser = (ord.user_id || '').toLowerCase().replace(/^@/, '');
-          const isMatch = (ord.web_user && ord.web_user === me.id) || (cleanLinked && ordUser === cleanLinked);
-          if (isMatch) {
-            const addedSpins = parseInt(ord.rewards?.spins || ord.rewards?.tickets || 0, 10);
-            if (addedSpins > 0) {
-              if (ord.status === 'pending') {
-                const { data: claimRes, error: claimErr } = await supabase.rpc('rpc_claim_spin_tickets', {
-                  p_order_ids: [ord.id]
-                });
-                if (!claimErr && claimRes?.success && claimRes.claimed_spins > 0) {
-                  setCurrentUser(prev => prev ? ({ ...prev, spins: claimRes.new_spins }) : prev);
-                  showToast(`🎉 Nhận thành công +${claimRes.claimed_spins} Lượt Quay Vòng Quay từ nhân vật game!`, 'success');
-                }
-              } else {
-                showToast(`🎉 Nhận thành công +${addedSpins} Lượt Quay Vòng Quay từ nhân vật game!`, 'success');
-              }
-            }
-          }
-        }
-      })
-      .subscribe();
-
-    // Lắng nghe CẬP NHẬT CẤU HÌNH VÒNG QUAY REALTIME (Bật/tắt chuông thông báo, tỉ lệ, phần thưởng)
-    const wheelItemsChannel = supabase.channel('realtime-wheel-items')
+    const publicChannel = supabase.channel('realtime-public')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'wheel_items' }, async () => {
         try {
           if (isSpinningRef.current) return;
@@ -2372,21 +2171,13 @@ const App = () => {
           console.warn("Lỗi sync realtime wheel_items:", e);
         }
       })
-      .subscribe();
-
-    const commentsChannel = supabase.channel('realtime-comments')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, async (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, async () => {
         const { data } = await supabase.from('comments').select('*, users(name, avatar_url, role)').order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(200);
         if (data) setCommentsDb(data);
       })
-      .subscribe();
-
-    // 6. Lắng nghe TÀI KHOẢN MỚI / BỊ MUA / BỊ THUÊ
-    const accountsChannel = supabase.channel('realtime-accounts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'accounts' }, (payload) => {
         if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
           const acc = payload.new;
-          // Hàm chuẩn hóa data giống như lúc load ban đầu
           let fixedRentOptions = acc.rentOptions;
           if (typeof fixedRentOptions === 'string') {
             try { fixedRentOptions = JSON.parse(fixedRentOptions); } catch (e) { fixedRentOptions = []; }
@@ -2431,10 +2222,6 @@ const App = () => {
           setAccountsDb(prev => prev.filter(a => a.id !== payload.old.id));
         }
       })
-      .subscribe();
-
-    // 7. Lắng nghe DỊCH VỤ CÀY THUÊ (Admin thêm/sửa dịch vụ)
-    const boostingChannel = supabase.channel('realtime-boosting')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'boosting' }, (payload) => {
         if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
           setBoostingDb(prev => {
@@ -2450,21 +2237,185 @@ const App = () => {
       })
       .subscribe();
 
-    // Dọn dẹp các đường truyền khi khách đóng trình duyệt để chống lag máy
     return () => {
-      supabase.removeChannel(messageChannel);
-      supabase.removeChannel(depositChannel);
-      supabase.removeChannel(rentChannel);
-      supabase.removeChannel(boostReqChannel);
-      supabase.removeChannel(statsChannel);
-      supabase.removeChannel(usersChannel);
-      supabase.removeChannel(spinTicketChannel);
-      supabase.removeChannel(transactionsChannel);
-      supabase.removeChannel(commentsChannel);
-      supabase.removeChannel(accountsChannel);
-      supabase.removeChannel(boostingChannel);
+      supabase.removeChannel(publicChannel);
     };
   }, []);
+
+  // Kênh 2: Dữ liệu riêng tư (CHỈ mở khi đã đăng nhập, khách lọc users theo đúng ID mình)
+  useEffect(() => {
+    if (!currentUser?.id) return undefined;
+    const isAdminRole = currentUser?.role?.toLowerCase() === 'admin';
+    const userWatchFilter = isAdminRole
+      ? { event: '*', schema: 'public', table: 'users' }
+      : { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${currentUser.id}` };
+
+    const privateChannel = supabase.channel(`realtime-user-${currentUser.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        setMessagesDb(prev => {
+          if (prev.find(m => m.id === payload.new.id)) return prev;
+          return [...prev, payload.new];
+        });
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'deposit_requests' }, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        const payloadUserId = payload.new.userId || payload.new.userid;
+        if (!isAdmin && payloadUserId !== me?.id) return;
+        setDepositRequests(prev => {
+          if (prev.find(d => d.id === payload.new.id)) return prev;
+          return [payload.new, ...prev];
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'deposit_requests' }, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        setDepositRequests(prev => {
+          const exists = prev.some(req => req.id === payload.new.id);
+          if (exists || isAdmin) {
+            return prev.map(req => req.id === payload.new.id ? { ...req, ...payload.new } : req);
+          }
+          return prev;
+        });
+
+        if (!isAdmin && payload.new.type === 'card' && payload.new.status === 'Thất bại') {
+          setDepositRequests(prev => {
+            const matched = prev.find(req => req.id === payload.new.id);
+            if (matched && matched.userId === me?.id) {
+              setLiveCardError(payload.new.details);
+            }
+            return prev;
+          });
+        }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rent_requests' }, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        const payloadUserId = payload.new.userId || payload.new.userid;
+        if (!isAdmin && payloadUserId !== me?.id) return;
+        setRentRequests(prev => {
+          if (prev.find(r => r.id === payload.new.id)) return prev;
+          return [payload.new, ...prev];
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rent_requests' }, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        const payloadUserId = payload.new.userId || payload.new.userid;
+        if (!isAdmin && payloadUserId !== me?.id) return;
+        setRentRequests(prev => prev.map(req => req.id === payload.new.id ? payload.new : req));
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'boosting_requests' }, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        if (!isAdmin && payload.new.user !== me?.name) return;
+        setBoostingRequests(prev => {
+          if (prev.find(r => r.id === payload.new.id)) return prev;
+          let parsedInfo = payload.new.info;
+          if (typeof parsedInfo === 'string') {
+            try { parsedInfo = JSON.parse(parsedInfo); } catch (e) { parsedInfo = {}; }
+          }
+          const fixedPayload = { ...payload.new, info: parsedInfo || {}, boostingTitle: payload.new.boostingTitle || payload.new.boostingtitle || '', boostingId: payload.new.boostingId || payload.new.boostingid || '' };
+          return [fixedPayload, ...prev];
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'boosting_requests' }, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        if (!isAdmin && payload.new.user !== me?.name) return;
+        let parsedInfo = payload.new.info;
+        if (typeof parsedInfo === 'string') {
+          try { parsedInfo = JSON.parse(parsedInfo); } catch (e) { parsedInfo = {}; }
+        }
+        const fixedPayload = { ...payload.new, info: parsedInfo || {}, boostingTitle: payload.new.boostingTitle || payload.new.boostingtitle || '', boostingId: payload.new.boostingId || payload.new.boostingid || '' };
+        setBoostingRequests(prev => prev.map(r => r.id === fixedPayload.id ? fixedPayload : r));
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' }, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        const myIdentifier = me?.name || me?.phone || 'Khách Vô Danh';
+
+        if (payload.new.type === 'deposit_auto' && payload.new.user === myIdentifier) {
+          setPayosPaymentData(null);
+          setPayosSuccess(true);
+          setDepositAmount('');
+          setVoucherInput('');
+          showToast("Thanh toán tự động thành công!", "success");
+          setTimeout(() => setPayosSuccess(false), 5000);
+          setDepositRequests(prev => prev.map(req => {
+            if (req.type === 'banking' && req.status !== 'Thành công' && req.status !== 'Đã hủy') {
+              return { ...req, status: 'Thành công' };
+            }
+            return req;
+          }));
+        }
+
+        if (!isAdmin && payload.new.user !== myIdentifier) return;
+        setTransactionsDb(prev => {
+          if (prev.find(t => t.id === payload.new.id)) return prev;
+          return [payload.new, ...prev];
+        });
+      })
+      .on('postgres_changes', userWatchFilter, (payload) => {
+        const me = currentUserRef.current;
+        const isAdmin = me?.role?.toLowerCase() === 'admin';
+        if (payload.eventType === 'INSERT') {
+          if (!isAdmin) return;
+          setUsersDb(prev => {
+            if (prev.find(u => u.id === payload.new.id)) return prev;
+            return [payload.new, ...prev];
+          });
+          return;
+        }
+        if (isAdmin) {
+          setUsersDb(prev => prev.map(u => u.id === payload.new.id ? payload.new : u));
+        } else if (payload.new.role?.toLowerCase() === 'admin') {
+          setUsersDb(prev => {
+            if (prev.find(u => u.id === payload.new.id)) {
+              return prev.map(u => u.id === payload.new.id ? payload.new : u);
+            }
+            return [...prev, payload.new];
+          });
+        }
+        if (payload.new.id === me?.id) {
+          const preservedLinked = payload.new.linked_game_id || me?.linked_game_id || localStorage.getItem(`shop_linked_game_id_${me?.id}`);
+          const mergedMe = { ...payload.new, linked_game_id: preservedLinked };
+          setCurrentUser(mergedMe);
+          localStorage.setItem('shop_cached_user', JSON.stringify(mergedMe));
+        }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_orders' }, async (payload) => {
+        const ord = payload.new;
+        if (ord && ord.package_id === 'add_spin_tickets') {
+          const me = currentUserRef.current;
+          if (!me) return;
+          const cleanLinked = (me.linked_game_id || '').toLowerCase().replace(/^@/, '');
+          const ordUser = (ord.user_id || '').toLowerCase().replace(/^@/, '');
+          const isMatch = (ord.web_user && ord.web_user === me.id) || (cleanLinked && ordUser === cleanLinked);
+          if (isMatch) {
+            const addedSpins = parseInt(ord.rewards?.spins || ord.rewards?.tickets || 0, 10);
+            if (addedSpins > 0) {
+              if (ord.status === 'pending') {
+                const { data: claimRes, error: claimErr } = await supabase.rpc('rpc_claim_spin_tickets', {
+                  p_order_ids: [ord.id]
+                });
+                if (!claimErr && claimRes?.success && claimRes.claimed_spins > 0) {
+                  setCurrentUser(prev => prev ? ({ ...prev, spins: claimRes.new_spins }) : prev);
+                  showToast(`🎉 Nhận thành công +${claimRes.claimed_spins} Lượt Quay Vòng Quay từ nhân vật game!`, 'success');
+                }
+              } else {
+                showToast(`🎉 Nhận thành công +${addedSpins} Lượt Quay Vòng Quay từ nhân vật game!`, 'success');
+              }
+            }
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(privateChannel);
+    };
+  }, [currentUser?.id, currentUser?.role]);
   // Tự động chuyển vòng quay nếu bị trống (Chống lỗi F5)
   useEffect(() => {
     if (playMode === 'money' && wheelItemsMoneyDb.length === 0 && wheelItemsSpinDb.length > 0) {
@@ -2590,16 +2541,17 @@ const App = () => {
     }
   }, [messagesDb, currentView, adminTab, activeChatUser]);
 
-  // Cập nhật trạng thái "Đang hoạt động" cho currentUser (Ping mỗi 1 phút)
+  // Cập nhật trạng thái "Đang hoạt động" cho currentUser (Ping mỗi 5 phút khi tab đang mở để bảo vệ Free Tier)
   useEffect(() => {
     if (!currentUser) return;
     const updateLastActive = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       try {
         await supabase.from('users').update({ last_active: new Date().toISOString() }).eq('id', currentUser.id);
       } catch (e) { }
     };
     updateLastActive(); // Cập nhật ngay khi load
-    const interval = setInterval(updateLastActive, 60000);
+    const interval = setInterval(updateLastActive, 300000);
     return () => clearInterval(interval);
   }, [currentUser?.id]);
 
@@ -2613,6 +2565,12 @@ const App = () => {
     e.preventDefault();
     if (!currentUser) return showToast("Vui lòng đăng nhập để bình luận!", "error");
     if (!commentInput.trim()) return;
+
+    const nowMs = Date.now();
+    if (nowMs - lastCommentAtRef.current < 5000) {
+      return showToast("Bạn thao tác quá nhanh, vui lòng chờ 5 giây rồi bình luận tiếp!", "warning");
+    }
+    lastCommentAtRef.current = nowMs;
 
     try {
       const { error } = await supabase.from('comments').insert({
@@ -2687,10 +2645,22 @@ const App = () => {
 
     try {
       setIsGlobalProcessing(true);
+      let fileToUpload = file;
+      try {
+        fileToUpload = await imageCompression(file, {
+          maxSizeMB: 0.2,
+          maxWidthOrHeight: 512,
+          useWebWorker: true,
+          fileType: "image/webp",
+          initialQuality: 0.85,
+        });
+      } catch (compErr) {
+        console.warn("Bỏ qua nén avatar, dùng file gốc:", compErr);
+      }
       const reader = new FileReader();
       reader.onloadend = async () => {
         try {
-          const imgUrl = await uploadToImgBB(reader.result);
+          const imgUrl = await uploadToImgBB(reader.result, 'avatar');
           const { error } = await supabase.from('users').update({ avatar_url: imgUrl }).eq('id', currentUser.id);
           if (error) throw error;
           setCurrentUser({ ...currentUser, avatar_url: imgUrl });
@@ -2703,7 +2673,7 @@ const App = () => {
           setIsGlobalProcessing(false);
         }
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(fileToUpload);
     } catch (err) {
       console.error(err);
       setIsGlobalProcessing(false);
@@ -2971,6 +2941,11 @@ const App = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    // Honeypot chống bot điền form tự động
+    if (e.target.company_website?.value?.trim()) {
+      return showToast("Yêu cầu đăng ký không hợp lệ!", "error");
+    }
+
     const email = e.target.email.value.trim().toLowerCase();
     const password = e.target.password.value;
     const name = e.target.name.value.trim();
@@ -2989,6 +2964,44 @@ const App = () => {
       return showToast("Mật khẩu phải có ít nhất 6 ký tự!", "error");
     }
 
+    const nowMs = Date.now();
+    const waitMs = 15000 - (nowMs - lastRegisterAttemptRef.current);
+    if (waitMs > 0) {
+      return showToast(`Vui lòng đợi ${Math.ceil(waitMs / 1000)} giây trước khi gửi đăng ký tiếp!`, "warning");
+    }
+
+    if (isTurnstileConfigured) {
+      if (!registerTurnstileToken) {
+        return showToast("Vui lòng hoàn thành xác minh chống bot (Cloudflare Turnstile)!", "error");
+      }
+      try {
+        const tsRes = await fetch('/api/verify-turnstile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: registerTurnstileToken }),
+        });
+        const tsJson = await tsRes.json().catch(() => null);
+        if (!tsRes.ok || !tsJson?.ok) {
+          setRegisterTurnstileToken('');
+          setRegisterTurnstileReset((prev) => prev + 1);
+          return showToast(tsJson?.error || "Xác minh chống bot thất bại, vui lòng thử lại!", "error");
+        }
+      } catch (tsErr) {
+        setRegisterTurnstileToken('');
+        setRegisterTurnstileReset((prev) => prev + 1);
+        return showToast("Không thể xác minh chống bot lúc này!", "error");
+      }
+    }
+
+    const resetTurnstileIfActive = () => {
+      if (isTurnstileConfigured) {
+        setRegisterTurnstileToken('');
+        setRegisterTurnstileReset((prev) => prev + 1);
+      }
+    };
+
+    lastRegisterAttemptRef.current = nowMs;
+
     // KIỂM TRA TRÙNG LẶP SĐT HOẶC EMAIL TRONG DATABASE TRƯỚC (2 truy vấn độc lập)
     const [{ data: dupPhones }, { data: dupEmails }] = await Promise.all([
       supabase.from('users').select('id, phone').eq('phone', phone).limit(1),
@@ -2996,9 +3009,11 @@ const App = () => {
     ]);
 
     if (dupPhones && dupPhones.length > 0) {
+      resetTurnstileIfActive();
       return showToast("Số điện thoại này đã được đăng ký! Không được tạo thêm tài khoản trùng SĐT.", "error");
     }
     if (dupEmails && dupEmails.length > 0) {
+      resetTurnstileIfActive();
       return showToast("Email này đã được đăng ký! Không được tạo thêm tài khoản trùng Email.", "error");
     }
 
@@ -3008,7 +3023,10 @@ const App = () => {
       password,
     });
 
-    if (authError) return showToast("Lỗi đăng ký: " + authError.message, 'error');
+    if (authError) {
+      resetTurnstileIfActive();
+      return showToast("Lỗi đăng ký: " + authError.message, 'error');
+    }
 
     if (authData.user) {
       // 2. Tạo hồ sơ người dùng trong bảng 'users' (Dùng chung ID với Auth)
@@ -3025,8 +3043,10 @@ const App = () => {
       const { error: dbError } = await supabase.from('users').insert([newUser]);
 
       if (dbError) {
+        resetTurnstileIfActive();
         showToast("Lỗi tạo hồ sơ: " + dbError.message, 'error');
       } else {
+        resetTurnstileIfActive();
         showToast("Đăng ký thành công! Hãy đăng nhập nhé.", 'success');
         setCurrentView('login');
       }
@@ -4003,6 +4023,12 @@ const App = () => {
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
+          <input name="company_website" type="text" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
+          <TurnstileWidget
+            onToken={setRegisterTurnstileToken}
+            onExpire={() => setRegisterTurnstileToken('')}
+            resetSignal={registerTurnstileReset}
+          />
           <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg mt-4 shadow-lg">Tạo Tài Khoản</button>
         </form>
         <button onClick={() => setCurrentView('login')} className="w-full mt-4 text-slate-400 text-sm hover:text-white">Quay lại đăng nhập</button>
@@ -5480,7 +5506,7 @@ const App = () => {
                       >
                         <div
                           className="absolute inset-0 opacity-20 pointer-events-none bg-center bg-cover"
-                          style={{ backgroundImage: `url('/dragon_anvil.jpg')` }}
+                          style={{ backgroundImage: `url('${toShopCdnUrl('/dragon_anvil.jpg')}')` }}
                         ></div>
                         <div className="w-11 h-11 rounded-full bg-amber-500/25 border border-amber-400/50 flex items-center justify-center text-amber-300 text-2xl font-black group-hover:scale-110 group-hover:bg-amber-500/40 transition-all shadow-[0_0_15px_rgba(245,158,11,0.5)]">
                           +
@@ -5586,7 +5612,7 @@ const App = () => {
                       >
                         <div
                           className="absolute inset-0 opacity-20 pointer-events-none bg-center bg-cover"
-                          style={{ backgroundImage: `url('/dragon_anvil.jpg')` }}
+                          style={{ backgroundImage: `url('${toShopCdnUrl('/dragon_anvil.jpg')}')` }}
                         ></div>
                         <div className="w-11 h-11 rounded-full bg-cyan-500/25 border border-cyan-400/50 flex items-center justify-center text-cyan-300 text-2xl font-black group-hover:scale-110 group-hover:bg-cyan-500/40 transition-all shadow-[0_0_15px_rgba(6,182,212,0.5)]">
                           +
@@ -5815,226 +5841,6 @@ const App = () => {
       if (!silent) showToast('Không thể làm mới link server lúc này!', 'warning');
     }
     return null;
-  };
-
-  useEffect(() => {
-    if (currentView === 'mongthiencuu') {
-      handleRefreshMtcTunnel(true);
-    }
-  }, [currentView]);
-
-  const handleVerifyMtcAccount = async () => {
-    const cleanTarget = mtcUsername.trim().replace(/^@/, '');
-    if (!cleanTarget) {
-      showToast('Vui lòng nhập Tên đăng nhập (hoặc UID) trong game Mộng Thiên Cửu!', 'error');
-      return;
-    }
-    try { localStorage.setItem('shop_mtc_username', cleanTarget); } catch (e) {}
-    setIsCheckingMtcAccount(true);
-    setMtcAccountInfo(null);
-    const checkId = `MTC_CHK_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-    try {
-      const { error: insErr } = await supabase.from('game_orders').insert([{
-        id: checkId,
-        user_id: cleanTarget,
-        nickname: cleanTarget,
-        web_user: currentUser?.id || 'guest',
-        package_id: 'mtc_verify_account',
-        package_name: 'Kiểm tra tài khoản Mộng Thiên Cửu',
-        price: 0,
-        rewards: { game: 'mongthiencuu', server_id: mtcServerId },
-        status: 'pending'
-      }]);
-      if (insErr) throw insErr;
-
-      let resolved = null;
-      for (let i = 0; i < 10; i++) {
-        await new Promise(r => setTimeout(r, 1200));
-        const { data: row } = await supabase.from('game_orders').select('status, result').eq('id', checkId).maybeSingle();
-        if (row && (row.status === 'completed' || row.status === 'failed')) {
-          resolved = row;
-          break;
-        }
-      }
-      if (!resolved) {
-        showToast('Server game đang bận hoặc Bridge chưa chạy — bạn vẫn có thể nạp bình thường!', 'warning');
-      } else if (resolved.status === 'completed' && resolved.result?.success) {
-        setMtcAccountInfo(resolved.result);
-        showToast(`Tìm thấy tài khoản: ${resolved.result.username} (${resolved.result.nickname})!`, 'success');
-      } else {
-        showToast(resolved.result?.message || 'Không tìm thấy tài khoản này trong game!', 'error');
-      }
-    } catch (err) {
-      showToast('Lỗi kiểm tra tài khoản: ' + (err.message || err), 'error');
-    } finally {
-      setIsCheckingMtcAccount(false);
-    }
-  };
-
-  const executeBuyMtcPackage = async (pkg) => {
-    if (!currentUser) return requireAuth('login');
-    const cleanTarget = mtcUsername.trim().replace(/^@/, '');
-    if (!cleanTarget) {
-      showToast('Vui lòng nhập Tên đăng nhập (hoặc UID) tài khoản Mộng Thiên Cửu trước khi nạp!', 'error');
-      return;
-    }
-    if ((currentUser.balance || 0) < pkg.price) {
-      showToast(`Số dư ví không đủ! Cần thêm ${new Intl.NumberFormat('vi-VN').format(pkg.price - (currentUser.balance || 0))}đ.`, 'error');
-      return;
-    }
-    if (isBuyingMtcPackage) return;
-    setIsBuyingMtcPackage(true);
-    try { localStorage.setItem('shop_mtc_username', cleanTarget); } catch (e) {}
-
-    const fallbackOrderId = `MTC_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-    const dateStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN');
-
-    try {
-      let finalOrderId = fallbackOrderId;
-      let newBalanceVal = (currentUser.balance || 0) - pkg.price;
-
-      const { data: rpcRes, error: rpcErr } = await supabase.rpc('rpc_buy_mtc_package', {
-        p_package_id: pkg.id,
-        p_game_username: cleanTarget,
-        p_server_id: mtcServerId
-      });
-
-      const rpcMissing = rpcErr && (
-        String(rpcErr.message || '').toLowerCase().includes('could not find the function') ||
-        rpcErr.code === 'PGRST202' ||
-        rpcErr.code === '42883'
-      );
-
-      if (rpcMissing) {
-        // Fallback an toàn dùng rpc_client_spend + insert game_orders khi chưa chạy SQL mới
-        const fbTx = {
-          id: fallbackOrderId,
-          user: currentUser.name,
-          action: `Nạp ${pkg.name} [TK: ${cleanTarget}]`,
-          amount: pkg.price,
-          date: dateStr,
-          status: 'Đã hoàn tất',
-          type: 'mtc_game_topup',
-          isSpinCost: false,
-          accDetails: {
-            order_id: fallbackOrderId,
-            game: 'mongthiencuu',
-            game_username: cleanTarget,
-            server_id: mtcServerId,
-            package_id: pkg.id,
-            package_name: pkg.name,
-            price: pkg.price,
-            rmb_add: pkg.rmbAdd,
-            web_user: currentUser.id
-          }
-        };
-        const { data: spendRes, error: spendErr } = await supabase.rpc('rpc_client_spend', {
-          p_amount: pkg.price,
-          p_fund_amount: 0,
-          p_tx_data: fbTx
-        });
-        if (spendErr) throw spendErr;
-        if (!spendRes?.success) throw new Error(spendRes?.message || 'Thanh toán thất bại!');
-        newBalanceVal = Number(spendRes.new_balance ?? newBalanceVal);
-
-        const { error: ordErr } = await supabase.from('game_orders').insert([{
-          id: fallbackOrderId,
-          user_id: cleanTarget,
-          nickname: cleanTarget,
-          web_user: currentUser.id,
-          package_id: pkg.id,
-          package_name: pkg.name,
-          price: pkg.price,
-          rewards: {
-            game: 'mongthiencuu',
-            server_id: mtcServerId,
-            rmb_add: pkg.rmbAdd,
-            bonus_bgold: pkg.bonusBGold,
-            bonus_coin: pkg.bonusCoin,
-            web_user_id: currentUser.id,
-            web_user_name: currentUser.name
-          },
-          status: 'pending'
-        }]);
-        if (ordErr) throw ordErr;
-      } else {
-        if (rpcErr) throw rpcErr;
-        if (!rpcRes?.success) throw new Error(rpcRes?.message || 'Thanh toán thất bại!');
-        finalOrderId = rpcRes.order_id || fallbackOrderId;
-        newBalanceVal = Number(rpcRes.new_balance ?? newBalanceVal);
-      }
-
-      const txPayload = {
-        id: finalOrderId,
-        user: currentUser.name,
-        action: `Nạp ${pkg.name} [TK: ${cleanTarget}]`,
-        amount: pkg.price,
-        date: dateStr,
-        status: 'Đã hoàn tất',
-        type: 'mtc_game_topup',
-        isSpinCost: false,
-        accDetails: {
-          order_id: finalOrderId,
-          game: 'mongthiencuu',
-          game_username: cleanTarget,
-          package_id: pkg.id,
-          package_name: pkg.name,
-          price: pkg.price,
-          rmb_add: pkg.rmbAdd
-        }
-      };
-
-      const updatedUser = { ...currentUser, balance: newBalanceVal };
-      setCurrentUser(updatedUser);
-      localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
-      setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
-      setTransactionsDb([txPayload, ...transactionsDb]);
-
-      setSelectedMtcPackage(null);
-      setMtcSuccessModal({
-        pkg,
-        targetUsername: cleanTarget,
-        orderId: finalOrderId,
-        bridgeStatus: 'pending',
-        bridgeResult: null
-      });
-      showToast(`Đã tạo đơn nạp ${pkg.name}! Hệ thống đang cộng +${pkg.rmbAdd}k Số Dư Ví Game...`, 'success');
-      sendAdminAlert('NẠP GAME MỘNG THIÊN CỬU H5', `Khách ${currentUser.name} vừa nạp ${pkg.name} (${new Intl.NumberFormat('vi-VN').format(pkg.price)}đ) cho TK: ${cleanTarget}`);
-
-      // Theo dõi realtime đơn vừa tạo cho tới khi bridge cộng xong
-      (async () => {
-        for (let i = 0; i < 12; i++) {
-          await new Promise(r => setTimeout(r, 1500));
-          const { data: ordState } = await supabase
-            .from('game_orders')
-            .select('status, result')
-            .eq('id', finalOrderId)
-            .maybeSingle();
-          if (ordState && ordState.status !== 'pending') {
-            setMtcSuccessModal(prev => (prev && prev.orderId === finalOrderId)
-              ? { ...prev, bridgeStatus: ordState.status, bridgeResult: ordState.result }
-              : prev
-            );
-            if (ordState.status === 'completed' && ordState.result?.new_rmb !== undefined) {
-              setMtcAccountInfo(prev => ({
-                ...(prev || {}),
-                success: true,
-                uid: ordState.result.uid || prev?.uid,
-                username: ordState.result.username || cleanTarget,
-                nickname: ordState.result.nickname || prev?.nickname,
-                lv: ordState.result.lv ?? prev?.lv,
-                rmb: ordState.result.new_rmb
-              }));
-            }
-            break;
-          }
-        }
-      })();
-    } catch (err) {
-      showToast('Lỗi khi thanh toán: ' + (err.message || err), 'error');
-    } finally {
-      setIsBuyingMtcPackage(false);
-    }
   };
 
   const handleBuySpinTickets = async () => {
@@ -16779,7 +16585,7 @@ const App = () => {
   };
 
   // =============================================================================
-  // MÀN HÌNH CỔNG TẢI APK CỐ ĐỊNH & NẠP VÍ GAME MỘNG THIÊN CỬU H5
+  // MÀN HÌNH GIỚI THIỆU & TẢI GAME MỘNG THIÊN CỬU
   // =============================================================================
   const renderMongThienCuuScreen = () => {
     if (!isMtcGameAccessible) {
@@ -16789,7 +16595,7 @@ const App = () => {
           <div className="max-w-md mx-auto mt-16 px-4 text-center">
             <div className="bg-[#151D2F] border border-amber-500/30 rounded-2xl p-8 shadow-2xl">
               <Lock size={44} className="text-amber-400 mx-auto mb-4" />
-              <h3 className="text-xl font-black text-white mb-2">Cổng Mộng Thiên Cửu Đang Tạm Ẩn</h3>
+              <h3 className="text-xl font-black text-white mb-2">Trang Mộng Thiên Cửu Đang Tạm Ẩn</h3>
               <p className="text-sm text-slate-400 mb-6">Admin hiện đang ẩn trang này để bảo trì hoặc thử nghiệm nội bộ. Vui lòng quay lại sau!</p>
               <button onClick={() => setCurrentView('dashboard')} className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl">
                 Về Trang Chủ
@@ -16801,443 +16607,31 @@ const App = () => {
       );
     }
 
-    const rawApkUrl = (mtcGameConfig?.apkUrl || '/download/MongThienCuu_s0_beta_online.apk').trim();
-    const resolvedFullApkUrl = rawApkUrl.startsWith('http')
-      ? rawApkUrl
-      : `${typeof window !== 'undefined' ? window.location.origin : 'https://shoptiengaming.com'}${rawApkUrl.startsWith('/') ? '' : '/'}${rawApkUrl}`;
-    const resolvedWebPlayUrl = mtcServerRegistry?.server_url || mtcGameConfig?.webPlayUrl || '';
-    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(resolvedFullApkUrl)}`;
+    const configuredApkUrl = (mtcGameConfig?.apkUrl || '').trim();
+    const rawApkUrl = (!configuredApkUrl || configuredApkUrl === '/download/MongThienCuu_s0_beta_online.apk')
+      ? APK_CDN_URL
+      : configuredApkUrl;
 
     return (
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-16">
         {renderNavbar()}
-
-        <main className="w-full max-w-7xl mx-auto px-4 lg:px-6 pt-6 space-y-8">
-          {/* THANH TRẠNG THÁI DÀNH RIÊNG CHO ADMIN */}
-          {currentUser?.role === 'admin' && (
-            <div className="bg-gradient-to-r from-[#151D2F] via-[#1E293B] to-[#151D2F] border border-amber-500/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isMtcGameOpen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                  {isMtcGameOpen ? <Eye size={20} /> : <EyeOff size={20} />}
-                </div>
-                <div>
-                  <p className="text-xs font-black uppercase tracking-wider text-white">
-                    Chế độ Admin: Cổng game đang <span className={isMtcGameOpen ? 'text-emerald-400' : 'text-rose-400'}>{isMtcGameOpen ? 'HIỆN CÔNG KHAI' : 'ẨN (CHỈ ADMIN THẤY)'}</span>
-                  </p>
-                  <p className="text-[11px] text-slate-400">
-                    Bấm nút bên cạnh để bật/tắt nhanh cho toàn bộ người chơi, hoặc vào Panel Admin &rarr; tab &quot;🐉 Mộng Thiên Cửu&quot;.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleSaveMtcGameConfig(
-                  { ...mtcGameConfig, status: isMtcGameOpen ? 'hidden' : 'public' },
-                  isMtcGameOpen ? 'Đã ẨN cổng Mộng Thiên Cửu H5 khỏi khách thường!' : 'Đã HIỆN CÔNG KHAI cổng Mộng Thiên Cửu H5!'
-                )}
-                className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 ${isMtcGameOpen ? 'bg-rose-600 hover:bg-rose-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}
-              >
-                {isMtcGameOpen ? <><EyeOff size={15} /> Ẩn Khỏi Khách</> : <><Eye size={15} /> Bật Hiện Công Khai</>}
-              </button>
-            </div>
+        <MongThienCuuShowcase
+          rawApkUrl={rawApkUrl}
+          webPlayUrl="/play/"
+          version={mtcGameConfig?.version || '2.6.0-s0-beta'}
+          notice={sanitizeMtcShowcaseNotice(mtcGameConfig?.notice)}
+          isAdmin={currentUser?.role?.toLowerCase() === 'admin'}
+          isMtcGameOpen={isMtcGameOpen}
+          onTogglePublic={() => handleSaveMtcGameConfig(
+            { ...mtcGameConfig, status: isMtcGameOpen ? 'hidden' : 'public' },
+            isMtcGameOpen ? 'Đã ẨN trang Mộng Thiên Cửu khỏi khách thường!' : 'Đã HIỆN CÔNG KHAI trang Mộng Thiên Cửu!'
           )}
-
-          {/* 1. HERO BANNER + CỔNG TẢI APK CỐ ĐỊNH VĨNH VIỄN + CHƠI WEB H5 */}
-          <div className="relative rounded-3xl overflow-hidden border border-amber-500/40 bg-gradient-to-br from-[#151D2F] via-[#1b243c] to-[#0F172A] p-6 md:p-8 shadow-[0_0_45px_rgba(245,158,11,0.16)]">
-            <div className="absolute -top-24 -left-24 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-            <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center relative z-10">
-              <div className="lg:col-span-8 space-y-4">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/40 text-amber-300 font-black text-xs uppercase tracking-wider">
-                  <Flame size={14} className="text-orange-400 animate-pulse" /> Cổng Tải Cố Định &amp; Nạp Tự Động Mộng Thiên Cửu H5
-                </div>
-
-                <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-white">
-                  🐉 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400">MỘNG THIÊN CỬU H5</span>
-                </h1>
-
-                <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-2xl">
-                  {mtcGameConfig?.notice || 'Link tải APK cố định vĩnh viễn trên shoptiengaming.com — tự động dò tìm IP Tunnel mới nhất khi vào game, không cần tải lại mỗi khi đổi link!'}
-                </p>
-
-                <div className="flex flex-wrap items-center gap-3 pt-1">
-                  <a
-                    href={rawApkUrl}
-                    download="MongThienCuu_s0_beta_online.apk"
-                    className="px-5 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-[0_0_25px_rgba(16,185,129,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
-                  >
-                    <Download size={18} /> Tải APK Android Cố Định ({mtcGameConfig?.version || 'v2.5.6'})
-                  </a>
-
-                  {resolvedWebPlayUrl && (
-                    <a
-                      href={resolvedWebPlayUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-5 py-3.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-black text-sm rounded-2xl shadow-[0_0_25px_rgba(245,158,11,0.35)] transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
-                    >
-                      <Gamepad2 size={18} /> Chơi Ngay Trên Trình Duyệt (Web H5)
-                    </a>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => handleRefreshMtcTunnel(false)}
-                    className="px-4 py-3.5 bg-[#0B1120] hover:bg-slate-800 text-cyan-300 border border-cyan-500/40 rounded-2xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                    title="Cập nhật link máy chủ Cloud mới nhất"
-                  >
-                    <RefreshCw size={15} /> Làm Mới Link Server
-                  </button>
-                </div>
-
-                <div className="bg-[#0B1120]/80 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-slate-400 shrink-0">Link APK Cố Định:</span>
-                    <code className="text-emerald-400 font-mono truncate">{resolvedFullApkUrl}</code>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(resolvedFullApkUrl)}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer shrink-0"
-                  >
-                    <Copy size={12} /> Copy Link
-                  </button>
-                </div>
-              </div>
-
-              {/* QR CODE QUÉT TẢI NHANH BẰNG ĐIỆN THOẠI */}
-              <div className="lg:col-span-4 flex flex-col items-center justify-center bg-[#0B1120]/90 border border-slate-800 rounded-2xl p-5 text-center">
-                <div className="bg-white p-2.5 rounded-xl mb-3 shadow-lg">
-                  <img src={qrImageUrl} alt="QR Tải APK Mộng Thiên Cửu" className="w-36 h-36 object-contain" />
-                </div>
-                <p className="text-xs font-black text-white flex items-center gap-1.5 mb-1">
-                  <QrCode size={14} className="text-emerald-400" /> Quét QR Tải APK Nhanh
-                </p>
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Tải file APK về máy Android &rarr; Mở &amp; cấp quyền &quot;Cài từ nguồn này&quot; &rarr; Mở game tự động kết nối Server!
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* BANNER NỔI BẬT: ĐỒNG BỘ 100% TÀI KHOẢN & VÍ TIỀN (1 VÍ DUY NHẤT) */}
-          <div className="relative overflow-hidden rounded-2xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/60 via-[#151D2F] to-cyan-950/60 p-5 md:p-6 shadow-[0_0_30px_rgba(16,185,129,0.14)]">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="space-y-2 max-w-3xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/40 text-emerald-300 text-[11px] font-black uppercase tracking-wider">
-                  <Wallet size={13} className="text-emerald-400 shrink-0" />
-                  <span>Hệ Thống Liên Thông Shop &amp; Game</span>
-                </div>
-                <h2 className="text-base sm:text-lg font-black text-white leading-snug">
-                  🔗 ĐỒNG BỘ 100% TÀI KHOẢN &amp; VÍ TIỀN (1 VÍ DUY NHẤT)
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  Đăng ký &amp; đăng nhập trong game dùng chung tài khoản <strong className="text-white">Shop Tiến Gaming</strong>. Số dư Ví VNĐ trên web (<strong className="text-emerald-400">1.000đ = 1k trong game</strong>) hiển thị trực tiếp trong game để bấm mua mọi gói <strong className="text-amber-300">Linh Ngọc / Thẻ Tháng</strong> (<strong className="text-cyan-300">100% không qua CH Play / App Store</strong>).
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-2.5 shrink-0">
-                {currentUser && (
-                  <div className="text-xs font-bold text-slate-300 bg-[#0B1120]/90 px-3.5 py-2 rounded-xl border border-emerald-500/30 text-center">
-                    Số dư Ví hiện tại: <span className="text-emerald-400 font-black">{new Intl.NumberFormat('vi-VN').format(currentUser.balance || 0)}đ</span>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!currentUser) {
-                      sessionStorage.setItem('post_login_view', 'naptien');
-                      requireAuth('naptien');
-                      return;
-                    }
-                    requireAuth('naptien');
-                    setCurrentView('naptien');
-                  }}
-                  className="px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-xs sm:text-sm rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.35)] transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <QrCode size={16} />
-                  <span>Nạp Ví Bằng Mã QR / Thẻ Cào</span>
-                  <ArrowRight size={15} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* 2. GIẢI THÍCH CƠ CHẾ NẠP XU VÍ GAME (100% KHÔNG QUA CH PLAY / APP STORE) */}
-          <div className="bg-[#151D2F] border border-cyan-500/30 rounded-2xl p-5 md:p-6 shadow-xl">
-            <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2 mb-3">
-              <ShieldCheck className="text-emerald-400 shrink-0" size={20} />
-              Cơ Chế Nạp Tiền &amp; Quy Đổi Gói Trong Game (100% Không Qua CH Play / App Store)
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs sm:text-sm">
-              <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-4 space-y-1.5">
-                <p className="text-amber-400 font-black uppercase text-xs">Bước 1: Nạp Vào Số Dư Ví Game (rmb)</p>
-                <p className="text-slate-300 leading-relaxed">
-                  Khi mua pack trên Shop Tiến Gaming, hệ thống cộng thẳng tiền vào <strong className="text-white">Số Dư Ví Nền Tảng (Xu Ví Game)</strong> của tài khoản bạn theo tỉ lệ chuẩn <strong className="text-emerald-400">1k = 1.000đ</strong> (ví dụ mua gói 100k &rarr; có <strong className="text-emerald-400">100k</strong> trong Ví Game).
-                </p>
-              </div>
-              <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-4 space-y-1.5">
-                <p className="text-cyan-400 font-black uppercase text-xs">Bước 2: Quy Đổi Linh Ngọc &amp; Gói Quà</p>
-                <p className="text-slate-300 leading-relaxed">
-                  Vào game bấm vào <strong className="text-white">bất kỳ gói Linh Ngọc / Câu Ngọc</strong> (<span className="text-amber-300">20k = 80 Ngọc, 50k = 200 Ngọc, 100k = 400 Ngọc</span>) hoặc <strong className="text-white">Thẻ Tuần (40k), Thẻ Tháng (100k), Gói Săn Sale (5k/10k/20k), Gói Nạp Đầu</strong>.
-                </p>
-              </div>
-              <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-4 space-y-1.5">
-                <p className="text-emerald-400 font-black uppercase text-xs">Bước 3: Xác Nhận Popup Web Nội Bộ</p>
-                <p className="text-slate-300 leading-relaxed">
-                  Game sẽ mở <strong className="text-white">Popup Thanh Toán Web nội bộ</strong> (không bật Google CH Play hay Apple Store). Bạn chỉ cần bấm <strong className="text-emerald-400">&quot;Xác nhận mua&quot;</strong> là Ví Game tự trừ tiền &amp; phát gói ngay lập tức!
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. NHẬP TÀI KHOẢN GAME & CHỌN GÓI NẠP XU VÍ GAME */}
-          <div className="bg-[#151D2F] border border-slate-800 rounded-3xl p-5 md:p-7 shadow-2xl space-y-6">
-            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-5 border-b border-slate-800">
-              <div className="flex-1 space-y-2">
-                <label className="text-xs font-black uppercase tracking-wider text-amber-400 block">
-                  Số Điện Thoại (0...) / Email (@gmail.com) Hoặc UID Tài Khoản
-                </label>
-                <div className="flex flex-col sm:flex-row gap-2.5">
-                  <input
-                    type="text"
-                    value={mtcUsername}
-                    onChange={(e) => setMtcUsername(e.target.value)}
-                    placeholder="Ví dụ: 0912345678, tenban@gmail.com hoặc UID 9 số"
-                    className="flex-1 px-4 py-3 bg-[#0B1120] border border-slate-700 focus:border-amber-500 rounded-xl text-white font-bold text-sm outline-none"
-                  />
-                  <select
-                    value={mtcServerId}
-                    onChange={(e) => setMtcServerId(e.target.value)}
-                    className="px-4 py-3 bg-[#0B1120] border border-slate-700 rounded-xl text-amber-300 font-bold text-sm outline-none"
-                  >
-                    <option value="1">S1 - Mộng Thiên Cửu</option>
-                  </select>
-                  <button
-                    type="button"
-                    onClick={handleVerifyMtcAccount}
-                    disabled={isCheckingMtcAccount}
-                    className="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60 shrink-0"
-                  >
-                    {isCheckingMtcAccount ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                    <span>Kiểm Tra TK</span>
-                  </button>
-                </div>
-              </div>
-
-              {mtcAccountInfo && mtcAccountInfo.success && (
-                <div className="bg-emerald-500/10 border border-emerald-500/40 rounded-2xl px-4 py-3 flex items-center gap-4 text-xs">
-                  <CheckCircle2 size={24} className="text-emerald-400 shrink-0" />
-                  <div>
-                    <p className="text-white font-black">
-                      {mtcAccountInfo.nickname || mtcAccountInfo.username} <span className="text-slate-400 font-mono">(UID: {mtcAccountInfo.uid})</span>
-                    </p>
-                    <p className="text-emerald-400 font-bold mt-0.5">
-                      Số dư Ví hiện tại: {new Intl.NumberFormat('vi-VN').format((mtcAccountInfo.rmb || 0) * 1000)}đ {mtcAccountInfo.lv > 0 ? `• Lv.${mtcAccountInfo.lv}` : ''}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
-                <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
-                  <Gem className="text-amber-400" size={24} /> Chọn Gói Nạp Ví Game &amp; Linh Ngọc
-                </h2>
-                {currentUser && (
-                  <div className="text-xs font-bold text-slate-300 bg-[#0B1120] px-3.5 py-2 rounded-xl border border-slate-800">
-                    Ví Shop của bạn: <span className="text-emerald-400 font-black">{new Intl.NumberFormat('vi-VN').format(currentUser.balance || 0)}đ</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {MTC_GAME_PACKAGES.map((pkg) => (
-                  <div
-                    key={pkg.id}
-                    className="group relative bg-[#0B1120] border border-slate-800 hover:border-amber-500/60 rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 shadow-lg hover:shadow-[0_0_30px_rgba(245,158,11,0.18)]"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase text-white bg-gradient-to-r ${pkg.badgeColor} shadow-md`}>
-                          {pkg.badge}
-                        </span>
-                        <span className="text-xs font-mono font-black text-cyan-400">
-                          ≈ {new Intl.NumberFormat('vi-VN').format(pkg.jadeEquivalent)} Ngọc
-                        </span>
-                      </div>
-
-                      <h3 className="text-lg font-black text-white mb-1 group-hover:text-amber-300 transition-colors">
-                        {pkg.name}
-                      </h3>
-                      <p className="text-xs text-amber-400 font-bold mb-4">{pkg.subtitle}</p>
-
-                      <div className="space-y-2 mb-5 border-t border-slate-800/80 pt-3">
-                        {pkg.highlights.map((line, i) => (
-                          <div key={i} className="flex items-start gap-2 text-xs text-slate-300">
-                            <Check size={14} className="text-emerald-400 shrink-0 mt-0.5" />
-                            <span>{line}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-[10px] text-slate-400 uppercase font-bold">Giá Thanh Toán</p>
-                        <p className="text-lg font-black text-emerald-400">
-                          {new Intl.NumberFormat('vi-VN').format(pkg.price)}đ
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!currentUser) return requireAuth('login');
-                          if (!mtcUsername.trim()) {
-                            showToast('Vui lòng nhập Tên đăng nhập game ở ô phía trên trước khi bấm Nạp!', 'warning');
-                            return;
-                          }
-                          setSelectedMtcPackage(pkg);
-                        }}
-                        className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-xs font-black uppercase rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
-                      >
-                        <span>Nạp Ngay</span>
-                        <ArrowRight size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </main>
-
-        {/* MODAL XÁC NHẬN THANH TOÁN GÓI MỘNG THIÊN CỬU */}
-        {selectedMtcPackage && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-[#151D2F] border border-amber-500/40 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl">
-              <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-[#1A233A]">
-                <h3 className="text-base font-black text-white uppercase flex items-center gap-2">
-                  <Sparkles size={18} className="text-amber-400" /> Xác Nhận Nạp Ví Game
-                </h3>
-                <button type="button" onClick={() => setSelectedMtcPackage(null)} className="text-slate-400 hover:text-white">
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="p-5 space-y-4">
-                <div className="p-3.5 rounded-xl bg-[#0B1120] border border-slate-800 text-xs space-y-1.5">
-                  <p className="text-slate-400">Tài khoản game nhận: <strong className="text-amber-300 font-mono">{mtcUsername.trim()}</strong> (S{mtcServerId})</p>
-                  <p className="text-slate-400">Gói đã chọn: <strong className="text-white">{selectedMtcPackage.name}</strong></p>
-                  <p className="text-emerald-400 font-bold">• Cộng +{selectedMtcPackage.rmbAdd}k Số Dư Ví Game (Đổi ≈ {new Intl.NumberFormat('vi-VN').format(selectedMtcPackage.jadeEquivalent)} Linh Ngọc)</p>
-                  <p className="text-cyan-300 font-bold">• Thư tặng kèm: +{selectedMtcPackage.bonusBGold} Ngọc Khóa + {new Intl.NumberFormat('vi-VN').format(selectedMtcPackage.bonusCoin)} Đồng</p>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs space-y-1.5">
-                  <div className="flex justify-between text-slate-400">
-                    <span>Số dư ví Shop hiện tại:</span>
-                    <span className="font-bold text-white">{new Intl.NumberFormat('vi-VN').format(currentUser?.balance || 0)}đ</span>
-                  </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>Thanh toán:</span>
-                    <span className="font-bold text-rose-400">-{new Intl.NumberFormat('vi-VN').format(selectedMtcPackage.price)}đ</span>
-                  </div>
-                  <div className="border-t border-slate-800 pt-1.5 flex justify-between font-bold">
-                    <span>Số dư còn lại:</span>
-                    <span className={(currentUser?.balance || 0) >= selectedMtcPackage.price ? 'text-emerald-400' : 'text-rose-400'}>
-                      {new Intl.NumberFormat('vi-VN').format((currentUser?.balance || 0) - selectedMtcPackage.price)}đ
-                    </span>
-                  </div>
-                </div>
-
-                {(currentUser?.balance || 0) < selectedMtcPackage.price && (
-                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-400 flex items-center justify-between">
-                    <span>Số dư ví không đủ!</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedMtcPackage(null);
-                        setCurrentView('naptien');
-                      }}
-                      className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg"
-                    >
-                      Nạp Tiền Ví
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="p-5 border-t border-slate-800 bg-[#1A233A] flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSelectedMtcPackage(null)}
-                  className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-colors"
-                >
-                  Hủy Bỏ
-                </button>
-                <button
-                  type="button"
-                  disabled={isBuyingMtcPackage || (currentUser?.balance || 0) < selectedMtcPackage.price}
-                  onClick={() => executeBuyMtcPackage(selectedMtcPackage)}
-                  className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-black uppercase rounded-xl transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  {isBuyingMtcPackage ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                  <span>Xác Nhận Nạp</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL KẾT QUẢ NẠP MỘNG THIÊN CỬU H5 (THEO DÕI REALTIME BRIDGE) */}
-        {mtcSuccessModal && (
-          <div className="fixed inset-0 bg-black/85 backdrop-blur-lg z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-[#151D2F] border-2 border-amber-500/60 w-full max-w-md rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(245,158,11,0.3)] text-center p-6 sm:p-8">
-              <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center text-white shadow-lg mb-4">
-                {mtcSuccessModal.bridgeStatus === 'pending' ? <Loader2 size={32} className="animate-spin" /> : mtcSuccessModal.bridgeStatus === 'failed' ? <AlertCircle size={32} /> : <CheckCircle2 size={32} />}
-              </div>
-
-              <h3 className="text-xl font-black uppercase text-white mb-1">
-                {mtcSuccessModal.bridgeStatus === 'pending' ? '⏳ Đang Chuyển Xu Vào Game...' : mtcSuccessModal.bridgeStatus === 'failed' ? '⚠️ Lỗi Nạp (Đã Xử Lý Hoàn)' : '🎉 Đã Cộng Xu Ví Game Thành Công!'}
-              </h3>
-              <p className="text-amber-400 font-bold text-sm mb-4">
-                {mtcSuccessModal.pkg.name} ({new Intl.NumberFormat('vi-VN').format(mtcSuccessModal.pkg.price)}đ)
-              </p>
-
-              <div className="bg-[#0B1120] p-4 rounded-2xl border border-slate-800 text-xs text-slate-300 space-y-2 mb-6 text-left">
-                <p>Tài khoản game: <strong className="text-white font-mono">{mtcSuccessModal.targetUsername}</strong></p>
-                <p>Mã giao dịch: <strong className="text-amber-400 font-mono">{mtcSuccessModal.orderId}</strong></p>
-                {mtcSuccessModal.bridgeStatus === 'completed' && mtcSuccessModal.bridgeResult && (
-                  <div className="border-t border-slate-800 pt-2 text-emerald-400 font-bold space-y-1">
-                    <p>✓ Nhân vật: {mtcSuccessModal.bridgeResult.nickname || mtcSuccessModal.targetUsername}</p>
-                    <p>✓ Đã cộng +{mtcSuccessModal.bridgeResult.rmb_added}k Ví Game &rarr; Số dư Ví Game mới: {mtcSuccessModal.bridgeResult.new_rmb}k</p>
-                    <p className="text-cyan-300 font-normal">Vào game bấm bất kỳ gói Linh Ngọc / Thẻ Tháng và chọn &quot;Xác nhận mua&quot;!</p>
-                  </div>
-                )}
-                {mtcSuccessModal.bridgeStatus === 'failed' && (
-                  <div className="border-t border-slate-800 pt-2 text-rose-400 font-bold">
-                    {mtcSuccessModal.bridgeResult?.message || 'Không tìm thấy tài khoản trong server game!'}
-                  </div>
-                )}
-                {mtcSuccessModal.bridgeStatus === 'pending' && (
-                  <div className="border-t border-slate-800 pt-2 text-amber-300">
-                    Hệ thống Bridge đang cộng +{mtcSuccessModal.pkg.rmbAdd}k vào Số Dư Ví Game...
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setMtcSuccessModal(null)}
-                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-xs font-black uppercase rounded-xl shadow-lg cursor-pointer"
-              >
-                Đóng &amp; Tiếp Tục
-              </button>
-            </div>
-          </div>
-        )}
-
+          isWebPlayPublic={isMtcWebPlayPublic}
+          onToggleWebPlay={() => handleSaveMtcGameConfig(
+            { ...mtcGameConfig, webPlayStatus: isMtcWebPlayPublic ? 'hidden' : 'public' },
+            isMtcWebPlayPublic ? 'Đã ẨN nút Chơi Trên Web (chỉ nội bộ Admin dùng)!' : 'Đã HIỆN CÔNG KHAI nút Chơi Trên Web cho mọi người!'
+          )}
+        />
         {renderFooter()}
       </div>
     );
@@ -17259,13 +16653,13 @@ const App = () => {
       const files = Array.from(e.target.files);
       if (!files.length) return;
 
-      // Tối ưu hóa: Nén ảnh chất lượng cao (WebP, Full HD, Tối đa 1MB)
+      // Tối ưu hóa: Nén ảnh chất lượng cao (WebP, 1440px, Tối đa 0.35MB)
       const options = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1920,
+        maxSizeMB: 0.35,
+        maxWidthOrHeight: 1440,
         useWebWorker: true,
         fileType: "image/webp",
-        initialQuality: 0.9
+        initialQuality: 0.85
       };
 
       try {
@@ -17296,7 +16690,7 @@ const App = () => {
     const handleAccGameAvatarUpload = async (e) => {
       const file = e.target.files[0];
       if (file) {
-        const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true, fileType: "image/webp", initialQuality: 0.9 };
+        const options = { maxSizeMB: 0.35, maxWidthOrHeight: 1440, useWebWorker: true, fileType: "image/webp", initialQuality: 0.85 };
         try {
           const compressedFile = await imageCompression(file, options);
           const reader = new FileReader();
@@ -17321,13 +16715,13 @@ const App = () => {
       try {
         let finalCoverImage = adminCoverImage;
         if (finalCoverImage && finalCoverImage.startsWith('data:image/')) {
-          finalCoverImage = await uploadToImgBB(finalCoverImage);
+          finalCoverImage = await uploadToImgBB(finalCoverImage, 'accounts');
         }
 
         let finalDetailImages = [];
         for (let img of adminDetailImages) {
           if (img && img.startsWith('data:image/')) {
-            const url = await uploadToImgBB(img);
+            const url = await uploadToImgBB(img, 'accounts');
             finalDetailImages.push(url);
           } else {
             finalDetailImages.push(img);
@@ -17340,7 +16734,7 @@ const App = () => {
         let finalGameStr = JSON.stringify({ name: e.target.game.value, avatar: adminAccGameAvatar || null, isFeatured, allowQuantity, maxQuantityPerOrder });
         if (adminAccGameAvatar && adminAccGameAvatar.startsWith('data:image')) {
           setGlobalProgressText("Đang tải lên Avatar Game...");
-          const finalAvatar = await uploadToImgBB(adminAccGameAvatar);
+          const finalAvatar = await uploadToImgBB(adminAccGameAvatar, 'accounts');
           finalGameStr = JSON.stringify({ name: e.target.game.value, avatar: finalAvatar, isFeatured, allowQuantity, maxQuantityPerOrder });
         }
 
@@ -17457,7 +16851,7 @@ const App = () => {
             const img = imagesArray[i];
             setGlobalProgressText(`Đang xử lý và tải ảnh lên... (${i + 1}/${imagesArray.length})`);
             if (img.startsWith('data:image')) {
-              const url = await uploadToImgBB(img);
+              const url = await uploadToImgBB(img, 'boosting');
               uploadedImages.push(url);
             } else {
               uploadedImages.push(img);
@@ -17472,7 +16866,7 @@ const App = () => {
         if (adminGameAvatar) {
           if (adminGameAvatar.startsWith('data:image')) {
             setGlobalProgressText("Đang tải lên Avatar Game...");
-            finalGameAvatarUrl = await uploadToImgBB(adminGameAvatar);
+            finalGameAvatarUrl = await uploadToImgBB(adminGameAvatar, 'boosting');
           } else {
             finalGameAvatarUrl = adminGameAvatar;
           }
@@ -17563,13 +16957,13 @@ const App = () => {
     const handleBoostingImageUpload = async (e) => {
       const files = Array.from(e.target.files);
       if (files.length > 0) {
-        // Tối ưu hóa: Nén ảnh chất lượng cao (WebP, Full HD, Tối đa 1MB)
+        // Tối ưu hóa: Nén ảnh chất lượng cao (WebP, 1440px, Tối đa 0.35MB)
         const options = {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1920,
+          maxSizeMB: 0.35,
+          maxWidthOrHeight: 1440,
           useWebWorker: true,
           fileType: "image/webp",
-          initialQuality: 0.9
+          initialQuality: 0.85
         };
         try {
           const promises = files.map(file => new Promise(async (resolve) => {
@@ -17597,11 +16991,11 @@ const App = () => {
       const file = e.target.files[0];
       if (file) {
         const options = {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1920,
+          maxSizeMB: 0.35,
+          maxWidthOrHeight: 1440,
           useWebWorker: true,
           fileType: "image/webp",
-          initialQuality: 0.9
+          initialQuality: 0.85
         };
         try {
           const compressedFile = await imageCompression(file, options);
@@ -17619,13 +17013,13 @@ const App = () => {
     const handleWheelImageUpload = async (e) => {
       const file = e.target.files[0];
       if (file) {
-        // Tối ưu hóa: Nén ảnh chất lượng cao (WebP, Full HD, Tối đa 1MB)
+        // Tối ưu hóa: Nén ảnh chất lượng cao (WebP, 1440px, Tối đa 0.35MB)
         const options = {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1920,
+          maxSizeMB: 0.35,
+          maxWidthOrHeight: 1440,
           useWebWorker: true,
           fileType: "image/webp",
-          initialQuality: 0.9
+          initialQuality: 0.85
         };
         try {
           const compressedFile = await imageCompression(file, options);
@@ -17651,8 +17045,8 @@ const App = () => {
       try {
         let finalImage = adminWheelImage;
         if (adminWheelImage && adminWheelImage.startsWith('data:image')) {
-          showToast("Đang tải ảnh lên Server ImgBB...", "info");
-          finalImage = await uploadToImgBB(adminWheelImage);
+          showToast("Đang tối ưu & tải ảnh phần thưởng lên CDN...", "info");
+          finalImage = await uploadToImgBB(adminWheelImage, 'wheel');
         } else {
           showToast("Đang xử lý phần thưởng...", "info");
         }
@@ -17904,6 +17298,18 @@ const App = () => {
               >
                 {isMtcGameOpen ? <Eye size={14} /> : <EyeOff size={14} />}
                 <span>🐉 Mộng Thiên Cửu: {isMtcGameOpen ? 'Đang Hiện (Bấm Ẩn)' : 'Đang Ẩn (Bấm Hiện)'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSaveMtcGameConfig(
+                  { ...mtcGameConfig, webPlayStatus: isMtcWebPlayPublic ? 'hidden' : 'public' },
+                  isMtcWebPlayPublic ? 'Đã ẨN nút Chơi Trên Web (chỉ nội bộ Admin dùng)!' : 'Đã HIỆN CÔNG KHAI nút Chơi Trên Web cho mọi người!'
+                )}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer ${isMtcWebPlayPublic ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25' : 'bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/25'}`}
+                title="Bấm để Ẩn / Hiện chế độ Chơi Trên Web (/play/) cho khách"
+              >
+                {isMtcWebPlayPublic ? <Globe size={14} /> : <Lock size={14} />}
+                <span>🌐 Chơi Web MTC: {isMtcWebPlayPublic ? 'Đang Mở (Bấm Ẩn Nội Bộ)' : 'Đang Ẩn Nội Bộ (Bấm Mở)'}</span>
               </button>
             </div>
             <div className="flex bg-[#151D2F] p-1 md:p-1.5 rounded-xl border border-slate-800 whitespace-nowrap shadow-lg overflow-x-auto scrollbar-hide w-full">
@@ -19692,14 +19098,50 @@ const App = () => {
                   </div>
                 </div>
 
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0B1120] border border-cyan-500/30 p-5 rounded-2xl">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <Globe className="text-cyan-400" size={20} />
+                      <h3 className="text-base sm:text-lg font-black text-white">Chế Độ Chơi Trên Web (<span className="font-mono text-cyan-300">shoptiengaming.com/play</span>)</h3>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase ${isMtcWebPlayPublic ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'}`}>
+                        {isMtcWebPlayPublic ? '🌐 Đang Mở Công Khai' : '🔒 Chỉ Nội Bộ (Đang ẩn khỏi khách)'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      Khi đặt ở chế độ <strong className="text-amber-300">Chỉ Nội Bộ</strong>, nút &quot;Chơi Ngay Trên Web&quot; và link <span className="font-mono text-slate-300">/play/</span> bị ẩn khỏi khách thường (khách chỉ thấy nút tải APK Android), còn Admin vẫn dùng bình thường để test nội bộ.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleSaveMtcGameConfig(
+                        { ...mtcGameConfig, webPlayStatus: isMtcWebPlayPublic ? 'hidden' : 'public' },
+                        isMtcWebPlayPublic ? 'Đã ẨN nút Chơi Trên Web (chỉ nội bộ Admin dùng)!' : 'Đã HIỆN CÔNG KHAI nút Chơi Trên Web cho mọi người!'
+                      )}
+                      className={`px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-lg ${isMtcWebPlayPublic ? 'bg-rose-600 hover:bg-rose-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}
+                    >
+                      {isMtcWebPlayPublic ? <><Lock size={16} /> Ẩn Chơi Trên Web (Chỉ Nội Bộ)</> : <><Globe size={16} /> Mở Chơi Web Công Khai</>}
+                    </button>
+                    <a
+                      href="/play/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2.5 rounded-xl font-bold text-xs bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      🎮 Vào Chơi Web Nội Bộ (/play/)
+                    </a>
+                  </div>
+                </div>
+
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     handleSaveMtcGameConfig({
                       ...mtcGameConfig,
+                      webPlayStatus: mtcGameConfig?.webPlayStatus === 'public' ? 'public' : 'hidden',
                       apkUrl: e.target.apkUrl.value.trim() || '/download/MongThienCuu_s0_beta_online.apk',
-                      webPlayUrl: e.target.webPlayUrl.value.trim(),
-                      version: e.target.version.value.trim() || '2.5.6-s0-beta',
+                      webPlayUrl: e.target.webPlayUrl.value.trim() || 'https://shoptiengaming.com/play/',
+                      version: e.target.version.value.trim() || '2.6.0-s0-beta',
                       notice: e.target.notice.value.trim()
                     });
                   }}
@@ -19715,18 +19157,27 @@ const App = () => {
                       <RefreshCw size={13} /> Đồng Bộ Link Tunnel Live
                     </button>
                   </div>
+                  <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-4 py-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div>
+                      <span className="font-bold text-emerald-300">🌐 Địa chỉ chơi Web cố định: </span>
+                      <a href="/play/" target="_blank" rel="noopener noreferrer" className="font-mono font-bold text-white underline decoration-emerald-400/60 hover:text-emerald-200">
+                        https://shoptiengaming.com/play/
+                      </a>
+                      <span className="text-slate-300 ml-2">(tự động nối Tunnel đang live: <span className="font-mono text-cyan-300">{mtcServerRegistry?.server_url || mtcServerRegistry?.base_url || 'Đang chờ đồng bộ'}</span>)</span>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs text-slate-400 font-bold block mb-1">Link Tải APK Cố Định</label>
                       <input name="apkUrl" type="text" defaultValue={mtcGameConfig.apkUrl || '/download/MongThienCuu_s0_beta_online.apk'} className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-emerald-400 font-mono outline-none focus:border-emerald-500" />
                     </div>
                     <div>
-                      <label className="text-xs text-slate-400 font-bold block mb-1">Link Dự Phòng Web H5 (Tunnel đang live: {mtcServerRegistry?.server_url || 'Chưa đồng bộ'})</label>
-                      <input name="webPlayUrl" type="text" defaultValue={mtcGameConfig.webPlayUrl || ''} className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-cyan-300 font-mono outline-none focus:border-cyan-500" />
+                      <label className="text-xs text-slate-400 font-bold block mb-1">Địa Chỉ Chơi Web Cố Định (Tự nối Tunnel đang live: {mtcServerRegistry?.server_url || 'Chưa đồng bộ'})</label>
+                      <input name="webPlayUrl" type="text" defaultValue={mtcGameConfig.webPlayUrl || 'https://shoptiengaming.com/play/'} className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-cyan-300 font-mono outline-none focus:border-cyan-500" />
                     </div>
                     <div>
                       <label className="text-xs text-slate-400 font-bold block mb-1">Phiên Bản Hiển Thị</label>
-                      <input name="version" type="text" defaultValue={mtcGameConfig.version || '2.5.6-s0-beta'} className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white outline-none focus:border-blue-500" />
+                      <input name="version" type="text" defaultValue={mtcGameConfig.version || '2.6.0-s0-beta'} className="w-full p-3 bg-[#151D2F] border border-slate-700 rounded-lg text-sm text-white outline-none focus:border-blue-500" />
                     </div>
                     <div>
                       <label className="text-xs text-slate-400 font-bold block mb-1">Thông Báo Nhanh Ngoài Cổng Game</label>
