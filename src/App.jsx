@@ -994,6 +994,7 @@ const App = () => {
       bannerSubtitle: 'Lật bài săn Nón Huyền Thoại Phù Thủy - Chắc chắn trúng ở mốc 120 thẻ!'
     };
   });
+  const [wizardConfigLoaded, setWizardConfigLoaded] = useState(false);
 
   // --- CẤU HÌNH & STATE TRANG SHOWCASE MỘNG THIÊN CỬU ---
   const [mtcGameConfig, setMtcGameConfig] = useState(() => {
@@ -1420,33 +1421,41 @@ const App = () => {
 
   // --- LOGIC ẨN / HIỆN & PHÂN QUYỀN SỰ KIỆN PHÙ THỦY ---
   const isWizardEventOpen = useMemo(() => {
-    const status = wizardEventConfig?.status || 'auto';
+    if (!wizardConfigLoaded) return false;
+    const status = wizardEventConfig?.status || 'hidden';
+    if (status === 'hidden' || status === 'closed') return false;
     if (status === 'public') return true;
-    const targetMs = new Date(wizardEventConfig?.startTime || '2026-10-17T05:00:00+07:00').getTime();
-    // Tự động mở đúng 5h00 sáng ngày 17/10/2026 cho toàn bộ người chơi
-    if (currentEventNow >= targetMs) return true;
-    if (status === 'hidden') return false;
+    const targetMs = new Date(wizardEventConfig?.startTime || wizardEventConfig?.start_time || '2026-10-17T05:00:00+07:00').getTime();
+    // Chế độ 'auto': tự động mở khi đến/qua giờ hẹn startTime
+    if (status === 'auto' && !isNaN(targetMs) && currentEventNow >= targetMs) return true;
     return false;
-  }, [wizardEventConfig, currentEventNow]);
+  }, [wizardConfigLoaded, wizardEventConfig, currentEventNow]);
 
   const isWizardEventVisible = useMemo(() => {
-    if (currentUser?.role === 'admin') return true; // Admin luôn thấy nút để cấu hình & test
+    if (!wizardConfigLoaded) return false;
+    const status = wizardEventConfig?.status || 'hidden';
+    if (status === 'closed') return false; // Đóng hẳn toàn web (ẩn cả Admin trên menu)
+    if (currentUser?.role?.toLowerCase() === 'admin') return true; // Admin thấy kèm nhãn "Admin"/"Admin Test" khi hidden/auto
     return isWizardEventOpen;
-  }, [currentUser?.role, isWizardEventOpen]);
+  }, [wizardConfigLoaded, wizardEventConfig?.status, currentUser?.role, isWizardEventOpen]);
 
   const isWizardEventAccessible = useMemo(() => {
-    if (currentUser?.role === 'admin') return true; // Admin luôn có quyền truy cập
+    if (!wizardConfigLoaded) return false;
+    const status = wizardEventConfig?.status || 'hidden';
+    if (status === 'closed') return false;
+    if (currentUser?.role?.toLowerCase() === 'admin') return true;
     return isWizardEventOpen;
-  }, [currentUser?.role, isWizardEventOpen]);
+  }, [wizardConfigLoaded, wizardEventConfig?.status, currentUser?.role, isWizardEventOpen]);
 
   useEffect(() => {
+    if (!wizardConfigLoaded) return;
     if (currentView === 'wizard' && !isWizardEventAccessible) {
       if (typeof showToast === 'function') {
-        showToast('Sự kiện Lật Thẻ Bài Phù Thủy chưa mở hoặc đang tạm bảo trì!', 'warning');
+        showToast('Sự kiện Lật Thẻ Bài Phù Thủy chưa mở hoặc đang tạm ẩn!', 'warning');
       }
       setCurrentView('dashboard');
     }
-  }, [currentView, isWizardEventAccessible]);
+  }, [wizardConfigLoaded, currentView, isWizardEventAccessible]);
 
   // --- LOGIC ẨN / HIỆN CỔNG GAME MỘNG THIÊN CỬU H5 ---
   const isMtcGameOpen = useMemo(() => mtcGameConfig?.status === 'public', [mtcGameConfig?.status]);
@@ -1882,6 +1891,7 @@ const App = () => {
           }
         } finally {
           setWheelConfigLoaded(true);
+          setWizardConfigLoaded(true);
           setMtcConfigLoaded(true);
         }
       })();
@@ -3749,7 +3759,7 @@ const App = () => {
               >
                 {item.isWizard && <Sparkles size={14} className="text-amber-300 shrink-0 animate-spin" style={{ animationDuration: '4s' }} />}
                 <span>{item.name}</span>
-                {item.isWizard && !isWizardEventOpen && currentUser?.role === 'admin' && (
+                {item.isWizard && !isWizardEventOpen && currentUser?.role?.toLowerCase() === 'admin' && (
                   <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1 py-0.5 rounded border border-amber-500/30">Admin</span>
                 )}
                 {item.isMtcGame && !isMtcGameOpen && currentUser?.role === 'admin' && (

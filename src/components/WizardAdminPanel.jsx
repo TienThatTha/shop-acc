@@ -8,6 +8,22 @@ import { supabase } from '../supabaseClient';
 import allGameItems from '../all_game_items.json';
 import { LEGENDARY_HAT_IMG } from '../hatAsset';
 
+const formatWizardDateTimeLocal = (raw) => {
+  if (!raw) return '2026-10-17T05:00';
+  const str = String(raw);
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(str) && (str.includes('+07:00') || !str.endsWith('Z'))) {
+    return str.slice(0, 16);
+  }
+  try {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const vn = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+      return vn.toISOString().slice(0, 16);
+    }
+  } catch (e) {}
+  return '2026-10-17T05:00';
+};
+
 const DEFAULT_WIZARD_ITEMS = [
   {
     id: 'hat_wizard_legendary',
@@ -146,16 +162,28 @@ export default function WizardAdminPanel(props) {
 
   // Event settings state
   const [eventStatus, setEventStatus] = useState(wizardEventConfig?.status || 'hidden');
-  const [startTime, setStartTime] = useState(() => {
-    if (wizardEventConfig?.start_time || wizardEventConfig?.startTime) {
-      try {
-        const d = new Date(wizardEventConfig.start_time || wizardEventConfig.startTime);
-        return d.toISOString().slice(0, 16);
-      } catch (e) {}
-    }
-    return '2026-10-17T05:00';
-  });
+  const [startTime, setStartTime] = useState(() =>
+    formatWizardDateTimeLocal(wizardEventConfig?.start_time || wizardEventConfig?.startTime)
+  );
   const [pityThreshold, setPityThreshold] = useState(wizardEventConfig?.pity_threshold || wizardEventConfig?.pityTarget || 120);
+
+  useEffect(() => {
+    if (wizardEventConfig?.status) {
+      setEventStatus(wizardEventConfig.status);
+    }
+    if (wizardEventConfig?.start_time || wizardEventConfig?.startTime) {
+      setStartTime(formatWizardDateTimeLocal(wizardEventConfig.start_time || wizardEventConfig.startTime));
+    }
+    if (wizardEventConfig?.pity_threshold !== undefined || wizardEventConfig?.pityTarget !== undefined) {
+      setPityThreshold(wizardEventConfig.pity_threshold || wizardEventConfig.pityTarget || 120);
+    }
+  }, [
+    wizardEventConfig?.status,
+    wizardEventConfig?.startTime,
+    wizardEventConfig?.start_time,
+    wizardEventConfig?.pityTarget,
+    wizardEventConfig?.pity_threshold
+  ]);
 
   // Item editing modal state
   const [showItemModal, setShowItemModal] = useState(false);
@@ -412,6 +440,7 @@ export default function WizardAdminPanel(props) {
               <option value="auto">⏰ Tự động theo giờ (Mở vào 05:00 sáng mai)</option>
               <option value="public">🟢 Luôn bật (Công khai toàn bộ người chơi)</option>
               <option value="hidden">🔴 Đang ẩn (Chỉ Admin thấy để test)</option>
+              <option value="closed">⛔ Đã kết thúc (Tắt hẳn toàn web)</option>
             </select>
           </div>
 
