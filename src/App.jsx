@@ -937,7 +937,7 @@ const App = () => {
           spinCost: parsed.spinCost || 1,
           ticketPrice: parsed.ticketPrice || 20000,
           ticketSaleEnabled: parsed.ticketSaleEnabled !== false,
-          status: parsed.status || 'active',
+          status: parsed.status || 'closed',
           startTime: parsed.startTime || '2026-10-15T00:00:00+07:00',
           endTime: parsed.endTime || '2026-10-31T23:59:59+07:00',
           pityTarget: parsed.pityTarget !== undefined ? Number(parsed.pityTarget) : 120
@@ -949,12 +949,13 @@ const App = () => {
       spinCost: 1,
       ticketPrice: 20000,
       ticketSaleEnabled: true,
-      status: 'active',
+      status: 'closed',
       startTime: '2026-10-15T00:00:00+07:00',
       endTime: '2026-10-31T23:59:59+07:00',
       pityTarget: 120
     };
   });
+  const [wheelConfigLoaded, setWheelConfigLoaded] = useState(false);
 
   const [showBuyTicketModal, setShowBuyTicketModal] = useState(false);
   const [buyTicketQty, setBuyTicketQty] = useState(1);
@@ -1344,30 +1345,33 @@ const App = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const isWheelEventExpired = useMemo(() => {
-    const status = wheelConfig?.status || 'active';
-    const isAdmin = currentUser?.role === 'admin';
-
-    // 1. Trạng thái ẩn: Người thường bị chặn / coi như đóng, Admin vẫn thấy và test được
-    if (status === 'hidden') {
-      return !isAdmin;
-    }
-    // 2. Trạng thái đóng vĩnh viễn:
-    if (status === 'closed') {
-      return !isAdmin;
-    }
-    // 3. Trạng thái tự động theo lịch:
+  // Chỉ true khi đã tải xong wheel_config từ DB và sự kiện thực sự đang mở công khai cho khách
+  const isWheelEventPublicOpen = useMemo(() => {
+    if (!wheelConfigLoaded) return false;
+    const status = wheelConfig?.status || 'closed';
+    if (status === 'hidden' || status === 'closed') return false;
     if (status === 'auto') {
-      if (currentEventNow < WHEEL_EVENT_START_TIME) return !isAdmin; // Chưa bắt đầu
-      if (currentEventNow >= WHEEL_EVENT_END_TIME) return true; // Đã quá hạn
-      return false;
+      return currentEventNow >= WHEEL_EVENT_START_TIME && currentEventNow < WHEEL_EVENT_END_TIME;
     }
-    // 4. Trạng thái đang mở (active): Chỉ đóng khi quá hạn endTime
-    if (currentEventNow >= WHEEL_EVENT_END_TIME) {
-      return !isAdmin;
-    }
+    // status === 'active': chỉ mở khi chưa quá hạn endTime
+    return currentEventNow < WHEEL_EVENT_END_TIME;
+  }, [wheelConfigLoaded, currentEventNow, WHEEL_EVENT_START_TIME, WHEEL_EVENT_END_TIME, wheelConfig?.status]);
+
+  // Chỉ cho Admin xem trước (kèm badge "Ẩn") khi đặt chế độ "hidden" hoặc "auto" chưa tới giờ mở.
+  // Khi đặt "closed" (Đóng Sự Kiện) hoặc đã quá hạn -> ẩn hoàn toàn cho cả Admin lẫn khách.
+  const isWheelAdminPreview = useMemo(() => {
+    if (!wheelConfigLoaded) return false;
+    const isAdmin = currentUser?.role?.toLowerCase() === 'admin';
+    if (!isAdmin || isWheelEventPublicOpen) return false;
+    const status = wheelConfig?.status || 'closed';
+    if (status === 'hidden') return true;
+    if (status === 'auto' && currentEventNow < WHEEL_EVENT_START_TIME) return true;
     return false;
-  }, [currentEventNow, WHEEL_EVENT_START_TIME, WHEEL_EVENT_END_TIME, wheelConfig?.status, currentUser?.role]);
+  }, [wheelConfigLoaded, currentUser?.role, isWheelEventPublicOpen, wheelConfig?.status, currentEventNow, WHEEL_EVENT_START_TIME]);
+
+  const isWheelEventExpired = useMemo(() => {
+    return !(isWheelEventPublicOpen || isWheelAdminPreview);
+  }, [isWheelEventPublicOpen, isWheelAdminPreview]);
 
   const wheelCountdown = useMemo(() => {
     const isUpcoming = currentEventNow < WHEEL_EVENT_START_TIME;
@@ -1396,11 +1400,14 @@ const App = () => {
   }, [wheelItemsMoneyDb, wheelItemsSpinDb]);
 
   useEffect(() => {
+    if (!wheelConfigLoaded) return;
     if (currentView === 'vongquay' && (!hasActiveWheelRewards || isWheelEventExpired)) {
       if (isWheelEventExpired && typeof showToast === 'function') {
-        const status = wheelConfig?.status || 'active';
+        const status = wheelConfig?.status || 'closed';
         if (status === 'hidden') {
           showToast("Sự kiện Vòng Quay May Mắn hiện đang tạm ẩn để bảo trì!", "info");
+        } else if (status === 'closed') {
+          showToast("Sự kiện Vòng Quay May Mắn hiện đã đóng!", "info");
         } else if (currentEventNow < WHEEL_EVENT_START_TIME) {
           showToast("Sự kiện Vòng Quay May Mắn chưa đến thời gian mở!", "info");
         } else {
@@ -1409,7 +1416,7 @@ const App = () => {
       }
       setCurrentView('dashboard');
     }
-  }, [currentView, hasActiveWheelRewards, isWheelEventExpired, wheelConfig?.status, currentEventNow, WHEEL_EVENT_START_TIME]);
+  }, [wheelConfigLoaded, currentView, hasActiveWheelRewards, isWheelEventExpired, wheelConfig?.status, currentEventNow, WHEEL_EVENT_START_TIME]);
 
   // --- LOGIC ẨN / HIỆN & PHÂN QUYỀN SỰ KIỆN PHÙ THỦY ---
   const isWizardEventOpen = useMemo(() => {
@@ -1691,14 +1698,14 @@ const App = () => {
 
   // 1. Kích hoạt bảng Trang Chủ (Sảnh chính)
   useEffect(() => {
-    if (currentView === 'dashboard' && !dismissNotice && hasActiveWheelRewards && !isWheelEventExpired) {
+    if (currentView === 'dashboard' && !dismissNotice && hasActiveWheelRewards && isWheelEventPublicOpen) {
       // Đợi 0.3s cho web load xong giao diện rồi mới nảy bảng lên (Tránh bị React nuốt lệnh)
       const timer = setTimeout(() => setShowSpinNotice(true), 300);
       return () => clearTimeout(timer);
     } else {
-      setShowSpinNotice(false); // Chuyển sang tab khác là tự động dọn dẹp (tắt bảng)
+      setShowSpinNotice(false); // Chuyển sang tab khác hoặc khi sự kiện ẩn/đóng là tự động tắt bảng
     }
-  }, [currentView, dismissNotice, hasActiveWheelRewards, isWheelEventExpired]);
+  }, [currentView, dismissNotice, hasActiveWheelRewards, isWheelEventPublicOpen]);
 
   // 2. Kích hoạt bảng Vòng Quay
   useEffect(() => {
@@ -1837,7 +1844,11 @@ const App = () => {
 
           const wheelVal = cfgMap.get('wheel_config');
           if (wheelVal) {
-            setWheelConfig(prev => ({ ...prev, ...wheelVal }));
+            setWheelConfig(prev => {
+              const merged = { ...prev, ...wheelVal };
+              try { localStorage.setItem('shop_wheel_config', JSON.stringify(merged)); } catch (e) {}
+              return merged;
+            });
           }
 
           const wzCfgVal = cfgMap.get('wizard_event_config');
@@ -1870,6 +1881,7 @@ const App = () => {
             try { setDepositBonusConfig(JSON.parse(savedDepositConfig)); } catch (ignore) {}
           }
         } finally {
+          setWheelConfigLoaded(true);
           setMtcConfigLoaded(true);
         }
       })();
@@ -3512,7 +3524,13 @@ const App = () => {
                 }
               }] : []),
               { name: 'Dịch Vụ Cày Thuê', view: 'caythue', auth: false, icon: <Target size={20} /> },
-              ...(hasActiveWheelRewards && !isWheelEventExpired ? [{ name: 'Vòng Quay May Mắn', view: 'vongquay', auth: false, icon: <Gift size={20} /> }] : []),
+              ...(hasActiveWheelRewards && !isWheelEventExpired ? [{
+                name: 'Vòng Quay May Mắn',
+                view: 'vongquay',
+                auth: false,
+                icon: <Gift size={20} />,
+                ...(isWheelAdminPreview ? { badge: 'Ẩn' } : {})
+              }] : []),
               ...(isWizardEventVisible ? [{
                 name: 'Sự kiện phù thủy',
                 view: 'wizard',
@@ -3693,7 +3711,7 @@ const App = () => {
                 auth: true
               },
               { name: 'Cày Thuê', view: 'caythue', auth: false },
-              ...(hasActiveWheelRewards && !isWheelEventExpired ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false }] : []),
+              ...(hasActiveWheelRewards && !isWheelEventExpired ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false, isWheel: true }] : []),
               ...(isWizardEventVisible ? [{
                 name: 'Sự kiện phù thủy',
                 view: 'wizard',
@@ -3735,6 +3753,9 @@ const App = () => {
                   <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1 py-0.5 rounded border border-amber-500/30">Admin</span>
                 )}
                 {item.isMtcGame && !isMtcGameOpen && currentUser?.role === 'admin' && (
+                  <span className="text-[9px] bg-rose-500/20 text-rose-300 px-1 py-0.5 rounded border border-rose-500/30">Ẩn</span>
+                )}
+                {item.isWheel && isWheelAdminPreview && (
                   <span className="text-[9px] bg-rose-500/20 text-rose-300 px-1 py-0.5 rounded border border-rose-500/30">Ẩn</span>
                 )}
               </button>
@@ -5970,7 +5991,7 @@ const App = () => {
                     >
                       💳 HỖ TRỢ NẠP THẺ CÀO TỰ ĐỘNG
                     </div>
-                    {hasActiveWheelRewards && !isWheelEventExpired && (
+                    {hasActiveWheelRewards && isWheelEventPublicOpen && (
                       <div
                         onClick={() => setCurrentView('vongquay')}
                         className="inline-flex items-center gap-1.5 px-4 py-1 bg-gradient-to-r from-rose-500/30 via-pink-500/30 to-amber-500/30 text-amber-300 font-extrabold text-xs rounded-full border border-rose-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(244,63,94,0.4)] cursor-pointer hover:scale-105 transition-all animate-pulse"
@@ -18604,7 +18625,7 @@ const App = () => {
                           try {
                             await supabase.from('site_config').upsert({ id: 'wheel_config', value: newConfig });
                           } catch (e) {}
-                          showToast("Đã TẮT / ĐÓNG sự kiện Vòng Quay May Mắn!", "info");
+                          showToast("Đã TẮT / ĐÓNG hẳn sự kiện Vòng Quay May Mắn trên toàn website!", "info");
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
                           wheelConfig.status === 'closed'
@@ -18619,6 +18640,7 @@ const App = () => {
 
                   {/* FORM CẤU HÌNH CHI TIẾT */}
                   <form
+                    key={wheelConfig.updated_at || wheelConfig.status || 'wheel-form'}
                     onSubmit={async (e) => {
                       e.preventDefault();
                       const form = e.target;
@@ -18662,13 +18684,13 @@ const App = () => {
                         </label>
                         <select
                           name="status"
-                          defaultValue={wheelConfig.status || 'active'}
+                          defaultValue={wheelConfig.status || 'closed'}
                           className="w-full p-3 bg-[#151D2F] border border-amber-500/40 rounded-xl text-sm font-bold text-amber-300 outline-none focus:border-amber-400 transition-colors"
                         >
                           <option value="active">🟢 Luôn Mở (Khách quay bình thường)</option>
                           <option value="hidden">🔴 Đang Ẩn (Chỉ Admin thấy để test)</option>
                           <option value="auto">⏰ Tự Động (Theo giờ Bắt đầu & Kết thúc)</option>
-                          <option value="closed">⛔ Đã Kết Thúc (Tắt sự kiện)</option>
+                          <option value="closed">⛔ Đã Kết Thúc (Tắt hẳn toàn web)</option>
                         </select>
                         <span className="text-[11px] text-slate-400 block mt-1">
                           Nút ẩn/mở sự kiện toàn website
