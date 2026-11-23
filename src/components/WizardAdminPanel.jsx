@@ -1,5 +1,5 @@
 // -*- coding: utf-8 -*-
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Sparkles, Crown, PlusCircle, Trash2, Edit3, Save, Clock, 
   Search, Filter, Image as ImageIcon, Check, X, Shield, RefreshCw 
@@ -20,7 +20,7 @@ const formatWizardDateTimeLocal = (raw) => {
       const vn = new Date(d.getTime() + 7 * 60 * 60 * 1000);
       return vn.toISOString().slice(0, 16);
     }
-  } catch (e) {}
+  } catch { /* ignore */ }
   return '2026-10-17T05:00';
 };
 
@@ -147,12 +147,18 @@ export default function WizardAdminPanel(props) {
     ? propItems
     : ((Array.isArray(rewards) && rewards.length > 0) ? rewards : DEFAULT_WIZARD_ITEMS);
 
-  const [wizardItems, setLocalWizardItems] = useState(initialItems);
+  const [localWizardItems, setLocalWizardItems] = useState(initialItems);
+  const [prevPropItems, setPrevPropItems] = useState(propItems);
+  const [prevRewards, setPrevRewards] = useState(rewards);
 
-  useEffect(() => {
+  if (propItems !== prevPropItems || rewards !== prevRewards) {
+    setPrevPropItems(propItems);
+    setPrevRewards(rewards);
     if (Array.isArray(propItems) && propItems.length > 0) setLocalWizardItems(propItems);
     else if (Array.isArray(rewards) && rewards.length > 0) setLocalWizardItems(rewards);
-  }, [propItems, rewards]);
+  }
+
+  const wizardItems = localWizardItems;
 
   const setWizardItems = (newList) => {
     setLocalWizardItems(newList);
@@ -166,8 +172,19 @@ export default function WizardAdminPanel(props) {
     formatWizardDateTimeLocal(wizardEventConfig?.start_time || wizardEventConfig?.startTime)
   );
   const [pityThreshold, setPityThreshold] = useState(wizardEventConfig?.pity_threshold || wizardEventConfig?.pityTarget || 120);
+  const [prevConfigSig, setPrevConfigSig] = useState(() => JSON.stringify({
+    status: wizardEventConfig?.status,
+    start: wizardEventConfig?.start_time || wizardEventConfig?.startTime,
+    pity: wizardEventConfig?.pity_threshold ?? wizardEventConfig?.pityTarget
+  }));
 
-  useEffect(() => {
+  const currentConfigSig = JSON.stringify({
+    status: wizardEventConfig?.status,
+    start: wizardEventConfig?.start_time || wizardEventConfig?.startTime,
+    pity: wizardEventConfig?.pity_threshold ?? wizardEventConfig?.pityTarget
+  });
+  if (currentConfigSig !== prevConfigSig) {
+    setPrevConfigSig(currentConfigSig);
     if (wizardEventConfig?.status) {
       setEventStatus(wizardEventConfig.status);
     }
@@ -177,13 +194,7 @@ export default function WizardAdminPanel(props) {
     if (wizardEventConfig?.pity_threshold !== undefined || wizardEventConfig?.pityTarget !== undefined) {
       setPityThreshold(wizardEventConfig.pity_threshold || wizardEventConfig.pityTarget || 120);
     }
-  }, [
-    wizardEventConfig?.status,
-    wizardEventConfig?.startTime,
-    wizardEventConfig?.start_time,
-    wizardEventConfig?.pityTarget,
-    wizardEventConfig?.pity_threshold
-  ]);
+  }
 
   // Item editing modal state
   const [showItemModal, setShowItemModal] = useState(false);
@@ -407,7 +418,7 @@ export default function WizardAdminPanel(props) {
 
     try {
       await supabase.from('site_config').upsert({ id: 'wizard_card_items', value: sample });
-    } catch (err) {}
+    } catch { /* ignore */ }
 
     if (typeof showToast === 'function') {
       showToast("Đã cài đặt 8 phần thưởng mẫu chuẩn Sự Kiện Phù Thủy thành công!", "success");

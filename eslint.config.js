@@ -26,4 +26,10 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  {
+    files: ['src/utils/cdnAsset.js'],
+    rules: {
+      'no-setter-return': 'off',
+    },
+  },
 ])

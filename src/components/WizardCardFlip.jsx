@@ -1,5 +1,5 @@
 // -*- coding: utf-8 -*-
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { 
   Sparkles, Gift, Crown, Shield, Zap, Clock, Flame, Check, X, 
   ChevronRight, Info, History, Trophy, RefreshCw, AlertCircle, ArrowRight
@@ -107,8 +107,12 @@ const DEFAULT_WIZARD_ITEMS = [
   }
 ];
 
+const pickRandomIndex = (length) => Math.floor(Math.random() * length);
+const createWizardTxId = () => `WIZ_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+const createWizardOrderId = () => `WO_WIZ_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
 // Helper phân tích và ánh xạ hình ảnh vật phẩm chuẩn xác cho từng bản ghi lịch sử lật bài
-export const getRewardInfo = (actionStr, customReward = null, wizardItemsList = []) => {
+const getRewardInfo = (actionStr, customReward = null, wizardItemsList = []) => {
   if (customReward && customReward.image) {
     return {
       name: customReward.name || 'Phần thưởng',
@@ -137,7 +141,7 @@ export const getRewardInfo = (actionStr, customReward = null, wizardItemsList = 
 
   // 2. Hồng Thạch (Ruby)
   if (lower.includes('hồng thạch') || lower.includes('ruby')) {
-    const matchQty = act.match(/(\d+[\.\d]*)\s*hồng thạch/i);
+    const matchQty = act.match(/(\d+[.\d]*)\s*hồng thạch/i);
     const qty = matchQty ? matchQty[1] : '500';
     return {
       name: `${qty} Hồng Thạch (Ruby)`,
@@ -151,7 +155,7 @@ export const getRewardInfo = (actionStr, customReward = null, wizardItemsList = 
 
   // 3. Xu Nâng Cấp
   if (lower.includes('xu nâng cấp') || (lower.includes('xu') && !lower.includes('hồng thạch'))) {
-    const matchQty = act.match(/(\d+[\.\d]*)\s*xu/i);
+    const matchQty = act.match(/(\d+[.\d]*)\s*xu/i);
     const qty = matchQty ? matchQty[1] : '50.000';
     return {
       name: `${qty} Xu Nâng Cấp`,
@@ -165,7 +169,7 @@ export const getRewardInfo = (actionStr, customReward = null, wizardItemsList = 
 
   // 4. Lượt Đánh Boss
   if (lower.includes('lượt đánh') || lower.includes('đánh boss') || lower.includes('atk')) {
-    const matchQty = act.match(/(\d+[\.\d]*)\s*lượt/i);
+    const matchQty = act.match(/(\d+[.\d]*)\s*lượt/i);
     const qty = matchQty ? `+${matchQty[1]}` : '+50.000';
     return {
       name: `${qty} Lượt Đánh Boss`,
@@ -325,7 +329,6 @@ export const getRewardInfo = (actionStr, customReward = null, wizardItemsList = 
 export default function WizardCardFlip(props) {
   const {
     currentUser,
-    currentEventNow,
     wizardEventConfig: propConfig,
     config,
     wizardItems: propItems,
@@ -339,11 +342,8 @@ export default function WizardCardFlip(props) {
     transactionsDb = [],
     setTransactionsDb = () => {},
     onAddTransaction,
-    usersDb = [],
     setUsersDb = () => {},
-    onUpdateUser,
-    onOpenDeposit,
-    onOpenHistory
+    onUpdateUser
   } = props;
 
   const wizardPity = Number(propPity !== undefined && propPity !== null ? propPity : (currentUser?.wizard_pity || 0));
@@ -357,7 +357,6 @@ export default function WizardCardFlip(props) {
 
   const [isFlipping, setIsFlipping] = useState(false);
   const isFlippingRef = useRef(false);
-  const [flipCount, setFlipCount] = useState(1); // 1 or 10
   const [activeTab, setActiveTab] = useState('arena'); // 'arena' | 'rules' | 'history' | 'winners'
   
   const CARD_BACK_IMG = '/wizard_card_back.jpg';
@@ -372,10 +371,6 @@ export default function WizardCardFlip(props) {
       isPityTrigger: false
     }))
   );
-
-  // x10 modal state
-  const [x10Results, setX10Results] = useState([]);
-  const [showX10Modal, setShowX10Modal] = useState(false);
 
   // Function to reset / reshuffle all 10 cards face-down
   const handleResetTable = () => {
@@ -402,36 +397,24 @@ export default function WizardCardFlip(props) {
         audio.volume = 0.6;
         audio.play().catch(() => {});
       }
-    } catch (e) {}
+    } catch { /* ignore */ }
   };
 
   const pityThreshold = wizardEventConfig?.pity_threshold || wizardEventConfig?.pityTarget || 120;
   const currentSpins = Number(currentUser?.spins || 0);
 
-  // Identify the special grand prize (Nón Huyền Thoại)
-  const specialItem = useMemo(() => {
-    return (wizardItems || []).find(it => 
-      it && (
-        it.is_special || 
-        it.isLegendary ||
-        it.type === 'game_hat_legendary' || 
-        it.type === 'hat' ||
-        it.id === 'hat_wizard_legendary' ||
-        (it.name && it.name.toLowerCase().includes('nón'))
-      )
-    ) || DEFAULT_WIZARD_ITEMS[0];
-  }, [wizardItems]);
-
   // Recent flip history from transactions
+  const currentUserName = currentUser?.name;
+  const currentUserRole = currentUser?.role;
   const personalHistory = useMemo(() => {
-    if (!currentUser?.name) return [];
+    if (!currentUserName) return [];
     return (transactionsDb || [])
       .filter(t => {
-        if (!t || t.user !== currentUser.name) return false;
+        if (!t || t.user !== currentUserName) return false;
         const isWizardTx = t.type === 'wizard_card_win' || (t.action && t.action.includes('Lật Thẻ Phù Thủy'));
         if (!isWizardTx) return false;
         // Loại bỏ triệt để mọi bản ghi test cũ của Admin nếu còn lưu trong local cache trình duyệt
-        if (currentUser.role === 'admin' || currentUser.name === 'Admin') {
+        if (currentUserRole === 'admin' || currentUserName === 'Admin') {
           if (t.id?.startsWith('WIZ_179213') || t.id?.startsWith('WIZ10') || t.date?.includes('16/10/2026')) {
             return false;
           }
@@ -439,7 +422,7 @@ export default function WizardCardFlip(props) {
         return true;
       })
       .slice(0, 50);
-  }, [transactionsDb, currentUser?.name, currentUser?.role]);
+  }, [transactionsDb, currentUserName, currentUserRole]);
 
   // Legendary hat winners leaderboard
   const specialWinners = useMemo(() => {
@@ -495,10 +478,10 @@ export default function WizardCardFlip(props) {
             isHat: false,
             isPityTrigger: false
           })));
-          chosenIdx = Math.floor(Math.random() * 10);
+          chosenIdx = pickRandomIndex(10);
         } else {
           // Chọn ngẫu nhiên trong danh sách thẻ đang úp
-          chosenIdx = unflippedIndices[Math.floor(Math.random() * unflippedIndices.length)];
+          chosenIdx = unflippedIndices[pickRandomIndex(unflippedIndices.length)];
         }
       } else {
         // Bấm trực tiếp vào thẻ
@@ -522,7 +505,6 @@ export default function WizardCardFlip(props) {
 
     isFlippingRef.current = true;
     setIsFlipping(true);
-    setFlipCount(count);
 
     playSound('chestOpenSound');
 
@@ -560,7 +542,7 @@ export default function WizardCardFlip(props) {
 
       // 2. GHI NHẬN LỊCH SỬ GIAO DỊCH LÊN GIAO DIỆN CLIENT
       const nowStr = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
-      const txId = `WIZ_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const txId = createWizardTxId();
       const txAction = count === 1 
         ? `Lật Thẻ Phù Thủy: ${wonItems[0]?.name || 'Vật phẩm'}${wonItems[0]?.is_pity_trigger ? ' (Nổ Bảo Hiểm 120/120!)' : ''}`
         : `Lật Thẻ Phù Thủy x10 (10 Thẻ)${hadHatWin ? ' - 🧙 Trúng Nón Huyền Thoại!' : ''}`;
@@ -589,7 +571,7 @@ export default function WizardCardFlip(props) {
       // 3. TỰ ĐỘNG GỬI VẬT PHẨM VÀO SUPABASE GAME_ORDERS CHO IN-GAME (main.py -> game_core.py)
       const targetGameUid = currentUser.linked_game_id || currentUser.game_id || currentUser.name;
       if (targetGameUid) {
-        const orderId = `WO_WIZ_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        const orderId = createWizardOrderId();
         const orderRewards = {
           source_type: 'wizard_card_flip',
           is_wizard: true,
@@ -706,7 +688,7 @@ export default function WizardCardFlip(props) {
 
       // 4. ĐỒNG BỘ TIỀN & PITY LÊN GIAO DIỆN NGƯỜI DÙNG
       if (typeof setWizardPity === 'function') setWizardPity(finalPity);
-      try { localStorage.setItem(`shop_wizard_pity_${currentUser.id}`, finalPity.toString()); } catch (e) {}
+      try { localStorage.setItem(`shop_wizard_pity_${currentUser.id}`, finalPity.toString()); } catch { /* ignore */ }
 
       const updatedUser = {
         ...currentUser,
@@ -716,9 +698,7 @@ export default function WizardCardFlip(props) {
       if (typeof onUpdateUser === 'function') {
         onUpdateUser(updatedUser);
       } else {
-        currentUser.spins = finalNewSpins;
-        currentUser.wizard_pity = finalPity;
-        try { localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser)); } catch (e) {}
+        try { localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser)); } catch { /* ignore */ }
         if (typeof setUsersDb === 'function') {
           setUsersDb(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
         }
@@ -779,7 +759,7 @@ export default function WizardCardFlip(props) {
         }, 80 + 10 * 50 + 200);
       }
 
-    } catch (err) {
+    } catch {
       setIsFlipping(false);
       isFlippingRef.current = false;
       if (typeof showToast === 'function') {

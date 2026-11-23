@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import imageCompression from 'browser-image-compression';
+import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import {
   User, Lock, Phone, Mail, ShieldCheck, ArrowRight, CheckCircle2,
   LogOut, Key, Wallet, Search, Gamepad2, X, Menu, Clock, Flame,
@@ -11,14 +10,26 @@ import {
   ShoppingCart, Bell, BellOff, Globe
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
+import emailjs from '@emailjs/browser';
 import { LEGENDARY_SHOES_IMG, getShoesImage } from './shoesAsset';
 import { LEGENDARY_HAT_IMG, getHatImage } from './hatAsset';
 import masterItemsConfig from './master_items.json';
-import WizardCardFlip from './components/WizardCardFlip';
-import WizardAdminPanel from './components/WizardAdminPanel';
-import MongThienCuuShowcase from './components/MongThienCuuShowcase';
-import TurnstileWidget, { isTurnstileConfigured } from './components/TurnstileWidget';
+import TurnstileWidget from './components/TurnstileWidget';
+import { isTurnstileConfigured } from './utils/turnstileConfig';
 import { APK_CDN_URL, toShopCdnUrl } from './utils/cdnAsset';
+
+const WizardCardFlip = lazy(() => import('./components/WizardCardFlip'));
+const WizardAdminPanel = lazy(() => import('./components/WizardAdminPanel'));
+const MongThienCuuShowcase = lazy(() => import('./components/MongThienCuuShowcase'));
+
+let _imageCompressionPromise = null;
+const compressImageFile = async (file, options) => {
+  if (!_imageCompressionPromise) {
+    _imageCompressionPromise = import('browser-image-compression').then((m) => m.default);
+  }
+  const compress = await _imageCompressionPromise;
+  return compress(file, options);
+};
 
 // Helper lưu cấu hình bật/tắt thông báo cho từng món vòng quay (chống lỗi schema & sync realtime)
 const getWheelNotifyFallback = (itemId) => {
@@ -26,7 +37,7 @@ const getWheelNotifyFallback = (itemId) => {
   try {
     const map = JSON.parse(localStorage.getItem('wheel_notify_map') || '{}');
     return Boolean(map[itemId]);
-  } catch (e) {
+  } catch {
     return false;
   }
 };
@@ -37,7 +48,7 @@ const saveWheelNotifyFallback = (itemId, val) => {
     const map = JSON.parse(localStorage.getItem('wheel_notify_map') || '{}');
     map[itemId] = Boolean(val);
     localStorage.setItem('wheel_notify_map', JSON.stringify(map));
-  } catch (e) {}
+  } catch { /* ignore */ }
 };
 
 // Helper định dạng ngày giờ cho input datetime-local (YYYY-MM-DDTHH:mm)
@@ -48,7 +59,7 @@ const formatDateTimeLocal = (dateStr) => {
     if (isNaN(d.getTime())) return '';
     const pad = (n) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  } catch (e) {
+  } catch {
     return '';
   }
 };
@@ -509,7 +520,7 @@ const parseMtcQueryRedirect = () => {
       shouldRedirectPlay: playParam === 'mtc' || gameParam === 'mtc',
       viewMtc: viewParam === 'mongthiencuu'
     };
-  } catch (e) {
+  } catch {
     return { shouldRedirectPlay: false, viewMtc: false };
   }
 };
@@ -530,7 +541,7 @@ const parseDepositDeepLink = () => {
       method,
       hasQuery: isDepositDeepLink || Boolean(method)
     };
-  } catch (e) {
+  } catch {
     return { isDepositDeepLink: false, method: null, hasQuery: false };
   }
 };
@@ -541,7 +552,7 @@ const hasCachedAuthUser = () => {
     if (!raw) return false;
     const parsed = JSON.parse(raw);
     return Boolean(parsed && parsed.id);
-  } catch (e) {
+  } catch {
     return false;
   }
 };
@@ -612,11 +623,11 @@ const App = () => {
   }, []);
   const [bossTargetId, setBossTargetId] = useState('');
   const [bossPlayerSummary, setBossPlayerSummary] = useState(null);
-  const [bossPlayerNotFound, setBossPlayerNotFound] = useState(false);
-  const [bossNotFoundQuery, setBossNotFoundQuery] = useState('');
+  const [, setBossPlayerNotFound] = useState(false);
+  const [, setBossNotFoundQuery] = useState('');
   const [showBossProfileModal, setShowBossProfileModal] = useState(false);
   const [showBossStatModal, setShowBossStatModal] = useState(false);
-  const [isCheckingBossPlayer, setIsCheckingBossPlayer] = useState(false);
+  const [, setIsCheckingBossPlayer] = useState(false);
   const [selectedBossPackage, setSelectedBossPackage] = useState(null);
   const [isBuyingBossPackage, setIsBuyingBossPackage] = useState(false);
   const [bossSuccessModal, setBossSuccessModal] = useState(null);
@@ -624,9 +635,9 @@ const App = () => {
   // --- STATE LIÊN KẾT OTP & TÚI ĐỒ (INVENTORY) ---
   const [showLinkOtpModal, setShowLinkOtpModal] = useState(false);
   const [linkOtpCode, setLinkOtpCode] = useState('');
-  const [linkOtpExpiresAt, setLinkOtpExpiresAt] = useState(null);
+  const [, setLinkOtpExpiresAt] = useState(null);
   const [linkOtpCountdown, setLinkOtpCountdown] = useState(120);
-  const [isWaitingOtp, setIsWaitingOtp] = useState(false);
+  const [, setIsWaitingOtp] = useState(false);
   const [isGeneratingOtp, setIsGeneratingOtp] = useState(false);
   const [userLinkedPlatforms, setUserLinkedPlatforms] = useState({ discord: false, tiktok: false });
   const [linkOtpTarget, setLinkOtpTarget] = useState('all');
@@ -685,7 +696,7 @@ const App = () => {
     }
   }, [bossTargetId]);
 
-  const [usersDb, setUsersDb] = useState(() => { try { const saved = localStorage.getItem('shop_users_db'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; } });
+  const [usersDb, setUsersDb] = useState(() => { try { const saved = localStorage.getItem('shop_users_db'); return saved ? JSON.parse(saved) : []; } catch { return []; } });
   const [visitorCount, setVisitorCount] = useState(0);
   const [accountsDb, setAccountsDb] = useState(() => {
     const saved = localStorage.getItem('shop_accounts_db');
@@ -909,7 +920,7 @@ const App = () => {
           bonusSpins: parsed.bonusSpins !== undefined ? parsed.bonusSpins : 1
         };
       }
-    } catch (e) {}
+    } catch { /* ignore */ }
     return {
       minAmount: 50000,
       bonusSpins: 1
@@ -943,7 +954,7 @@ const App = () => {
           pityTarget: parsed.pityTarget !== undefined ? Number(parsed.pityTarget) : 120
         };
       }
-    } catch (e) {}
+    } catch { /* ignore */ }
     return {
       moneyCost: 20000,
       spinCost: 1,
@@ -957,10 +968,6 @@ const App = () => {
   });
   const [wheelConfigLoaded, setWheelConfigLoaded] = useState(false);
 
-  const [showBuyTicketModal, setShowBuyTicketModal] = useState(false);
-  const [buyTicketQty, setBuyTicketQty] = useState(1);
-  const [isProcessingBuyTicket, setIsProcessingBuyTicket] = useState(false);
-
 
 
   const [transactionsDb, setTransactionsDb] = useState(() => { const saved = localStorage.getItem('shop_tx_db'); return saved ? JSON.parse(saved) : []; });
@@ -969,22 +976,22 @@ const App = () => {
   const [boostingRequests, setBoostingRequests] = useState(() => { const saved = localStorage.getItem('shop_boost_db'); return saved ? JSON.parse(saved) : []; });
   const [approveDepositModal, setApproveDepositModal] = useState(null);
 
-  const [messagesDb, setMessagesDb] = useState(() => { try { const saved = localStorage.getItem('shop_msg_db'); return saved ? JSON.parse(saved) : [{ id: 1, senderId: 2, receiverId: 1, content: 'Chào bạn, chúc bạn mua sắm vui vẻ tại hệ thống!', timestamp: Date.now() - 3600000, isRead: false }]; } catch (e) { return [{ id: 1, senderId: 2, receiverId: 1, content: 'Chào bạn, chúc bạn mua sắm vui vẻ tại hệ thống!', timestamp: Date.now() - 3600000, isRead: false }]; } });
+  const [messagesDb, setMessagesDb] = useState(() => { try { const saved = localStorage.getItem('shop_msg_db'); return saved ? JSON.parse(saved) : [{ id: 1, senderId: 2, receiverId: 1, content: 'Chào bạn, chúc bạn mua sắm vui vẻ tại hệ thống!', timestamp: Date.now() - 3600000, isRead: false }]; } catch { return [{ id: 1, senderId: 2, receiverId: 1, content: 'Chào bạn, chúc bạn mua sắm vui vẻ tại hệ thống!', timestamp: Date.now() - 3600000, isRead: false }]; } });
 
   const [boostingDb, setBoostingDb] = useState(() => {
     const saved = localStorage.getItem('shop_boosting_db');
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState(() => { try { const saved = localStorage.getItem('shop_wheel_money'); return saved ? JSON.parse(saved).sort((a, b) => String(a.id).localeCompare(String(b.id))) : []; } catch (e) { return []; } });
-  const [wheelItemsSpinDb, setWheelItemsSpinDb] = useState(() => { try { const saved = localStorage.getItem('shop_wheel_spin'); return saved ? JSON.parse(saved).sort((a, b) => String(a.id).localeCompare(String(b.id))) : []; } catch (e) { return []; } });
+  const [wheelItemsMoneyDb, setWheelItemsMoneyDb] = useState(() => { try { const saved = localStorage.getItem('shop_wheel_money'); return saved ? JSON.parse(saved).sort((a, b) => String(a.id).localeCompare(String(b.id))) : []; } catch { return []; } });
+  const [wheelItemsSpinDb, setWheelItemsSpinDb] = useState(() => { try { const saved = localStorage.getItem('shop_wheel_spin'); return saved ? JSON.parse(saved).sort((a, b) => String(a.id).localeCompare(String(b.id))) : []; } catch { return []; } });
 
   // --- CẤU HÌNH & DỮ LIỆU SỰ KIỆN "LẬT THẺ BÀI PHÙ THỦY" ---
   const [wizardEventConfig, setWizardEventConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('shop_wizard_event_config');
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch { /* ignore */ }
     return {
       status: 'hidden', // 'hidden' (Mặc định ẩn ngoài sảnh, Admin tự bật trong Admin Panel)
       startTime: '2026-10-17T05:00:00+07:00',
@@ -1024,7 +1031,7 @@ const App = () => {
           };
         }
       }
-    } catch (e) {}
+    } catch { /* ignore */ }
     return defaults;
   });
   const [mtcConfigLoaded, setMtcConfigLoaded] = useState(false);
@@ -1033,13 +1040,12 @@ const App = () => {
   const [registerTurnstileToken, setRegisterTurnstileToken] = useState('');
   const [registerTurnstileReset, setRegisterTurnstileReset] = useState(0);
   const lastRegisterAttemptRef = useRef(0);
-  const lastCommentAtRef = useRef(0);
 
   const [wizardCardItems, setWizardCardItems] = useState(() => {
     try {
       const saved = localStorage.getItem('shop_wizard_card_items');
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch { /* ignore */ }
     return [
       {
         id: 'hat_wizard_legendary',
@@ -1261,7 +1267,7 @@ const App = () => {
         if (u.shoes_pity !== undefined) return parseInt(u.shoes_pity) || 0;
       }
       return 0;
-    } catch (e) {
+    } catch {
       return 0;
     }
   });
@@ -1272,7 +1278,7 @@ const App = () => {
       if (currentUser.shoes_pity !== undefined && currentUser.shoes_pity !== null) {
         const dbPity = parseInt(currentUser.shoes_pity) || 0;
         setShoesPity(dbPity);
-        try { localStorage.setItem(`shop_shoes_pity_${currentUser.id}`, dbPity.toString()); } catch (e) { }
+        try { localStorage.setItem(`shop_shoes_pity_${currentUser.id}`, dbPity.toString()); } catch { /* ignore */ }
       } else if (local !== null) {
         setShoesPity(parseInt(local) || 0);
       }
@@ -1292,7 +1298,7 @@ const App = () => {
         if (u.wizard_pity !== undefined) return parseInt(u.wizard_pity) || 0;
       }
       return 0;
-    } catch (e) {
+    } catch {
       return 0;
     }
   });
@@ -1303,7 +1309,7 @@ const App = () => {
       if (currentUser.wizard_pity !== undefined && currentUser.wizard_pity !== null) {
         const dbPity = parseInt(currentUser.wizard_pity) || 0;
         setWizardPity(dbPity);
-        try { localStorage.setItem(`shop_wizard_pity_${currentUser.id}`, dbPity.toString()); } catch (e) { }
+        try { localStorage.setItem(`shop_wizard_pity_${currentUser.id}`, dbPity.toString()); } catch { /* ignore */ }
       } else if (local !== null) {
         setWizardPity(parseInt(local) || 0);
       }
@@ -1495,7 +1501,7 @@ const App = () => {
           const cleanUrl = `${url.pathname}${url.searchParams.toString() ? `?${url.searchParams.toString()}` : ''}${url.hash}`;
           window.history.replaceState({}, document.title, cleanUrl);
         }
-      } catch (e) {}
+      } catch { /* ignore */ }
     }
   }, [mtcConfigLoaded, mtcAuthChecked, isMtcWebPlayPublic, canUseMtcWebPlay]);
 
@@ -1528,7 +1534,7 @@ const App = () => {
             return [...newItems, ...prev];
           });
         }
-      } catch (e) {}
+      } catch { /* ignore */ }
     };
 
     fetchPublicSpinWins();
@@ -1539,7 +1545,6 @@ const App = () => {
   const [profileTab, setProfileTab] = useState('info');
   const messagesEndRef = useRef(null);
 
-  const [depositStep, setDepositStep] = useState(1);
   const [isDepositing, setIsDepositing] = useState(false);
   const [depositMethod, setDepositMethod] = useState(() => {
     const deepLink = initialDeepLinkRef.current;
@@ -1588,11 +1593,10 @@ const App = () => {
         const cleanUrl = `${url.pathname}${url.searchParams.toString() ? `?${url.searchParams.toString()}` : ''}${url.hash}`;
         window.history.replaceState({}, document.title, cleanUrl);
       }
-    } catch (e) {}
+    } catch { /* ignore */ }
   }, []);
   const [depositAmount, setDepositAmount] = useState('');
   const [voucherInput, setVoucherInput] = useState('');
-  const [pendingDeposit, setPendingDeposit] = useState(null);
   const [payosPaymentData, setPayosPaymentData] = useState(null);
   const [payosSuccess, setPayosSuccess] = useState(false);
   const [payosTimeLeft, setPayosTimeLeft] = useState(600);
@@ -1671,7 +1675,7 @@ const App = () => {
     try {
       const parsed = JSON.parse(gameStr);
       if (parsed && typeof parsed === 'object') return { name: parsed.name || gameStr, avatar: parsed.avatar || null, isFeatured: parsed.isFeatured || false, allowQuantity: parsed.allowQuantity || false, maxQuantityPerOrder: parsed.maxQuantityPerOrder || 0 };
-    } catch (e) { }
+    } catch { /* ignore */ }
     return { name: gameStr, avatar: null, isFeatured: false, allowQuantity: false, maxQuantityPerOrder: 0 };
   };
   const [adminBoostingPriceUnit, setAdminBoostingPriceUnit] = useState('');
@@ -1685,10 +1689,9 @@ const App = () => {
   const [editRentModal, setEditRentModal] = useState(null);
   const [activeChatUser, setActiveChatUser] = useState(null);
   const chatMessagesEndRef = useRef(null);
-  const commentTextareaRef = useRef(null);
 
   // CCCD Preview cho form thuê
-  const [kycImagePreview, setKycImagePreview] = useState(null);
+  const [, setKycImagePreview] = useState(null);
   // --- ĐOẠN NÀY ĐỂ HÚT DỮ LIỆU TỪ MÁY CHỦ SUPABASE ---
   // Tự động kiểm tra mỗi khi khách chuyển trang
   // STATE: Ghi nhớ việc khách bấm "Không hiển thị lại" (Lưu trên RAM, F5 là tự reset về false)
@@ -1696,13 +1699,7 @@ const App = () => {
   const [showSpinRules, setShowSpinRules] = useState(false);
   const [dismissSpinRules, setDismissSpinRules] = useState(false);
   const [commentsDb, setCommentsDb] = useState(() => { const saved = localStorage.getItem('shop_comments_db'); return saved ? JSON.parse(saved) : []; });
-  const [commentInput, setCommentInput] = useState('');
-  const [replyingToId, setReplyingToId] = useState(null);
-  const [expandedReplies, setExpandedReplies] = useState({});
-  const [showCommentOptionsId, setShowCommentOptionsId] = useState(null);
   const [showReportedCommentsModal, setShowReportedCommentsModal] = useState(false);
-  const [editingCommentId, setEditingCommentId] = useState(null);
-  const [editCommentContent, setEditCommentContent] = useState('');
   const [showEditHistoryId, setShowEditHistoryId] = useState(null);
 
   // 1. Kích hoạt bảng Trang Chủ (Sảnh chính)
@@ -1741,13 +1738,13 @@ const App = () => {
           const fixedAccounts = accRes.data.map(acc => {
             let fixedRentOptions = acc.rentOptions;
             if (typeof fixedRentOptions === 'string') {
-              try { fixedRentOptions = JSON.parse(fixedRentOptions); } catch (e) { fixedRentOptions = []; }
+              try { fixedRentOptions = JSON.parse(fixedRentOptions); } catch { fixedRentOptions = []; }
             }
             if (!Array.isArray(fixedRentOptions)) fixedRentOptions = [];
 
             let fixedDetailImages = acc.detailImages;
             if (typeof fixedDetailImages === 'string') {
-              try { fixedDetailImages = JSON.parse(fixedDetailImages); } catch (e) { fixedDetailImages = []; }
+              try { fixedDetailImages = JSON.parse(fixedDetailImages); } catch { fixedDetailImages = []; }
             }
             if (!Array.isArray(fixedDetailImages)) fixedDetailImages = [];
 
@@ -1756,7 +1753,7 @@ const App = () => {
               try {
                 let parsed = JSON.parse(fixedTags);
                 fixedTags = Array.isArray(parsed) ? parsed : fixedTags.split(',').map(t => t.trim());
-              } catch (e) {
+              } catch {
                 fixedTags = fixedTags.split(',').map(t => t.trim());
               }
             }
@@ -1820,8 +1817,8 @@ const App = () => {
           });
           setWheelItemsMoneyDb(moneyItems);
           setWheelItemsSpinDb(spinItems);
-          try { localStorage.setItem('shop_wheel_money', JSON.stringify(moneyItems)); } catch (e) { }
-          try { localStorage.setItem('shop_wheel_spin', JSON.stringify(spinItems)); } catch (e) { }
+          try { localStorage.setItem('shop_wheel_money', JSON.stringify(moneyItems)); } catch { /* ignore */ }
+          try { localStorage.setItem('shop_wheel_spin', JSON.stringify(spinItems)); } catch { /* ignore */ }
         }
         if (voucherRes.data) setVouchersDb(voucherRes.data);
         if (commentsRes && commentsRes.data) {
@@ -1847,7 +1844,7 @@ const App = () => {
           } else {
             const savedDepositConfig = localStorage.getItem('shop_deposit_config');
             if (savedDepositConfig) {
-              try { setDepositBonusConfig(JSON.parse(savedDepositConfig)); } catch (e) {}
+              try { setDepositBonusConfig(JSON.parse(savedDepositConfig)); } catch { /* ignore */ }
             }
           }
 
@@ -1855,7 +1852,7 @@ const App = () => {
           if (wheelVal) {
             setWheelConfig(prev => {
               const merged = { ...prev, ...wheelVal };
-              try { localStorage.setItem('shop_wheel_config', JSON.stringify(merged)); } catch (e) {}
+              try { localStorage.setItem('shop_wheel_config', JSON.stringify(merged)); } catch { /* ignore */ }
               return merged;
             });
           }
@@ -1880,14 +1877,14 @@ const App = () => {
                 ...mtcVal,
                 webPlayStatus: mtcVal.webPlayStatus === 'public' ? 'public' : 'hidden'
               };
-              try { localStorage.setItem('shop_mtc_game_config', JSON.stringify(merged)); } catch (e) {}
+              try { localStorage.setItem('shop_mtc_game_config', JSON.stringify(merged)); } catch { /* ignore */ }
               return merged;
             });
           }
-        } catch (e) {
+        } catch {
           const savedDepositConfig = localStorage.getItem('shop_deposit_config');
           if (savedDepositConfig) {
-            try { setDepositBonusConfig(JSON.parse(savedDepositConfig)); } catch (ignore) {}
+            try { setDepositBonusConfig(JSON.parse(savedDepositConfig)); } catch { /* ignore */ }
           }
         } finally {
           setWheelConfigLoaded(true);
@@ -2005,15 +2002,15 @@ const App = () => {
                 supabase.from('boosting_requests').select('*').order('created_at', { ascending: false }).limit(200)
               ]);
 
-              if (usersRes.data) { setUsersDb(usersRes.data); try { localStorage.setItem('shop_users_db', JSON.stringify(usersRes.data)); } catch (e) { } }
-              if (txRes.data) { setTransactionsDb(txRes.data); try { localStorage.setItem('shop_tx_db', JSON.stringify(txRes.data)); } catch (e) { } }
-              if (depRes.data) { setDepositRequests(depRes.data); try { localStorage.setItem('shop_dep_db', JSON.stringify(depRes.data)); } catch (e) { } }
-              if (msgRes.data) { setMessagesDb(msgRes.data); try { localStorage.setItem('shop_msg_db', JSON.stringify(msgRes.data)); } catch (e) { } }
+              if (usersRes.data) { setUsersDb(usersRes.data); try { localStorage.setItem('shop_users_db', JSON.stringify(usersRes.data)); } catch { /* ignore */ } }
+              if (txRes.data) { setTransactionsDb(txRes.data); try { localStorage.setItem('shop_tx_db', JSON.stringify(txRes.data)); } catch { /* ignore */ } }
+              if (depRes.data) { setDepositRequests(depRes.data); try { localStorage.setItem('shop_dep_db', JSON.stringify(depRes.data)); } catch { /* ignore */ } }
+              if (msgRes.data) { setMessagesDb(msgRes.data); try { localStorage.setItem('shop_msg_db', JSON.stringify(msgRes.data)); } catch { /* ignore */ } }
               if (boostReqRes.data) {
                 const fixedBoostReqs = boostReqRes.data.map(r => {
                   let parsedInfo = r.info;
                   if (typeof parsedInfo === 'string') {
-                    try { parsedInfo = JSON.parse(parsedInfo); } catch (e) { parsedInfo = {}; }
+                    try { parsedInfo = JSON.parse(parsedInfo); } catch { parsedInfo = {}; }
                   }
                   return {
                     ...r,
@@ -2023,7 +2020,7 @@ const App = () => {
                   };
                 });
                 setBoostingRequests(fixedBoostReqs);
-                try { localStorage.setItem('shop_boost_db', JSON.stringify(fixedBoostReqs)); } catch (e) { }
+                try { localStorage.setItem('shop_boost_db', JSON.stringify(fixedBoostReqs)); } catch { /* ignore */ }
               }
               if (rentRes.data) {
                 const fixedRentReqs = rentRes.data.map(r => ({
@@ -2032,7 +2029,7 @@ const App = () => {
                   userId: r.userId || r.userid || ''
                 }));
                 setRentRequests(fixedRentReqs);
-                try { localStorage.setItem('shop_rent_db', JSON.stringify(fixedRentReqs)); } catch (e) { }
+                try { localStorage.setItem('shop_rent_db', JSON.stringify(fixedRentReqs)); } catch { /* ignore */ }
               }
             } else {
               // QUYỀN KHÁCH: CHỈ TẢI CỦA KHÁCH
@@ -2045,10 +2042,10 @@ const App = () => {
                 supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at, linked_game_id, shoes_pity').eq('role', 'admin').limit(1).maybeSingle()
               ]);
 
-              if (myTx.data) { setTransactionsDb(myTx.data); try { localStorage.setItem('shop_tx_db', JSON.stringify(myTx.data)); } catch (e) { } }
-              if (myDep.data) { setDepositRequests(myDep.data); try { localStorage.setItem('shop_dep_db', JSON.stringify(myDep.data)); } catch (e) { } }
-              if (myMsg.data) { setMessagesDb(myMsg.data); try { localStorage.setItem('shop_msg_db', JSON.stringify(myMsg.data)); } catch (e) { } }
-              if (adminRes.data) { setUsersDb([adminRes.data]); try { localStorage.setItem('shop_users_db', JSON.stringify([adminRes.data])); } catch (e) { } }
+              if (myTx.data) { setTransactionsDb(myTx.data); try { localStorage.setItem('shop_tx_db', JSON.stringify(myTx.data)); } catch { /* ignore */ } }
+              if (myDep.data) { setDepositRequests(myDep.data); try { localStorage.setItem('shop_dep_db', JSON.stringify(myDep.data)); } catch { /* ignore */ } }
+              if (myMsg.data) { setMessagesDb(myMsg.data); try { localStorage.setItem('shop_msg_db', JSON.stringify(myMsg.data)); } catch { /* ignore */ } }
+              if (adminRes.data) { setUsersDb([adminRes.data]); try { localStorage.setItem('shop_users_db', JSON.stringify([adminRes.data])); } catch { /* ignore */ } }
               if (myRent.data) {
                 const fixedRentReqs = myRent.data.map(r => ({
                   ...r,
@@ -2056,14 +2053,14 @@ const App = () => {
                   userId: r.userId || r.userid || ''
                 }));
                 setRentRequests(fixedRentReqs);
-                try { localStorage.setItem('shop_rent_db', JSON.stringify(fixedRentReqs)); } catch (e) { }
+                try { localStorage.setItem('shop_rent_db', JSON.stringify(fixedRentReqs)); } catch { /* ignore */ }
               }
               // Lọc và hiển thị Cày Thuê cho khách
               if (myBoostReq.data) {
                 const fixedBoostReqs = myBoostReq.data.map(r => {
                   let parsedInfo = r.info;
                   if (typeof parsedInfo === 'string') {
-                    try { parsedInfo = JSON.parse(parsedInfo); } catch (e) { parsedInfo = {}; }
+                    try { parsedInfo = JSON.parse(parsedInfo); } catch { parsedInfo = {}; }
                   }
                   return {
                     ...r,
@@ -2073,7 +2070,7 @@ const App = () => {
                   };
                 });
                 setBoostingRequests(fixedBoostReqs);
-                try { localStorage.setItem('shop_boost_db', JSON.stringify(fixedBoostReqs)); } catch (e) { }
+                try { localStorage.setItem('shop_boost_db', JSON.stringify(fixedBoostReqs)); } catch { /* ignore */ }
               }
             }
           }
@@ -2186,8 +2183,8 @@ const App = () => {
             });
             setWheelItemsMoneyDb(moneyItems);
             setWheelItemsSpinDb(spinItems);
-            try { localStorage.setItem('shop_wheel_money', JSON.stringify(moneyItems)); } catch (e) { }
-            try { localStorage.setItem('shop_wheel_spin', JSON.stringify(spinItems)); } catch (e) { }
+            try { localStorage.setItem('shop_wheel_money', JSON.stringify(moneyItems)); } catch { /* ignore */ }
+            try { localStorage.setItem('shop_wheel_spin', JSON.stringify(spinItems)); } catch { /* ignore */ }
           }
         } catch (e) {
           console.warn("Lỗi sync realtime wheel_items:", e);
@@ -2202,13 +2199,13 @@ const App = () => {
           const acc = payload.new;
           let fixedRentOptions = acc.rentOptions;
           if (typeof fixedRentOptions === 'string') {
-            try { fixedRentOptions = JSON.parse(fixedRentOptions); } catch (e) { fixedRentOptions = []; }
+            try { fixedRentOptions = JSON.parse(fixedRentOptions); } catch { fixedRentOptions = []; }
           }
           if (!Array.isArray(fixedRentOptions)) fixedRentOptions = [];
 
           let fixedDetailImages = acc.detailImages;
           if (typeof fixedDetailImages === 'string') {
-            try { fixedDetailImages = JSON.parse(fixedDetailImages); } catch (e) { fixedDetailImages = []; }
+            try { fixedDetailImages = JSON.parse(fixedDetailImages); } catch { fixedDetailImages = []; }
           }
           if (!Array.isArray(fixedDetailImages)) fixedDetailImages = [];
 
@@ -2217,7 +2214,7 @@ const App = () => {
             try {
               let parsed = JSON.parse(fixedTags);
               fixedTags = Array.isArray(parsed) ? parsed : fixedTags.split(',').map(t => t.trim());
-            } catch (e) {
+            } catch {
               fixedTags = fixedTags.split(',').map(t => t.trim());
             }
           }
@@ -2335,7 +2332,7 @@ const App = () => {
           if (prev.find(r => r.id === payload.new.id)) return prev;
           let parsedInfo = payload.new.info;
           if (typeof parsedInfo === 'string') {
-            try { parsedInfo = JSON.parse(parsedInfo); } catch (e) { parsedInfo = {}; }
+            try { parsedInfo = JSON.parse(parsedInfo); } catch { parsedInfo = {}; }
           }
           const fixedPayload = { ...payload.new, info: parsedInfo || {}, boostingTitle: payload.new.boostingTitle || payload.new.boostingtitle || '', boostingId: payload.new.boostingId || payload.new.boostingid || '' };
           return [fixedPayload, ...prev];
@@ -2347,7 +2344,7 @@ const App = () => {
         if (!isAdmin && payload.new.user !== me?.name) return;
         let parsedInfo = payload.new.info;
         if (typeof parsedInfo === 'string') {
-          try { parsedInfo = JSON.parse(parsedInfo); } catch (e) { parsedInfo = {}; }
+          try { parsedInfo = JSON.parse(parsedInfo); } catch { parsedInfo = {}; }
         }
         const fixedPayload = { ...payload.new, info: parsedInfo || {}, boostingTitle: payload.new.boostingTitle || payload.new.boostingtitle || '', boostingId: payload.new.boostingId || payload.new.boostingid || '' };
         setBoostingRequests(prev => prev.map(r => r.id === fixedPayload.id ? fixedPayload : r));
@@ -2504,7 +2501,7 @@ const App = () => {
     if (payosPaymentData) {
       pollTimer = setInterval(async () => {
         try {
-          const { data, error } = await supabase
+          const { data } = await supabase
             .from('deposit_requests')
             .select('status, details')
             .eq('id', `PAYOS_${payosPaymentData.orderCode}`)
@@ -2570,7 +2567,7 @@ const App = () => {
       if (typeof document !== 'undefined' && document.hidden) return;
       try {
         await supabase.from('users').update({ last_active: new Date().toISOString() }).eq('id', currentUser.id);
-      } catch (e) { }
+      } catch { /* ignore */ }
     };
     updateLastActive(); // Cập nhật ngay khi load
     const interval = setInterval(updateLastActive, 300000);
@@ -2580,81 +2577,6 @@ const App = () => {
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
-  };
-
-  // --- HÀM XỬ LÝ HỎI/ĐÁP BÌNH LUẬN ---
-  const handlePostComment = async (e) => {
-    e.preventDefault();
-    if (!currentUser) return showToast("Vui lòng đăng nhập để bình luận!", "error");
-    if (!commentInput.trim()) return;
-
-    const nowMs = Date.now();
-    if (nowMs - lastCommentAtRef.current < 5000) {
-      return showToast("Bạn thao tác quá nhanh, vui lòng chờ 5 giây rồi bình luận tiếp!", "warning");
-    }
-    lastCommentAtRef.current = nowMs;
-
-    try {
-      const { error } = await supabase.from('comments').insert({
-        user_id: currentUser.id,
-        content: commentInput.trim(),
-        liked_by: [],
-        disliked_by: [],
-        is_pinned: false,
-        parent_id: replyingToId
-      });
-      if (error) throw error;
-      setCommentInput('');
-      setReplyingToId(null);
-      if (commentTextareaRef.current) {
-        commentTextareaRef.current.style.height = 'auto';
-      }
-      showToast("Đã gửi bình luận!");
-    } catch (err) {
-      console.error(err);
-      showToast("Lỗi khi gửi bình luận!", "error");
-    }
-  };
-
-  const handleToggleLikeComment = async (commentId, type) => {
-    if (!currentUser) return showToast("Vui lòng đăng nhập!", "error");
-    const comment = commentsDb.find(c => c.id === commentId);
-    if (!comment) return;
-
-    let liked_by = [...(comment.liked_by || [])];
-    let disliked_by = [...(comment.disliked_by || [])];
-    const userId = currentUser.id;
-
-    if (type === 'like') {
-      if (liked_by.includes(userId)) {
-        liked_by = liked_by.filter(id => id !== userId);
-      } else {
-        liked_by.push(userId);
-        disliked_by = disliked_by.filter(id => id !== userId);
-      }
-    } else {
-      if (disliked_by.includes(userId)) {
-        disliked_by = disliked_by.filter(id => id !== userId);
-      } else {
-        disliked_by.push(userId);
-        liked_by = liked_by.filter(id => id !== userId);
-      }
-    }
-
-    try {
-      await supabase.from('comments').update({ liked_by, disliked_by }).eq('id', commentId);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handlePinComment = async (commentId, is_pinned) => {
-    if (currentUser?.role !== 'admin') return;
-    try {
-      await supabase.from('comments').update({ is_pinned: !is_pinned }).eq('id', commentId);
-    } catch (err) {
-      console.error(err);
-    }
   };
 
   const handleChangeAvatar = async (e) => {
@@ -2669,7 +2591,7 @@ const App = () => {
       setIsGlobalProcessing(true);
       let fileToUpload = file;
       try {
-        fileToUpload = await imageCompression(file, {
+        fileToUpload = await compressImageFile(file, {
           maxSizeMB: 0.2,
           maxWidthOrHeight: 512,
           useWebWorker: true,
@@ -2700,61 +2622,6 @@ const App = () => {
       console.error(err);
       setIsGlobalProcessing(false);
     }
-  };
-
-  const handleUpdateComment = async (commentId, newContent) => {
-    if (!newContent.trim()) return;
-    const comment = commentsDb.find(c => c.id === commentId);
-    if (!comment || comment.content === newContent) {
-      setEditingCommentId(null);
-      return;
-    }
-
-    const historyItem = { content: comment.content, edited_at: new Date().toISOString() };
-    const edit_history = [...(comment.edit_history || []), historyItem];
-
-    try {
-      await supabase.from('comments').update({
-        content: newContent.trim(),
-        is_edited: true,
-        edit_history
-      }).eq('id', commentId);
-      setEditingCommentId(null);
-      showToast("Đã cập nhật bình luận!");
-    } catch (err) {
-      console.error(err);
-      showToast("Lỗi khi cập nhật bình luận!", "error");
-    }
-  };
-
-  const handleDeleteComment = async (commentId) => {
-    try {
-      await supabase.from('comments').delete().eq('id', commentId);
-      showToast("Đã xóa bình luận!");
-      setShowCommentOptionsId(null);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleReportComment = async (commentId) => {
-    if (!currentUser) return showToast("Vui lòng đăng nhập!", "error");
-    const comment = commentsDb.find(c => c.id === commentId);
-    if (!comment) return;
-
-    let reported_by = [...(comment.reported_by || [])];
-    if (!reported_by.includes(currentUser.id)) {
-      reported_by.push(currentUser.id);
-      try {
-        await supabase.from('comments').update({ reported_by }).eq('id', commentId);
-        showToast("Đã báo cáo bình luận!");
-      } catch (err) {
-        console.error(err);
-      }
-    } else {
-      showToast("Bạn đã báo cáo bình luận này rồi!", "error");
-    }
-    setShowCommentOptionsId(null);
   };
 
   const handleRemoveAvatar = async () => {
@@ -2919,9 +2786,9 @@ const App = () => {
             supabase.from('messages').select('*').order('timestamp', { ascending: true }).limit(500),
             supabase.from('boosting_requests').select('*').order('created_at', { ascending: false }).limit(200)
           ]);
-          if (usersRes.data) { setUsersDb(usersRes.data); try { localStorage.setItem('shop_users_db', JSON.stringify(usersRes.data)); } catch (e) { } }
-          if (txRes.data) { setTransactionsDb(txRes.data); try { localStorage.setItem('shop_tx_db', JSON.stringify(txRes.data)); } catch (e) { } }
-          if (depRes.data) { setDepositRequests(depRes.data); try { localStorage.setItem('shop_dep_db', JSON.stringify(depRes.data)); } catch (e) { } }
+          if (usersRes.data) { setUsersDb(usersRes.data); try { localStorage.setItem('shop_users_db', JSON.stringify(usersRes.data)); } catch { /* ignore */ } }
+          if (txRes.data) { setTransactionsDb(txRes.data); try { localStorage.setItem('shop_tx_db', JSON.stringify(txRes.data)); } catch { /* ignore */ } }
+          if (depRes.data) { setDepositRequests(depRes.data); try { localStorage.setItem('shop_dep_db', JSON.stringify(depRes.data)); } catch { /* ignore */ } }
           if (rentRes.data) {
             // Nhớ lọc chữ hoa/thường cho bảng Thuê Nick
             const fixedRentReqs = rentRes.data.map(r => ({
@@ -2930,9 +2797,9 @@ const App = () => {
               userId: r.userId || r.userid || ''
             }));
             setRentRequests(fixedRentReqs);
-            try { localStorage.setItem('shop_rent_db', JSON.stringify(fixedRentReqs)); } catch (e) { }
+            try { localStorage.setItem('shop_rent_db', JSON.stringify(fixedRentReqs)); } catch { /* ignore */ }
           }
-          if (msgRes.data) { setMessagesDb(msgRes.data); try { localStorage.setItem('shop_msg_db', JSON.stringify(msgRes.data)); } catch (e) { } }
+          if (msgRes.data) { setMessagesDb(msgRes.data); try { localStorage.setItem('shop_msg_db', JSON.stringify(msgRes.data)); } catch { /* ignore */ } }
           if (boostReqRes.data) {
             const fixedBoostReqs = boostReqRes.data.map(r => ({
               ...r,
@@ -2940,7 +2807,7 @@ const App = () => {
               boostingId: r.boostingId || r.boostingid || ''
             }));
             setBoostingRequests(fixedBoostReqs);
-            try { localStorage.setItem('shop_boost_db', JSON.stringify(fixedBoostReqs)); } catch (e) { }
+            try { localStorage.setItem('shop_boost_db', JSON.stringify(fixedBoostReqs)); } catch { /* ignore */ }
           }
         }
 
@@ -3008,7 +2875,7 @@ const App = () => {
           setRegisterTurnstileReset((prev) => prev + 1);
           return showToast(tsJson?.error || "Xác minh chống bot thất bại, vui lòng thử lại!", "error");
         }
-      } catch (tsErr) {
+      } catch {
         setRegisterTurnstileToken('');
         setRegisterTurnstileReset((prev) => prev + 1);
         return showToast("Không thể xác minh chống bot lúc này!", "error");
@@ -3133,14 +3000,6 @@ const App = () => {
       .reduce((sum, d) => sum + d.amount, 0);
   };
 
-  // Sửa hàm tiêu tiền (nếu có dùng tên)
-  const calculateTotalSpent = (username) => {
-    if (!username) return 0;
-    return transactionsDb
-      .filter(t => t.user === username && ['buy_acc', 'rent_acc', 'boosting', 'spin'].includes(t.type) && !t.isSpinCost && t.amount > 0)
-      .reduce((sum, t) => sum + t.amount, 0);
-  };
-
   const requireAuth = (viewName) => {
     if (!currentUser) {
       showToast("Tính năng này yêu cầu đăng nhập!", 'error');
@@ -3166,7 +3025,7 @@ const App = () => {
       }
       setCopiedText(text);
       setTimeout(() => setCopiedText(''), 2000);
-    } catch (err) {
+    } catch {
       showToast("Lỗi khi copy", 'error');
     }
   };
@@ -4139,137 +3998,6 @@ const App = () => {
     </footer>
   );
 
-  const renderComment = (comment, isReply = false) => {
-    const isLiked = comment.liked_by?.includes(currentUser?.id);
-    const isDisliked = comment.disliked_by?.includes(currentUser?.id);
-    const replies = commentsDb.filter(c => c.parent_id === comment.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    const isExpanded = expandedReplies[comment.id];
-    const displayedReplies = isExpanded ? replies : replies.slice(0, 1);
-
-    return (
-      <div key={comment.id} className={`${isReply ? 'mt-3 ml-8 border-l-2 border-slate-700 pl-3' : 'p-3 rounded-xl border transition-colors ' + (comment.is_pinned ? 'bg-rose-500/10 border-rose-500/30' : 'bg-[#0B1120] border-slate-800 hover:border-slate-700')}`}>
-        <div className="flex gap-3">
-          <img src={comment.users?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.users?.name || 'K')}&background=151D2F&color=fff`} alt="avatar" className={`${isReply ? 'w-8 h-8' : 'w-10 h-10'} rounded-full object-cover border border-slate-700 shrink-0`} />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-1 relative">
-              <div className="flex items-center gap-2 truncate pr-2">
-                <span className="font-bold text-sm text-white truncate max-w-[100px]">{comment.users?.name || 'Khách'}</span>
-                {comment.users?.role === 'admin' && (
-                  <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded font-black shrink-0">ADMIN</span>
-                )}
-                {!isReply && comment.is_pinned && (
-                  <span className="text-rose-500 text-[10px] font-bold flex items-center gap-0.5 shrink-0"><Flame size={12} /> Ghim</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[10px] text-slate-500">{new Date(comment.created_at).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
-                {currentUser && (
-                  <div className="relative">
-                    <button onClick={() => setShowCommentOptionsId(showCommentOptionsId === comment.id ? null : comment.id)} className="text-slate-500 hover:text-white p-0.5 rounded-full hover:bg-slate-800 transition-colors">
-                      <MoreVertical size={14} />
-                    </button>
-                    {showCommentOptionsId === comment.id && (
-                      <>
-                        <div className="fixed inset-0 z-10" onClick={() => setShowCommentOptionsId(null)}></div>
-                        <div className="absolute right-0 top-full mt-1 bg-[#1A233A] border border-slate-700 rounded shadow-xl z-20 py-1 min-w-[120px] overflow-hidden animate-fade-in text-xs">
-                          {currentUser.id === comment.user_id ? (
-                            <>
-                              <button onClick={() => { setEditingCommentId(comment.id); setEditCommentContent(comment.content); setShowCommentOptionsId(null); }} className="w-full text-left px-3 py-2 text-blue-400 hover:bg-blue-500/10 flex items-center gap-2">
-                                <Edit size={12} /> Chỉnh sửa
-                              </button>
-                              <button onClick={() => handleDeleteComment(comment.id)} className="w-full text-left px-3 py-2 text-rose-400 hover:bg-rose-500/10 flex items-center gap-2">
-                                <Trash2 size={12} /> Xóa bình luận
-                              </button>
-                            </>
-                          ) : (
-                            <button onClick={() => handleReportComment(comment.id)} className="w-full text-left px-3 py-2 text-yellow-500 hover:bg-yellow-500/10 flex items-center gap-2">
-                              <AlertTriangle size={12} /> Báo cáo
-                            </button>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-            {editingCommentId === comment.id ? (
-              <div className="mb-2 mt-1 relative">
-                <textarea
-                  value={editCommentContent}
-                  onChange={(e) => {
-                    setEditCommentContent(e.target.value);
-                    e.target.style.height = 'auto';
-                    e.target.style.height = `${e.target.scrollHeight}px`;
-                  }}
-                  className="w-full bg-[#151D2F] border border-blue-500/50 rounded-xl py-2 px-3 text-sm text-white focus:outline-none focus:border-blue-500 transition-all resize-none custom-scrollbar"
-                  rows={2}
-                />
-                <div className="flex justify-end gap-2 mt-2">
-                  <button onClick={() => setEditingCommentId(null)} className="px-3 py-1 text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">Hủy</button>
-                  <button onClick={() => handleUpdateComment(comment.id, editCommentContent)} disabled={!editCommentContent.trim() || editCommentContent === comment.content} className="px-3 py-1 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 rounded-lg transition-colors shadow-md shadow-blue-600/20">Lưu</button>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-slate-300 mb-2 break-words whitespace-pre-wrap">{comment.content}</p>
-            )}
-            <div className="flex items-center gap-4">
-              <button onClick={() => handleToggleLikeComment(comment.id, 'like')} className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${isLiked ? 'text-blue-400' : 'text-slate-500 hover:text-blue-400'}`}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className={isLiked ? 'scale-110' : ''}><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
-                {comment.liked_by?.length || 0}
-              </button>
-              <button onClick={() => handleToggleLikeComment(comment.id, 'dislike')} className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${isDisliked ? 'text-rose-400' : 'text-slate-500 hover:text-rose-400'}`}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill={isDisliked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className={isDisliked ? 'scale-110' : ''}><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
-                {comment.disliked_by?.length || 0}
-              </button>
-              <button onClick={() => {
-                if (!currentUser) return showToast("Vui lòng đăng nhập để phản hồi!", "error");
-                const replyText = `@${comment.users?.name || 'Khách'}: `;
-                setReplyingToId(isReply ? comment.parent_id : comment.id);
-                setCommentInput(prev => prev.includes(replyText) ? prev : prev ? `${prev}\n${replyText}` : replyText);
-                setTimeout(() => {
-                  if (commentTextareaRef.current) {
-                    commentTextareaRef.current.focus();
-                    commentTextareaRef.current.style.height = 'auto';
-                    commentTextareaRef.current.style.height = `${commentTextareaRef.current.scrollHeight}px`;
-                  }
-                }, 50);
-              }} className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-400 transition-colors">
-                Phản hồi
-              </button>
-              {comment.is_edited && (
-                <button onClick={() => setShowEditHistoryId(comment.id)} className="text-[10px] text-slate-400 hover:text-blue-400 italic hover:underline transition-colors ml-auto" title="Xem lịch sử chỉnh sửa">
-                  (Đã chỉnh sửa)
-                </button>
-              )}
-              {!isReply && currentUser?.role === 'admin' && (
-                <button onClick={() => handlePinComment(comment.id, comment.is_pinned)} className={`text-[11px] font-bold text-yellow-500 hover:text-yellow-400 transition-colors ${comment.is_edited ? 'ml-3' : 'ml-auto'}`}>
-                  {comment.is_pinned ? 'Bỏ ghim' : 'Ghim'}
-                </button>
-              )}
-            </div>
-
-            {/* Render Replies */}
-            {!isReply && replies.length > 0 && (
-              <div className="mt-2">
-                {displayedReplies.map(reply => renderComment(reply, true))}
-                {!isExpanded && replies.length > 1 && (
-                  <button onClick={() => setExpandedReplies(prev => ({ ...prev, [comment.id]: true }))} className="mt-2 ml-8 text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1">
-                    <ChevronDown size={14} /> Xem thêm {replies.length - 1} câu trả lời
-                  </button>
-                )}
-                {isExpanded && replies.length > 1 && (
-                  <button onClick={() => setExpandedReplies(prev => ({ ...prev, [comment.id]: false }))} className="mt-2 ml-8 text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1">
-                    <ChevronUp size={14} /> Ẩn bớt
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
   const renderBoostingCard = (b, index) => {
     let gName = b.game || '';
     let gAvatar = null;
@@ -4277,7 +4005,7 @@ const App = () => {
       const parsed = JSON.parse(b.game);
       gName = parsed.name || '';
       gAvatar = parsed.avatar || null;
-    } catch (e) { }
+    } catch { /* ignore */ }
 
     return (
       <div key={b.id} className="bg-[#151D2F] h-full border border-slate-800 rounded-2xl hover:border-blue-500/50 transition-all shadow-xl group flex flex-col relative mt-5 hover:-translate-y-1">
@@ -4301,7 +4029,7 @@ const App = () => {
               title={b.title}
               setFullScreenImage={setFullScreenImage}
               index={index}
-              isFeatured={(() => { try { return JSON.parse(b.game).isFeatured; } catch (e) { return false; } })()}
+              isFeatured={(() => { try { return JSON.parse(b.game).isFeatured; } catch { return false; } })()}
             />
           )}
 
@@ -4370,40 +4098,40 @@ const App = () => {
   const parseGamePlayerRecord = (dbPlayer) => {
     if (!dbPlayer) return null;
     let wp = null, ar = null, nk = null, rg = null, pt = null, pn = null, sh = null, ht = null;
-    try { wp = dbPlayer.weapon ? (typeof dbPlayer.weapon === 'string' ? JSON.parse(dbPlayer.weapon) : dbPlayer.weapon) : null; } catch (e) { wp = { name: dbPlayer.weapon }; }
-    try { ar = dbPlayer.armor ? (typeof dbPlayer.armor === 'string' ? JSON.parse(dbPlayer.armor) : dbPlayer.armor) : null; } catch (e) { ar = { name: dbPlayer.armor }; }
-    try { pn = dbPlayer.pants ? (typeof dbPlayer.pants === 'string' ? JSON.parse(dbPlayer.pants) : dbPlayer.pants) : null; } catch (e) { pn = { name: dbPlayer.pants }; }
+    try { wp = dbPlayer.weapon ? (typeof dbPlayer.weapon === 'string' ? JSON.parse(dbPlayer.weapon) : dbPlayer.weapon) : null; } catch { wp = { name: dbPlayer.weapon }; }
+    try { ar = dbPlayer.armor ? (typeof dbPlayer.armor === 'string' ? JSON.parse(dbPlayer.armor) : dbPlayer.armor) : null; } catch { ar = { name: dbPlayer.armor }; }
+    try { pn = dbPlayer.pants ? (typeof dbPlayer.pants === 'string' ? JSON.parse(dbPlayer.pants) : dbPlayer.pants) : null; } catch { pn = { name: dbPlayer.pants }; }
     if (!pn && wp && wp.pants) {
       try {
         pn = typeof wp.pants === 'string' ? JSON.parse(wp.pants) : wp.pants;
-      } catch (e) {
+      } catch {
         pn = { name: wp.pants };
       }
     }
     if (Array.isArray(pn)) pn = pn.length > 0 ? pn[0] : null;
     if (pn && !pn.name) pn = null;
 
-    try { nk = dbPlayer.necklace ? (typeof dbPlayer.necklace === 'string' ? JSON.parse(dbPlayer.necklace) : dbPlayer.necklace) : null; } catch (e) { nk = { name: dbPlayer.necklace }; }
-    try { rg = dbPlayer.ring ? (typeof dbPlayer.ring === 'string' ? JSON.parse(dbPlayer.ring) : dbPlayer.ring) : null; } catch (e) { rg = { name: dbPlayer.ring }; }
-    try { pt = dbPlayer.pet ? (typeof dbPlayer.pet === 'string' ? JSON.parse(dbPlayer.pet) : dbPlayer.pet) : null; } catch (e) { pt = { name: dbPlayer.pet }; }
-    try { sh = dbPlayer.shoes ? (typeof dbPlayer.shoes === 'string' ? JSON.parse(dbPlayer.shoes) : dbPlayer.shoes) : null; } catch (e) { sh = { name: dbPlayer.shoes }; }
+    try { nk = dbPlayer.necklace ? (typeof dbPlayer.necklace === 'string' ? JSON.parse(dbPlayer.necklace) : dbPlayer.necklace) : null; } catch { nk = { name: dbPlayer.necklace }; }
+    try { rg = dbPlayer.ring ? (typeof dbPlayer.ring === 'string' ? JSON.parse(dbPlayer.ring) : dbPlayer.ring) : null; } catch { rg = { name: dbPlayer.ring }; }
+    try { pt = dbPlayer.pet ? (typeof dbPlayer.pet === 'string' ? JSON.parse(dbPlayer.pet) : dbPlayer.pet) : null; } catch { pt = { name: dbPlayer.pet }; }
+    try { sh = dbPlayer.shoes ? (typeof dbPlayer.shoes === 'string' ? JSON.parse(dbPlayer.shoes) : dbPlayer.shoes) : null; } catch { sh = { name: dbPlayer.shoes }; }
     if (Array.isArray(sh)) sh = sh.length > 0 ? sh[0] : null;
     if (!sh && wp && wp.shoes) {
       try {
         sh = typeof wp.shoes === 'string' ? JSON.parse(wp.shoes) : wp.shoes;
-      } catch (e) {
+      } catch {
         sh = { name: wp.shoes };
       }
       if (Array.isArray(sh)) sh = sh.length > 0 ? sh[0] : null;
     }
     if (sh && !sh.name) sh = null;
 
-    try { ht = dbPlayer.hat ? (typeof dbPlayer.hat === 'string' ? JSON.parse(dbPlayer.hat) : dbPlayer.hat) : null; } catch (e) { ht = { name: dbPlayer.hat }; }
+    try { ht = dbPlayer.hat ? (typeof dbPlayer.hat === 'string' ? JSON.parse(dbPlayer.hat) : dbPlayer.hat) : null; } catch { ht = { name: dbPlayer.hat }; }
     if (Array.isArray(ht)) ht = ht.length > 0 ? ht[0] : null;
     if (!ht && wp && wp.hat) {
       try {
         ht = typeof wp.hat === 'string' ? JSON.parse(wp.hat) : wp.hat;
-      } catch (e) {
+      } catch {
         ht = { name: wp.hat };
       }
       if (Array.isArray(ht)) ht = ht.length > 0 ? ht[0] : null;
@@ -4417,7 +4145,7 @@ const App = () => {
           const parsed = JSON.parse(item.sub_stats);
           if (Array.isArray(parsed)) item.sub_stats = parsed;
           else item.sub_stats = [item.sub_stats];
-        } catch (e) {
+        } catch {
           item.sub_stats = [item.sub_stats];
         }
       }
@@ -4426,7 +4154,7 @@ const App = () => {
           const parsed = JSON.parse(item.star_sub_stats);
           if (Array.isArray(parsed)) item.star_sub_stats = parsed;
           else item.star_sub_stats = [item.star_sub_stats];
-        } catch (e) {
+        } catch {
           item.star_sub_stats = [item.star_sub_stats];
         }
       }
@@ -4484,7 +4212,7 @@ const App = () => {
           try {
             const pJson = JSON.parse(raw);
             if (Array.isArray(pJson)) return pJson;
-          } catch (e) { }
+          } catch { /* ignore */ }
         }
         return [];
       })()
@@ -4563,7 +4291,7 @@ const App = () => {
     try {
       localStorage.removeItem('shop_linked_game_player');
       localStorage.removeItem('shop_boss_target_id');
-    } catch (e) { }
+    } catch { /* ignore */ }
   }, []);
 
   // Tự động đồng bộ và duy trì thông tin nhân vật game của tài khoản đã liên kết
@@ -4649,7 +4377,7 @@ const App = () => {
                 setAuctionMarketData(parsed);
                 return;
               }
-            } catch (e) { }
+            } catch { /* ignore */ }
             if (typeof fetchAuctionMarketData === 'function') {
               fetchAuctionMarketData();
             }
@@ -4797,7 +4525,7 @@ const App = () => {
           if (orderNow && orderNow.status === 'completed') {
             onOtpSuccess(orderNow);
           }
-        } catch (e) { }
+        } catch { /* ignore */ }
       };
       window.addEventListener('focus', handleTabFocus);
 
@@ -4973,7 +4701,7 @@ const App = () => {
             setAuctionMarketData(parsed);
             return;
           }
-        } catch (e) { }
+        } catch { /* ignore */ }
       }
 
       // 2. Dự phòng đọc từ site_config
@@ -5837,7 +5565,7 @@ const App = () => {
   // --- CÁC HÀM XỬ LÝ GAME MỘNG THIÊN CỬU H5 (TẢI GAME CỐ ĐỊNH + NẠP XU VÍ GAME) ---
   const handleSaveMtcGameConfig = async (newCfg, toastMsg = 'Đã lưu cấu hình Mộng Thiên Cửu H5!') => {
     setMtcGameConfig(newCfg);
-    try { localStorage.setItem('shop_mtc_game_config', JSON.stringify(newCfg)); } catch (e) {}
+    try { localStorage.setItem('shop_mtc_game_config', JSON.stringify(newCfg)); } catch { /* ignore */ }
     try {
       await supabase.from('site_config').upsert({ id: 'mtc_game_config', value: newCfg });
     } catch (e) {
@@ -5868,95 +5596,10 @@ const App = () => {
           }
         }
       }
-    } catch (e) {
+    } catch {
       if (!silent) showToast('Không thể làm mới link server lúc này!', 'warning');
     }
     return null;
-  };
-
-  const handleBuySpinTickets = async () => {
-    if (!currentUser) return requireAuth('login');
-    const qty = parseInt(buyTicketQty) || 1;
-    if (qty <= 0) return showToast("Số lượng vé mua phải từ 1 vé trở lên!", "error");
-
-    const unitPrice = wheelConfig.ticketPrice || 20000;
-    const totalCost = qty * unitPrice;
-
-    if ((currentUser.balance || 0) < totalCost) {
-      showToast(`Số dư ví không đủ! Cần thêm ${new Intl.NumberFormat('vi-VN').format(totalCost - (currentUser.balance || 0))}đ. Vui lòng nạp tiền vào ví.`, "error");
-      return;
-    }
-
-    if (isProcessingBuyTicket) return;
-    setIsProcessingBuyTicket(true);
-
-    try {
-      let rpcOk = false;
-      try {
-        const { data, error } = await supabase.rpc('m_buy_spin_tickets', {
-          p_user_id: currentUser.id,
-          p_quantity: qty,
-          p_unit_price: unitPrice
-        });
-        if (!error && data?.success) {
-          rpcOk = true;
-          const updatedUser = {
-            ...currentUser,
-            balance: data.new_balance,
-            spins: data.new_spins
-          };
-          setCurrentUser(updatedUser);
-          localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
-          setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
-        }
-      } catch (e) {
-        console.log("RPC m_buy_spin_tickets fallback:", e);
-      }
-
-      if (!rpcOk) {
-        const newBalance = (currentUser.balance || 0) - totalCost;
-        const newSpins = (currentUser.spins || 0) + qty;
-
-        const { error: updErr } = await supabase
-          .from('users')
-          .update({ balance: newBalance, spins: newSpins })
-          .eq('id', currentUser.id);
-
-        if (updErr) throw updErr;
-
-        const txId = `TX_TICKET_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-        const dateStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN');
-        const txPayload = {
-          id: txId,
-          user: currentUser.name,
-          action: `Mua ${qty} Thẻ may mắn (+${qty} lượt chơi)`,
-          amount: totalCost,
-          date: dateStr,
-          status: 'Đã hoàn tất',
-          type: 'buy_spin_tickets',
-          isSpinCost: false
-        };
-
-        try {
-          await supabase.from('transactions').insert([txPayload]);
-        } catch (e) {}
-
-        const updatedUser = { ...currentUser, balance: newBalance, spins: newSpins };
-        setCurrentUser(updatedUser);
-        localStorage.setItem('shop_cached_user', JSON.stringify(updatedUser));
-        setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
-        setTransactionsDb([txPayload, ...transactionsDb]);
-      }
-
-      setShowBuyTicketModal(false);
-      showToast(`🎉 Mua thành công ${qty} Thẻ may mắn! Bạn hiện có ${(currentUser.spins || 0) + qty} lượt chơi.`, "success");
-      sendAdminAlert('MUA THẺ MAY MẮN', `Khách ${currentUser.name} vừa mua ${qty} Thẻ may mắn (${new Intl.NumberFormat('vi-VN').format(totalCost)}đ)`);
-    } catch (err) {
-      console.error("Lỗi mua vé quay:", err);
-      showToast("Lỗi khi mua vé quay: " + (err.message || err), "error");
-    } finally {
-      setIsProcessingBuyTicket(false);
-    }
   };
 
   const renderDashboardScreen = () => {
@@ -6909,13 +6552,7 @@ const App = () => {
     // 1. TẠO BIẾN KIỂM TRA LỆNH ĐANG CHỜ DUYỆT
     const hasPendingRequest = depositRequests.some(d => d.userId === currentUser?.id && d.status === 'Chờ duyệt');
     const activePendingBankingReq = depositRequests.find(d => d.userId === currentUser?.id && d.status === 'Chờ duyệt' && d.type !== 'card');
-
-    const removeAccents = (str) => {
-      return str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D') : '';
-    }
-    // Thay thế đoạn transferContent cũ bằng đoạn này
-    const transferContent = `NAP ${currentUser?.phone}`;
-    const displayAmount = activePendingBankingReq ? activePendingBankingReq.amount : pendingDeposit?.amount;
+    const displayAmount = activePendingBankingReq ? activePendingBankingReq.amount : null;
 
     const handleCreatePayosLink = async (e) => {
       e.preventDefault();
@@ -6979,102 +6616,6 @@ const App = () => {
       } finally {
         setIsGlobalProcessing(false);
       }
-    };
-
-    const handleCreateDepositDraft = (e) => {
-      e.preventDefault();
-
-      // 2. CHẶN TẠO LỆNH NẾU ĐANG CÓ LỆNH CHỜ
-      if (hasPendingRequest) {
-        return showToast("Bạn đang có lệnh nạp chờ duyệt. Vui lòng đợi Admin xử lý!", "error");
-      }
-
-      const parsedAmount = parseInt(depositAmount.toString().replace(/\D/g, ''));
-      if (!parsedAmount || parsedAmount < 10000) return showToast("Số tiền tối thiểu 10.000đ", 'error');
-
-      let bonusAmount = 0;
-      let bonusSpins = 0;
-      let appliedVoucher = null;
-
-      if (voucherInput.trim() !== '') {
-        const validVoucher = vouchersDb.find(v => v.code === voucherInput.trim().toUpperCase() && v.isActive);
-        if (!validVoucher) {
-          return showToast("Mã voucher không hợp lệ hoặc đã bị vô hiệu hóa!", 'error');
-        }
-        bonusAmount = (parsedAmount * (validVoucher.percent || 0)) / 100;
-        bonusSpins = validVoucher.bonusSpins || 0;
-        appliedVoucher = validVoucher.code;
-      }
-
-      setPendingDeposit({
-        amount: parsedAmount,
-        bonusAmount: bonusAmount,
-        voucherSpins: bonusSpins, // Lưu thêm lượt quay
-        voucherCode: appliedVoucher
-      });
-      setDepositStep(2); // Chuyển sang bước quét QR
-    };
-
-    const handleConfirmTransfer = async () => {
-      if (!pendingDeposit) return;
-      if (isDepositing) return;
-
-      setIsDepositing(true);
-
-      // CHẶN BẤM ĐÚP XÁC NHẬN KHI ĐÃ CÓ LỆNH CHỜ
-      if (hasPendingRequest) {
-        setDepositStep(1);
-        setPendingDeposit(null);
-        setIsDepositing(false);
-        return showToast("Bạn đã gửi 1 lệnh nạp trước đó rồi. Vui lòng chờ Admin duyệt!", "error");
-      }
-
-      const newReq = {
-        id: Date.now(),
-        user: currentUser.name,
-        userId: currentUser.id,
-        amount: pendingDeposit.amount,
-        bonusAmount: pendingDeposit.bonusAmount,
-        voucherSpins: pendingDeposit.voucherSpins || 0, // <--- Đẩy lên Supabase
-        voucherCode: pendingDeposit.voucherCode,
-        status: 'Chờ duyệt',
-        date: new Date().toLocaleDateString('vi-VN')
-      };
-
-      // ĐẨY YÊU CẦU LÊN SUPABASE
-      const { data: insertedData, error } = await supabase.from('deposit_requests').insert([newReq]).select().single();
-
-      if (error) {
-        setIsDepositing(false);
-        showToast("Lỗi gửi yêu cầu nạp tiền: " + error.message, 'error');
-        return;
-      }
-
-      if (insertedData) {
-        setDepositRequests([insertedData, ...depositRequests]);
-
-        // Gọi Function báo Telegram
-        await supabase.functions.invoke('telegram-bot', {
-          body: { type: 'new_request', requestId: insertedData.id }
-        });
-      }
-
-      // THÊM DÒNG NÀY VÀO ĐỂ BÁO EMAIL KHI KHÁCH BÁO NẠP TIỀN
-      sendAdminAlert('YÊU CẦU NẠP TIỀN', `Khách ${currentUser.name} vừa báo đã chuyển khoản ${new Intl.NumberFormat('vi-VN').format(pendingDeposit.amount)}đ. Hãy vào kiểm tra và duyệt!`);
-
-      if (pendingDeposit.bonusAmount > 0) {
-        showToast(`Đã ghi nhận! Áp dụng mã ${pendingDeposit.voucherCode} (+${new Intl.NumberFormat('vi-VN').format(pendingDeposit.bonusAmount)}đ). Chờ duyệt!`);
-      } else {
-        // ... (code cũ giữ nguyên)
-        showToast("Đã ghi nhận lệnh nạp! Vui lòng chờ Admin duyệt.");
-      }
-
-      // Reset về trạng thái ban đầu
-      setDepositAmount('');
-      setVoucherInput('');
-      setPendingDeposit(null);
-      setDepositStep(1);
-      setIsDepositing(false);
     };
 
     const handleCardSubmit = async (e) => {
@@ -7193,7 +6734,7 @@ const App = () => {
               <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">Số tài khoản:</span><span className="font-bold text-emerald-400 flex items-center gap-2">{payosPaymentData ? payosPaymentData.accountNumber : "..."} <button onClick={() => copyToClipboard(payosPaymentData ? payosPaymentData.accountNumber : '')} className="relative z-20"><Copy size={14} className="text-slate-500 hover:text-white" /></button></span></div>
               <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">Chủ tài khoản:</span><span className="font-bold text-white uppercase text-right ml-2 line-clamp-1">{payosPaymentData ? payosPaymentData.accountName : "..."}</span></div>
               <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">Nội dung CK:</span><span className="font-bold text-rose-400 flex items-center justify-end gap-2 ml-2 text-right">{payosPaymentData ? payosPaymentData.description : "..."} <button onClick={() => copyToClipboard(payosPaymentData ? payosPaymentData.description : '')} className="relative z-20 shrink-0"><Copy size={14} className="text-slate-500 hover:text-white" /></button></span></div>
-              {(payosPaymentData || activePendingBankingReq || (depositStep === 2 && pendingDeposit)) && (
+              {(payosPaymentData || activePendingBankingReq) && (
                 <div className="flex justify-between border-b border-slate-800 pb-2 bg-emerald-500/10 p-2 rounded mt-2"><span className="text-slate-400 font-bold">Số tiền:</span><span className="font-black text-emerald-400">{new Intl.NumberFormat('vi-VN').format(payosPaymentData ? payosPaymentData.amount : displayAmount)} đ</span></div>
               )}
             </div>
@@ -7707,7 +7248,7 @@ const App = () => {
     // Hàm Helper lấy tên game thật
     const getGameName = (gameStr) => {
       if (!gameStr) return '';
-      try { return JSON.parse(gameStr).name || gameStr; } catch (e) { return gameStr; }
+      try { return JSON.parse(gameStr).name || gameStr; } catch { return gameStr; }
     };
 
     // Tìm danh sách Game duy nhất cho Tab hiện tại
@@ -7721,8 +7262,8 @@ const App = () => {
       return matchType && matchGame;
     }).sort((a, b) => {
       let aFeatured = false, bFeatured = false;
-      try { aFeatured = JSON.parse(a.game).isFeatured || false; } catch (e) { }
-      try { bFeatured = JSON.parse(b.game).isFeatured || false; } catch (e) { }
+      try { aFeatured = JSON.parse(a.game).isFeatured || false; } catch { /* ignore */ }
+      try { bFeatured = JSON.parse(b.game).isFeatured || false; } catch { /* ignore */ }
       return (bFeatured === true) - (aFeatured === true);
     });
 
@@ -7752,7 +7293,7 @@ const App = () => {
                 if (game !== 'Tất cả') {
                   const matchedItem = boostingDb.find(b => getGameName(b.game) === game);
                   if (matchedItem) {
-                    try { gAvatar = JSON.parse(matchedItem.game).avatar; } catch (e) { }
+                    try { gAvatar = JSON.parse(matchedItem.game).avatar; } catch { /* ignore */ }
                   }
                 }
                 return (
@@ -7772,17 +7313,7 @@ const App = () => {
                 <Target size={40} className="mx-auto mb-3 text-slate-600" />
                 <p className="text-slate-400">Đang cập nhật các gói dịch vụ cho mục này...</p>
               </div>
-            ) : filteredBoosting.map((b, index) => {
-              let gName = b.game || '';
-              let gAvatar = null;
-              try {
-                const parsed = JSON.parse(b.game);
-                gName = parsed.name || '';
-                gAvatar = parsed.avatar || null;
-              } catch (e) { }
-
-              return renderBoostingCard(b, index);
-            })}
+            ) : filteredBoosting.map((b, index) => renderBoostingCard(b, index))}
           </div>
           {/* LỊCH SỬ CÀY THUÊ CHO BẠN */}
           <div className="mt-16 border-t border-slate-800 pt-8">
@@ -7971,10 +7502,10 @@ const App = () => {
         }
         setShoesPity(nextPity);
         if (currentUser?.id) {
-          try { localStorage.setItem(`shop_shoes_pity_${currentUser.id}`, nextPity.toString()); } catch (e) { }
+          try { localStorage.setItem(`shop_shoes_pity_${currentUser.id}`, nextPity.toString()); } catch { /* ignore */ }
           try {
             supabase.from('users').update({ shoes_pity: nextPity }).eq('id', currentUser.id).then(() => {});
-          } catch (e) { }
+          } catch { /* ignore */ }
         }
       }
 
@@ -8134,9 +7665,9 @@ const App = () => {
         const winAudio = document.getElementById('winSound');
         const loseAudio = document.getElementById('loseSound');
         if (winningItem.type !== 'none') {
-          if (winAudio) { winAudio.currentTime = 0; winAudio.volume = 0.8; winAudio.play().catch(e => { }); }
+          if (winAudio) { winAudio.currentTime = 0; winAudio.volume = 0.8; winAudio.play().catch(() => {}); }
         } else {
-          if (loseAudio) { loseAudio.currentTime = 0; loseAudio.volume = 0.8; loseAudio.play().catch(e => { }); }
+          if (loseAudio) { loseAudio.currentTime = 0; loseAudio.volume = 0.8; loseAudio.play().catch(() => {}); }
         }
 
         try {
@@ -8148,7 +7679,7 @@ const App = () => {
               return [...newTxs, ...filtered];
             });
           }
-        } catch (e) { }
+        } catch { /* ignore */ }
 
         // Hiển thị bảng chúc mừng
         setGiftModalData({
@@ -8257,7 +7788,7 @@ const App = () => {
             setShoesPity(Number(finalPity));
             const myUid = currentUserRef.current?.id || currentUser?.id;
             if (myUid) {
-              try { localStorage.setItem(`shop_shoes_pity_${myUid}`, Number(finalPity).toString()); } catch (e) { }
+              try { localStorage.setItem(`shop_shoes_pity_${myUid}`, Number(finalPity).toString()); } catch { /* ignore */ }
             }
           }
         } else {
@@ -8341,7 +7872,7 @@ const App = () => {
             setShoesPity(Number(finalPity));
             const myUid = currentUserRef.current?.id || currentUser?.id;
             if (myUid) {
-              try { localStorage.setItem(`shop_shoes_pity_${myUid}`, Number(finalPity).toString()); } catch (e) { }
+              try { localStorage.setItem(`shop_shoes_pity_${myUid}`, Number(finalPity).toString()); } catch { /* ignore */ }
             }
           }
 
@@ -8352,7 +7883,7 @@ const App = () => {
                 spins: finalNewSpins,
                 shoes_pity: finalPity
               }).eq('id', currentUser.id);
-            } catch (uErr) { }
+            } catch { /* ignore */ }
           }
         }
       } catch (err) {
@@ -8425,7 +7956,7 @@ const App = () => {
       if (myUid) {
         try {
           localStorage.setItem(`shop_shoes_pity_${myUid}`, resolvedPity.toString());
-        } catch (e) { }
+        } catch { /* ignore */ }
       }
 
       // TỔNG KẾT VẬT PHẨM TRÚNG TỪ 10 LƯỢT
@@ -8571,7 +8102,7 @@ const App = () => {
         if (spinAudio) { spinAudio.pause(); spinAudio.currentTime = 0; }
 
         const winAudio = document.getElementById('winSound');
-        if (winAudio) { winAudio.currentTime = 0; winAudio.volume = 0.85; winAudio.play().catch(e => { }); }
+        if (winAudio) { winAudio.currentTime = 0; winAudio.volume = 0.85; winAudio.play().catch(() => {}); }
 
         try {
           const { data: newTxs } = await supabase.from('transactions').select('*').eq('user', currentUser.name).order('created_at', { ascending: false }).limit(5);
@@ -8600,7 +8131,7 @@ const App = () => {
               return [...newTxs, ...filtered];
             });
           }
-        } catch (e) {}
+        } catch { /* ignore */ }
 
         // HIỂN THỊ MODAL SỔ ĐỦ 10 MÓN TRÚNG
         setSpin10ModalData({
@@ -8627,7 +8158,7 @@ const App = () => {
       }, 4000);
     };
     // HELPER: Xác định bảng màu & phong cách thị giác Hoàng Kim cho từng loại giải thưởng
-    const getPrizeVisual = (w, idx) => {
+    const getPrizeVisual = (w) => {
       const isShoes = isLegendaryShoes(w) || w.type === 'game_shoes_legendary';
       const itType = String(w.type || '').toLowerCase();
       const itName = String(w.name || '').toLowerCase();
@@ -11729,7 +11260,6 @@ const App = () => {
     let extraGearDefPct = 0.0;
     let rawGearDmgReduc = 0.0;
     let rawCritResPct = 0.0;
-    let expBonusMultiplier = 1.0;
     let necklaceCpMult = 1.0;
     let armorCpMult = 1.0;
     let ringCpMult = 1.0;
@@ -11741,11 +11271,11 @@ const App = () => {
       let subs = [];
       if (Array.isArray(it.sub_stats)) subs.push(...it.sub_stats);
       else if (typeof it.sub_stats === 'string' && it.sub_stats.trim()) {
-        try { const j = JSON.parse(it.sub_stats); if (Array.isArray(j)) subs.push(...j); else subs.push(it.sub_stats); } catch (e) { subs.push(it.sub_stats); }
+        try { const j = JSON.parse(it.sub_stats); if (Array.isArray(j)) subs.push(...j); else subs.push(it.sub_stats); } catch { subs.push(it.sub_stats); }
       }
       if (Array.isArray(it.star_sub_stats)) subs.push(...it.star_sub_stats);
       else if (typeof it.star_sub_stats === 'string' && it.star_sub_stats.trim()) {
-        try { const j = JSON.parse(it.star_sub_stats); if (Array.isArray(j)) subs.push(...j); else subs.push(it.star_sub_stats); } catch (e) { subs.push(it.star_sub_stats); }
+        try { const j = JSON.parse(it.star_sub_stats); if (Array.isArray(j)) subs.push(...j); else subs.push(it.star_sub_stats); } catch { subs.push(it.star_sub_stats); }
       }
       return subs.filter(Boolean);
     };
@@ -11912,7 +11442,7 @@ const App = () => {
           gearDmgPctBonus += val;
           armorPenPct += val / 100.0;
         } else if (sLow.includes('exp') || sLow.includes('kinh nghiệm')) {
-          expBonusMultiplier += val / 100.0;
+          // Bỏ qua chỉ số EXP khi tính sát thương (tránh cộng nhầm vào gearDmgPctBonus)
         } else {
           gearDmgPctBonus += val;
         }
@@ -12238,10 +11768,8 @@ const App = () => {
     const { item, category: rawCat, x, topStyle, bottomStyle, maxHeight: activeMaxH, isPinned } = activeItemTooltip;
     const category = rawCat || getCategoryOfItem(item);
     const tier = getBossTierStyle(item.tier);
-    const img = getBossItemAsset(item, category);
     const isMaterial = category === 'material';
     const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
-    const stars = '⭐'.repeat(starsCount);
     const plusVal = Number(item.plus || 0);
 
     const itemName = String(item.name || '').trim();
@@ -13344,7 +12872,6 @@ const App = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {BOSS_GAME_PACKAGES.map((pkg) => {
               const isEvent1111 = event1111Now >= EVENT_1111_START_MS && event1111Now < EVENT_1111_END_MS;
-              const isAffordable = currentUser ? (currentUser.balance || 0) >= pkg.price : false;
               const hasRing = pkg.items && pkg.items.length > 0;
               const baseBossChests = pkg.bossChests || (pkg.royalChests ? pkg.royalChests * 100 : 0);
               const coinsVal = isEvent1111 ? pkg.coins * EVENT_1111_MULT : pkg.coins;
@@ -13770,7 +13297,6 @@ const App = () => {
             }
 
             const tier = getBossTierStyle(item.tier);
-            const imgUrl = getBossItemAsset(item, category);
             const plusText = (item.plus && item.plus > 0) ? ` +${item.plus}` : '';
             const isShoes = (category === 'shoes') || String(item.category || '').toLowerCase() === 'shoes' || String(item.name || '').toLowerCase().includes('giày');
             const isHat = (category === 'hat') || String(item.category || '').toLowerCase() === 'hat' || String(item.name || '').toLowerCase().includes('nón') || String(item.name || '').toLowerCase().includes('mũ');
@@ -14017,12 +13543,12 @@ const App = () => {
                     let itemSubs = [];
                     if (Array.isArray(item.sub_stats)) itemSubs = item.sub_stats;
                     else if (typeof item.sub_stats === 'string' && item.sub_stats.trim()) {
-                      try { const pJson = JSON.parse(item.sub_stats); if (Array.isArray(pJson)) itemSubs = pJson; else itemSubs = [item.sub_stats]; } catch (e) { itemSubs = [item.sub_stats]; }
+                      try { const pJson = JSON.parse(item.sub_stats); if (Array.isArray(pJson)) itemSubs = pJson; else itemSubs = [item.sub_stats]; } catch { itemSubs = [item.sub_stats]; }
                     }
                     let itemStarSubs = [];
                     if (Array.isArray(item.star_sub_stats)) itemStarSubs = item.star_sub_stats;
                     else if (typeof item.star_sub_stats === 'string' && item.star_sub_stats.trim()) {
-                      try { const pJson = JSON.parse(item.star_sub_stats); if (Array.isArray(pJson)) itemStarSubs = pJson; else itemStarSubs = [item.star_sub_stats]; } catch (e) { itemStarSubs = [item.star_sub_stats]; }
+                      try { const pJson = JSON.parse(item.star_sub_stats); if (Array.isArray(pJson)) itemStarSubs = pJson; else itemStarSubs = [item.star_sub_stats]; } catch { itemStarSubs = [item.star_sub_stats]; }
                     }
                     const allSubs = Array.from(new Set([
                       ...itemSubs,
@@ -15109,9 +14635,7 @@ const App = () => {
                           const isShoes = (category === 'shoes') || String(item?.category || '').toLowerCase() === 'shoes' || String(item?.name || '').toLowerCase().includes('giày');
                           const isHat = (category === 'hat') || String(item?.category || '').toLowerCase() === 'hat' || String(item?.name || '').toLowerCase().includes('nón') || String(item?.name || '').toLowerCase().includes('mũ');
                           const tier = getBossTierStyle(item.tier);
-                          const img = getBossItemAsset(item, category);
                           const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
-                          const stars = '⭐'.repeat(starsCount);
                           const isLoadingThis = isPerformingBagAction && (bagActionLoadingItem === (item.id || item.name || idx) || bagActionLoadingItem === 'all');
 
                           return (
@@ -15400,10 +14924,8 @@ const App = () => {
           const isShoes = (category === 'shoes') || String(item?.category || '').toLowerCase() === 'shoes' || String(item?.name || '').toLowerCase().includes('giày');
           const isHat = (category === 'hat') || String(item?.category || '').toLowerCase() === 'hat' || String(item?.name || '').toLowerCase().includes('nón') || String(item?.name || '').toLowerCase().includes('mũ');
           const tier = getBossTierStyle(item?.tier);
-          const img = getBossItemAsset(item, category);
           const numStars = Number(item?.stars);
           const starsCount = Math.max(1, Math.min(5, isNaN(numStars) || numStars < 1 ? 1 : numStars));
-          const stars = '⭐'.repeat(starsCount);
           const isStackable = category === 'material' || (item?.quantity && item.quantity > 1);
           const maxQty = item?.quantity || 1;
           const safePrice = Math.max(1, Number(listingPrice) || 0);
@@ -15818,9 +15340,7 @@ const App = () => {
                             const isShoes = (category === 'shoes') || String(item?.category || '').toLowerCase() === 'shoes' || String(item?.name || '').toLowerCase().includes('giày');
                             const isHat = (category === 'hat') || String(item?.category || '').toLowerCase() === 'hat' || String(item?.name || '').toLowerCase().includes('nón') || String(item?.name || '').toLowerCase().includes('mũ');
                             const tier = getBossTierStyle(item.tier);
-                            const img = getBossItemAsset(item, category);
                             const starsCount = Math.max(1, Math.min(5, Number(item.stars || 1)));
-                            const stars = '⭐'.repeat(starsCount);
                             const isMine = String(listing.seller_id).toLowerCase() === myUid;
                             const isLoadingThis = isPerformingBagAction && bagActionLoadingItem === listing.id;
 
@@ -16056,7 +15576,6 @@ const App = () => {
                           const item = listing.item || {};
                           const category = getCategoryOfItem(item);
                           const tier = getBossTierStyle(item.tier);
-                          const img = getBossItemAsset(item, category);
                           const safePrice = Number(listing.price || 0);
                           const feeCoins = Number(listing.fee_coins || Math.round(safePrice * 0.20));
                           const netReceive = Number(listing.net_receive || (safePrice - feeCoins));
@@ -16136,8 +15655,6 @@ const App = () => {
                         {rawSold.map((listing, sIdx) => {
                           const item = listing.item || {};
                           const category = getCategoryOfItem(item);
-                          const tier = getBossTierStyle(item.tier);
-                          const img = getBossItemAsset(item, category);
                           const soldTime = listing.sold_at ? new Date(listing.sold_at * 1000).toLocaleString('vi-VN') : 'Gần đây';
 
                           return (
@@ -16646,23 +16163,25 @@ const App = () => {
     return (
       <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-16">
         {renderNavbar()}
-        <MongThienCuuShowcase
-          rawApkUrl={rawApkUrl}
-          webPlayUrl="/play/"
-          version={mtcGameConfig?.version || '2.6.0-s0-beta'}
-          notice={sanitizeMtcShowcaseNotice(mtcGameConfig?.notice)}
-          isAdmin={currentUser?.role?.toLowerCase() === 'admin'}
-          isMtcGameOpen={isMtcGameOpen}
-          onTogglePublic={() => handleSaveMtcGameConfig(
-            { ...mtcGameConfig, status: isMtcGameOpen ? 'hidden' : 'public' },
-            isMtcGameOpen ? 'Đã ẨN trang Mộng Thiên Cửu khỏi khách thường!' : 'Đã HIỆN CÔNG KHAI trang Mộng Thiên Cửu!'
-          )}
-          isWebPlayPublic={isMtcWebPlayPublic}
-          onToggleWebPlay={() => handleSaveMtcGameConfig(
-            { ...mtcGameConfig, webPlayStatus: isMtcWebPlayPublic ? 'hidden' : 'public' },
-            isMtcWebPlayPublic ? 'Đã ẨN nút Chơi Trên Web (chỉ nội bộ Admin dùng)!' : 'Đã HIỆN CÔNG KHAI nút Chơi Trên Web cho mọi người!'
-          )}
-        />
+        <Suspense fallback={<div className="py-16 text-center text-slate-400 text-sm">Đang tải...</div>}>
+          <MongThienCuuShowcase
+            rawApkUrl={rawApkUrl}
+            webPlayUrl="/play/"
+            version={mtcGameConfig?.version || '2.6.0-s0-beta'}
+            notice={sanitizeMtcShowcaseNotice(mtcGameConfig?.notice)}
+            isAdmin={currentUser?.role?.toLowerCase() === 'admin'}
+            isMtcGameOpen={isMtcGameOpen}
+            onTogglePublic={() => handleSaveMtcGameConfig(
+              { ...mtcGameConfig, status: isMtcGameOpen ? 'hidden' : 'public' },
+              isMtcGameOpen ? 'Đã ẨN trang Mộng Thiên Cửu khỏi khách thường!' : 'Đã HIỆN CÔNG KHAI trang Mộng Thiên Cửu!'
+            )}
+            isWebPlayPublic={isMtcWebPlayPublic}
+            onToggleWebPlay={() => handleSaveMtcGameConfig(
+              { ...mtcGameConfig, webPlayStatus: isMtcWebPlayPublic ? 'hidden' : 'public' },
+              isMtcWebPlayPublic ? 'Đã ẨN nút Chơi Trên Web (chỉ nội bộ Admin dùng)!' : 'Đã HIỆN CÔNG KHAI nút Chơi Trên Web cho mọi người!'
+            )}
+          />
+        </Suspense>
         {renderFooter()}
       </div>
     );
@@ -16696,7 +16215,7 @@ const App = () => {
       try {
         if (isCover && files[0]) {
           // Bắt đầu nén ảnh
-          const compressedFile = await imageCompression(files[0], options);
+          const compressedFile = await compressImageFile(files[0], options);
 
           const reader = new FileReader();
           reader.onloadend = () => setAdminCoverImage(reader.result);
@@ -16706,7 +16225,7 @@ const App = () => {
         } else if (!isCover) {
           // Xử lý nén cho danh sách ảnh phụ
           for (const file of files) {
-            const compressedFile = await imageCompression(file, options);
+            const compressedFile = await compressImageFile(file, options);
             const reader = new FileReader();
             reader.onloadend = () => setAdminDetailImages(prev => [...prev, reader.result]);
             reader.readAsDataURL(compressedFile);
@@ -16723,11 +16242,11 @@ const App = () => {
       if (file) {
         const options = { maxSizeMB: 0.35, maxWidthOrHeight: 1440, useWebWorker: true, fileType: "image/webp", initialQuality: 0.85 };
         try {
-          const compressedFile = await imageCompression(file, options);
+          const compressedFile = await compressImageFile(file, options);
           const reader = new FileReader();
           reader.onloadend = () => setAdminAccGameAvatar(reader.result);
           reader.readAsDataURL(compressedFile);
-        } catch (err) {
+        } catch {
           const reader = new FileReader();
           reader.onloadend = () => setAdminAccGameAvatar(reader.result);
           reader.readAsDataURL(file);
@@ -16997,19 +16516,19 @@ const App = () => {
           initialQuality: 0.85
         };
         try {
-          const promises = files.map(file => new Promise(async (resolve) => {
+          const promises = files.map(async (file) => {
+            let targetFile = file;
             try {
-              const compressedFile = await imageCompression(file, options);
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result);
-              reader.readAsDataURL(compressedFile);
+              targetFile = await compressImageFile(file, options);
             } catch (err) {
               console.error("Lỗi nén ảnh, dùng ảnh gốc:", err);
+            }
+            return new Promise((resolve) => {
               const reader = new FileReader();
               reader.onloadend = () => resolve(reader.result);
-              reader.readAsDataURL(file);
-            }
-          }));
+              reader.readAsDataURL(targetFile);
+            });
+          });
           const base64s = await Promise.all(promises);
           setAdminBoostingImage(prev => [...(prev || []), ...base64s]);
         } catch (error) {
@@ -17029,7 +16548,7 @@ const App = () => {
           initialQuality: 0.85
         };
         try {
-          const compressedFile = await imageCompression(file, options);
+          const compressedFile = await compressImageFile(file, options);
           const reader = new FileReader();
           reader.onloadend = () => setAdminGameAvatar(reader.result);
           reader.readAsDataURL(compressedFile);
@@ -17053,7 +16572,7 @@ const App = () => {
           initialQuality: 0.85
         };
         try {
-          const compressedFile = await imageCompression(file, options);
+          const compressedFile = await compressImageFile(file, options);
           const reader = new FileReader();
           reader.onloadend = () => setAdminWheelImage(reader.result);
           reader.readAsDataURL(compressedFile);
@@ -17120,7 +16639,8 @@ const App = () => {
 
         // Tự động bỏ qua lỗi nếu database Supabase chưa kịp chạy lệnh thêm cột notify_on_win
         if (queryError && queryError.message && (queryError.message.includes('notify_on_win') || queryError.code === '42703')) {
-          const { notify_on_win, ...safeWheelData } = wheelData;
+          const safeWheelData = { ...wheelData };
+          delete safeWheelData.notify_on_win;
           if (editingWheel) {
             const { error: errRetry } = await supabase.from('wheel_items').update(safeWheelData).eq('id', editingWheel.id);
             queryError = errRetry;
@@ -17142,13 +16662,13 @@ const App = () => {
             ? wheelItemsMoneyDb.map(w => w.id === editingWheel.id ? wheelData : w)
             : [...wheelItemsMoneyDb, wheelData];
           setWheelItemsMoneyDb(nextList);
-          try { localStorage.setItem('shop_wheel_money', JSON.stringify(nextList)); } catch (e) { }
+          try { localStorage.setItem('shop_wheel_money', JSON.stringify(nextList)); } catch { /* ignore */ }
         } else {
           const nextList = editingWheel 
             ? wheelItemsSpinDb.map(w => w.id === editingWheel.id ? wheelData : w)
             : [...wheelItemsSpinDb, wheelData];
           setWheelItemsSpinDb(nextList);
-          try { localStorage.setItem('shop_wheel_spin', JSON.stringify(nextList)); } catch (e) { }
+          try { localStorage.setItem('shop_wheel_spin', JSON.stringify(nextList)); } catch { /* ignore */ }
         }
 
         showToast(editingWheel ? "Sửa phần thưởng thành công!" : "Thêm phần thưởng thành công!");
@@ -17166,11 +16686,11 @@ const App = () => {
       if (adminWheelType === 'money') {
         const nextList = wheelItemsMoneyDb.map(w => w.id === item.id ? updatedItem : w);
         setWheelItemsMoneyDb(nextList);
-        try { localStorage.setItem('shop_wheel_money', JSON.stringify(nextList)); } catch (e) { }
+        try { localStorage.setItem('shop_wheel_money', JSON.stringify(nextList)); } catch { /* ignore */ }
       } else {
         const nextList = wheelItemsSpinDb.map(w => w.id === item.id ? updatedItem : w);
         setWheelItemsSpinDb(nextList);
-        try { localStorage.setItem('shop_wheel_spin', JSON.stringify(nextList)); } catch (e) { }
+        try { localStorage.setItem('shop_wheel_spin', JSON.stringify(nextList)); } catch { /* ignore */ }
       }
 
       try {
@@ -17183,7 +16703,7 @@ const App = () => {
           console.warn("Lỗi update notify_on_win:", error);
         }
         showToast(nextVal ? `🔔 Đã bật thông báo Discord cho "${item.name}"!` : `🔕 Đã tắt thông báo Discord cho "${item.name}"!`, "success");
-      } catch (err) {
+      } catch {
         showToast(nextVal ? `Đã bật thông báo cho "${item.name}"!` : `Đã tắt thông báo cho "${item.name}"!`, "info");
       }
     };
@@ -18053,7 +17573,7 @@ const App = () => {
                                     // 1. Ép kiểu an toàn cho r.info để chống lỗi mất dữ liệu
                                     let safeInfo = r.info;
                                     if (typeof safeInfo === 'string') {
-                                      try { safeInfo = JSON.parse(safeInfo); } catch (e) { safeInfo = {}; }
+                                      try { safeInfo = JSON.parse(safeInfo); } catch { safeInfo = {}; }
                                     }
                                     safeInfo = safeInfo || {};
 
@@ -18467,15 +17987,15 @@ const App = () => {
                     <button onClick={() => { setAdminBoostingCategoryFilter('event'); setAdminBoostingGameFilter('Tất cả'); }} className={`flex-1 md:flex-none px-4 py-2 text-sm font-bold rounded-xl transition-all ${adminBoostingCategoryFilter === 'event' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-[#151D2F] text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'}`}>Cày Sự Kiện</button>
                   </div>
                   <div className="flex gap-2 overflow-x-auto max-w-full hide-scrollbar snap-x snap-mandatory">
-                    {['Tất cả', ...new Set(boostingDb.filter(b => (b.type || 'rank') === adminBoostingCategoryFilter).map(b => { try { return JSON.parse(b.game).name || b.game; } catch (e) { return b.game; } }))].map(game => (
+                    {['Tất cả', ...new Set(boostingDb.filter(b => (b.type || 'rank') === adminBoostingCategoryFilter).map(b => { try { return JSON.parse(b.game).name || b.game; } catch { return b.game; } }))].map(game => (
                       <button key={game} onClick={() => setAdminBoostingGameFilter(game)} className={`px-3 py-1.5 whitespace-nowrap text-xs font-bold rounded-lg flex-shrink-0 transition-all border snap-start ${adminBoostingGameFilter === game ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-[#151D2F] text-slate-400 border-slate-800 hover:bg-slate-800'}`}>{game === 'Tất cả' ? 'Tất cả Game' : game}</button>
                     ))}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {boostingDb.filter(b => { const gn = (() => { try { return JSON.parse(b.game).name || b.game; } catch (e) { return b.game; } })(); return (b.type || 'rank') === adminBoostingCategoryFilter && (adminBoostingGameFilter === 'Tất cả' || gn === adminBoostingGameFilter); }).map(b => {
-                    const adminGN = (() => { try { return JSON.parse(b.game).name || b.game; } catch (e) { return b.game; } })();
+                  {boostingDb.filter(b => { const gn = (() => { try { return JSON.parse(b.game).name || b.game; } catch { return b.game; } })(); return (b.type || 'rank') === adminBoostingCategoryFilter && (adminBoostingGameFilter === 'Tất cả' || gn === adminBoostingGameFilter); }).map(b => {
+                    const adminGN = (() => { try { return JSON.parse(b.game).name || b.game; } catch { return b.game; } })();
                     return (
                       <div key={b.id} className="bg-[#0B1120] p-4 rounded-xl border border-slate-700 flex flex-col group hover:border-blue-500/50 transition-colors">
                         <div className="flex justify-between items-start mb-2">
@@ -18483,7 +18003,7 @@ const App = () => {
                             <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded">{adminGN}</span>
                             {(() => {
                               let isFeatured = false;
-                              try { isFeatured = JSON.parse(b.game).isFeatured; } catch (e) { }
+                              try { isFeatured = JSON.parse(b.game).isFeatured; } catch { /* ignore */ }
                               return isFeatured && <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">🔥 Nổi Bật</span>;
                             })()}
                           </div>
@@ -18495,7 +18015,7 @@ const App = () => {
                           <button onClick={() => {
                             let gName = b.game || '';
                             let gAvatar = null;
-                            try { const p = JSON.parse(b.game); gName = p.name || ''; gAvatar = p.avatar || null; } catch (e) { }
+                            try { const p = JSON.parse(b.game); gName = p.name || ''; gAvatar = p.avatar || null; } catch { /* ignore */ }
                             setEditingBoosting(b); setAdminBoostingImage(b.image ? b.image.split(',') : []); setAdminBoostType(b.type || 'rank'); setAdminRankOptions(b.rankOptions?.length > 0 ? b.rankOptions.map(o => ({ rank: o.rank || '', price: o.price || '', comboPrice: o.comboPrice || '', inputType: 'diem', maxPoints: o.maxPoints || '', basePoints: o.basePoints || '', tierCount: o.tierCount || 1 })) : [{ rank: '', price: '', comboPrice: '', inputType: 'diem', maxPoints: '', basePoints: '', tierCount: 1 }]); setAdminGame(gName); setAdminGameAvatar(gAvatar); setCrossfireText(b.rankOptions?.map(opt => `${opt.name || opt.rank} | ${opt.points || 0} | ${opt.price || 0}`).join('\n') || ''); setAdminConfigType('points_cumulative'); setIsEventMultiPackage(b.type === 'event' && b.rankOptions?.length > 0); setAdminBoostingPriceUnit(b.priceUnit || ''); setShowBoostingModal(true);
                           }} className="flex-1 py-1.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500 hover:text-white transition-colors text-xs font-bold flex justify-center items-center gap-1"><Edit size={14} /> Sửa</button>
                           <button onClick={() => setConfirmDialog({
@@ -18574,7 +18094,7 @@ const App = () => {
                           localStorage.setItem('shop_wheel_config', JSON.stringify(newConfig));
                           try {
                             await supabase.from('site_config').upsert({ id: 'wheel_config', value: newConfig });
-                          } catch (e) {}
+                          } catch { /* ignore */ }
                           showToast("Đã MỞ sự kiện Vòng Quay May Mắn công khai cho toàn bộ khách hàng!", "success");
                         }}
                         className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -18594,7 +18114,7 @@ const App = () => {
                           localStorage.setItem('shop_wheel_config', JSON.stringify(newConfig));
                           try {
                             await supabase.from('site_config').upsert({ id: 'wheel_config', value: newConfig });
-                          } catch (e) {}
+                          } catch { /* ignore */ }
                           showToast("Đã ẨN sự kiện Vòng Quay May Mắn (Chỉ Admin thấy để test)!", "info");
                         }}
                         className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -18614,7 +18134,7 @@ const App = () => {
                           localStorage.setItem('shop_wheel_config', JSON.stringify(newConfig));
                           try {
                             await supabase.from('site_config').upsert({ id: 'wheel_config', value: newConfig });
-                          } catch (e) {}
+                          } catch { /* ignore */ }
                           showToast("Đã chuyển sang chế độ TỰ ĐỘNG THEO LỊCH (Bắt đầu & Kết thúc)!", "success");
                         }}
                         className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -18634,7 +18154,7 @@ const App = () => {
                           localStorage.setItem('shop_wheel_config', JSON.stringify(newConfig));
                           try {
                             await supabase.from('site_config').upsert({ id: 'wheel_config', value: newConfig });
-                          } catch (e) {}
+                          } catch { /* ignore */ }
                           showToast("Đã TẮT / ĐÓNG hẳn sự kiện Vòng Quay May Mắn trên toàn website!", "info");
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
@@ -18872,11 +18392,15 @@ const App = () => {
                             try {
                               try {
                                 await supabase.from('wheel_items').delete().eq('wheel_type', 'spin');
-                              } catch (delErr) {}
+                              } catch { /* ignore */ }
                               const { error } = await supabase.from('wheel_items').insert(sampleItems);
                               if (error) {
                                 if (error.message && (error.message.includes('notify_on_win') || error.code === '42703')) {
-                                  const safeSample = sampleItems.map(({ notify_on_win, ...rest }) => rest);
+                                  const safeSample = sampleItems.map((it) => {
+                                    const copy = { ...it };
+                                    delete copy.notify_on_win;
+                                    return copy;
+                                  });
                                   await supabase.from('wheel_items').insert(safeSample);
                                 } else {
                                   showToast("Lỗi khi thêm mẫu: " + error.message, 'error');
@@ -19065,35 +18589,37 @@ const App = () => {
 
             {/* TAB LẬT THẺ PHÙ THỦY */}
             {adminTab === 'wizard' && (
-              <WizardAdminPanel
-                wizardEventConfig={wizardEventConfig}
-                config={wizardEventConfig}
-                setWizardEventConfig={setWizardEventConfig}
-                onSaveConfig={async (newCfg) => {
-                  setWizardEventConfig(newCfg);
-                  localStorage.setItem('shop_wizard_event_config', JSON.stringify(newCfg));
-                  try {
-                    await supabase.from('site_config').upsert({ id: 'wizard_event_config', value: newCfg });
-                  } catch (e) {
-                    console.warn("Lỗi lưu wizard_event_config:", e);
-                  }
-                  showToast("Lưu cấu hình Sự Kiện Phù Thủy thành công!");
-                }}
-                wizardItems={wizardCardItems}
-                rewards={wizardCardItems}
-                setWizardItems={setWizardCardItems}
-                onSaveRewards={async (newRewards) => {
-                  setWizardCardItems(newRewards);
-                  localStorage.setItem('shop_wizard_card_items', JSON.stringify(newRewards));
-                  try {
-                    await supabase.from('site_config').upsert({ id: 'wizard_card_items', value: newRewards });
-                  } catch (e) {
-                    console.warn("Lỗi lưu wizard_card_items:", e);
-                  }
-                  showToast("Cập nhật danh sách phần thưởng Lật Thẻ thành công!");
-                }}
-                showToast={showToast}
-              />
+              <Suspense fallback={<div className="py-16 text-center text-slate-400 text-sm">Đang tải...</div>}>
+                <WizardAdminPanel
+                  wizardEventConfig={wizardEventConfig}
+                  config={wizardEventConfig}
+                  setWizardEventConfig={setWizardEventConfig}
+                  onSaveConfig={async (newCfg) => {
+                    setWizardEventConfig(newCfg);
+                    localStorage.setItem('shop_wizard_event_config', JSON.stringify(newCfg));
+                    try {
+                      await supabase.from('site_config').upsert({ id: 'wizard_event_config', value: newCfg });
+                    } catch (e) {
+                      console.warn("Lỗi lưu wizard_event_config:", e);
+                    }
+                    showToast("Lưu cấu hình Sự Kiện Phù Thủy thành công!");
+                  }}
+                  wizardItems={wizardCardItems}
+                  rewards={wizardCardItems}
+                  setWizardItems={setWizardCardItems}
+                  onSaveRewards={async (newRewards) => {
+                    setWizardCardItems(newRewards);
+                    localStorage.setItem('shop_wizard_card_items', JSON.stringify(newRewards));
+                    try {
+                      await supabase.from('site_config').upsert({ id: 'wizard_card_items', value: newRewards });
+                    } catch (e) {
+                      console.warn("Lỗi lưu wizard_card_items:", e);
+                    }
+                    showToast("Cập nhật danh sách phần thưởng Lật Thẻ thành công!");
+                  }}
+                  showToast={showToast}
+                />
+              </Suspense>
             )}
 
             {/* TAB MỘNG THIÊN CỬU H5 (ẨN/HIỆN & CẤU HÌNH CẦU NỐI TẢI + NẠP) */}
@@ -20475,40 +20001,42 @@ const App = () => {
             {renderNavbar()}
             <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 pt-4 sm:pt-6">
               {isWizardEventAccessible ? (
-                <WizardCardFlip
-                  currentUser={currentUser}
-                  currentEventNow={currentEventNow}
-                  wizardEventConfig={wizardEventConfig}
-                  config={wizardEventConfig}
-                  wizardItems={wizardCardItems}
-                  rewards={wizardCardItems}
-                  wizardPity={wizardPity}
-                  setWizardPity={setWizardPity}
-                  requireAuth={requireAuth}
-                  onRequireAuth={() => requireAuth('wizard')}
-                  setCurrentView={setCurrentView}
-                  onOpenDeposit={() => {
-                    requireAuth('naptien');
-                    setCurrentView('naptien');
-                  }}
-                  onOpenHistory={() => {
-                    requireAuth('lichsu');
-                    setCurrentView('lichsu');
-                  }}
-                  transactionsDb={transactionsDb}
-                  setTransactionsDb={setTransactionsDb}
-                  onAddTransaction={(newTx) => {
-                    setTransactionsDb(prev => [newTx, ...prev]);
-                  }}
-                  usersDb={usersDb}
-                  setUsersDb={setUsersDb}
-                  onUpdateUser={(updated) => {
-                    setCurrentUser(updated);
-                    localStorage.setItem('shop_cached_user', JSON.stringify(updated));
-                    setUsersDb(prev => prev.map(u => u.id === updated.id ? { ...u, ...updated } : u));
-                  }}
-                  showToast={showToast}
-                />
+                <Suspense fallback={<div className="py-16 text-center text-slate-400 text-sm">Đang tải...</div>}>
+                  <WizardCardFlip
+                    currentUser={currentUser}
+                    currentEventNow={currentEventNow}
+                    wizardEventConfig={wizardEventConfig}
+                    config={wizardEventConfig}
+                    wizardItems={wizardCardItems}
+                    rewards={wizardCardItems}
+                    wizardPity={wizardPity}
+                    setWizardPity={setWizardPity}
+                    requireAuth={requireAuth}
+                    onRequireAuth={() => requireAuth('wizard')}
+                    setCurrentView={setCurrentView}
+                    onOpenDeposit={() => {
+                      requireAuth('naptien');
+                      setCurrentView('naptien');
+                    }}
+                    onOpenHistory={() => {
+                      requireAuth('lichsu');
+                      setCurrentView('lichsu');
+                    }}
+                    transactionsDb={transactionsDb}
+                    setTransactionsDb={setTransactionsDb}
+                    onAddTransaction={(newTx) => {
+                      setTransactionsDb(prev => [newTx, ...prev]);
+                    }}
+                    usersDb={usersDb}
+                    setUsersDb={setUsersDb}
+                    onUpdateUser={(updated) => {
+                      setCurrentUser(updated);
+                      localStorage.setItem('shop_cached_user', JSON.stringify(updated));
+                      setUsersDb(prev => prev.map(u => u.id === updated.id ? { ...u, ...updated } : u));
+                    }}
+                    showToast={showToast}
+                  />
+                </Suspense>
               ) : (
                 <div className="text-center py-20">
                   <div className="bg-purple-950/40 border border-purple-500/30 rounded-2xl p-8 max-w-md mx-auto">
@@ -21412,12 +20940,8 @@ const App = () => {
                   const capturedCccd = targetForm.cccd?.value || '';
                   const useFundCheckbox = targetForm.useFundCheckbox?.checked || false;
 
-                  const { acc, opt } = rentModalData;
-                  const fileInput = e.target.querySelector('input[type="file"]');
-
-                  const processRent = async (imgBase64) => {
+                  const processRent = async () => {
                     try {
-                      let finalImgBase64 = imgBase64;
                       // ĐÃ XÓA logic đẩy CCCD lên ImgBB ở đây để bảo mật tuyệt đối dữ liệu cá nhân của khách hàng.
                       // Toàn bộ ảnh CCCD (Base64) được lưu thẳng vào Supabase Database như cũ thay vì sang Server bên thứ 3.
 
@@ -21568,7 +21092,7 @@ const App = () => {
                   };
 
                   // Hoàn tất: Bỏ khâu file ảnh Base64 nặng để bảo vệ tuyệt đối dung lượng Supabase Cloud
-                  processRent(null);
+                  processRent();
                 }} className="space-y-4">
 
                   {/* PHẦN HIỂN THỊ ĐIỀU KIỆN */}

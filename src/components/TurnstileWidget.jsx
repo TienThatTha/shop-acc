@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
+import { TURNSTILE_SITE_KEY } from '../utils/turnstileConfig';
 
-const SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY || '').trim();
+const SITE_KEY = TURNSTILE_SITE_KEY;
 let scriptPromise = null;
 
 function loadTurnstileScript() {
@@ -32,16 +33,16 @@ function loadTurnstileScript() {
   return scriptPromise;
 }
 
-export const isTurnstileConfigured = Boolean(SITE_KEY);
-
 export default function TurnstileWidget({ onToken, onExpire, resetSignal = 0, className = '' }) {
   const hostRef = useRef(null);
   const widgetIdRef = useRef(null);
   const onTokenRef = useRef(onToken);
   const onExpireRef = useRef(onExpire);
 
-  onTokenRef.current = onToken;
-  onExpireRef.current = onExpire;
+  useEffect(() => {
+    onTokenRef.current = onToken;
+    onExpireRef.current = onExpire;
+  }, [onToken, onExpire]);
 
   useEffect(() => {
     if (!SITE_KEY || !hostRef.current) return undefined;
@@ -53,7 +54,7 @@ export default function TurnstileWidget({ onToken, onExpire, resetSignal = 0, cl
         if (widgetIdRef.current !== null) {
           try {
             ts.remove(widgetIdRef.current);
-          } catch (e) {}
+          } catch { /* ignore */ }
           widgetIdRef.current = null;
         }
         widgetIdRef.current = ts.render(hostRef.current, {
@@ -77,7 +78,7 @@ export default function TurnstileWidget({ onToken, onExpire, resetSignal = 0, cl
       if (widgetIdRef.current !== null && window.turnstile) {
         try {
           window.turnstile.remove(widgetIdRef.current);
-        } catch (e) {}
+        } catch { /* ignore */ }
         widgetIdRef.current = null;
       }
     };
@@ -87,7 +88,7 @@ export default function TurnstileWidget({ onToken, onExpire, resetSignal = 0, cl
     if (!SITE_KEY || resetSignal <= 0 || widgetIdRef.current === null || !window.turnstile) return;
     try {
       window.turnstile.reset(widgetIdRef.current);
-    } catch (e) {}
+    } catch { /* ignore */ }
   }, [resetSignal]);
 
   if (!SITE_KEY) return null;
