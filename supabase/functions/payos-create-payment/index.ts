@@ -123,13 +123,17 @@ serve(async (req) => {
 
       const ALLOWED_TTS_VOICES = new Set([
         'hoaimy', 'namminh', 'gtts', 'tt_nu_vn', 'tt_nam_vn', 'hoaimy_hd', 'harper_vn', 'grant_vn',
+        'grant_cskh', 'grant_narrator',
         'gpt_nova', 'gpt_shimmer', 'gpt_alloy', 'gpt_echo', 'gpt_onyx', 'gpt_fable', 'gpt_ash',
         'tt_jessie', 'tt_ghostface', 'tt_stitch', 'tt_rocket', 'tt_c3po', 'tt_chewbacca', 'tt_grinch',
-        'tt_opera', 'tt_lobby', 'tt_silly_sing',
-        'be_cute', 'tram_ngau', 'xiaoyou_loli', 'rap_nhanh', 'ba_lao',
+        'tt_funny', 'tt_wizard', 'tt_opera', 'tt_lobby', 'tt_silly_sing', 'tt_glorious', 'tt_disney',
+        'fx_chipmunk', 'fx_megaphone', 'fx_fan', 'fx_robot', 'fx_god', 'fx_demon',
+        'davis_funny', 'nancy_funny', 'nancy_shy', 'loli_angry', 'loli_sad', 'phoebe_sad', 'derek_hype',
+        'xiaoxiao_poem', 'chibi_cn', 'be_cute', 'tram_ngau', 'xiaoyou_loli', 'rap_nhanh', 'ba_lao',
         'ava_tay', 'andrew_us', 'ada_uk', 'ryan_uk', 'nanami_jp', 'masaru_jp', 'sunhi_kr', 'hyunsu_kr',
         'xiaoxiao_cn', 'yunfan_cn', 'hsiaochen_tw', 'premwadee_th', 'pattara_th',
-        'vivienne_fr', 'remy_fr', 'seraphina_de', 'ximena_es', 'arjun_in'
+        'vivienne_fr', 'remy_fr', 'seraphina_de', 'ximena_es', 'arjun_in',
+        'hamed_dubai', 'giuseppe_it', 'ahmet_tr', 'perla_hk', 'thalita_br'
       ]);
       const rawVoice = String(ttsVoice || 'tt_nu_vn').trim().toLowerCase();
       const cleanVoice = ALLOWED_TTS_VOICES.has(rawVoice) ? rawVoice : 'tt_nu_vn';

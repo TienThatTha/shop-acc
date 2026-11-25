@@ -8,12 +8,12 @@ import { validateDonateAmount, validateDonateMessage } from '../utils/donateFilt
 
 const QUICK_AMOUNTS = [10000, 20000, 50000, 100000, 200000, 500000];
 const VOICE_CATEGORIES = [
-  { id: 'all', label: 'Tất cả (48)' },
-  { id: 'vn', label: 'Việt Chuẩn (8)' },
+  { id: 'all', label: 'Tất cả (74)' },
+  { id: 'vn', label: 'Việt Chuẩn (10)' },
   { id: 'gpt', label: 'ChatGPT AI (7)' },
-  { id: 'tiktok', label: 'TikTok Hài & Hát (10)' },
-  { id: 'fun', label: 'Biến Tấu (5)' },
-  { id: 'intl', label: 'Quốc Tế (18)' }
+  { id: 'tiktok', label: 'TikTok Hài & Hát (14)' },
+  { id: 'fun', label: 'Hài & Hiệu Ứng (20)' },
+  { id: 'intl', label: 'Quốc Tế (23)' }
 ];
 const DONATE_VOICES = [
   // 1. Việt Chuẩn (8)
@@ -25,6 +25,8 @@ const DONATE_VOICES = [
   { id: 'hoaimy_hd', label: 'Hoài Mỹ HD', badge: 'AI HD', category: 'vn', desc: 'Dragon AI truyền cảm hơn', previewUrl: '/tts-previews/hoaimy_hd.mp3' },
   { id: 'harper_vn', label: 'Ngọc Hân AI', badge: 'Nữ AI', category: 'vn', desc: 'Nữ trẻ trung hiện đại', previewUrl: '/tts-previews/harper_vn.mp3' },
   { id: 'grant_vn', label: 'Minh Khôi AI', badge: 'Nam AI', category: 'vn', desc: 'Nam thanh niên năng động', previewUrl: '/tts-previews/grant_vn.mp3' },
+  { id: 'grant_cskh', label: 'Tổng Đài CSKH', badge: 'Tổng đài', category: 'vn', desc: 'Chuẩn giọng CSKH Việt Nam', previewUrl: '/tts-previews/grant_cskh.mp3' },
+  { id: 'grant_narrator', label: 'Nam Kể Chuyện Đêm', badge: 'Kể chuyện', category: 'vn', desc: 'Kể chuyện đêm khuya cuốn hút', previewUrl: '/tts-previews/grant_narrator.mp3' },
   // 2. ChatGPT / OpenAI Web AI (7)
   { id: 'gpt_nova', label: 'ChatGPT Nova', badge: 'OpenAI', category: 'gpt', desc: 'Nữ trẻ năng động kiểu ChatGPT', previewUrl: '/tts-previews/gpt_nova.mp3' },
   { id: 'gpt_shimmer', label: 'ChatGPT Shimmer', badge: 'OpenAI', category: 'gpt', desc: 'Nữ ấm áp nhẹ nhàng OpenAI', previewUrl: '/tts-previews/gpt_shimmer.mp3' },
@@ -44,7 +46,26 @@ const DONATE_VOICES = [
   { id: 'tt_opera', label: 'Hát Opera Alto', badge: 'Hát 🎵', category: 'tiktok', desc: 'Hát lời donate kiểu opera', previewUrl: '/tts-previews/tt_opera.mp3' },
   { id: 'tt_lobby', label: 'Hát Nhạc Nền', badge: 'Hát 🎵', category: 'tiktok', desc: 'Hát lời nhắn trên beat vui', previewUrl: '/tts-previews/tt_lobby.mp3' },
   { id: 'tt_silly_sing', label: 'Hát Tấu Hài', badge: 'Hát 🎵', category: 'tiktok', desc: 'Hát câu donate cực bựa', previewUrl: '/tts-previews/tt_silly_sing.mp3' },
-  // 4. Biến Tấu & Anime (5)
+  { id: 'tt_funny', label: 'Gã Hề TikTok', badge: 'Hề 🤡', category: 'tiktok', desc: 'Giọng gã hề nhây bựa cực hài', previewUrl: '/tts-previews/tt_funny.mp3' },
+  { id: 'tt_wizard', label: 'Phù Thủy Già', badge: 'Phù thủy 🧙', category: 'tiktok', desc: 'Pháp sư già bí ẩn pha trò', previewUrl: '/tts-previews/tt_wizard.mp3' },
+  { id: 'tt_glorious', label: 'Hát Hùng Tráng', badge: 'Hát 🎵', category: 'tiktok', desc: 'Hát kiểu dàn đồng ca hoành tráng', previewUrl: '/tts-previews/tt_glorious.mp3' },
+  { id: 'tt_disney', label: 'Hát Nhạc Kịch Disney', badge: 'Hát 🎵', category: 'tiktok', desc: 'Hát điệu nhạc kịch vui nhộn', previewUrl: '/tts-previews/tt_disney.mp3' },
+  // 4. Hài, Biểu Cảm & Hiệu Ứng (20)
+  { id: 'fx_chipmunk', label: 'Sóc Chuột Chipmunk', badge: 'Sóc 🐿️', category: 'fun', desc: 'Việt chuẩn biến giọng Minion', previewUrl: '/tts-previews/fx_chipmunk.mp3' },
+  { id: 'fx_megaphone', label: 'Loa Phường / Bộ Đàm', badge: 'Loa 📢', category: 'fun', desc: 'Rè rè kiểu loa phường Việt', previewUrl: '/tts-previews/fx_megaphone.mp3' },
+  { id: 'fx_fan', label: 'Nói Qua Cánh Quạt', badge: 'Quạt 🌀', category: 'fun', desc: 'Rung giọng cánh quạt tuổi thơ', previewUrl: '/tts-previews/fx_fan.mp3' },
+  { id: 'fx_robot', label: 'Robot Biến Hình', badge: 'Robot 🤖', category: 'fun', desc: 'Người máy điện tử tiếng Việt', previewUrl: '/tts-previews/fx_robot.mp3' },
+  { id: 'fx_god', label: 'Thượng Đế Phán', badge: 'Thần 🏛️', category: 'fun', desc: 'Vang vọng hang động uy nghiêm', previewUrl: '/tts-previews/fx_god.mp3' },
+  { id: 'fx_demon', label: 'Ác Quỷ Khổng Lồ', badge: 'Quỷ 👹', category: 'fun', desc: 'Trầm gầm gừ tiếng Việt chuẩn', previewUrl: '/tts-previews/fx_demon.mp3' },
+  { id: 'davis_funny', label: 'Anh Tây Tấu Hài', badge: 'Hài 😂', category: 'fun', desc: 'Pha trò cực nhây chính chủ Azure', previewUrl: '/tts-previews/davis_funny.mp3' },
+  { id: 'nancy_funny', label: 'Chị Tây Tấu Hài', badge: 'Hài 🤣', category: 'fun', desc: 'Nữ pha trò cười cợt cực vui', previewUrl: '/tts-previews/nancy_funny.mp3' },
+  { id: 'nancy_shy', label: 'Cô Gái Ngại Ngùng', badge: 'E thẹn 🙈', category: 'fun', desc: 'E thẹn bẽn lẽn siêu dễ thương', previewUrl: '/tts-previews/nancy_shy.mp3' },
+  { id: 'loli_angry', label: 'Bé Anime Dỗi Hờn', badge: 'Cọc 😡', category: 'fun', desc: 'Em bé nổi cáu nói tiếng Việt', previewUrl: '/tts-previews/loli_angry.mp3' },
+  { id: 'loli_sad', label: 'Bé Anime Khóc Nhè', badge: 'Khóc 😭', category: 'fun', desc: 'Mếu máo khóc nhè vừa thương vừa hài', previewUrl: '/tts-previews/loli_sad.mp3' },
+  { id: 'phoebe_sad', label: 'Cô Gái Sầu Đời', badge: 'Drama 🥺', category: 'fun', desc: 'Drama sầu thảm chia tay người yêu', previewUrl: '/tts-previews/phoebe_sad.mp3' },
+  { id: 'derek_hype', label: 'Nam Quẩy Cực Sung', badge: 'Quẩy 📣', category: 'fun', desc: 'Phấn khích hò reo khuấy động live', previewUrl: '/tts-previews/derek_hype.mp3' },
+  { id: 'xiaoxiao_poem', label: 'Ngâm Thơ Cổ Điển', badge: 'Ngâm thơ 📜', category: 'fun', desc: 'Đọc donate như đang ngâm thơ', previewUrl: '/tts-previews/xiaoxiao_poem.mp3' },
+  { id: 'chibi_cn', label: 'Bé Gái Chibi Tiểu Học', badge: 'Chibi 👧', category: 'fun', desc: 'Bé tiểu học trong trẻo đáng yêu', previewUrl: '/tts-previews/chibi_cn.mp3' },
   { id: 'be_cute', label: 'Bé Cưng', badge: 'Cute', category: 'fun', desc: 'Nhí nhảnh (+40Hz)', previewUrl: '/tts-previews/be_cute.mp3' },
   { id: 'tram_ngau', label: 'Trầm Bá Đạo', badge: 'Boss', category: 'fun', desc: 'Uy lực (-28Hz)', previewUrl: '/tts-previews/tram_ngau.mp3' },
   { id: 'xiaoyou_loli', label: 'Bé Anime', badge: 'Anime', category: 'fun', desc: 'Em bé anime siêu cưng', previewUrl: '/tts-previews/xiaoyou_loli.mp3' },
@@ -68,7 +89,12 @@ const DONATE_VOICES = [
   { id: 'remy_fr', label: 'Quý Ông Pháp', badge: 'Pháp 🇫🇷', category: 'intl', desc: 'Remy lãng mạn đầy cảm xúc', previewUrl: '/tts-previews/remy_fr.mp3' },
   { id: 'seraphina_de', label: 'Quý Cô Đức', badge: 'Đức 🇩🇪', category: 'intl', desc: 'Seraphina cá tính sắc sảo', previewUrl: '/tts-previews/seraphina_de.mp3' },
   { id: 'ximena_es', label: 'Cô Nàng Tây Ban Nha', badge: 'TBN 🇪🇸', category: 'intl', desc: 'Ximena sôi nổi cực cuốn', previewUrl: '/tts-previews/ximena_es.mp3' },
-  { id: 'arjun_in', label: 'Anh Trai Ấn Độ', badge: 'Ấn Độ 🇮🇳', category: 'intl', desc: 'Arjun đọc Việt siêu giải trí', previewUrl: '/tts-previews/arjun_in.mp3' }
+  { id: 'arjun_in', label: 'Anh Trai Ấn Độ', badge: 'Ấn Độ 🇮🇳', category: 'intl', desc: 'Arjun đọc Việt siêu giải trí', previewUrl: '/tts-previews/arjun_in.mp3' },
+  { id: 'hamed_dubai', label: 'Đại Gia Dubai', badge: 'Dubai 🇦🇪', category: 'intl', desc: 'Giọng đại gia Ả Rập cực hợp nạp to', previewUrl: '/tts-previews/hamed_dubai.mp3' },
+  { id: 'giuseppe_it', label: 'Bố Già Mafia Ý', badge: 'Ý 🇮🇹', category: 'intl', desc: 'Đàn anh nước Ý trầm ấm cực chất', previewUrl: '/tts-previews/giuseppe_it.mp3' },
+  { id: 'ahmet_tr', label: 'Thánh Rắc Muối Thổ', badge: 'Thổ 🇹🇷', category: 'intl', desc: 'Anh trai Thổ Nhĩ Kỳ siêu giải trí', previewUrl: '/tts-previews/ahmet_tr.mp3' },
+  { id: 'perla_hk', label: 'Chị Đại Hồng Kông TVB', badge: 'HK 🇭🇰', category: 'intl', desc: 'Giọng phim TVB Hồng Kông cực ngầu', previewUrl: '/tts-previews/perla_hk.mp3' },
+  { id: 'thalita_br', label: 'Cô Nàng Samba Brazil', badge: 'Brazil 🇧🇷', category: 'intl', desc: 'Brazil sôi nổi nói Việt vui tai', previewUrl: '/tts-previews/thalita_br.mp3' }
 ];
 const BANK_NAMES = {
   '970416': 'ACB (Ngân hàng Á Châu)',
