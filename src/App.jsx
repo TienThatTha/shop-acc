@@ -3029,8 +3029,7 @@ const App = () => {
                 name: '💎 Donate Live',
                 view: 'donate',
                 auth: false,
-                icon: <Sparkles size={20} className="text-emerald-400" />,
-                badge: 'TTS'
+                icon: <Sparkles size={20} className="text-emerald-400" />
               },
               ...(hasActiveWheelRewards && !isWheelEventExpired ? [{
                 name: 'Vòng Quay May Mắn',

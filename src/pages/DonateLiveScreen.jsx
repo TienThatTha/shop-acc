@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  QrCode, Search, CheckCircle2, AlertCircle, Copy, Volume2,
-  Crown, Sparkles, ShieldCheck, Clock, Link as LinkIcon, RefreshCw, X
+  QrCode, CheckCircle2, AlertCircle, Copy, Crown,
+  ShieldCheck, Clock, Link as LinkIcon, RefreshCw, X, Heart, Sparkles
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { validateDonateAmount, validateDonateMessage } from '../utils/donateFilter';
@@ -33,22 +33,21 @@ const DonateLiveScreen = ({
   copyToClipboard,
   setCurrentView
 }) => {
-  // Identity state
   const linkedUid = useMemo(() => {
     const raw = (bossPlayerSummary?.user_id || currentUser?.linked_game_id || '').trim().toLowerCase().replace(/^@/, '');
     if (raw && !raw.startsWith('discord_') && isTikTokLinked) return raw;
     return '';
   }, [bossPlayerSummary?.user_id, currentUser?.linked_game_id, isTikTokLinked]);
 
-  const [searchInput, setSearchInput] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
-  const [hasSearched, setHasSearched] = useState(false);
+  // Single-input TikTok identity state
+  const [tiktokInput, setTiktokInput] = useState('');
+  const [customNick, setCustomNick] = useState('');
+  const [showCustomNick, setShowCustomNick] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [isLookingUp, setIsLookingUp] = useState(false);
   const [selectedDonor, setSelectedDonor] = useState(null);
-  const [guestUid, setGuestUid] = useState('');
-  const [guestNickname, setGuestNickname] = useState('');
 
-  // Donation form state
+  // Donate form & PayOS QR state
   const [amountInput, setAmountInput] = useState('50000');
   const [messageInput, setMessageInput] = useState('');
   const [isCreatingQr, setIsCreatingQr] = useState(false);
@@ -56,14 +55,28 @@ const DonateLiveScreen = ({
   const [payosTimeLeft, setPayosTimeLeft] = useState(600);
   const [donateSuccessData, setDonateSuccessData] = useState(null);
 
-  // Realtime Top 5 & Recent Donations
+  // Leaderboard & recent feed state
   const [boardState, setBoardState] = useState({
-    season_label: 'TOP DONATE • CHUYỂN KHOẢN',
+    season_label: 'Top 5 Ủng Hộ',
     top_donators: [],
     recent_donations: []
   });
 
-  // Auto-fill when logged-in & TikTok linked
+  // Ref holding latest values for the payment confirmation effect (avoids stale closures & exhaustive-deps warnings)
+  const latestConfirmCtxRef = useRef({
+    amount: 0,
+    nickname: '',
+    message: '',
+    showToast: null
+  });
+  latestConfirmCtxRef.current = {
+    amount: payosData?.amount || 0,
+    nickname: selectedDonor?.nickname || customNick.trim() || tiktokInput.trim().replace(/^@/, '') || 'Bạn',
+    message: messageInput.trim(),
+    showToast
+  };
+
+  // Auto-fill verified identity if user already linked TikTok
   useEffect(() => {
     if (!linkedUid) return;
     setSelectedDonor({
@@ -74,9 +87,74 @@ const DonateLiveScreen = ({
     });
   }, [linkedUid, bossPlayerSummary?.nickname, bossPlayerSummary?.avatar_url]);
 
-  // Load & subscribe to live_bank_donate_state from site_config
+  // Debounced auto-lookup in game_players as donor types their @ID TikTok
+  useEffect(() => {
+    if (linkedUid || selectedDonor) return undefined;
+    const raw = tiktokInput.trim().replace(/^@/, '').toLowerCase();
+    if (raw.length < 2) {
+      setSuggestions([]);
+      setIsLookingUp(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setIsLookingUp(true);
+    const timer = setTimeout(async () => {
+      try {
+        const { data: exactRow } = await supabase
+          .from('game_players')
+          .select('user_id, nickname, avatar_url')
+          .eq('user_id', raw)
+          .maybeSingle();
+
+        if (cancelled) return;
+        if (exactRow) {
+          setSuggestions([{
+            user_id: exactRow.user_id,
+            nickname: exactRow.nickname || exactRow.user_id,
+            avatar_url: exactRow.avatar_url || fallbackAvatarSvg(exactRow.user_id)
+          }]);
+          return;
+        }
+
+        const { data: fuzzyRows } = await supabase
+          .from('game_players')
+          .select('user_id, nickname, avatar_url')
+          .or(`user_id.ilike.%${raw}%,nickname.ilike.%${raw}%`)
+          .order('cp', { ascending: false })
+          .limit(4);
+
+        if (cancelled) return;
+        setSuggestions((fuzzyRows || []).map((r) => ({
+          user_id: r.user_id,
+          nickname: r.nickname || r.user_id,
+          avatar_url: r.avatar_url || fallbackAvatarSvg(r.user_id)
+        })));
+      } catch {
+        if (!cancelled) setSuggestions([]);
+      } finally {
+        if (!cancelled) setIsLookingUp(false);
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [tiktokInput, linkedUid, selectedDonor]);
+
+  // Load & subscribe to live_bank_donate_state
   useEffect(() => {
     let active = true;
+    const applyState = (val) => {
+      if (!val || !active) return;
+      setBoardState({
+        season_label: val.season_label || 'Top 5 Ủng Hộ',
+        top_donators: Array.isArray(val.top_donators) ? val.top_donators.slice(0, 5) : [],
+        recent_donations: Array.isArray(val.recent_donations) ? val.recent_donations.slice(0, 10) : []
+      });
+    };
+
     const loadState = async () => {
       try {
         const { data } = await supabase
@@ -84,13 +162,7 @@ const DonateLiveScreen = ({
           .select('value')
           .eq('id', 'live_bank_donate_state')
           .maybeSingle();
-        if (active && data?.value) {
-          setBoardState({
-            season_label: data.value.season_label || 'TOP DONATE • CHUYỂN KHOẢN',
-            top_donators: Array.isArray(data.value.top_donators) ? data.value.top_donators.slice(0, 5) : [],
-            recent_donations: Array.isArray(data.value.recent_donations) ? data.value.recent_donations.slice(0, 12) : []
-          });
-        }
+        if (data?.value) applyState(data.value);
       } catch { /* ignore */ }
     };
     loadState();
@@ -100,16 +172,7 @@ const DonateLiveScreen = ({
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'site_config', filter: 'id=eq.live_bank_donate_state' },
-        (payload) => {
-          const val = payload?.new?.value;
-          if (val && active) {
-            setBoardState({
-              season_label: val.season_label || 'TOP DONATE • CHUYỂN KHOẢN',
-              top_donators: Array.isArray(val.top_donators) ? val.top_donators.slice(0, 5) : [],
-              recent_donations: Array.isArray(val.recent_donations) ? val.recent_donations.slice(0, 12) : []
-            });
-          }
-        }
+        (payload) => applyState(payload?.new?.value)
       )
       .subscribe();
 
@@ -131,19 +194,20 @@ const DonateLiveScreen = ({
       if (rem === 0) {
         clearInterval(timer);
         setPayosData(null);
-        showToast('Mã QR Donate đã hết hạn (10 phút).', 'error');
+        latestConfirmCtxRef.current.showToast?.('Mã QR đã hết hạn (10 phút).', 'error');
       }
     }, 1000);
 
     const markSuccess = (paidAmt) => {
+      const ctx = latestConfirmCtxRef.current;
       setDonateSuccessData({
-        amount: paidAmt || payosData.amount,
-        nickname: selectedDonor?.nickname || guestNickname || guestUid,
-        message: messageInput.trim()
+        amount: paidAmt || ctx.amount,
+        nickname: ctx.nickname,
+        message: ctx.message
       });
       setPayosData(null);
       setMessageInput('');
-      showToast('Donate Live thành công! Lời nhắn đang lên sóng!', 'success');
+      ctx.showToast?.('Cảm ơn bạn đã ủng hộ! Lời nhắn đang hiển thị trên Live.', 'success');
     };
 
     const ch = supabase
@@ -179,75 +243,18 @@ const DonateLiveScreen = ({
     };
   }, [payosData?.orderCode]);
 
-  const handleLookupTikTok = async (e) => {
-    if (e) e.preventDefault();
-    const raw = searchInput.trim().replace(/^@/, '').toLowerCase();
-    if (!raw) {
-      showToast('Vui lòng nhập @ID TikTok hoặc Tên hiển thị để tìm!', 'error');
-      return;
-    }
-    setIsSearching(true);
-    setHasSearched(true);
-    try {
-      const { data: exactRow } = await supabase
-        .from('game_players')
-        .select('user_id, nickname, avatar_url')
-        .eq('user_id', raw)
-        .maybeSingle();
-
-      if (exactRow) {
-        const found = {
-          user_id: exactRow.user_id,
-          nickname: exactRow.nickname || exactRow.user_id,
-          avatar_url: exactRow.avatar_url || fallbackAvatarSvg(exactRow.user_id),
-          verified: false
-        };
-        setSearchResults([found]);
-        setSelectedDonor(found);
-        showToast(`Đã tìm thấy: ${found.nickname} (@${found.user_id})`);
-        return;
-      }
-
-      const { data: fuzzyRows } = await supabase
-        .from('game_players')
-        .select('user_id, nickname, avatar_url')
-        .or(`user_id.ilike.%${raw}%,nickname.ilike.%${raw}%`)
-        .order('cp', { ascending: false })
-        .limit(5);
-
-      const list = (fuzzyRows || []).map((r) => ({
-        user_id: r.user_id,
-        nickname: r.nickname || r.user_id,
-        avatar_url: r.avatar_url || fallbackAvatarSvg(r.user_id),
-        verified: false
-      }));
-      setSearchResults(list);
-      if (list.length === 1) {
-        setSelectedDonor(list[0]);
-      } else if (list.length === 0) {
-        setSelectedDonor(null);
-        setGuestUid(raw);
-        if (!guestNickname) setGuestNickname(searchInput.trim().replace(/^@/, ''));
-      }
-    } catch {
-      showToast('Không thể tra cứu lúc này, bạn có thể nhập trực tiếp @ID bên dưới.', 'error');
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
   const parsedAmtInfo = validateDonateAmount(amountInput);
   const parsedMsgInfo = validateDonateMessage(messageInput);
-  const isTier2 = parsedAmtInfo.amount > 50000;
+  const isVipTier = parsedAmtInfo.amount > 50000;
 
-  const activeDonorUid = selectedDonor?.user_id || guestUid.trim().replace(/^@/, '').toLowerCase();
-  const activeDonorNick = selectedDonor?.nickname || guestNickname.trim() || activeDonorUid;
+  const activeDonorUid = selectedDonor?.user_id || tiktokInput.trim().replace(/^@/, '').toLowerCase();
+  const activeDonorNick = selectedDonor?.nickname || customNick.trim() || tiktokInput.trim().replace(/^@/, '') || activeDonorUid;
   const activeDonorAvatar = selectedDonor?.avatar_url || '';
 
   const handleCreateLiveDonateQr = async (e) => {
     e.preventDefault();
     if (!activeDonorUid) {
-      showToast('Vui lòng chọn hoặc nhập @ID TikTok để vinh danh lên bảng!', 'error');
+      showToast('Vui lòng nhập @ID TikTok của bạn để hiển thị trên bảng vinh danh!', 'error');
       return;
     }
     if (!parsedAmtInfo.ok) {
@@ -278,13 +285,13 @@ const DonateLiveScreen = ({
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
-      if (!data?.checkoutUrl) throw new Error('Không thể khởi tạo mã QR PayOS.');
+      if (!data?.checkoutUrl) throw new Error('Không thể khởi tạo mã QR.');
 
       setPayosData(data);
       setPayosTimeLeft(600);
-      showToast('Đã tạo mã QR Donate! Quét bằng App Ngân hàng hoặc MoMo đều được.', 'success');
+      showToast('Đã tạo mã QR! Bạn dùng App Ngân hàng hoặc MoMo quét để hoàn tất.', 'success');
     } catch (err) {
-      showToast(err?.message || 'Lỗi kết nối PayOS, vui lòng thử lại!', 'error');
+      showToast(err?.message || 'Lỗi tạo mã QR, vui lòng thử lại!', 'error');
     } finally {
       setIsCreatingQr(false);
     }
@@ -300,362 +307,311 @@ const DonateLiveScreen = ({
     <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-12">
       {renderNavbar()}
 
-      <div className="max-w-[1440px] mx-auto px-4 pt-6 md:pt-8">
-        {/* Hero Header */}
-        <div className="relative overflow-hidden rounded-3xl border border-emerald-500/35 bg-gradient-to-br from-[#062920] via-[#0f172a] to-[#1a1205] p-6 md:p-8 mb-6 shadow-[0_0_40px_rgba(16,185,129,0.12)]">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/40 text-emerald-300 text-xs font-extrabold uppercase tracking-wider mb-3">
-                <Sparkles size={14} className="text-amber-300" />
-                <span>Ủng Hộ Trực Tiếp Lên Sóng Live TikTok</span>
-              </div>
-              <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-                💎 Donate Chuyển Khoản &amp; Đọc Lời Nhắn Chị Google
-              </h1>
-              <p className="text-slate-300 text-sm mt-2 max-w-2xl">
-                Quét mã <strong className="text-emerald-400">VietQR</strong> bằng mọi App Ngân hàng hoặc <strong className="text-pink-400">Ví MoMo</strong>.
-                Xác nhận tự động 1–2 giây, nhảy bảng <strong className="text-amber-300">Top 5 Chuyển Khoản</strong> và đọc lời nhắn ngay trên Live!
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2.5 shrink-0 text-xs">
-              <div className="bg-[#0B1120]/80 border border-emerald-500/30 rounded-xl px-4 py-2.5">
-                <div className="text-emerald-400 font-extrabold">🎵 Mốc ≤ 50.000đ</div>
-                <div className="text-slate-300 mt-0.5">Nhạc Spider-Man + Chị Google</div>
-              </div>
-              <div className="bg-[#0B1120]/80 border border-amber-400/40 rounded-xl px-4 py-2.5">
-                <div className="text-amber-300 font-extrabold">👑 Mốc &gt; 50.000đ (SUPER VIP)</div>
-                <div className="text-slate-300 mt-0.5">Nhạc Độ Mixi + Pháo hoa + Chị Google</div>
-              </div>
-            </div>
+      <div className="max-w-[1180px] mx-auto px-4 pt-6 md:pt-8">
+        {/* Compact Donor Header */}
+        <div className="flex items-center gap-4 mb-6 pb-5 border-b border-slate-800/80">
+          <img
+            src="/Tiengaming.png"
+            alt="Tiến Gaming"
+            className="w-12 h-12 md:w-14 md:h-14 rounded-2xl object-contain bg-[#151D2F] border border-emerald-500/30 p-1.5 shrink-0"
+          />
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-2xl font-black text-white flex items-center gap-2">
+              <span>Ủng Hộ Tiến Gaming</span>
+              <Heart size={18} className="text-rose-400 fill-rose-400/80 shrink-0" />
+            </h1>
+            <p className="text-xs md:text-sm text-slate-400 mt-0.5">
+              Quét mã QR bằng App Ngân hàng hoặc Ví MoMo — tên &amp; lời nhắn của bạn sẽ hiển thị trực tiếp trên sóng Live!
+            </p>
           </div>
         </div>
 
-        {/* Main 3-Column Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* LEFT + CENTER (7 cols): IDENTITY + FORM + QR */}
-          <div className="lg:col-span-7 space-y-6">
-            {/* Step 1: TikTok Identity */}
-            <div className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 md:p-6 shadow-xl">
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xs font-black">1</span>
-                  Xác Nhận Tài Khoản TikTok Vinh Danh
-                </h2>
-                {!linkedUid && currentUser && (
-                  <button
-                    type="button"
-                    onClick={() => setCurrentView('bossgame')}
-                    className="text-xs text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1"
-                  >
-                    <LinkIcon size={13} /> Liên kết OTP ngay
-                  </button>
-                )}
-              </div>
-
-              {linkedUid && selectedDonor ? (
-                <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/40">
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <img
-                      src={selectedDonor.avatar_url || fallbackAvatarSvg(linkedUid)}
-                      alt={selectedDonor.nickname}
-                      className="w-12 h-12 rounded-full object-cover border-2 border-emerald-400 shrink-0"
-                    />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-white text-base truncate">{selectedDonor.nickname}</span>
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10px] font-extrabold flex items-center gap-1 shrink-0">
-                          <ShieldCheck size={11} /> Đã liên kết TikTok
-                        </span>
-                      </div>
-                      <div className="text-xs text-slate-400">@{selectedDonor.user_id}</div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* LEFT (7 cols): SINGLE CLEAN DONATE CARD */}
+          <div className="lg:col-span-7 bg-[#151D2F] border border-slate-800 rounded-2xl p-5 md:p-6 shadow-xl">
+            {donateSuccessData && (
+              <div className="mb-5 p-4 rounded-xl bg-emerald-500/15 border border-emerald-400/70 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 size={26} className="text-emerald-400 shrink-0" />
+                  <div>
+                    <div className="font-black text-emerald-300 text-sm md:text-base">
+                      Cảm ơn {donateSuccessData.nickname} đã ủng hộ {formatVND(donateSuccessData.amount)}!
+                    </div>
+                    <div className="text-xs text-slate-300 mt-0.5">
+                      Tên và lời nhắn của bạn đang lên sóng Live.
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <form onSubmit={handleLookupTikTok} className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="text"
-                        value={searchInput}
-                        onChange={(e) => setSearchInput(e.target.value)}
-                        placeholder="Nhập @ID TikTok hoặc Tên trên Live để tìm..."
-                        className="w-full pl-10 pr-4 py-2.5 bg-[#0B1120] border border-slate-700 focus:border-emerald-500 rounded-xl text-sm text-white outline-none"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={isSearching}
-                      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl transition-colors flex items-center gap-1.5 shrink-0 disabled:opacity-60"
-                    >
-                      {isSearching ? <RefreshCw size={15} className="animate-spin" /> : <Search size={15} />}
-                      Tìm Nick
-                    </button>
-                  </form>
+                <button
+                  type="button"
+                  onClick={() => setDonateSuccessData(null)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            )}
 
-                  {searchResults.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      {searchResults.map((p) => {
-                        const isSel = selectedDonor?.user_id === p.user_id;
-                        return (
-                          <button
-                            key={p.user_id}
-                            type="button"
-                            onClick={() => setSelectedDonor(p)}
-                            className={`flex items-center gap-3 p-2.5 rounded-xl border text-left transition-all ${
-                              isSel
-                                ? 'bg-emerald-500/15 border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
-                                : 'bg-[#0B1120] border-slate-800 hover:border-slate-600'
-                            }`}
-                          >
-                            <img
-                              src={p.avatar_url || fallbackAvatarSvg(p.user_id)}
-                              onError={(e) => { e.currentTarget.src = fallbackAvatarSvg(p.user_id); }}
-                              alt={p.nickname}
-                              className="w-10 h-10 rounded-full object-cover border border-emerald-500/50 shrink-0"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <div className="font-bold text-white text-sm truncate">{p.nickname}</div>
-                              <div className="text-[11px] text-slate-400 truncate">@{p.user_id}</div>
-                            </div>
-                            {isSel && <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+            {payosData ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center py-2">
+                <div className="flex flex-col items-center">
+                  <div className="bg-white p-2.5 rounded-2xl border-2 border-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.22)] w-[216px] h-[216px] flex items-center justify-center">
+                    <img
+                      src={`https://img.vietqr.io/image/${payosData.bin}-${payosData.accountNumber}-qr_only.png?amount=${payosData.amount}&addInfo=${encodeURIComponent(payosData.description)}&accountName=${encodeURIComponent(payosData.accountName)}`}
+                      alt="Mã QR Chuyển Khoản"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <div className="mt-3 px-4 py-1.5 rounded-full bg-[#0B1120] border border-rose-500/40 text-rose-400 font-black font-mono text-base flex items-center gap-2">
+                    <Clock size={15} />
+                    <span>{formatTimer(payosTimeLeft)}</span>
+                  </div>
+                </div>
 
-                  {selectedDonor && (
-                    <div className="flex items-center justify-between px-3.5 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs">
-                      <span className="text-emerald-300 font-bold">
-                        ✅ Đã chọn: {selectedDonor.nickname} (@{selectedDonor.user_id})
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedDonor(null)}
-                        className="text-slate-400 hover:text-white flex items-center gap-1"
-                      >
-                        <X size={13} /> Đổi
+                <div className="space-y-3 text-sm">
+                  <h2 className="text-lg font-black text-emerald-400 flex items-center gap-2">
+                    <QrCode size={20} /> Quét Mã QR Để Hoàn Tất
+                  </h2>
+                  <div className="space-y-2 bg-[#0B1120] p-3.5 rounded-xl border border-slate-800">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-slate-400">Ngân hàng:</span>
+                      <span className="font-bold text-white text-right">{BANK_NAMES[payosData.bin] || payosData.bin}</span>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <span className="text-slate-400">Số TK:</span>
+                      <button type="button" onClick={() => copyToClipboard(payosData.accountNumber)} className="font-bold text-emerald-400 flex items-center gap-1.5">
+                        {payosData.accountNumber} <Copy size={13} />
                       </button>
                     </div>
-                  )}
-
-                  {!selectedDonor && (
-                    <div className="p-3.5 rounded-xl bg-[#0B1120] border border-slate-800 space-y-2.5">
-                      <div className="text-xs text-slate-400">
-                        {hasSearched && searchResults.length === 0
-                          ? 'Chưa thấy nick này trong dữ liệu game Boss? Bạn vẫn có thể nhập @ID TikTok bên dưới để donate ngay (hệ thống tự ghép Avatar thật khi bạn chat trên Live):'
-                          : 'Hoặc nhập trực tiếp @ID TikTok & Tên hiển thị (không cần đăng nhập):'}
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        <input
-                          type="text"
-                          value={guestUid}
-                          onChange={(e) => setGuestUid(e.target.value)}
-                          placeholder="@id_tiktok (VD: nguyenvana)"
-                          className="px-3.5 py-2 bg-[#151D2F] border border-slate-700 focus:border-emerald-500 rounded-lg text-sm text-white outline-none"
-                        />
-                        <input
-                          type="text"
-                          value={guestNickname}
-                          onChange={(e) => setGuestNickname(e.target.value)}
-                          placeholder="Tên hiển thị trên bảng..."
-                          className="px-3.5 py-2 bg-[#151D2F] border border-slate-700 focus:border-emerald-500 rounded-lg text-sm text-white outline-none"
-                        />
-                      </div>
+                    <div className="flex justify-between gap-2">
+                      <span className="text-slate-400">Nội dung:</span>
+                      <button type="button" onClick={() => copyToClipboard(payosData.description)} className="font-bold text-rose-400 flex items-center gap-1.5">
+                        {payosData.description} <Copy size={13} />
+                      </button>
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Step 2: Amount + TTS Message OR Active PayOS QR */}
-            <div className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 md:p-6 shadow-xl relative overflow-hidden">
-              {donateSuccessData && (
-                <div className="mb-5 p-4 rounded-xl bg-emerald-500/15 border border-emerald-400 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle2 size={28} className="text-emerald-400 shrink-0" />
-                    <div>
-                      <div className="font-black text-emerald-300 text-base">
-                        Cảm ơn {donateSuccessData.nickname} đã Donate {formatVND(donateSuccessData.amount)}!
-                      </div>
-                      <div className="text-xs text-slate-300">
-                        Bảng Top 5 Chuyển Khoản đã cập nhật và giọng Chị Google đang phát lên sóng Live.
-                      </div>
+                    <div className="flex justify-between gap-2 pt-1.5 border-t border-slate-800">
+                      <span className="text-slate-400">Số tiền:</span>
+                      <span className="font-black text-amber-300 text-base">{formatVND(payosData.amount)}</span>
                     </div>
                   </div>
+                  <p className="text-xs text-slate-400">
+                    Mở App Ngân hàng hoặc Ví MoMo quét mã để chuyển khoản, giữ nguyên màn hình 1–2 giây để xác nhận tự động.
+                  </p>
                   <button
                     type="button"
-                    onClick={() => setDonateSuccessData(null)}
-                    className="text-slate-400 hover:text-white"
+                    onClick={() => setPayosData(null)}
+                    className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors"
                   >
-                    <X size={18} />
+                    Quay lại chỉnh sửa
                   </button>
                 </div>
-              )}
-
-              {payosData ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                  <div className="flex flex-col items-center">
-                    <div className="bg-white p-2.5 rounded-2xl border-2 border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.25)] w-[220px] h-[220px] flex items-center justify-center">
-                      <img
-                        src={`https://img.vietqr.io/image/${payosData.bin}-${payosData.accountNumber}-qr_only.png?amount=${payosData.amount}&addInfo=${encodeURIComponent(payosData.description)}&accountName=${encodeURIComponent(payosData.accountName)}`}
-                        alt="VietQR Donate Live"
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                    <div className="mt-3 px-4 py-1.5 rounded-full bg-[#0B1120] border border-rose-500/40 text-rose-400 font-black font-mono text-lg flex items-center gap-2">
-                      <Clock size={16} />
-                      <span>{formatTimer(payosTimeLeft)}</span>
-                    </div>
+              </div>
+            ) : (
+              <form onSubmit={handleCreateLiveDonateQr} className="space-y-5">
+                {/* 1. Tài khoản TikTok của bạn */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-bold text-white">Tài khoản TikTok của bạn</label>
+                    {!linkedUid && currentUser && (
+                      <button
+                        type="button"
+                        onClick={() => setCurrentView('bossgame')}
+                        className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+                      >
+                        <LinkIcon size={12} /> Liên kết tài khoản
+                      </button>
+                    )}
                   </div>
 
-                  <div className="space-y-3 text-sm">
-                    <h3 className="text-lg font-black text-emerald-400 flex items-center gap-2">
-                      <QrCode size={20} /> Quét Mã QR Chuyển Khoản
-                    </h3>
-                    <div className="space-y-2 bg-[#0B1120] p-3.5 rounded-xl border border-slate-800">
-                      <div className="flex justify-between gap-2">
-                        <span className="text-slate-400">Ngân hàng:</span>
-                        <span className="font-bold text-white text-right">{BANK_NAMES[payosData.bin] || payosData.bin}</span>
+                  {selectedDonor ? (
+                    <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/40">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img
+                          src={selectedDonor.avatar_url || fallbackAvatarSvg(selectedDonor.user_id)}
+                          onError={(e) => { e.currentTarget.src = fallbackAvatarSvg(selectedDonor.user_id); }}
+                          alt={selectedDonor.nickname}
+                          className="w-10 h-10 rounded-full object-cover border border-emerald-400 shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-extrabold text-white text-sm truncate">{selectedDonor.nickname}</span>
+                            {selectedDonor.verified && <ShieldCheck size={14} className="text-emerald-400 shrink-0" />}
+                          </div>
+                          <div className="text-xs text-slate-400 truncate">@{selectedDonor.user_id}</div>
+                        </div>
                       </div>
-                      <div className="flex justify-between gap-2">
-                        <span className="text-slate-400">Số TK:</span>
-                        <button type="button" onClick={() => copyToClipboard(payosData.accountNumber)} className="font-bold text-emerald-400 flex items-center gap-1.5">
-                          {payosData.accountNumber} <Copy size={13} />
-                        </button>
-                      </div>
-                      <div className="flex justify-between gap-2">
-                        <span className="text-slate-400">Nội dung CK:</span>
-                        <button type="button" onClick={() => copyToClipboard(payosData.description)} className="font-bold text-rose-400 flex items-center gap-1.5">
-                          {payosData.description} <Copy size={13} />
-                        </button>
-                      </div>
-                      <div className="flex justify-between gap-2 pt-1 border-t border-slate-800">
-                        <span className="text-slate-400">Số tiền:</span>
-                        <span className="font-black text-amber-300 text-base">{formatVND(payosData.amount)}</span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-amber-300/90 flex items-start gap-1.5">
-                      <AlertCircle size={15} className="shrink-0 mt-0.5" />
-                      <span>Dùng App Ngân hàng hoặc Ví MoMo quét mã để chuyển đúng số tiền &amp; nội dung. Giữ nguyên trang này chờ 1–2 giây sau khi chuyển!</span>
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setPayosData(null)}
-                      className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors"
-                    >
-                      Hủy &amp; Tạo Lệnh Khác
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <form onSubmit={handleCreateLiveDonateQr} className="space-y-4">
-                  <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xs font-black">2</span>
-                    Nhập Số Tiền &amp; Lời Nhắn Đọc Trên Live
-                  </h2>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-2">Chọn nhanh hoặc nhập số tiền (tối thiểu 5.000đ):</label>
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-2.5">
-                      {QUICK_AMOUNTS.map((amt) => (
+                      {!linkedUid && (
                         <button
-                          key={amt}
                           type="button"
-                          onClick={() => setAmountInput(String(amt))}
-                          className={`py-2 rounded-xl text-xs font-extrabold border transition-all ${
-                            Number(amountInput) === amt
-                              ? 'bg-emerald-600 text-white border-amber-300 shadow-[0_0_12px_rgba(16,185,129,0.4)]'
-                              : 'bg-[#0B1120] text-slate-300 border-slate-700 hover:border-emerald-500/50'
-                          }`}
+                          onClick={() => {
+                            setSelectedDonor(null);
+                            setSuggestions([]);
+                          }}
+                          className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-[#0B1120] border border-slate-700 shrink-0"
                         >
-                          {amt >= 1000 ? `${amt / 1000}K` : amt}
+                          Đổi
                         </button>
-                      ))}
+                      )}
                     </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={tiktokInput}
+                          onChange={(e) => setTiktokInput(e.target.value)}
+                          placeholder="Nhập @ID TikTok của bạn (VD: nguyenvana)"
+                          className="w-full px-4 py-3 bg-[#0B1120] border border-slate-700 focus:border-emerald-500 rounded-xl text-sm text-white outline-none pr-10"
+                        />
+                        {isLookingUp && (
+                          <RefreshCw size={15} className="animate-spin text-emerald-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+                        )}
+                      </div>
+
+                      {suggestions.length > 0 && (
+                        <div className="bg-[#0B1120] border border-slate-700/80 rounded-xl p-1.5 space-y-1">
+                          <div className="px-2.5 py-1 text-[11px] text-slate-400 font-semibold">
+                            Bấm để chọn tài khoản của bạn:
+                          </div>
+                          {suggestions.map((p) => (
+                            <button
+                              key={p.user_id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedDonor(p);
+                                setSuggestions([]);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-emerald-500/15 text-left transition-colors"
+                            >
+                              <img
+                                src={p.avatar_url || fallbackAvatarSvg(p.user_id)}
+                                onError={(e) => { e.currentTarget.src = fallbackAvatarSvg(p.user_id); }}
+                                alt={p.nickname}
+                                className="w-8 h-8 rounded-full object-cover border border-emerald-500/40 shrink-0"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs font-bold text-white truncate">{p.nickname}</div>
+                                <div className="text-[11px] text-slate-400 truncate">@{p.user_id}</div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => setShowCustomNick((v) => !v)}
+                          className="text-xs text-slate-400 hover:text-emerald-400 transition-colors"
+                        >
+                          {showCustomNick ? '− Ẩn tên hiển thị tùy chỉnh' : '+ Tùy chỉnh tên hiển thị (nếu muốn)'}
+                        </button>
+                      </div>
+
+                      {showCustomNick && (
+                        <input
+                          type="text"
+                          value={customNick}
+                          onChange={(e) => setCustomNick(e.target.value)}
+                          placeholder="Tên hiển thị trên bảng (bỏ trống sẽ tự lấy tên TikTok)"
+                          className="w-full px-4 py-2.5 bg-[#0B1120] border border-slate-700 focus:border-emerald-500 rounded-xl text-sm text-white outline-none"
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Số tiền ủng hộ */}
+                <div>
+                  <label className="block text-sm font-bold text-white mb-2">Số tiền ủng hộ</label>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-2.5">
+                    {QUICK_AMOUNTS.map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setAmountInput(String(amt))}
+                        className={`py-2 rounded-xl text-xs font-extrabold border transition-all ${
+                          Number(amountInput) === amt
+                            ? 'bg-emerald-600 text-white border-amber-300 shadow-[0_0_12px_rgba(16,185,129,0.35)]'
+                            : 'bg-[#0B1120] text-slate-300 border-slate-700 hover:border-emerald-500/50'
+                        }`}
+                      >
+                        {amt >= 1000 ? `${amt / 1000}K` : amt}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="relative">
                     <input
                       type="number"
                       min="5000"
                       step="1000"
                       value={amountInput}
                       onChange={(e) => setAmountInput(e.target.value)}
-                      placeholder="Nhập số tiền VNĐ (VD: 50000)"
-                      className="w-full px-4 py-3 bg-[#0B1120] border border-emerald-500/40 focus:border-amber-400 rounded-xl text-lg font-black text-amber-300 outline-none"
+                      placeholder="Nhập số tiền (tối thiểu 5.000đ)"
+                      className="w-full px-4 py-3 pr-14 bg-[#0B1120] border border-emerald-500/40 focus:border-amber-400 rounded-xl text-lg font-black text-amber-300 outline-none"
                     />
-                    {!parsedAmtInfo.ok && (
-                      <p className="text-xs text-rose-400 font-bold mt-1">{parsedAmtInfo.error}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
-                        <Volume2 size={14} className="text-emerald-400" /> Lời nhắn đọc bằng giọng Chị Google (tùy chọn):
-                      </label>
-                      <span className={`text-[11px] font-bold ${messageInput.length > 150 ? 'text-rose-400' : 'text-slate-400'}`}>
-                        {messageInput.length} / 150
-                      </span>
-                    </div>
-                    <textarea
-                      rows={3}
-                      maxLength={150}
-                      value={messageInput}
-                      onChange={(e) => setMessageInput(e.target.value)}
-                      placeholder="VD: Chúc anh Tiến live vui vẻ, tối nay phá đảo Boss nha!"
-                      className="w-full px-4 py-3 bg-[#0B1120] border border-slate-700 focus:border-emerald-500 rounded-xl text-sm text-white outline-none resize-none"
-                    />
-                    {!parsedMsgInfo.ok && (
-                      <p className="text-xs text-rose-400 font-bold mt-1 flex items-center gap-1">
-                        <AlertCircle size={13} /> {parsedMsgInfo.error}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Preview Effect Tier */}
-                  <div className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-2 ${
-                    isTier2
-                      ? 'bg-gradient-to-r from-amber-500/15 to-emerald-500/15 border-amber-400/50 text-amber-200'
-                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
-                  }`}>
-                    <span className="font-bold">
-                      {isTier2
-                        ? '👑 Hiệu ứng SUPER VIP: Nhạc Độ Mixi + Pháo hoa đa tầng + Confetti + Chị Google!'
-                        : '🎵 Hiệu ứng VIP: Nhạc Spider-Man + Pháo hoa + Giọng Chị Google!'}
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-400">
+                      VNĐ
                     </span>
-                    <span className="font-black shrink-0">{parsedAmtInfo.amount > 0 ? formatVND(parsedAmtInfo.amount) : ''}</span>
                   </div>
+                  {!parsedAmtInfo.ok ? (
+                    <p className="text-xs text-rose-400 font-bold mt-1.5">{parsedAmtInfo.error}</p>
+                  ) : isVipTier ? (
+                    <p className="text-xs text-amber-300 font-semibold mt-1.5 flex items-center gap-1.5">
+                      <Sparkles size={13} className="shrink-0" />
+                      <span>Mức VIP — Hiện hiệu ứng pháo hoa nổi bật trên sóng Live</span>
+                    </p>
+                  ) : null}
+                </div>
 
-                  <button
-                    type="submit"
-                    disabled={isCreatingQr || !parsedAmtInfo.ok || !parsedMsgInfo.ok}
-                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-amber-500 hover:brightness-110 text-white font-black text-base shadow-[0_6px_25px_rgba(16,185,129,0.35)] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {isCreatingQr ? <RefreshCw size={18} className="animate-spin" /> : <QrCode size={18} />}
-                    <span>Tạo Mã QR Donate Ngay</span>
-                  </button>
-                </form>
-              )}
-            </div>
+                {/* 3. Lời nhắn */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-sm font-bold text-white">Lời nhắn gửi lên Live <span className="text-xs font-normal text-slate-400">(tùy chọn)</span></label>
+                    <span className={`text-[11px] font-semibold ${messageInput.length > 150 ? 'text-rose-400' : 'text-slate-400'}`}>
+                      {messageInput.length} / 150
+                    </span>
+                  </div>
+                  <textarea
+                    rows={2}
+                    maxLength={150}
+                    value={messageInput}
+                    onChange={(e) => setMessageInput(e.target.value)}
+                    placeholder="Gửi lời nhắn tới Tiến Gaming..."
+                    className="w-full px-4 py-3 bg-[#0B1120] border border-slate-700 focus:border-emerald-500 rounded-xl text-sm text-white outline-none resize-none"
+                  />
+                  {!parsedMsgInfo.ok && (
+                    <p className="text-xs text-rose-400 font-bold mt-1.5 flex items-center gap-1">
+                      <AlertCircle size={13} /> {parsedMsgInfo.error}
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isCreatingQr || !parsedAmtInfo.ok || !parsedMsgInfo.ok}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-amber-500 hover:brightness-110 text-white font-black text-base shadow-[0_6px_25px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isCreatingQr ? <RefreshCw size={18} className="animate-spin" /> : <QrCode size={18} />}
+                  <span>
+                    {parsedAmtInfo.ok ? `Ủng Hộ ${formatVND(parsedAmtInfo.amount)} • Lấy Mã QR` : 'Lấy Mã QR Ủng Hộ'}
+                  </span>
+                </button>
+              </form>
+            )}
           </div>
 
-          {/* RIGHT (5 cols): REALTIME TOP 5 CHUYỂN KHOẢN + RECENT FEED */}
-          <div className="lg:col-span-5 space-y-6">
-            <div className="bg-[#151D2F] border border-emerald-500/35 rounded-2xl p-5 md:p-6 shadow-xl">
-              <div className="flex items-center justify-between gap-2 mb-4">
-                <h2 className="text-lg font-black text-amber-300 flex items-center gap-2">
-                  <Crown size={20} className="text-amber-400" />
-                  <span>{boardState.season_label}</span>
-                </h2>
-                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                  Realtime
-                </span>
-              </div>
+          {/* RIGHT (5 cols): TOP 5 & RECENT DONATIONS */}
+          <div className="lg:col-span-5 space-y-5">
+            <div className="bg-[#151D2F] border border-emerald-500/30 rounded-2xl p-5 shadow-xl">
+              <h2 className="text-base font-black text-amber-300 flex items-center gap-2 mb-3.5">
+                <Crown size={18} className="text-amber-400" />
+                <span>{boardState.season_label}</span>
+              </h2>
 
               {boardState.top_donators.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-sm bg-[#0B1120] rounded-xl border border-slate-800">
-                  Chưa có nhà tài trợ nào trong mùa này. Hãy là người đầu tiên lên Top 1!
+                <div className="text-center py-6 text-slate-400 text-xs bg-[#0B1120] rounded-xl border border-slate-800">
+                  Chưa có lượt ủng hộ nào — hãy mở bát Top 1 nhé!
                 </div>
               ) : (
                 <div className="space-y-2.5">
@@ -664,9 +620,9 @@ const DonateLiveScreen = ({
                       key={d.user_key || idx}
                       className={`flex items-center justify-between gap-3 p-3 rounded-xl border ${
                         idx === 0
-                          ? 'bg-gradient-to-r from-emerald-950/90 to-amber-950/50 border-amber-400/70 shadow-[0_0_16px_rgba(250,204,21,0.18)]'
+                          ? 'bg-gradient-to-r from-emerald-950/90 to-amber-950/45 border-amber-400/65'
                           : idx === 1
-                            ? 'bg-teal-950/50 border-teal-400/50'
+                            ? 'bg-teal-950/45 border-teal-400/45'
                             : 'bg-[#0B1120] border-slate-800'
                       }`}
                     >
@@ -680,7 +636,7 @@ const DonateLiveScreen = ({
                           src={d.avatar_url || fallbackAvatarSvg(d.user_key)}
                           onError={(e) => { e.currentTarget.src = fallbackAvatarSvg(d.user_key); }}
                           alt={d.nickname}
-                          className="w-10 h-10 rounded-full object-cover border border-emerald-400/60 shrink-0"
+                          className="w-9 h-9 rounded-full object-cover border border-emerald-400/60 shrink-0"
                         />
                         <div className="min-w-0">
                           <div className="font-extrabold text-white text-sm truncate">{d.nickname}</div>
@@ -696,16 +652,16 @@ const DonateLiveScreen = ({
               )}
             </div>
 
-            <div className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 md:p-6 shadow-xl">
-              <h3 className="text-base font-extrabold text-white mb-3.5 flex items-center gap-2">
-                <span>💸</span> Vừa Donate Gần Nhất
+            <div className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 shadow-xl">
+              <h3 className="text-sm font-extrabold text-white mb-3 flex items-center gap-2">
+                <span>💬</span> Ủng Hộ Gần Đây
               </h3>
               {boardState.recent_donations.length === 0 ? (
-                <div className="text-center py-6 text-slate-500 text-xs">Chưa có giao dịch gần đây.</div>
+                <div className="text-center py-5 text-slate-500 text-xs">Chưa có lượt ủng hộ gần đây.</div>
               ) : (
-                <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
                   {boardState.recent_donations.map((tx, idx) => (
-                    <div key={tx.tx_id || idx} className="p-3 rounded-xl bg-[#0B1120] border border-slate-800/90 space-y-1">
+                    <div key={tx.tx_id || idx} className="p-2.5 rounded-xl bg-[#0B1120] border border-slate-800/90 space-y-1">
                       <div className="flex items-center justify-between gap-2 text-xs">
                         <span className="font-extrabold text-white truncate">{tx.nickname}</span>
                         <span className="font-black text-emerald-400 shrink-0">+{formatVND(tx.delta)}</span>
