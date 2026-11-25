@@ -3301,22 +3301,6 @@ const App = () => {
                 view: 'bossgame',
                 auth: true
               },
-              {
-                name: (
-                  <span className="flex items-center gap-1 text-amber-400 font-bold">
-                    <span>🏛️</span>
-                    <span>Sàn Đấu Giá</span>
-                  </span>
-                ),
-                view: 'bossgame',
-                action: () => {
-                  requireAuth('bossgame');
-                  setCurrentView('bossgame');
-                  fetchAuctionMarketData();
-                  setShowAuctionModal(true);
-                },
-                auth: true
-              },
               { name: 'Cày Thuê', view: 'caythue', auth: false },
               {
                 name: (
