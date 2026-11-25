@@ -131,8 +131,8 @@ serve(async (req) => {
         'xiaoxiao_cn', 'yunfan_cn', 'hsiaochen_tw', 'premwadee_th', 'pattara_th',
         'vivienne_fr', 'remy_fr', 'seraphina_de', 'ximena_es', 'arjun_in'
       ]);
-      const rawVoice = String(ttsVoice || 'hoaimy').trim().toLowerCase();
-      const cleanVoice = ALLOWED_TTS_VOICES.has(rawVoice) ? rawVoice : 'hoaimy';
+      const rawVoice = String(ttsVoice || 'tt_nu_vn').trim().toLowerCase();
+      const cleanVoice = ALLOWED_TTS_VOICES.has(rawVoice) ? rawVoice : 'tt_nu_vn';
 
       await supabaseAdmin.from('deposit_requests').insert([{
         id: `PAYOS_${orderCode}`,

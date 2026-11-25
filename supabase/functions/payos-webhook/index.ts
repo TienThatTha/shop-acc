@@ -86,7 +86,7 @@ serve(async (req) => {
         const nickname = String(meta.nickname || tiktokUid).trim();
         const avatarUrl = String(meta.avatar_url || '').trim();
         const message = String(meta.message || '').trim();
-        const ttsVoice = String(meta.tts_voice || 'hoaimy').trim() || 'hoaimy';
+        const ttsVoice = String(meta.tts_voice || 'tt_nu_vn').trim() || 'tt_nu_vn';
         const createdTs = Number(meta.created_ts) || Date.now();
         const txRef = String(webhookData.transactionReference || orderCode);
 

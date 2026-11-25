@@ -17,10 +17,10 @@ const VOICE_CATEGORIES = [
 ];
 const DONATE_VOICES = [
   // 1. Việt Chuẩn (8)
-  { id: 'hoaimy', label: 'Hoài Mỹ x1.2', badge: 'Mặc định', category: 'vn', desc: 'Nữ miền Nam x1.2 (Mặc định)', previewUrl: '/tts-previews/hoaimy.mp3' },
+  { id: 'tt_nu_vn', label: 'Chị Review Phim', badge: 'Mặc định', category: 'vn', desc: 'Nữ Web TikTok (Mặc định)', previewUrl: '/tts-previews/tt_nu_vn.mp3' },
+  { id: 'hoaimy', label: 'Hoài Mỹ x1.2', badge: 'Nữ x1.2', category: 'vn', desc: 'Nữ miền Nam x1.2 dịu dàng', previewUrl: '/tts-previews/hoaimy.mp3' },
   { id: 'namminh', label: 'Nam Minh', badge: 'Nam', category: 'vn', desc: 'Nam trầm ấm rõ chữ', previewUrl: '/tts-previews/namminh.mp3' },
   { id: 'gtts', label: 'Chị Google', badge: 'Google', category: 'vn', desc: 'Kinh điển (+20%)', previewUrl: '/tts-previews/gtts.mp3' },
-  { id: 'tt_nu_vn', label: 'Chị Review Phim', badge: 'TikTok VN', category: 'vn', desc: 'Giọng nữ Web TikTok TTS', previewUrl: '/tts-previews/tt_nu_vn.mp3' },
   { id: 'tt_nam_vn', label: 'Anh Review Phim', badge: 'TikTok VN', category: 'vn', desc: 'Giọng nam Web TikTok TTS', previewUrl: '/tts-previews/tt_nam_vn.mp3' },
   { id: 'hoaimy_hd', label: 'Hoài Mỹ HD', badge: 'AI HD', category: 'vn', desc: 'Dragon AI truyền cảm hơn', previewUrl: '/tts-previews/hoaimy_hd.mp3' },
   { id: 'harper_vn', label: 'Ngọc Hân AI', badge: 'Nữ AI', category: 'vn', desc: 'Nữ trẻ trung hiện đại', previewUrl: '/tts-previews/harper_vn.mp3' },
@@ -114,7 +114,7 @@ const DonateLiveScreen = ({
   // Donate form & PayOS QR state
   const [amountInput, setAmountInput] = useState('50000');
   const [messageInput, setMessageInput] = useState('');
-  const [selectedVoice, setSelectedVoice] = useState('hoaimy');
+  const [selectedVoice, setSelectedVoice] = useState('tt_nu_vn');
   const [voiceCategory, setVoiceCategory] = useState('all');
   const [voiceSearch, setVoiceSearch] = useState('');
   const [playingVoiceId, setPlayingVoiceId] = useState(null);
