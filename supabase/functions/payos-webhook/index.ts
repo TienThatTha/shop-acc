@@ -50,6 +50,12 @@ serve(async (req) => {
     
     if (webhookData.code === '00' || webhookData.code === '00') { // Giao dịch thành công (verifyPaymentWebhookData chỉ trả về data object)
       const orderCode = webhookData.orderCode;
+      if (orderCode === 123 || webhookData.description === 'VQRIO123') {
+        return new Response(JSON.stringify({ success: true, note: "PayOS confirm-webhook test accepted" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        })
+      }
       const amount = webhookData.amount;
 
       // Tìm thông tin deposit request để lấy userId
