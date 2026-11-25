@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   QrCode, CheckCircle2, AlertCircle, Copy, Crown,
-  ShieldCheck, Clock, Link as LinkIcon, RefreshCw, X, Heart, Sparkles, Volume2, Square
+  ShieldCheck, Clock, Link as LinkIcon, RefreshCw, X, Heart, Sparkles, Volume2, Square, Lock, Unlock
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { validateDonateAmount, validateDonateMessage } from '../utils/donateFilter';
 
 const QUICK_AMOUNTS = [10000, 20000, 50000, 100000, 200000, 500000];
+const DEFAULT_VOICE_ID = 'tt_nu_vn';
+const CUSTOM_VOICE_MIN_AMOUNT = 10000;
 const VOICE_CATEGORIES = [
   { id: 'all', label: 'Tất cả (74)' },
   { id: 'vn', label: 'Việt Chuẩn (10)' },
@@ -380,6 +382,8 @@ const DonateLiveScreen = ({
   const parsedAmtInfo = validateDonateAmount(amountInput);
   const parsedMsgInfo = validateDonateMessage(messageInput);
   const isVipTier = parsedAmtInfo.amount > 50000;
+  const isVoiceUnlocked = parsedAmtInfo.ok && parsedAmtInfo.amount >= CUSTOM_VOICE_MIN_AMOUNT;
+  const effectiveVoiceId = isVoiceUnlocked ? selectedVoice : DEFAULT_VOICE_ID;
   const filteredVoices = useMemo(() => {
     const q = voiceSearch.trim().toLowerCase();
     return DONATE_VOICES.filter((v) => {
@@ -389,9 +393,17 @@ const DonateLiveScreen = ({
     });
   }, [voiceCategory, voiceSearch]);
   const selectedVoiceObj = useMemo(
-    () => DONATE_VOICES.find((v) => v.id === selectedVoice) || DONATE_VOICES[0],
-    [selectedVoice]
+    () => DONATE_VOICES.find((v) => v.id === effectiveVoiceId) || DONATE_VOICES[0],
+    [effectiveVoiceId]
   );
+
+  useEffect(() => {
+    if (!isVoiceUnlocked && previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+      setPlayingVoiceId(null);
+    }
+  }, [isVoiceUnlocked]);
 
   const activeDonorUid = selectedDonor?.user_id || tiktokInput.trim().replace(/^@/, '').toLowerCase();
   const activeDonorNick = selectedDonor?.nickname || customNick.trim() || tiktokInput.trim().replace(/^@/, '') || activeDonorUid;
@@ -425,7 +437,7 @@ const DonateLiveScreen = ({
           nickname: activeDonorNick,
           avatarUrl: activeDonorAvatar,
           donateMessage: parsedMsgInfo.cleaned,
-          ttsVoice: selectedVoice,
+          ttsVoice: effectiveVoiceId,
           returnUrl: `${window.location.origin}/donate`,
           cancelUrl: `${window.location.origin}/donate`
         }
@@ -744,90 +756,128 @@ const DonateLiveScreen = ({
                 {/* 4. Chọn giọng đọc lời nhắn */}
                 <div>
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                    <label className="text-sm font-bold text-white">Giọng đọc lời nhắn trên Live</label>
-                    <div className="flex items-center gap-2 text-[11px]">
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-amber-300 font-bold">
-                        Đang chọn: {selectedVoiceObj.label}
-                      </span>
-                      <span className="text-emerald-400 font-semibold hidden sm:inline">Nghe thử 0s</span>
+                    <div>
+                      <label className="text-sm font-bold text-white block">Giọng đọc lời nhắn trên Live</label>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Mở khóa chọn 74 giọng từ <span className="text-amber-300 font-bold">10.000đ</span> • Dưới 10.000đ dùng giọng mặc định Chị Review Phim
+                      </p>
                     </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 mb-2">
-                    {VOICE_CATEGORIES.map((cat) => (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => setVoiceCategory(cat.id)}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors ${
-                          voiceCategory === cat.id
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400'
-                            : 'bg-[#0B1120] text-slate-400 border-slate-700/80 hover:text-white hover:border-slate-500'
+                    <div className="flex items-center gap-2 text-[11px]">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full border font-bold inline-flex items-center gap-1 ${
+                          isVoiceUnlocked
+                            ? 'bg-emerald-500/15 border-emerald-500/40 text-amber-300'
+                            : 'bg-amber-500/15 border-amber-400/45 text-amber-300'
                         }`}
                       >
-                        {cat.label}
-                      </button>
-                    ))}
+                        {isVoiceUnlocked ? <Unlock size={11} /> : <Lock size={11} />}
+                        <span>{isVoiceUnlocked ? `Đang chọn: ${selectedVoiceObj.label}` : 'Mặc định: Chị Review Phim'}</span>
+                      </span>
+                    </div>
                   </div>
-                  <input
-                    type="text"
-                    value={voiceSearch}
-                    onChange={(e) => setVoiceSearch(e.target.value)}
-                    placeholder="Tìm nhanh giọng đọc (VD: Review Phim, ChatGPT, Ghostface, Nhật, Hàn...)"
-                    className="w-full px-3 py-2 mb-2 bg-[#0B1120] border border-slate-700/80 focus:border-emerald-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none"
-                  />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[272px] overflow-y-auto pr-1">
-                    {filteredVoices.length === 0 ? (
-                      <div className="sm:col-span-2 text-center py-6 text-xs text-slate-400 bg-[#0B1120] rounded-xl border border-slate-800">
-                        Không tìm thấy giọng đọc phù hợp với từ khóa “{voiceSearch}”.
-                      </div>
-                    ) : (
-                      filteredVoices.map((v) => {
-                      const isSel = selectedVoice === v.id;
-                      const isPlay = playingVoiceId === v.id;
-                      return (
-                        <div
-                          key={v.id}
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setSelectedVoice(v.id)}
-                          onKeyDown={(ev) => {
-                            if (ev.key === 'Enter' || ev.key === ' ') {
-                              ev.preventDefault();
-                              setSelectedVoice(v.id);
-                            }
-                          }}
-                          className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border cursor-pointer transition-all ${
-                            isSel
-                              ? 'bg-emerald-500/15 border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
-                              : 'bg-[#0B1120] border-slate-700/80 hover:border-emerald-500/45'
-                          }`}
-                        >
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className={`text-xs font-extrabold truncate ${isSel ? 'text-amber-300' : 'text-white'}`}>
-                                {v.label}
-                              </span>
-                              <span className="shrink-0 px-1.5 py-0.5 rounded bg-slate-800/90 border border-slate-700 text-[10px] font-bold text-slate-300">
-                                {v.badge}
-                              </span>
-                            </div>
-                            <div className="text-[11px] text-slate-400 truncate mt-0.5">{v.desc}</div>
-                          </div>
+                  <div className="relative rounded-xl">
+                    <div
+                      aria-hidden={!isVoiceUnlocked}
+                      className={!isVoiceUnlocked ? 'opacity-40 blur-[1.2px] pointer-events-none select-none transition-all' : 'transition-all'}
+                    >
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {VOICE_CATEGORIES.map((cat) => (
                           <button
+                            key={cat.id}
                             type="button"
-                            onClick={(e) => handlePreviewVoice(e, v)}
-                            className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 border transition-colors ${
-                              isPlay
-                                ? 'bg-amber-500/20 text-amber-300 border-amber-400'
-                                : 'bg-slate-800 hover:bg-slate-700 text-emerald-300 border-slate-600'
+                            onClick={() => setVoiceCategory(cat.id)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors ${
+                              voiceCategory === cat.id
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400'
+                                : 'bg-[#0B1120] text-slate-400 border-slate-700/80 hover:text-white hover:border-slate-500'
                             }`}
                           >
-                            {isPlay ? <Square size={11} className="fill-current" /> : <Volume2 size={12} />}
-                            <span>{isPlay ? 'Dừng' : 'Nghe thử'}</span>
+                            {cat.label}
                           </button>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        value={voiceSearch}
+                        onChange={(e) => setVoiceSearch(e.target.value)}
+                        placeholder="Tìm nhanh giọng đọc (VD: Review Phim, ChatGPT, Ghostface, Nhật, Hàn...)"
+                        className="w-full px-3 py-2 mb-2 bg-[#0B1120] border border-slate-700/80 focus:border-emerald-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none"
+                      />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[272px] overflow-y-auto pr-1">
+                        {filteredVoices.length === 0 ? (
+                          <div className="sm:col-span-2 text-center py-6 text-xs text-slate-400 bg-[#0B1120] rounded-xl border border-slate-800">
+                            Không tìm thấy giọng đọc phù hợp với từ khóa “{voiceSearch}”.
+                          </div>
+                        ) : (
+                          filteredVoices.map((v) => {
+                          const isSel = selectedVoice === v.id;
+                          const isPlay = playingVoiceId === v.id;
+                          return (
+                            <div
+                              key={v.id}
+                              role="button"
+                              tabIndex={isVoiceUnlocked ? 0 : -1}
+                              onClick={() => isVoiceUnlocked && setSelectedVoice(v.id)}
+                              onKeyDown={(ev) => {
+                                if (isVoiceUnlocked && (ev.key === 'Enter' || ev.key === ' ')) {
+                                  ev.preventDefault();
+                                  setSelectedVoice(v.id);
+                                }
+                              }}
+                              className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border cursor-pointer transition-all ${
+                                isSel
+                                  ? 'bg-emerald-500/15 border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                                  : 'bg-[#0B1120] border-slate-700/80 hover:border-emerald-500/45'
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-xs font-extrabold truncate ${isSel ? 'text-amber-300' : 'text-white'}`}>
+                                    {v.label}
+                                  </span>
+                                  <span className="shrink-0 px-1.5 py-0.5 rounded bg-slate-800/90 border border-slate-700 text-[10px] font-bold text-slate-300">
+                                    {v.badge}
+                                  </span>
+                                </div>
+                                <div className="text-[11px] text-slate-400 truncate mt-0.5">{v.desc}</div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => isVoiceUnlocked && handlePreviewVoice(e, v)}
+                                className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 border transition-colors ${
+                                  isPlay
+                                    ? 'bg-amber-500/20 text-amber-300 border-amber-400'
+                                    : 'bg-slate-800 hover:bg-slate-700 text-emerald-300 border-slate-600'
+                                }`}
+                              >
+                                {isPlay ? <Square size={11} className="fill-current" /> : <Volume2 size={12} />}
+                                <span>{isPlay ? 'Dừng' : 'Nghe thử'}</span>
+                              </button>
+                            </div>
+                          );
+                        })
+                        )}
+                      </div>
+                    </div>
+                    {!isVoiceUnlocked && (
+                      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 rounded-xl bg-[#0B1120]/60 backdrop-blur-[1.5px] border border-amber-400/35 text-center">
+                        <div className="w-10 h-10 rounded-full bg-amber-500/15 border border-amber-400/50 flex items-center justify-center mb-2">
+                          <Lock size={18} className="text-amber-300" />
                         </div>
-                      );
-                    })
+                        <div className="text-sm font-black text-amber-300">
+                          Mở khóa chọn 74 giọng từ 10.000đ
+                        </div>
+                        <p className="text-xs text-slate-300 mt-1 max-w-[340px]">
+                          Dưới 10.000đ hệ thống đọc bằng giọng mặc định <span className="font-bold text-white">Chị Review Phim</span>. Ủng hộ từ 10.000đ để nghe thử &amp; chọn trọn bộ 74 giọng hài, ChatGPT, TikTok Hát!
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setAmountInput(String(CUSTOM_VOICE_MIN_AMOUNT))}
+                          className="mt-3 px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/70 text-amber-200 font-extrabold text-xs transition-colors"
+                        >
+                          Chọn 10.000đ để mở khóa ngay
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
