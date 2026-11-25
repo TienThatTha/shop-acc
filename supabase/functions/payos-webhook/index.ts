@@ -105,7 +105,7 @@ serve(async (req) => {
 
         // Đẩy sự kiện Realtime vào game_orders để PC chạy main.py nhận ngay (<1s)
         const gameOrderId = `BANK_DNT_${orderCode}`;
-        await supabaseAdmin
+        const { error: gameOrderErr } = await supabaseAdmin
           .from('game_orders')
           .upsert([{
             id: gameOrderId,
@@ -128,6 +128,9 @@ serve(async (req) => {
             notify: true,
             created_at: new Date().toISOString()
           }], { onConflict: 'id' });
+        if (gameOrderErr) {
+          console.error('Lỗi tạo game_orders live_bank_donate:', gameOrderErr);
+        }
 
         // Cập nhật tức thì bảng Top 5 & lịch sử gần nhất trên site_config (hoạt động 24/7 kể cả khi PC tắt)
         try {
@@ -172,7 +175,7 @@ serve(async (req) => {
             ...prevRecent.filter((r: any) => r.tx_id !== gameOrderId)
           ].slice(0, 20);
 
-          await supabaseAdmin
+          const { error: cfgUpsertErr } = await supabaseAdmin
             .from('site_config')
             .upsert({
               id: 'live_bank_donate_state',
@@ -182,9 +185,11 @@ serve(async (req) => {
                 recent_donations: nextRecent,
                 totals_map: totalsMap,
                 updated_at: new Date().toISOString()
-              },
-              updated_at: new Date().toISOString()
+              }
             }, { onConflict: 'id' });
+          if (cfgUpsertErr) {
+            console.error('Lỗi upsert live_bank_donate_state:', cfgUpsertErr);
+          }
         } catch (stateErr) {
           console.error('Lỗi cập nhật live_bank_donate_state:', stateErr);
         }

@@ -9,6 +9,7 @@ import { validateDonateAmount, validateDonateMessage } from '../utils/donateFilt
 const QUICK_AMOUNTS = [10000, 20000, 50000, 100000, 200000, 500000];
 const BANK_NAMES = {
   '970416': 'ACB (Ngân hàng Á Châu)',
+  '970452': 'KienlongBank (KLB)',
   '970436': 'Vietcombank',
   '970422': 'MBBank',
   '970415': 'VietinBank',
@@ -283,7 +284,14 @@ const DonateLiveScreen = ({
           cancelUrl: window.location.origin
         }
       });
-      if (error) throw new Error(error.message);
+      if (error) {
+        let errMsg = error.message;
+        try {
+          const errBody = await error.context?.json?.();
+          if (errBody?.error) errMsg = errBody.error;
+        } catch { /* ignore */ }
+        throw new Error(errMsg);
+      }
       if (data?.error) throw new Error(data.error);
       if (!data?.checkoutUrl) throw new Error('Không thể khởi tạo mã QR.');
 
