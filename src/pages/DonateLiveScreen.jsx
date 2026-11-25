@@ -63,6 +63,9 @@ const DonateLiveScreen = ({
     recent_donations: []
   });
 
+  // Cache tìm kiếm @ID để tránh hỏi lặp lại Supabase
+  const lookupCacheRef = useRef(new Map());
+
   // Ref holding latest values for the payment confirmation effect (avoids stale closures & exhaustive-deps warnings)
   const latestConfirmCtxRef = useRef({
     amount: 0,
@@ -88,12 +91,18 @@ const DonateLiveScreen = ({
     });
   }, [linkedUid, bossPlayerSummary?.nickname, bossPlayerSummary?.avatar_url]);
 
-  // Debounced auto-lookup in game_players as donor types their @ID TikTok
+  // Debounced auto-lookup in game_players as donor types their @ID TikTok (tối ưu 1 query + cache RAM)
   useEffect(() => {
     if (linkedUid || selectedDonor) return undefined;
-    const raw = tiktokInput.trim().replace(/^@/, '').toLowerCase();
-    if (raw.length < 2) {
+    const raw = tiktokInput.trim().replace(/^@/, '').replace(/[(),]/g, '').toLowerCase();
+    if (raw.length < 3) {
       setSuggestions([]);
+      setIsLookingUp(false);
+      return undefined;
+    }
+
+    if (lookupCacheRef.current.has(raw)) {
+      setSuggestions(lookupCacheRef.current.get(raw));
       setIsLookingUp(false);
       return undefined;
     }
@@ -102,41 +111,33 @@ const DonateLiveScreen = ({
     setIsLookingUp(true);
     const timer = setTimeout(async () => {
       try {
-        const { data: exactRow } = await supabase
+        const { data: rows } = await supabase
           .from('game_players')
           .select('user_id, nickname, avatar_url')
-          .eq('user_id', raw)
-          .maybeSingle();
-
-        if (cancelled) return;
-        if (exactRow) {
-          setSuggestions([{
-            user_id: exactRow.user_id,
-            nickname: exactRow.nickname || exactRow.user_id,
-            avatar_url: exactRow.avatar_url || fallbackAvatarSvg(exactRow.user_id)
-          }]);
-          return;
-        }
-
-        const { data: fuzzyRows } = await supabase
-          .from('game_players')
-          .select('user_id, nickname, avatar_url')
-          .or(`user_id.ilike.%${raw}%,nickname.ilike.%${raw}%`)
+          .or(`user_id.ilike.${raw}%,nickname.ilike.%${raw}%`)
           .order('cp', { ascending: false })
           .limit(4);
 
         if (cancelled) return;
-        setSuggestions((fuzzyRows || []).map((r) => ({
-          user_id: r.user_id,
-          nickname: r.nickname || r.user_id,
-          avatar_url: r.avatar_url || fallbackAvatarSvg(r.user_id)
-        })));
+        const mapped = (rows || [])
+          .sort((a, b) => (a.user_id === raw ? -1 : b.user_id === raw ? 1 : 0))
+          .map((r) => ({
+            user_id: r.user_id,
+            nickname: r.nickname || r.user_id,
+            avatar_url: r.avatar_url || fallbackAvatarSvg(r.user_id)
+          }));
+        if (lookupCacheRef.current.size >= 50) {
+          const oldestKey = lookupCacheRef.current.keys().next().value;
+          if (oldestKey !== undefined) lookupCacheRef.current.delete(oldestKey);
+        }
+        lookupCacheRef.current.set(raw, mapped);
+        setSuggestions(mapped);
       } catch {
         if (!cancelled) setSuggestions([]);
       } finally {
         if (!cancelled) setIsLookingUp(false);
       }
-    }, 350);
+    }, 550);
 
     return () => {
       cancelled = true;
@@ -235,7 +236,7 @@ const DonateLiveScreen = ({
           markSuccess(data.amount);
         }
       } catch { /* ignore */ }
-    }, 4000);
+    }, 10000);
 
     return () => {
       clearInterval(timer);
