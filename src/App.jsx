@@ -3025,6 +3025,13 @@ const App = () => {
                 }
               }] : []),
               { name: 'Dịch Vụ Cày Thuê', view: 'caythue', auth: false, icon: <Target size={20} /> },
+              {
+                name: '💎 Donate Live',
+                view: 'donate',
+                auth: false,
+                icon: <Sparkles size={20} className="text-emerald-400" />,
+                badge: 'TTS'
+              },
               ...(hasActiveWheelRewards && !isWheelEventExpired ? [{
                 name: 'Vòng Quay May Mắn',
                 view: 'vongquay',
@@ -3223,14 +3230,6 @@ const App = () => {
                 view: 'donate',
                 auth: false,
                 isDonateLive: true
-              },
-              {
-                name: '💎 Donate Live',
-                view: 'donate',
-                auth: false,
-                icon: <Sparkles size={20} className="text-emerald-400" />,
-                isDonateLive: true,
-                badge: 'TTS'
               },
               ...(hasActiveWheelRewards && !isWheelEventExpired ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false, isWheel: true }] : []),
               ...(isWizardEventVisible ? [{
