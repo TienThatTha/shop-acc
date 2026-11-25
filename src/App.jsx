@@ -376,6 +376,8 @@ const App = () => {
   const [isHammerStriking, setIsHammerStriking] = useState(false);
   const [isPerformingForgeAction, setIsPerformingForgeAction] = useState(false);
   const [forgeSuccessModal, setForgeSuccessModal] = useState(null);
+  const lastSpinWinsFetchRef = useRef(0);
+  const lastLinkedSyncRef = useRef({ uid: null, ts: 0 });
 
   useEffect(() => {
     if (bossTargetId) {
@@ -1132,8 +1134,13 @@ const App = () => {
     }
   }, [currentView, isMtcGameAccessible]);
 
-  // Tự động tải các giao dịch quay thưởng mới nhất từ cộng đồng để hiển thị lên thanh vinh danh
+  // Tự động tải các giao dịch quay thưởng mới nhất từ cộng đồng để hiển thị lên thanh vinh danh (chống spam query khi đổi tab)
   useEffect(() => {
+    if (currentView !== 'dashboard' && currentView !== 'vongquay') return undefined;
+    const nowMs = Date.now();
+    if (nowMs - lastSpinWinsFetchRef.current < 120000) return undefined;
+    lastSpinWinsFetchRef.current = nowMs;
+
     let isSubscribed = true;
     const fetchPublicSpinWins = async () => {
       try {
@@ -3912,13 +3919,22 @@ const App = () => {
     } catch { /* ignore */ }
   }, []);
 
-  // Tự động đồng bộ và duy trì thông tin nhân vật game của tài khoản đã liên kết
+  // Tự động đồng bộ và duy trì thông tin nhân vật game của tài khoản đã liên kết (có cooldown tránh re-fetch khi chuyển tab)
   useEffect(() => {
     if (!currentUser?.id) {
+      lastLinkedSyncRef.current = { uid: null, ts: 0 };
       setBossPlayerSummary(null);
       setBossTargetId('');
       return;
     }
+    const nowMs = Date.now();
+    const uidChanged = lastLinkedSyncRef.current.uid !== currentUser.id;
+    const isGameView = currentView === 'bossgame' || currentView === 'vongquay' || currentView === 'wizard';
+    if (!uidChanged && (!isGameView || (nowMs - lastLinkedSyncRef.current.ts) < 120000)) {
+      return;
+    }
+    lastLinkedSyncRef.current = { uid: currentUser.id, ts: nowMs };
+
     let isSubscribed = true;
     (async () => {
       try {
@@ -3976,55 +3992,75 @@ const App = () => {
     }
   }, [showBagModal]);
 
-  // --- TỰ ĐỘNG ĐỒNG BỘ REALTIME DỮ LIỆU GAME (GAME_PLAYERS) TỪ SUPABASE ---
+  // --- TỰ ĐỘNG ĐỒNG BỘ REALTIME DỮ LIỆU GAME (GAME_PLAYERS) TỪ SUPABASE (CHỈ MỞ Ở TRANG BOSS GAME & LỌC ĐÚNG ROW) ---
   useEffect(() => {
-    const gamePlayersChannel = supabase
-      .channel('realtime-game-players')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'game_players' },
-        (payload) => {
-          const newRec = payload.new;
-          if (!newRec) return;
+    if (currentView !== 'bossgame') return undefined;
 
-          // 1. Cập nhật Sàn Đấu Giá Chợ Trời nếu có thay đổi vật phẩm từ game hoặc web
-          if (newRec.user_id === '__auction_market__') {
-            try {
-              const parsed = typeof newRec.weapon === 'string' ? JSON.parse(newRec.weapon) : newRec.weapon;
-              if (parsed && Array.isArray(parsed.active_listings)) {
-                setAuctionMarketData(parsed);
-                return;
-              }
-            } catch { /* ignore */ }
-            if (typeof fetchAuctionMarketData === 'function') {
-              fetchAuctionMarketData();
-            }
+    const watchedUid = (bossTargetId || currentUser?.linked_game_id || '').trim().toLowerCase().replace(/^@/, '');
+    if (!watchedUid && !showAuctionModal) return undefined;
+
+    const handleGamePlayerRealtime = (payload) => {
+      const newRec = payload.new;
+      if (!newRec) return;
+
+      // 1. Cập nhật Sàn Đấu Giá Chợ Trời nếu có thay đổi vật phẩm từ game hoặc web
+      if (newRec.user_id === '__auction_market__') {
+        try {
+          const parsed = typeof newRec.weapon === 'string' ? JSON.parse(newRec.weapon) : newRec.weapon;
+          if (parsed && Array.isArray(parsed.active_listings)) {
+            setAuctionMarketData(parsed);
             return;
           }
-
-          // 2. Nhận diện nhân vật đang hiển thị trên giao diện hoặc nhân vật đã liên kết (Chỉ khớp chính xác ID, không khớp theo tên)
-          const target = (bossTargetId || '').trim().toLowerCase().replace(/^@/, '');
-          const linked = (currentUser?.linked_game_id || '').trim().toLowerCase().replace(/^@/, '');
-          const rowUid = (newRec.user_id || '').trim().toLowerCase().replace(/^@/, '');
-
-          const isCurrentTarget = target && rowUid === target;
-          const isLinkedTarget = linked && rowUid === linked;
-
-          if (isCurrentTarget || isLinkedTarget) {
-            const parsed = parseGamePlayerRecord(newRec);
-            if (parsed) {
-              setBossPlayerSummary(parsed);
-              setBossPlayerNotFound(false);
-            }
-          }
+        } catch { /* ignore */ }
+        if (typeof fetchAuctionMarketData === 'function') {
+          fetchAuctionMarketData();
         }
-      )
-      .subscribe();
+        return;
+      }
+
+      // 2. Nhận diện nhân vật đang hiển thị trên giao diện hoặc nhân vật đã liên kết (Chỉ khớp chính xác ID, không khớp theo tên)
+      const target = (bossTargetId || '').trim().toLowerCase().replace(/^@/, '');
+      const linked = (currentUser?.linked_game_id || '').trim().toLowerCase().replace(/^@/, '');
+      const rowUid = (newRec.user_id || '').trim().toLowerCase().replace(/^@/, '');
+
+      const isCurrentTarget = target && rowUid === target;
+      const isLinkedTarget = linked && rowUid === linked;
+
+      if (isCurrentTarget || isLinkedTarget) {
+        const parsed = parseGamePlayerRecord(newRec);
+        if (parsed) {
+          setBossPlayerSummary(parsed);
+          setBossPlayerNotFound(false);
+        }
+      }
+    };
+
+    const gamePlayersChannel = supabase.channel(
+      `realtime-game-players-${watchedUid || 'none'}-${showAuctionModal ? 'mkt' : 'nomkt'}`
+    );
+
+    if (watchedUid) {
+      gamePlayersChannel.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'game_players', filter: `user_id=eq.${watchedUid}` },
+        handleGamePlayerRealtime
+      );
+    }
+
+    if (showAuctionModal) {
+      gamePlayersChannel.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'game_players', filter: 'user_id=eq.__auction_market__' },
+        handleGamePlayerRealtime
+      );
+    }
+
+    gamePlayersChannel.subscribe();
 
     return () => {
       supabase.removeChannel(gamePlayersChannel);
     };
-  }, [bossTargetId, currentUser?.linked_game_id]);
+  }, [currentView, bossTargetId, currentUser?.linked_game_id, showAuctionModal]);
 
   // --- HÀM TẠO MÃ OTP LIÊN KẾT TÀI KHOẢN (REALTIME + POLLING + TAB FOCUS) ---
   const handleGenerateLinkOtp = async (targetPlatform = 'all') => {
