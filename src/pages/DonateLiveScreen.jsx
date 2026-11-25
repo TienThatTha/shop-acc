@@ -1,12 +1,75 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   QrCode, CheckCircle2, AlertCircle, Copy, Crown,
-  ShieldCheck, Clock, Link as LinkIcon, RefreshCw, X, Heart, Sparkles
+  ShieldCheck, Clock, Link as LinkIcon, RefreshCw, X, Heart, Sparkles, Volume2, Square
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { validateDonateAmount, validateDonateMessage } from '../utils/donateFilter';
 
 const QUICK_AMOUNTS = [10000, 20000, 50000, 100000, 200000, 500000];
+const VOICE_CATEGORIES = [
+  { id: 'all', label: 'Tất cả (48)' },
+  { id: 'vn', label: 'Việt Chuẩn (8)' },
+  { id: 'gpt', label: 'ChatGPT AI (7)' },
+  { id: 'tiktok', label: 'TikTok Hài & Hát (10)' },
+  { id: 'fun', label: 'Biến Tấu (5)' },
+  { id: 'intl', label: 'Quốc Tế (18)' }
+];
+const DONATE_VOICES = [
+  // 1. Việt Chuẩn (8)
+  { id: 'hoaimy', label: 'Hoài Mỹ x1.2', badge: 'Mặc định', category: 'vn', desc: 'Nữ miền Nam x1.2 (Mặc định)', previewUrl: '/tts-previews/hoaimy.mp3' },
+  { id: 'namminh', label: 'Nam Minh', badge: 'Nam', category: 'vn', desc: 'Nam trầm ấm rõ chữ', previewUrl: '/tts-previews/namminh.mp3' },
+  { id: 'gtts', label: 'Chị Google', badge: 'Google', category: 'vn', desc: 'Kinh điển (+20%)', previewUrl: '/tts-previews/gtts.mp3' },
+  { id: 'tt_nu_vn', label: 'Chị Review Phim', badge: 'TikTok VN', category: 'vn', desc: 'Giọng nữ Web TikTok TTS', previewUrl: '/tts-previews/tt_nu_vn.mp3' },
+  { id: 'tt_nam_vn', label: 'Anh Review Phim', badge: 'TikTok VN', category: 'vn', desc: 'Giọng nam Web TikTok TTS', previewUrl: '/tts-previews/tt_nam_vn.mp3' },
+  { id: 'hoaimy_hd', label: 'Hoài Mỹ HD', badge: 'AI HD', category: 'vn', desc: 'Dragon AI truyền cảm hơn', previewUrl: '/tts-previews/hoaimy_hd.mp3' },
+  { id: 'harper_vn', label: 'Ngọc Hân AI', badge: 'Nữ AI', category: 'vn', desc: 'Nữ trẻ trung hiện đại', previewUrl: '/tts-previews/harper_vn.mp3' },
+  { id: 'grant_vn', label: 'Minh Khôi AI', badge: 'Nam AI', category: 'vn', desc: 'Nam thanh niên năng động', previewUrl: '/tts-previews/grant_vn.mp3' },
+  // 2. ChatGPT / OpenAI Web AI (7)
+  { id: 'gpt_nova', label: 'ChatGPT Nova', badge: 'OpenAI', category: 'gpt', desc: 'Nữ trẻ năng động kiểu ChatGPT', previewUrl: '/tts-previews/gpt_nova.mp3' },
+  { id: 'gpt_shimmer', label: 'ChatGPT Shimmer', badge: 'OpenAI', category: 'gpt', desc: 'Nữ ấm áp nhẹ nhàng OpenAI', previewUrl: '/tts-previews/gpt_shimmer.mp3' },
+  { id: 'gpt_alloy', label: 'ChatGPT Alloy', badge: 'OpenAI', category: 'gpt', desc: 'Cân bằng sắc nét kiểu ChatGPT', previewUrl: '/tts-previews/gpt_alloy.mp3' },
+  { id: 'gpt_echo', label: 'ChatGPT Echo', badge: 'OpenAI', category: 'gpt', desc: 'Nam mượt mà trợ lý AI', previewUrl: '/tts-previews/gpt_echo.mp3' },
+  { id: 'gpt_onyx', label: 'ChatGPT Onyx', badge: 'OpenAI', category: 'gpt', desc: 'Nam siêu trầm sang trọng', previewUrl: '/tts-previews/gpt_onyx.mp3' },
+  { id: 'gpt_fable', label: 'ChatGPT Fable', badge: 'OpenAI', category: 'gpt', desc: 'Kể chuyện biểu cảm AI', previewUrl: '/tts-previews/gpt_fable.mp3' },
+  { id: 'gpt_ash', label: 'ChatGPT Ash', badge: 'OpenAI', category: 'gpt', desc: 'Nam cá tính kiểu podcast', previewUrl: '/tts-previews/gpt_ash.mp3' },
+  // 3. TikTok Meme & Hát (10)
+  { id: 'tt_jessie', label: 'Chị TikTok Mỹ (Jessie)', badge: 'Viral', category: 'tiktok', desc: 'Giọng viral Web TikTok TTS', previewUrl: '/tts-previews/tt_jessie.mp3' },
+  { id: 'tt_ghostface', label: 'Ma Mặt Nạ Ghostface', badge: 'Kinh dị', category: 'tiktok', desc: 'Giọng Scream ma mị troll live', previewUrl: '/tts-previews/tt_ghostface.mp3' },
+  { id: 'tt_stitch', label: 'Quái Thú Stitch', badge: 'Hoạt hình', category: 'tiktok', desc: 'Stitch hoạt hình nhí nhố', previewUrl: '/tts-previews/tt_stitch.mp3' },
+  { id: 'tt_rocket', label: 'Chồn Rocket', badge: 'Hài hước', category: 'tiktok', desc: 'Rocket Dải Ngân Hà cực lầy', previewUrl: '/tts-previews/tt_rocket.mp3' },
+  { id: 'tt_c3po', label: 'Robot C-3PO', badge: 'Robot', category: 'tiktok', desc: 'Người máy Star Wars lơ lớ', previewUrl: '/tts-previews/tt_c3po.mp3' },
+  { id: 'tt_chewbacca', label: 'Chewbacca Gầm Gừ', badge: 'Lầy lội', category: 'tiktok', desc: 'Quái vật gầm gừ phá phòng live', previewUrl: '/tts-previews/tt_chewbacca.mp3' },
+  { id: 'tt_grinch', label: 'Yêu Tinh Grinch', badge: 'Quái dị', category: 'tiktok', desc: 'Tinh quái hợp câu troll', previewUrl: '/tts-previews/tt_grinch.mp3' },
+  { id: 'tt_opera', label: 'Hát Opera Alto', badge: 'Hát 🎵', category: 'tiktok', desc: 'Hát lời donate kiểu opera', previewUrl: '/tts-previews/tt_opera.mp3' },
+  { id: 'tt_lobby', label: 'Hát Nhạc Nền', badge: 'Hát 🎵', category: 'tiktok', desc: 'Hát lời nhắn trên beat vui', previewUrl: '/tts-previews/tt_lobby.mp3' },
+  { id: 'tt_silly_sing', label: 'Hát Tấu Hài', badge: 'Hát 🎵', category: 'tiktok', desc: 'Hát câu donate cực bựa', previewUrl: '/tts-previews/tt_silly_sing.mp3' },
+  // 4. Biến Tấu & Anime (5)
+  { id: 'be_cute', label: 'Bé Cưng', badge: 'Cute', category: 'fun', desc: 'Nhí nhảnh (+40Hz)', previewUrl: '/tts-previews/be_cute.mp3' },
+  { id: 'tram_ngau', label: 'Trầm Bá Đạo', badge: 'Boss', category: 'fun', desc: 'Uy lực (-28Hz)', previewUrl: '/tts-previews/tram_ngau.mp3' },
+  { id: 'xiaoyou_loli', label: 'Bé Anime', badge: 'Anime', category: 'fun', desc: 'Em bé anime siêu cưng', previewUrl: '/tts-previews/xiaoyou_loli.mp3' },
+  { id: 'rap_nhanh', label: 'Đọc Rap Cấp Tốc', badge: 'Tốc độ', category: 'fun', desc: 'Bắn chữ siêu nhanh (+38%)', previewUrl: '/tts-previews/rap_nhanh.mp3' },
+  { id: 'ba_lao', label: 'Kể Chuyện Ma', badge: 'Kinh dị', category: 'fun', desc: 'Siêu chậm (-20%) & trầm (-35Hz)', previewUrl: '/tts-previews/ba_lao.mp3' },
+  // 5. Quốc Tế Nói Tiếng Việt (18)
+  { id: 'ava_tay', label: 'Chị Tây Mỹ (Ava)', badge: 'Mỹ 🇺🇸', category: 'intl', desc: 'Ava nói Việt đáng yêu', previewUrl: '/tts-previews/ava_tay.mp3' },
+  { id: 'andrew_us', label: 'Anh Tây Mỹ (Andrew)', badge: 'Mỹ 🇺🇸', category: 'intl', desc: 'Andrew ấm áp duyên dáng', previewUrl: '/tts-previews/andrew_us.mp3' },
+  { id: 'ada_uk', label: 'Quý Cô Anh (Ada)', badge: 'Anh 🇬🇧', category: 'intl', desc: 'Nữ Anh quý tộc sang trọng', previewUrl: '/tts-previews/ada_uk.mp3' },
+  { id: 'ryan_uk', label: 'Quý Ông Anh (Ryan)', badge: 'Anh 🇬🇧', category: 'intl', desc: 'Nam Anh lịch lãm chuẩn men', previewUrl: '/tts-previews/ryan_uk.mp3' },
+  { id: 'nanami_jp', label: 'Waifu Nhật (Nanami)', badge: 'Nhật 🇯🇵', category: 'intl', desc: 'Nanami ngọt ngào anime', previewUrl: '/tts-previews/nanami_jp.mp3' },
+  { id: 'masaru_jp', label: 'Senpai Nhật (Masaru)', badge: 'Nhật 🇯🇵', category: 'intl', desc: 'Masaru trầm ấm cực ngầu', previewUrl: '/tts-previews/masaru_jp.mp3' },
+  { id: 'sunhi_kr', label: 'Unnie Hàn Quốc', badge: 'Hàn 🇰🇷', category: 'intl', desc: 'SunHi kiểu K-Drama', previewUrl: '/tts-previews/sunhi_kr.mp3' },
+  { id: 'hyunsu_kr', label: 'Oppa Hàn Quốc', badge: 'Hàn 🇰🇷', category: 'intl', desc: 'Hyunsu nhẹ nhàng cuốn hút', previewUrl: '/tts-previews/hyunsu_kr.mp3' },
+  { id: 'xiaoxiao_cn', label: 'Tỷ Tỷ Trung Hoa', badge: 'Trung 🇨🇳', category: 'intl', desc: 'Xiaoxiao dịu ngọt êm tai', previewUrl: '/tts-previews/xiaoxiao_cn.mp3' },
+  { id: 'yunfan_cn', label: 'Nam Thần Trung Hoa', badge: 'Trung 🇨🇳', category: 'intl', desc: 'Yunfan trầm lãng tử', previewUrl: '/tts-previews/yunfan_cn.mp3' },
+  { id: 'hsiaochen_tw', label: 'Em Gái Đài Loan', badge: 'Đài 🇹🇼', category: 'intl', desc: 'HsiaoChen nhỏ nhẹ dễ thương', previewUrl: '/tts-previews/hsiaochen_tw.mp3' },
+  { id: 'premwadee_th', label: 'Chị Đẹp Thái Lan', badge: 'Thái 🇹🇭', category: 'intl', desc: 'Premwadee ngân nga duyên', previewUrl: '/tts-previews/premwadee_th.mp3' },
+  { id: 'pattara_th', label: 'Anh Trai Thái Lan', badge: 'Thái 🇹🇭', category: 'intl', desc: 'Pattara đọc Việt siêu hài', previewUrl: '/tts-previews/pattara_th.mp3' },
+  { id: 'vivienne_fr', label: 'Nàng Thơ Pháp', badge: 'Pháp 🇫🇷', category: 'intl', desc: 'Vivienne sang chảnh Pháp', previewUrl: '/tts-previews/vivienne_fr.mp3' },
+  { id: 'remy_fr', label: 'Quý Ông Pháp', badge: 'Pháp 🇫🇷', category: 'intl', desc: 'Remy lãng mạn đầy cảm xúc', previewUrl: '/tts-previews/remy_fr.mp3' },
+  { id: 'seraphina_de', label: 'Quý Cô Đức', badge: 'Đức 🇩🇪', category: 'intl', desc: 'Seraphina cá tính sắc sảo', previewUrl: '/tts-previews/seraphina_de.mp3' },
+  { id: 'ximena_es', label: 'Cô Nàng Tây Ban Nha', badge: 'TBN 🇪🇸', category: 'intl', desc: 'Ximena sôi nổi cực cuốn', previewUrl: '/tts-previews/ximena_es.mp3' },
+  { id: 'arjun_in', label: 'Anh Trai Ấn Độ', badge: 'Ấn Độ 🇮🇳', category: 'intl', desc: 'Arjun đọc Việt siêu giải trí', previewUrl: '/tts-previews/arjun_in.mp3' }
+];
 const BANK_NAMES = {
   '970416': 'ACB (Ngân hàng Á Châu)',
   '970452': 'KienlongBank (KLB)',
@@ -51,6 +114,11 @@ const DonateLiveScreen = ({
   // Donate form & PayOS QR state
   const [amountInput, setAmountInput] = useState('50000');
   const [messageInput, setMessageInput] = useState('');
+  const [selectedVoice, setSelectedVoice] = useState('hoaimy');
+  const [voiceCategory, setVoiceCategory] = useState('all');
+  const [voiceSearch, setVoiceSearch] = useState('');
+  const [playingVoiceId, setPlayingVoiceId] = useState(null);
+  const previewAudioRef = useRef(null);
   const [isCreatingQr, setIsCreatingQr] = useState(false);
   const [payosData, setPayosData] = useState(null);
   const [payosTimeLeft, setPayosTimeLeft] = useState(600);
@@ -78,6 +146,44 @@ const DonateLiveScreen = ({
     nickname: selectedDonor?.nickname || customNick.trim() || tiktokInput.trim().replace(/^@/, '') || 'Bạn',
     message: messageInput.trim(),
     showToast
+  };
+
+  // Stop any voice sample playing when leaving the donate page
+  useEffect(() => {
+    return () => {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+        previewAudioRef.current = null;
+      }
+    };
+  }, []);
+
+  const handlePreviewVoice = (e, voice) => {
+    e.stopPropagation();
+    setSelectedVoice(voice.id);
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+    if (playingVoiceId === voice.id) {
+      setPlayingVoiceId(null);
+      return;
+    }
+    const audio = new Audio(voice.previewUrl);
+    previewAudioRef.current = audio;
+    setPlayingVoiceId(voice.id);
+    audio.onended = () => {
+      if (previewAudioRef.current === audio) previewAudioRef.current = null;
+      setPlayingVoiceId((cur) => (cur === voice.id ? null : cur));
+    };
+    audio.onerror = () => {
+      if (previewAudioRef.current === audio) previewAudioRef.current = null;
+      setPlayingVoiceId(null);
+      showToast('Không thể phát file mẫu lúc này.', 'error');
+    };
+    audio.play().catch(() => {
+      setPlayingVoiceId(null);
+    });
   };
 
   // Auto-fill verified identity if user already linked TikTok
@@ -248,6 +354,18 @@ const DonateLiveScreen = ({
   const parsedAmtInfo = validateDonateAmount(amountInput);
   const parsedMsgInfo = validateDonateMessage(messageInput);
   const isVipTier = parsedAmtInfo.amount > 50000;
+  const filteredVoices = useMemo(() => {
+    const q = voiceSearch.trim().toLowerCase();
+    return DONATE_VOICES.filter((v) => {
+      if (voiceCategory !== 'all' && v.category !== voiceCategory) return false;
+      if (!q) return true;
+      return `${v.label} ${v.badge} ${v.desc}`.toLowerCase().includes(q);
+    });
+  }, [voiceCategory, voiceSearch]);
+  const selectedVoiceObj = useMemo(
+    () => DONATE_VOICES.find((v) => v.id === selectedVoice) || DONATE_VOICES[0],
+    [selectedVoice]
+  );
 
   const activeDonorUid = selectedDonor?.user_id || tiktokInput.trim().replace(/^@/, '').toLowerCase();
   const activeDonorNick = selectedDonor?.nickname || customNick.trim() || tiktokInput.trim().replace(/^@/, '') || activeDonorUid;
@@ -281,6 +399,7 @@ const DonateLiveScreen = ({
           nickname: activeDonorNick,
           avatarUrl: activeDonorAvatar,
           donateMessage: parsedMsgInfo.cleaned,
+          ttsVoice: selectedVoice,
           returnUrl: `${window.location.origin}/donate`,
           cancelUrl: `${window.location.origin}/donate`
         }
@@ -594,6 +713,97 @@ const DonateLiveScreen = ({
                       <AlertCircle size={13} /> {parsedMsgInfo.error}
                     </p>
                   )}
+                </div>
+
+                {/* 4. Chọn giọng đọc lời nhắn */}
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <label className="text-sm font-bold text-white">Giọng đọc lời nhắn trên Live</label>
+                    <div className="flex items-center gap-2 text-[11px]">
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-amber-300 font-bold">
+                        Đang chọn: {selectedVoiceObj.label}
+                      </span>
+                      <span className="text-emerald-400 font-semibold hidden sm:inline">Nghe thử 0s</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {VOICE_CATEGORIES.map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setVoiceCategory(cat.id)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors ${
+                          voiceCategory === cat.id
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400'
+                            : 'bg-[#0B1120] text-slate-400 border-slate-700/80 hover:text-white hover:border-slate-500'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={voiceSearch}
+                    onChange={(e) => setVoiceSearch(e.target.value)}
+                    placeholder="Tìm nhanh giọng đọc (VD: Review Phim, ChatGPT, Ghostface, Nhật, Hàn...)"
+                    className="w-full px-3 py-2 mb-2 bg-[#0B1120] border border-slate-700/80 focus:border-emerald-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none"
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[272px] overflow-y-auto pr-1">
+                    {filteredVoices.length === 0 ? (
+                      <div className="sm:col-span-2 text-center py-6 text-xs text-slate-400 bg-[#0B1120] rounded-xl border border-slate-800">
+                        Không tìm thấy giọng đọc phù hợp với từ khóa “{voiceSearch}”.
+                      </div>
+                    ) : (
+                      filteredVoices.map((v) => {
+                      const isSel = selectedVoice === v.id;
+                      const isPlay = playingVoiceId === v.id;
+                      return (
+                        <div
+                          key={v.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedVoice(v.id)}
+                          onKeyDown={(ev) => {
+                            if (ev.key === 'Enter' || ev.key === ' ') {
+                              ev.preventDefault();
+                              setSelectedVoice(v.id);
+                            }
+                          }}
+                          className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border cursor-pointer transition-all ${
+                            isSel
+                              ? 'bg-emerald-500/15 border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                              : 'bg-[#0B1120] border-slate-700/80 hover:border-emerald-500/45'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-xs font-extrabold truncate ${isSel ? 'text-amber-300' : 'text-white'}`}>
+                                {v.label}
+                              </span>
+                              <span className="shrink-0 px-1.5 py-0.5 rounded bg-slate-800/90 border border-slate-700 text-[10px] font-bold text-slate-300">
+                                {v.badge}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-400 truncate mt-0.5">{v.desc}</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => handlePreviewVoice(e, v)}
+                            className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 border transition-colors ${
+                              isPlay
+                                ? 'bg-amber-500/20 text-amber-300 border-amber-400'
+                                : 'bg-slate-800 hover:bg-slate-700 text-emerald-300 border-slate-600'
+                            }`}
+                          >
+                            {isPlay ? <Square size={11} className="fill-current" /> : <Volume2 size={12} />}
+                            <span>{isPlay ? 'Dừng' : 'Nghe thử'}</span>
+                          </button>
+                        </div>
+                      );
+                    })
+                    )}
+                  </div>
                 </div>
 
                 <button

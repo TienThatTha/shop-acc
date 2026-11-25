@@ -86,6 +86,7 @@ serve(async (req) => {
         const nickname = String(meta.nickname || tiktokUid).trim();
         const avatarUrl = String(meta.avatar_url || '').trim();
         const message = String(meta.message || '').trim();
+        const ttsVoice = String(meta.tts_voice || 'hoaimy').trim() || 'hoaimy';
         const createdTs = Number(meta.created_ts) || Date.now();
         const txRef = String(webhookData.transactionReference || orderCode);
 
@@ -120,6 +121,7 @@ serve(async (req) => {
               order_code: orderCode,
               transaction_ref: txRef,
               message: message,
+              tts_voice: ttsVoice,
               avatar_url: avatarUrl,
               web_user_id: String(meta.web_user_id || 'guest'),
               created_ts: createdTs

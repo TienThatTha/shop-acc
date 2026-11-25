@@ -82,7 +82,8 @@ serve(async (req) => {
       tiktokUid,
       nickname,
       avatarUrl,
-      donateMessage
+      donateMessage,
+      ttsVoice
     } = body
 
     const PayOSClass = (PayOS as any).PayOS || (PayOS as any).default || PayOS;
@@ -120,6 +121,19 @@ serve(async (req) => {
 
       const paymentLinkRes = await payos.createPaymentLink(requestData);
 
+      const ALLOWED_TTS_VOICES = new Set([
+        'hoaimy', 'namminh', 'gtts', 'tt_nu_vn', 'tt_nam_vn', 'hoaimy_hd', 'harper_vn', 'grant_vn',
+        'gpt_nova', 'gpt_shimmer', 'gpt_alloy', 'gpt_echo', 'gpt_onyx', 'gpt_fable', 'gpt_ash',
+        'tt_jessie', 'tt_ghostface', 'tt_stitch', 'tt_rocket', 'tt_c3po', 'tt_chewbacca', 'tt_grinch',
+        'tt_opera', 'tt_lobby', 'tt_silly_sing',
+        'be_cute', 'tram_ngau', 'xiaoyou_loli', 'rap_nhanh', 'ba_lao',
+        'ava_tay', 'andrew_us', 'ada_uk', 'ryan_uk', 'nanami_jp', 'masaru_jp', 'sunhi_kr', 'hyunsu_kr',
+        'xiaoxiao_cn', 'yunfan_cn', 'hsiaochen_tw', 'premwadee_th', 'pattara_th',
+        'vivienne_fr', 'remy_fr', 'seraphina_de', 'ximena_es', 'arjun_in'
+      ]);
+      const rawVoice = String(ttsVoice || 'hoaimy').trim().toLowerCase();
+      const cleanVoice = ALLOWED_TTS_VOICES.has(rawVoice) ? rawVoice : 'hoaimy';
+
       await supabaseAdmin.from('deposit_requests').insert([{
         id: `PAYOS_${orderCode}`,
         userId: userId || 'LIVE_DONATE_GUEST',
@@ -134,6 +148,7 @@ serve(async (req) => {
           nickname: cleanNick,
           avatar_url: String(avatarUrl || '').trim(),
           message: msgCheck.cleaned,
+          tts_voice: cleanVoice,
           web_user_id: userId || 'guest',
           created_ts: Date.now()
         }),
