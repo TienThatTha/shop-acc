@@ -506,8 +506,8 @@ export const NaptienScreen = ({
   copyToClipboard, sendAdminAlert, isGlobalProcessing, setIsGlobalProcessing
 }) => {
   // 1. TẠO BIẾN KIỂM TRA LỆNH ĐANG CHỜ DUYỆT
-  const hasPendingRequest = depositRequests.some(d => d.userId === currentUser?.id && d.status === 'Chờ duyệt');
-  const activePendingBankingReq = depositRequests.find(d => d.userId === currentUser?.id && d.status === 'Chờ duyệt' && d.type !== 'card');
+  const hasPendingRequest = depositRequests.some(d => d.userId === currentUser?.id && d.status === 'Chờ duyệt' && d.type !== 'live_donate');
+  const activePendingBankingReq = depositRequests.find(d => d.userId === currentUser?.id && d.status === 'Chờ duyệt' && d.type !== 'card' && d.type !== 'live_donate');
   const displayAmount = activePendingBankingReq ? activePendingBankingReq.amount : null;
 
   const handleCreatePayosLink = async (e) => {
@@ -837,8 +837,8 @@ export const NaptienScreen = ({
               const { scrollTop, scrollHeight, clientHeight } = e.target;
               if (scrollTop + clientHeight >= scrollHeight - 10) setVisibleDepsClient(prev => prev + 5);
             }}>
-              {depositRequests.filter(d => d.userId === currentUser?.id).length === 0 ? <p className="text-xs text-slate-500 italic">Chưa có lệnh nạp nào.</p> :
-                depositRequests.filter(d => d.userId === currentUser?.id).slice(0, visibleDepsClient).map(d => (
+              {depositRequests.filter(d => d.userId === currentUser?.id && d.type !== 'live_donate').length === 0 ? <p className="text-xs text-slate-500 italic">Chưa có lệnh nạp nào.</p> :
+                depositRequests.filter(d => d.userId === currentUser?.id && d.type !== 'live_donate').slice(0, visibleDepsClient).map(d => (
                   <div key={d.id} className="flex justify-between items-center text-sm bg-[#0B1120] p-3 rounded-lg border border-slate-800">
                     <div>
                       <span className="font-bold text-white block">
@@ -918,7 +918,7 @@ export const LichsuScreen = ({
   const historyRent = myTransactions.filter(t => t.type?.includes('rent') || t.type?.includes('fund') || t.type === 'deposit_refund' || t.action?.toLowerCase().includes('thuê nick') || t.action?.toLowerCase().includes('quy đổi') || t.action?.toLowerCase().includes('hoàn cọc'));
   const historySpin = myTransactions.filter(t => t.type === 'spin_win' && t.amount !== 0 && !t.isSpinCost);
   const historyBoost = boostingRequests.filter(r => r.user === currentUser?.name);
-  const historyDeposit = depositRequests.filter(d => d.userId === currentUser?.id);
+  const historyDeposit = depositRequests.filter(d => d.userId === currentUser?.id && d.type !== 'live_donate');
   const historyTransfer = myTransactions.filter(t => t.type === 'transfer_out' || t.type === 'transfer_in');
 
   // Cấu hình các Tab

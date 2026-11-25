@@ -29,6 +29,7 @@ const MongThienCuuShowcase = lazy(() => import('./components/MongThienCuuShowcas
 const AdminScreen = lazy(() => import('./pages/AdminScreen'));
 const BossGameScreen = lazy(() => import('./pages/BossGameScreen'));
 const VongQuayScreen = lazy(() => import('./pages/VongQuayScreen'));
+const DonateLiveScreen = lazy(() => import('./pages/DonateLiveScreen'));
 const NaptienScreen = lazy(() => import('./pages/AccountScreens').then((m) => ({ default: m.NaptienScreen })));
 const LichsuScreen = lazy(() => import('./pages/AccountScreens').then((m) => ({ default: m.LichsuScreen })));
 const CayThueScreen = lazy(() => import('./pages/AccountScreens').then((m) => ({ default: m.CayThueScreen })));
@@ -37,8 +38,14 @@ const SecurityScreen = lazy(() => import('./pages/AccountScreens').then((m) => (
 const VALID_VIEWS = new Set([
   'dashboard', 'login', 'register', 'forgot-password', 'security', 'admin',
   'naptien', 'lichsu', 'caythue', 'vongquay', 'wizard', 'bossgame',
-  'mongthiencuu', 'vip_info'
+  'mongthiencuu', 'vip_info', 'donate'
 ]);
+
+const isLocalhostUrlHost = () => {
+  if (typeof window === 'undefined') return false;
+  const h = (window.location.hostname || '').toLowerCase();
+  return h === 'localhost' || h === '127.0.0.1' || h === 'localtest.me';
+};
 const getRankByPoints = (points, rankTiers = []) => {
   if (!rankTiers || rankTiers.length === 0) return 'Chưa xếp hạng';
   if (points == null || points < rankTiers[0].points) return 'Chưa xếp hạng';
@@ -403,7 +410,7 @@ const App = () => {
     if (typeof window !== 'undefined') {
       try {
         const viewParam = (new URLSearchParams(window.location.search).get('view') || '').trim().toLowerCase();
-        if (VALID_VIEWS.has(viewParam)) {
+        if (VALID_VIEWS.has(viewParam) && (viewParam !== 'donate' || isLocalhostUrlHost())) {
           return viewParam;
         }
       } catch { /* ignore */ }
@@ -420,7 +427,7 @@ const App = () => {
     try {
       const url = new URL(window.location.href);
       const currentParam = (url.searchParams.get('view') || '').trim().toLowerCase();
-      if (currentView === 'dashboard') {
+      if (currentView === 'dashboard' || (currentView === 'donate' && !isLocalhostUrlHost())) {
         if (url.searchParams.has('view')) {
           url.searchParams.delete('view');
           const nextUrl = `${url.pathname}${url.searchParams.toString() ? `?${url.searchParams.toString()}` : ''}${url.hash}`;
@@ -440,7 +447,7 @@ const App = () => {
       if (window.location.pathname.startsWith('/play')) return;
       try {
         const viewParam = (new URLSearchParams(window.location.search).get('view') || '').trim().toLowerCase();
-        if (VALID_VIEWS.has(viewParam)) {
+        if (VALID_VIEWS.has(viewParam) && (viewParam !== 'donate' || isLocalhostUrlHost())) {
           setCurrentView(viewParam);
         } else if (!viewParam) {
           setCurrentView('dashboard');
@@ -1621,7 +1628,7 @@ const App = () => {
               const [usersRes, txRes, depRes, rentRes, msgRes, boostReqRes] = await Promise.all([
                 supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at, linked_game_id, shoes_pity').order('id', { ascending: false }),
                 supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(300),
-                supabase.from('deposit_requests').select('*').order('created_at', { ascending: false }).limit(300),
+                supabase.from('deposit_requests').select('*').neq('type', 'live_donate').order('created_at', { ascending: false }).limit(300),
                 supabase.from('rent_requests').select('*').order('created_at', { ascending: false }).limit(200),
                 supabase.from('messages').select('*').order('timestamp', { ascending: true }).limit(500),
                 supabase.from('boosting_requests').select('*').order('created_at', { ascending: false }).limit(200)
@@ -1660,7 +1667,7 @@ const App = () => {
               // QUYỀN KHÁCH: CHỈ TẢI CỦA KHÁCH
               const [myTx, myDep, myRent, myMsg, myBoostReq, adminRes] = await Promise.all([
                 supabase.from('transactions').select('*').eq('user', user.name).order('created_at', { ascending: false }).limit(100),
-                supabase.from('deposit_requests').select('*').eq('userId', session.user.id).order('created_at', { ascending: false }).limit(100),
+                supabase.from('deposit_requests').select('*').eq('userId', session.user.id).neq('type', 'live_donate').order('created_at', { ascending: false }).limit(100),
                 supabase.from('rent_requests').select('*').eq('userId', session.user.id).order('created_at', { ascending: false }).limit(100),
                 supabase.from('messages').select('*').or(`senderId.eq.${session.user.id},receiverId.eq.${session.user.id}`).order('timestamp', { ascending: true }).limit(2000),
                 supabase.from('boosting_requests').select('*').eq('user', user.name).order('created_at', { ascending: false }).limit(100), // <--- Đã thêm lệnh lấy Cày Thuê
@@ -2070,7 +2077,7 @@ const App = () => {
   }, [wheelItemsMoneyDb.length, wheelItemsSpinDb.length, playMode]);
 
   // Lấy đơn nạp tự động hiện tại để đếm ngược
-  const activePendingBankingReq = depositRequests.find(d => d.userId === currentUser?.id && (d.status === 'Chờ duyệt' || d.status === 'Chờ thanh toán') && d.type !== 'card');
+  const activePendingBankingReq = depositRequests.find(d => d.userId === currentUser?.id && (d.status === 'Chờ duyệt' || d.status === 'Chờ thanh toán') && d.type !== 'card' && d.type !== 'live_donate');
 
   // Đếm ngược 10 phút tự hủy lệnh nạp
   useEffect(() => {
@@ -2406,7 +2413,7 @@ const App = () => {
           const [usersRes, txRes, depRes, rentRes, msgRes, boostReqRes] = await Promise.all([
             supabase.from('users').select('id, name, phone, email, balance, spins, rentFund, role, is_trusted, is_cccd_verified, is_email_verified, avatar_url, last_active, is_locked, cccd_number, created_at').order('id', { ascending: false }),
             supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(300),
-            supabase.from('deposit_requests').select('*').order('created_at', { ascending: false }).limit(300),
+            supabase.from('deposit_requests').select('*').neq('type', 'live_donate').order('created_at', { ascending: false }).limit(300),
             supabase.from('rent_requests').select('*').order('created_at', { ascending: false }).limit(200),
             supabase.from('messages').select('*').order('timestamp', { ascending: true }).limit(500),
             supabase.from('boosting_requests').select('*').order('created_at', { ascending: false }).limit(200)
@@ -3126,6 +3133,7 @@ const App = () => {
           { id: 'bossgame', name: 'Nạp Game', icon: <Swords size={22} />, auth: true },
           { id: 'caythue', name: 'Cày thuê', icon: <Target size={22} />, auth: false },
           { id: 'naptien', name: 'Nạp tiền', icon: <Wallet size={22} />, auth: true },
+          { id: 'donate', name: 'Donate Live', icon: <Sparkles size={22} className="text-emerald-400" />, auth: false },
           ...(hasActiveWheelRewards && !isWheelEventExpired ? [{ id: 'vongquay', name: 'Vòng quay', icon: <Gift size={22} />, auth: false }] : []),
           ...(isWizardEventVisible ? [{ id: 'wizard', name: 'Phù Thủy', icon: <Sparkles size={22} className="text-purple-400" />, auth: false }] : []),
           ...(isMtcGameVisible ? [{ id: 'mongthiencuu', name: 'Thiên Cửu', icon: <Flame size={22} className="text-amber-400" />, auth: false }] : []),
@@ -3205,6 +3213,25 @@ const App = () => {
                 auth: true
               },
               { name: 'Cày Thuê', view: 'caythue', auth: false },
+              {
+                name: (
+                  <span className="flex items-center gap-1 font-bold text-emerald-300">
+                    <span>💎</span>
+                    <span>Donate Live</span>
+                  </span>
+                ),
+                view: 'donate',
+                auth: false,
+                isDonateLive: true
+              },
+              {
+                name: '💎 Donate Live',
+                view: 'donate',
+                auth: false,
+                icon: <Sparkles size={20} className="text-emerald-400" />,
+                isDonateLive: true,
+                badge: 'TTS'
+              },
               ...(hasActiveWheelRewards && !isWheelEventExpired ? [{ name: 'Vòng Quay', view: 'vongquay', auth: false, isWheel: true }] : []),
               ...(isWizardEventVisible ? [{
                 name: 'Sự kiện phù thủy',
@@ -5149,6 +5176,18 @@ const App = () => {
           </div>
         )}
         {currentView === 'mongthiencuu' && renderMongThienCuuScreen()}
+        {currentView === 'donate' && (
+          <DonateLiveScreen
+            renderNavbar={renderNavbar}
+            renderFooter={renderFooter}
+            currentUser={currentUser}
+            isTikTokLinked={isTikTokLinked}
+            bossPlayerSummary={bossPlayerSummary}
+            showToast={showToast}
+            copyToClipboard={copyToClipboard}
+            setCurrentView={setCurrentView}
+          />
+        )}
         {currentView === 'vip_info' && (
           <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-20">
             {renderNavbar()}

@@ -656,7 +656,7 @@ const AdminScreen = ({
   };
 
   const totalRevenue = depositRequests
-    .filter(d => d.status === 'Thành công')
+    .filter(d => d.status === 'Thành công' && d.type !== 'live_donate')
     .reduce((sum, d) => sum + d.amount, 0);
 
   const filteredUsersList = usersDb.filter(u =>
@@ -1153,7 +1153,7 @@ const AdminScreen = ({
                   <table className="w-full text-left text-sm min-w-[600px]">
                     <thead className="bg-[#0B1120] text-slate-400 text-xs uppercase"><tr><th className="p-4">Mã GD / Ngày</th><th className="p-4">Khách hàng</th><th className="p-4">Số tiền duyệt</th><th className="p-4 text-center">Hành động</th></tr></thead>
                     <tbody className="divide-y divide-slate-800">
-                      {[...depositRequests].sort((a, b) => getRecordTime(b) - getRecordTime(a)).slice(0, visibleDepsAdmin).map(d => (
+                      {[...depositRequests].filter(d => d.type !== 'live_donate').sort((a, b) => getRecordTime(b) - getRecordTime(a)).slice(0, visibleDepsAdmin).map(d => (
                         <tr key={d.id} className="hover:bg-slate-800/30">
                           <td className="p-4"><div className="text-slate-300 font-mono text-xs">{d.id}</div><div className="text-[10px] text-slate-500 mt-1">{new Date(getRecordTime(d) || Date.now()).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</div></td>
                           <td className="p-4 text-blue-400 font-bold">
