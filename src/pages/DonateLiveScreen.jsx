@@ -280,8 +280,8 @@ const DonateLiveScreen = ({
           nickname: activeDonorNick,
           avatarUrl: activeDonorAvatar,
           donateMessage: parsedMsgInfo.cleaned,
-          returnUrl: window.location.origin,
-          cancelUrl: window.location.origin
+          returnUrl: `${window.location.origin}/donate`,
+          cancelUrl: `${window.location.origin}/donate`
         }
       });
       if (error) {

@@ -41,10 +41,98 @@ const VALID_VIEWS = new Set([
   'mongthiencuu', 'vip_info', 'donate'
 ]);
 
-const isLocalhostUrlHost = () => {
-  if (typeof window === 'undefined') return false;
-  const h = (window.location.hostname || '').toLowerCase();
-  return h === 'localhost' || h === '127.0.0.1' || h === 'localtest.me';
+const VIEW_TO_PATH = {
+  dashboard: '/',
+  donate: '/donate',
+  naptien: '/nap-tien',
+  bossgame: '/mong-thien-huyen',
+  caythue: '/cay-thue',
+  lichsu: '/lich-su',
+  vongquay: '/vong-quay',
+  wizard: '/phu-thuy',
+  mongthiencuu: '/mong-thien-cuu',
+  security: '/tai-khoan',
+  vip_info: '/vip',
+  admin: '/admin',
+  login: '/dang-nhap',
+  register: '/dang-ky',
+  'forgot-password': '/quen-mat-khau'
+};
+
+const VIEW_TO_TITLE = {
+  dashboard: 'SHOP TIẾN GAMING - SHOP ACC TỰ ĐỘNG UY TÍN',
+  donate: 'Donate Live - Shop Tiến Gaming',
+  naptien: 'Nạp Tiền - Shop Tiến Gaming',
+  bossgame: 'Nạp Game Mộng Thiên Huyễn - Shop Tiến Gaming',
+  caythue: 'Cày Thuê - Shop Tiến Gaming',
+  lichsu: 'Lịch Sử Giao Dịch - Shop Tiến Gaming',
+  vongquay: 'Vòng Quay May Mắn - Shop Tiến Gaming',
+  wizard: 'Sự Kiện Phù Thủy - Shop Tiến Gaming',
+  mongthiencuu: 'Mộng Thiên Cửu - Shop Tiến Gaming',
+  security: 'Tài Khoản & Bảo Mật - Shop Tiến Gaming',
+  vip_info: 'Đặc Quyền VIP - Shop Tiến Gaming',
+  admin: 'Quản Trị - Shop Tiến Gaming',
+  login: 'Đăng Nhập - Shop Tiến Gaming',
+  register: 'Đăng Ký - Shop Tiến Gaming',
+  'forgot-password': 'Quên Mật Khẩu - Shop Tiến Gaming'
+};
+
+const PATH_TO_VIEW = {
+  '/': 'dashboard',
+  '/mua-nick': 'dashboard',
+  '/donate': 'donate',
+  '/donate-live': 'donate',
+  '/ung-ho': 'donate',
+  '/nap-tien': 'naptien',
+  '/naptien': 'naptien',
+  '/mong-thien-huyen': 'bossgame',
+  '/bossgame': 'bossgame',
+  '/boss-game': 'bossgame',
+  '/cay-thue': 'caythue',
+  '/caythue': 'caythue',
+  '/lich-su': 'lichsu',
+  '/lichsu': 'lichsu',
+  '/vong-quay': 'vongquay',
+  '/vongquay': 'vongquay',
+  '/phu-thuy': 'wizard',
+  '/wizard': 'wizard',
+  '/mong-thien-cuu': 'mongthiencuu',
+  '/mongthiencuu': 'mongthiencuu',
+  '/tai-khoan': 'security',
+  '/security': 'security',
+  '/profile': 'security',
+  '/vip': 'vip_info',
+  '/vip-info': 'vip_info',
+  '/admin': 'admin',
+  '/dang-nhap': 'login',
+  '/login': 'login',
+  '/dang-ky': 'register',
+  '/register': 'register',
+  '/quen-mat-khau': 'forgot-password',
+  '/forgot-password': 'forgot-password'
+};
+
+const AUTH_REQUIRED_VIEWS = new Set(['naptien', 'bossgame', 'lichsu', 'security', 'admin']);
+
+const normalizePathname = (rawPath) => {
+  const cleaned = String(rawPath || '').trim().toLowerCase().replace(/\/+$/, '');
+  return cleaned || '/';
+};
+
+const resolveViewFromLocation = () => {
+  if (typeof window === 'undefined') return 'dashboard';
+  const pathname = normalizePathname(window.location.pathname);
+  if (pathname.startsWith('/play')) return 'dashboard';
+  if (pathname !== '/' && PATH_TO_VIEW[pathname]) {
+    return PATH_TO_VIEW[pathname];
+  }
+  try {
+    const viewParam = (new URLSearchParams(window.location.search).get('view') || '').trim().toLowerCase();
+    if (VALID_VIEWS.has(viewParam)) {
+      return viewParam;
+    }
+  } catch { /* ignore */ }
+  return 'dashboard';
 };
 const getRankByPoints = (points, rankTiers = []) => {
   if (!rankTiers || rankTiers.length === 0) return 'Chưa xếp hạng';
@@ -237,7 +325,9 @@ const parseDepositDeepLink = () => {
     const viewParam = (params.get('view') || '').trim().toLowerCase();
     const depositParam = (params.get('deposit') || '').trim().toLowerCase();
     const methodParam = (params.get('method') || '').trim().toLowerCase();
-    const isDepositDeepLink = viewParam === 'naptien' || depositParam === '1' || depositParam === 'true';
+    const normPath = normalizePathname(window.location.pathname);
+    const isDepositPath = normPath === '/nap-tien' || normPath === '/naptien';
+    const isDepositDeepLink = viewParam === 'naptien' || depositParam === '1' || depositParam === 'true' || (isDepositPath && Boolean(methodParam));
     let method = null;
     if (methodParam === 'card') method = 'card';
     else if (methodParam === 'banking' || methodParam === 'qr') method = 'banking';
@@ -272,6 +362,8 @@ const App = () => {
     initialMtcQueryRef.current = parseMtcQueryRedirect();
   }
   const isProcessingActionRef = useRef(false);
+  const isFirstRouteSyncRef = useRef(true);
+  const isPopStateNavRef = useRef(false);
   // --- BỘ ĐÀM GỬI EMAIL & TELEGRAM BÁO CHO ADMIN ---
   const sendAdminAlert = (actionName, detailMessage) => {
     const templateParams = {
@@ -398,7 +490,7 @@ const App = () => {
     const saved = localStorage.getItem('shop_accounts_db');
     return saved ? JSON.parse(saved) : [];
   });
-  // Tự động nhớ vị trí màn hình hiện tại (ưu tiên deep-link nạp tiền từ game, ?view=<screen>, hoặc ?view=mongthiencuu)
+  // Tự động nhận diện đường dẫn URL (/donate, /nap-tien, ...) và hỗ trợ link cũ ?view=<screen>
   const [currentView, setCurrentView] = useState(() => {
     const deepLink = initialDeepLinkRef.current;
     if (deepLink?.isDepositDeepLink) {
@@ -407,36 +499,43 @@ const App = () => {
     if (initialMtcQueryRef.current?.viewMtc) {
       return 'mongthiencuu';
     }
-    if (typeof window !== 'undefined') {
-      try {
-        const viewParam = (new URLSearchParams(window.location.search).get('view') || '').trim().toLowerCase();
-        if (VALID_VIEWS.has(viewParam) && (viewParam !== 'donate' || isLocalhostUrlHost())) {
-          return viewParam;
-        }
-      } catch { /* ignore */ }
+    const routeView = resolveViewFromLocation();
+    if (AUTH_REQUIRED_VIEWS.has(routeView) && !hasCachedAuthUser()) {
+      try { sessionStorage.setItem('post_login_view', routeView); } catch { /* ignore */ }
+      return 'login';
     }
-    return localStorage.getItem('shop_current_view') || 'dashboard';
+    return routeView;
   });
 
   useEffect(() => {
     localStorage.setItem('shop_current_view', currentView);
     setViewingAcc(null); // Tự động đóng modal xem chi tiết nick khi chuyển tab/trang khác
+    if (typeof document !== 'undefined') {
+      document.title = VIEW_TO_TITLE[currentView] || VIEW_TO_TITLE.dashboard;
+    }
     if (typeof window === 'undefined') return;
     if (window.location.pathname.startsWith('/play')) return;
     if (initialMtcQueryRef.current?.shouldRedirectPlay) return;
+    if (isPopStateNavRef.current) {
+      isPopStateNavRef.current = false;
+      return;
+    }
     try {
+      const targetPath = VIEW_TO_PATH[currentView] || '/';
       const url = new URL(window.location.href);
-      const currentParam = (url.searchParams.get('view') || '').trim().toLowerCase();
-      if (currentView === 'dashboard' || (currentView === 'donate' && !isLocalhostUrlHost())) {
-        if (url.searchParams.has('view')) {
-          url.searchParams.delete('view');
-          const nextUrl = `${url.pathname}${url.searchParams.toString() ? `?${url.searchParams.toString()}` : ''}${url.hash}`;
-          window.history.replaceState(null, document.title, nextUrl);
+      if (url.searchParams.has('view')) {
+        url.searchParams.delete('view');
+      }
+      const queryStr = url.searchParams.toString();
+      const nextUrl = `${targetPath}${queryStr ? `?${queryStr}` : ''}${url.hash}`;
+      const currentFull = `${url.pathname}${window.location.search}${url.hash}`;
+      if (isFirstRouteSyncRef.current) {
+        isFirstRouteSyncRef.current = false;
+        if (currentFull !== nextUrl) {
+          window.history.replaceState({ view: currentView }, document.title, nextUrl);
         }
-      } else if (VALID_VIEWS.has(currentView) && currentParam !== currentView) {
-        url.searchParams.set('view', currentView);
-        const nextUrl = `${url.pathname}?${url.searchParams.toString()}${url.hash}`;
-        window.history.replaceState(null, document.title, nextUrl);
+      } else if (currentFull !== nextUrl) {
+        window.history.pushState({ view: currentView }, document.title, nextUrl);
       }
     } catch { /* ignore */ }
   }, [currentView]);
@@ -445,14 +544,14 @@ const App = () => {
     if (typeof window === 'undefined') return undefined;
     const handlePopState = () => {
       if (window.location.pathname.startsWith('/play')) return;
-      try {
-        const viewParam = (new URLSearchParams(window.location.search).get('view') || '').trim().toLowerCase();
-        if (VALID_VIEWS.has(viewParam) && (viewParam !== 'donate' || isLocalhostUrlHost())) {
-          setCurrentView(viewParam);
-        } else if (!viewParam) {
-          setCurrentView('dashboard');
-        }
-      } catch { /* ignore */ }
+      const nextView = resolveViewFromLocation();
+      if (AUTH_REQUIRED_VIEWS.has(nextView) && !currentUserRef.current) {
+        try { sessionStorage.setItem('post_login_view', nextView); } catch { /* ignore */ }
+        setCurrentView('login');
+      } else {
+        isPopStateNavRef.current = true;
+        setCurrentView(nextView);
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
