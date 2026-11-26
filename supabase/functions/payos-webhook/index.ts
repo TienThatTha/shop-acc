@@ -12,6 +12,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function isPermanentAvatar(rawUrl: string): boolean {
+  const u = String(rawUrl || '').trim();
+  return u.includes('/storage/v1/object/public/tiktok-avatars/') && /^https?:\/\//i.test(u);
+}
+
+function isUsablePublicAvatar(rawUrl: string): boolean {
+  const u = String(rawUrl || '').trim();
+  if (!u || !/^https?:\/\//i.test(u)) return false;
+  if (u.includes('api.dicebear.com') || u.includes('ui-avatars.com')) return false;
+  const m = u.match(/[?&]x-expires=(\d+)/);
+  if (m) {
+    const exp = Number(m[1]);
+    if (Number.isFinite(exp) && Date.now() / 1000 >= exp) return false;
+  }
+  return true;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -143,14 +160,46 @@ serve(async (req) => {
             .maybeSingle();
 
           const curState = (cfgRow && typeof cfgRow.value === 'object' && cfgRow.value) ? cfgRow.value : {};
-          const totalsMap: Record<string, any> = (curState.totals_map && typeof curState.totals_map === 'object') ? { ...curState.totals_map } : {};
+          const rawTotalsMap: Record<string, any> = (curState.totals_map && typeof curState.totals_map === 'object') ? { ...curState.totals_map } : {};
+          const totalsMap: Record<string, any> = {};
+          for (const [k, v] of Object.entries(rawTotalsMap)) {
+            if (v && typeof v === 'object') {
+              const av = String((v as any).avatar_url || '').trim();
+              totalsMap[k] = {
+                ...v,
+                avatar_url: (isPermanentAvatar(av) || isUsablePublicAvatar(av)) ? av : '',
+              };
+            }
+          }
           const prevEntry = totalsMap[tiktokUid] || {};
           const nowTs = Date.now() / 1000;
+
+          let bestAvatar = '';
+          const prevAv = String(prevEntry.avatar_url || '').trim();
+          if (isPermanentAvatar(prevAv)) {
+            bestAvatar = prevAv;
+          } else if (isUsablePublicAvatar(avatarUrl)) {
+            bestAvatar = avatarUrl;
+          } else if (isUsablePublicAvatar(prevAv)) {
+            bestAvatar = prevAv;
+          } else {
+            try {
+              const { data: gpRow } = await supabaseAdmin
+                .from('game_players')
+                .select('avatar_url')
+                .eq('user_id', tiktokUid)
+                .maybeSingle();
+              const gpAv = String(gpRow?.avatar_url || '').trim();
+              if (isUsablePublicAvatar(gpAv)) {
+                bestAvatar = gpAv;
+              }
+            } catch (_e) { /* ignore */ }
+          }
 
           totalsMap[tiktokUid] = {
             user_key: tiktokUid,
             nickname: prevEntry.nickname || nickname,
-            avatar_url: prevEntry.avatar_url || avatarUrl,
+            avatar_url: bestAvatar,
             amount: (Number(prevEntry.amount) || 0) + amount,
             count: (Number(prevEntry.count) || 0) + 1,
             first_donate_time: Number(prevEntry.first_donate_time) || nowTs
@@ -163,6 +212,15 @@ serve(async (req) => {
             .map((x: any, idx: number) => ({ ...x, rank: idx + 1 }));
 
           const prevRecent = Array.isArray(curState.recent_donations) ? curState.recent_donations : [];
+          const normalizedPrevRecent = prevRecent
+            .filter((r: any) => r && r.tx_id !== gameOrderId)
+            .map((r: any) => {
+              const rav = String(r.avatar_url || '').trim();
+              return {
+                ...r,
+                avatar_url: (isPermanentAvatar(rav) || isUsablePublicAvatar(rav)) ? rav : '',
+              };
+            });
           const nextRecent = [
             {
               tx_id: gameOrderId,
@@ -174,7 +232,7 @@ serve(async (req) => {
               timestamp: nowTs,
               type: 'payos'
             },
-            ...prevRecent.filter((r: any) => r.tx_id !== gameOrderId)
+            ...normalizedPrevRecent
           ].slice(0, 20);
 
           const { error: cfgUpsertErr } = await supabaseAdmin

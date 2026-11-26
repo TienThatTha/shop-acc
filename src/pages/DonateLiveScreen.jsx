@@ -4,7 +4,12 @@ import {
   ShieldCheck, Clock, Link as LinkIcon, RefreshCw, X, Heart, Sparkles, Volume2, Square, Lock, Unlock
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
-import { validateDonateAmount, validateDonateMessage } from '../utils/donateFilter';
+import {
+  DONATE_MSG_BASE_MAX_LEN,
+  getDonateMessageMaxLen,
+  validateDonateAmount,
+  validateDonateMessage
+} from '../utils/donateFilter';
 
 const QUICK_AMOUNTS = [10000, 20000, 50000, 100000, 200000, 500000];
 const DEFAULT_VOICE_ID = 'tt_nu_vn';
@@ -114,6 +119,18 @@ const formatVND = (val) => `${new Intl.NumberFormat('vi-VN').format(Number(val) 
 
 const fallbackAvatarSvg = (seed) =>
   `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(seed || 'donor')}`;
+
+const sanitizePublicAvatarUrl = (rawUrl) => {
+  const u = String(rawUrl || '').trim();
+  if (!u || !/^https?:\/\//i.test(u)) return '';
+  if (u.includes('api.dicebear.com') || u.includes('ui-avatars.com')) return '';
+  const m = u.match(/[?&]x-expires=(\d+)/);
+  if (m) {
+    const exp = Number(m[1]);
+    if (Number.isFinite(exp) && Date.now() / 1000 >= exp) return '';
+  }
+  return u;
+};
 
 const DonateLiveScreen = ({
   renderNavbar,
@@ -380,7 +397,9 @@ const DonateLiveScreen = ({
   }, [payosData?.orderCode]);
 
   const parsedAmtInfo = validateDonateAmount(amountInput);
-  const parsedMsgInfo = validateDonateMessage(messageInput);
+  const maxMessageLen = getDonateMessageMaxLen(parsedAmtInfo.ok ? parsedAmtInfo.amount : 0);
+  const bonusMessageChars = Math.max(0, maxMessageLen - DONATE_MSG_BASE_MAX_LEN);
+  const parsedMsgInfo = validateDonateMessage(messageInput, maxMessageLen);
   const isVipTier = parsedAmtInfo.amount > 50000;
   const isVoiceUnlocked = parsedAmtInfo.ok && parsedAmtInfo.amount >= CUSTOM_VOICE_MIN_AMOUNT;
   const effectiveVoiceId = isVoiceUnlocked ? selectedVoice : DEFAULT_VOICE_ID;
@@ -593,8 +612,12 @@ const DonateLiveScreen = ({
                     <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/40">
                       <div className="flex items-center gap-3 min-w-0">
                         <img
-                          src={selectedDonor.avatar_url || fallbackAvatarSvg(selectedDonor.user_id)}
-                          onError={(e) => { e.currentTarget.src = fallbackAvatarSvg(selectedDonor.user_id); }}
+                          src={sanitizePublicAvatarUrl(selectedDonor.avatar_url) || fallbackAvatarSvg(selectedDonor.user_id)}
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            const fb = fallbackAvatarSvg(selectedDonor.user_id);
+                            if (e.currentTarget.src !== fb) e.currentTarget.src = fb;
+                          }}
                           alt={selectedDonor.nickname}
                           className="w-10 h-10 rounded-full object-cover border border-emerald-400 shrink-0"
                         />
@@ -650,8 +673,12 @@ const DonateLiveScreen = ({
                               className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-emerald-500/15 text-left transition-colors"
                             >
                               <img
-                                src={p.avatar_url || fallbackAvatarSvg(p.user_id)}
-                                onError={(e) => { e.currentTarget.src = fallbackAvatarSvg(p.user_id); }}
+                                src={sanitizePublicAvatarUrl(p.avatar_url) || fallbackAvatarSvg(p.user_id)}
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  const fb = fallbackAvatarSvg(p.user_id);
+                                  if (e.currentTarget.src !== fb) e.currentTarget.src = fb;
+                                }}
                                 alt={p.nickname}
                                 className="w-8 h-8 rounded-full object-cover border border-emerald-500/40 shrink-0"
                               />
@@ -732,15 +759,28 @@ const DonateLiveScreen = ({
 
                 {/* 3. Lời nhắn */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center justify-between gap-2 mb-1">
                     <label className="text-sm font-bold text-white">Lời nhắn gửi lên Live <span className="text-xs font-normal text-slate-400">(tùy chọn)</span></label>
-                    <span className={`text-[11px] font-semibold ${messageInput.length > 150 ? 'text-rose-400' : 'text-slate-400'}`}>
-                      {messageInput.length} / 150
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {bonusMessageChars > 0 && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/40 text-emerald-300 text-[10px] font-extrabold">
+                          +{bonusMessageChars} ký tự
+                        </span>
+                      )}
+                      <span className={`text-[11px] font-semibold ${messageInput.length > maxMessageLen ? 'text-rose-400' : 'text-slate-400'}`}>
+                        {messageInput.length} / {maxMessageLen}
+                      </span>
+                    </div>
                   </div>
+                  <p className="text-[11px] text-slate-400 mb-2">
+                    Mặc định <span className="text-white font-semibold">150 ký tự</span> • Cứ mỗi <span className="text-amber-300 font-bold">10.000đ</span> được cộng thêm <span className="text-emerald-300 font-bold">+50 ký tự</span>
+                    {bonusMessageChars > 0 && (
+                      <span> • Hiện mở tối đa <span className="text-emerald-300 font-bold">{maxMessageLen} ký tự</span></span>
+                    )}
+                  </p>
                   <textarea
-                    rows={2}
-                    maxLength={150}
+                    rows={maxMessageLen > 250 ? 3 : 2}
+                    maxLength={maxMessageLen}
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     placeholder="Gửi lời nhắn tới Tiến Gaming..."
@@ -928,8 +968,12 @@ const DonateLiveScreen = ({
                           #{idx + 1}
                         </span>
                         <img
-                          src={d.avatar_url || fallbackAvatarSvg(d.user_key)}
-                          onError={(e) => { e.currentTarget.src = fallbackAvatarSvg(d.user_key); }}
+                          src={sanitizePublicAvatarUrl(d.avatar_url) || fallbackAvatarSvg(d.user_key)}
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            const fb = fallbackAvatarSvg(d.user_key);
+                            if (e.currentTarget.src !== fb) e.currentTarget.src = fb;
+                          }}
                           alt={d.nickname}
                           className="w-9 h-9 rounded-full object-cover border border-emerald-400/60 shrink-0"
                         />

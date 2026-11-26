@@ -18,6 +18,17 @@ function stripAccents(str) {
     .replace(/Đ/g, 'D');
 }
 
+export const DONATE_MSG_BASE_MAX_LEN = 150;
+export const DONATE_MSG_BONUS_STEP_VND = 10000;
+export const DONATE_MSG_BONUS_CHARS_PER_STEP = 50;
+export const DONATE_MSG_HARD_CAP = 10000;
+
+export function getDonateMessageMaxLen(rawAmount) {
+  const num = Math.max(0, Math.floor(Number(String(rawAmount ?? '').replace(/\D/g, '')) || 0));
+  const steps = Math.floor(num / DONATE_MSG_BONUS_STEP_VND);
+  return Math.min(DONATE_MSG_HARD_CAP, DONATE_MSG_BASE_MAX_LEN + steps * DONATE_MSG_BONUS_CHARS_PER_STEP);
+}
+
 export function validateDonateAmount(rawAmount) {
   const num = Math.floor(Number(String(rawAmount || '').replace(/\D/g, '')) || 0);
   if (num < 5000) {
@@ -26,7 +37,7 @@ export function validateDonateAmount(rawAmount) {
   return { ok: true, amount: num, error: '' };
 }
 
-export function validateDonateMessage(rawText, maxLen = 150) {
+export function validateDonateMessage(rawText, maxLen = DONATE_MSG_BASE_MAX_LEN) {
   const cleaned = String(rawText || '').replace(/\s+/g, ' ').trim();
   if (!cleaned) {
     return { ok: true, cleaned: '', error: '' };

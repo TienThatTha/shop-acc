@@ -32,11 +32,38 @@ function stripAccents(str: string): string {
     .replace(/Đ/g, 'D');
 }
 
-function validateLiveDonateMessage(raw: string): { ok: boolean; cleaned: string; error?: string } {
+const DONATE_MSG_BASE_MAX_LEN = 150;
+const DONATE_MSG_BONUS_STEP_VND = 10000;
+const DONATE_MSG_BONUS_CHARS_PER_STEP = 50;
+const DONATE_MSG_HARD_CAP = 10000;
+
+function getDonateMessageMaxLen(amount: number): number {
+  const amt = Math.max(0, Math.floor(Number(amount) || 0));
+  const steps = Math.floor(amt / DONATE_MSG_BONUS_STEP_VND);
+  return Math.min(DONATE_MSG_HARD_CAP, DONATE_MSG_BASE_MAX_LEN + steps * DONATE_MSG_BONUS_CHARS_PER_STEP);
+}
+
+function isUsablePublicAvatar(rawUrl: string): boolean {
+  const u = String(rawUrl || '').trim();
+  if (!u || !/^https?:\/\//i.test(u)) return false;
+  if (u.includes('api.dicebear.com') || u.includes('ui-avatars.com')) return false;
+  const m = u.match(/[?&]x-expires=(\d+)/);
+  if (m) {
+    const exp = Number(m[1]);
+    if (Number.isFinite(exp) && Date.now() / 1000 >= exp) return false;
+  }
+  return true;
+}
+
+function validateLiveDonateMessage(raw: string, maxLen = DONATE_MSG_BASE_MAX_LEN): { ok: boolean; cleaned: string; error?: string } {
   const cleaned = String(raw || '').replace(/\s+/g, ' ').trim();
   if (!cleaned) return { ok: true, cleaned: '' };
-  if (cleaned.length > 150) {
-    return { ok: false, cleaned: '', error: 'Lời nhắn tối đa 150 ký tự.' };
+  if (cleaned.length > maxLen) {
+    return {
+      ok: false,
+      cleaned: '',
+      error: `Lời nhắn tối đa ${maxLen} ký tự (mặc định 150 + 50 ký tự mỗi 10.000đ).`,
+    };
   }
   if (/(https?:\/\/|www\.|t\.me\/|zalo\.me\/|fb\.com\/|\b[a-z0-9-]{2,}\.(com|net|org|vn|io|xyz|club|bet|vip|win|info|top|co|me)\b)/i.test(cleaned)) {
     return { ok: false, cleaned: '', error: 'Lời nhắn không được chứa liên kết website.' };
@@ -106,9 +133,26 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "Số tiền Donate Live tối thiểu là 5.000đ!" }), { status: 400, headers: corsHeaders });
       }
 
-      const msgCheck = validateLiveDonateMessage(String(donateMessage || ''));
+      const maxMsgLen = getDonateMessageMaxLen(parsedAmount);
+      const msgCheck = validateLiveDonateMessage(String(donateMessage || ''), maxMsgLen);
       if (!msgCheck.ok) {
         return new Response(JSON.stringify({ error: msgCheck.error || "Lời nhắn không hợp lệ!" }), { status: 400, headers: corsHeaders });
+      }
+
+      let resolvedAvatarUrl = String(avatarUrl || '').trim();
+      if (!isUsablePublicAvatar(resolvedAvatarUrl)) {
+        resolvedAvatarUrl = '';
+        try {
+          const { data: gpRow } = await supabaseAdmin
+            .from('game_players')
+            .select('avatar_url')
+            .eq('user_id', cleanUid)
+            .maybeSingle();
+          const gpAv = String(gpRow?.avatar_url || '').trim();
+          if (isUsablePublicAvatar(gpAv)) {
+            resolvedAvatarUrl = gpAv;
+          }
+        } catch (_e) { /* ignore */ }
       }
 
       const requestData = {
@@ -151,7 +195,7 @@ serve(async (req) => {
           purpose: 'live_donate',
           tiktok_uid: cleanUid,
           nickname: cleanNick,
-          avatar_url: String(avatarUrl || '').trim(),
+          avatar_url: resolvedAvatarUrl,
           message: msgCheck.cleaned,
           tts_voice: cleanVoice,
           web_user_id: userId || 'guest',
