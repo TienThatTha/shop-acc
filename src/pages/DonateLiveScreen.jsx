@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   QrCode, CheckCircle2, AlertCircle, Copy, Crown,
-  ShieldCheck, Clock, Link as LinkIcon, RefreshCw, X, Heart, Sparkles, Volume2, Square, Lock, Unlock
+  ShieldCheck, Clock, Link as LinkIcon, RefreshCw, X, Heart, Sparkles, Volume2, Square, Lock, Unlock, MessageCircle, Check, ChevronDown
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import {
@@ -160,6 +160,7 @@ const DonateLiveScreen = ({
   const [amountInput, setAmountInput] = useState('50000');
   const [messageInput, setMessageInput] = useState('');
   const [selectedVoice, setSelectedVoice] = useState('tt_nu_vn');
+  const [isCustomVoiceEnabled, setIsCustomVoiceEnabled] = useState(false);
   const [voiceCategory, setVoiceCategory] = useState('all');
   const [voiceSearch, setVoiceSearch] = useState('');
   const [playingVoiceId, setPlayingVoiceId] = useState(null);
@@ -402,7 +403,8 @@ const DonateLiveScreen = ({
   const parsedMsgInfo = validateDonateMessage(messageInput, maxMessageLen);
   const isVipTier = parsedAmtInfo.amount > 50000;
   const isVoiceUnlocked = parsedAmtInfo.ok && parsedAmtInfo.amount >= CUSTOM_VOICE_MIN_AMOUNT;
-  const effectiveVoiceId = isVoiceUnlocked ? selectedVoice : DEFAULT_VOICE_ID;
+  const isCustomVoiceExpanded = isVoiceUnlocked && isCustomVoiceEnabled;
+  const effectiveVoiceId = isCustomVoiceExpanded ? selectedVoice : DEFAULT_VOICE_ID;
   const filteredVoices = useMemo(() => {
     const q = voiceSearch.trim().toLowerCase();
     return DONATE_VOICES.filter((v) => {
@@ -417,12 +419,12 @@ const DonateLiveScreen = ({
   );
 
   useEffect(() => {
-    if (!isVoiceUnlocked && previewAudioRef.current) {
+    if (!isCustomVoiceExpanded && previewAudioRef.current) {
       previewAudioRef.current.pause();
       previewAudioRef.current = null;
       setPlayingVoiceId(null);
     }
-  }, [isVoiceUnlocked]);
+  }, [isCustomVoiceExpanded]);
 
   const activeDonorUid = selectedDonor?.user_id || tiktokInput.trim().replace(/^@/, '').toLowerCase();
   const activeDonorNick = selectedDonor?.nickname || customNick.trim() || tiktokInput.trim().replace(/^@/, '') || activeDonorUid;
@@ -489,40 +491,40 @@ const DonateLiveScreen = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-12">
+    <div className="min-h-screen bg-obsidian-canvas text-[#F3F4F6] font-sans pb-24 md:pb-12">
       {renderNavbar()}
 
-      <div className="max-w-[1180px] mx-auto px-4 pt-6 md:pt-8">
+      <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:pr-24 pt-6 md:pt-8">
         {/* Compact Donor Header */}
-        <div className="flex items-center gap-4 mb-6 pb-5 border-b border-slate-800/80">
+        <div className="flex items-center gap-4 mb-6 pb-5 border-b border-white/[0.07]">
           <img
             src="/Tiengaming.png"
             alt="Tiến Gaming"
-            className="w-12 h-12 md:w-14 md:h-14 rounded-2xl object-contain bg-[#151D2F] border border-emerald-500/30 p-1.5 shrink-0"
+            className="w-12 h-12 md:w-14 md:h-14 rounded-2xl object-contain bg-[#171A21] border border-jade/35 p-1.5 shrink-0"
           />
           <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-black text-white flex items-center gap-2">
+            <h1 className="font-display text-xl md:text-2xl font-bold text-[#F3F4F6] flex items-center gap-2">
               <span>Ủng Hộ Tiến Gaming</span>
-              <Heart size={18} className="text-rose-400 fill-rose-400/80 shrink-0" />
+              <Heart size={18} className="text-crimson fill-crimson/80 shrink-0" />
             </h1>
-            <p className="text-xs md:text-sm text-slate-400 mt-0.5">
-              Quét mã QR bằng App Ngân hàng hoặc Ví MoMo — tên &amp; lời nhắn của bạn sẽ hiển thị trực tiếp trên sóng Live!
+            <p className="text-xs md:text-sm text-[#9CA3AF] mt-0.5">
+              Quét mã QR bằng App Ngân hàng hoặc Ví MoMo — tên &amp; lời nhắn của bạn sẽ hiển thị trực tiếp trên sóng Live.
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* LEFT (7 cols): SINGLE CLEAN DONATE CARD */}
-          <div className="lg:col-span-7 bg-[#151D2F] border border-slate-800 rounded-2xl p-5 md:p-6 shadow-xl">
+          <div className="lg:col-span-7 obsidian-surface rounded-2xl p-5 md:p-6">
             {donateSuccessData && (
-              <div className="mb-5 p-4 rounded-xl bg-emerald-500/15 border border-emerald-400/70 flex items-center justify-between gap-3">
+              <div className="mb-5 p-4 rounded-xl bg-jade/15 border border-jade/45 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <CheckCircle2 size={26} className="text-emerald-400 shrink-0" />
+                  <CheckCircle2 size={24} className="text-jade shrink-0" />
                   <div>
-                    <div className="font-black text-emerald-300 text-sm md:text-base">
-                      Cảm ơn {donateSuccessData.nickname} đã ủng hộ {formatVND(donateSuccessData.amount)}!
+                    <div className="font-bold text-[#F3F4F6] text-sm md:text-base">
+                      Cảm ơn {donateSuccessData.nickname} đã ủng hộ <span className="font-mono tabular-nums text-jade">{formatVND(donateSuccessData.amount)}</span>!
                     </div>
-                    <div className="text-xs text-slate-300 mt-0.5">
+                    <div className="text-xs text-[#D1D5DB] mt-0.5">
                       Tên và lời nhắn của bạn đang lên sóng Live.
                     </div>
                   </div>
@@ -530,7 +532,7 @@ const DonateLiveScreen = ({
                 <button
                   type="button"
                   onClick={() => setDonateSuccessData(null)}
-                  className="text-slate-400 hover:text-white"
+                  className="p-1.5 rounded-lg text-[#9CA3AF] hover:text-[#F3F4F6] hover:bg-white/5"
                 >
                   <X size={18} />
                 </button>
@@ -540,52 +542,52 @@ const DonateLiveScreen = ({
             {payosData ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center py-2">
                 <div className="flex flex-col items-center">
-                  <div className="bg-white p-2.5 rounded-2xl border-2 border-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.22)] w-[216px] h-[216px] flex items-center justify-center">
+                  <div className="bg-white p-2.5 rounded-2xl border-2 border-jade shadow-obsidian-sm w-[216px] h-[216px] flex items-center justify-center">
                     <img
                       src={`https://img.vietqr.io/image/${payosData.bin}-${payosData.accountNumber}-qr_only.png?amount=${payosData.amount}&addInfo=${encodeURIComponent(payosData.description)}&accountName=${encodeURIComponent(payosData.accountName)}`}
                       alt="Mã QR Chuyển Khoản"
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  <div className="mt-3 px-4 py-1.5 rounded-full bg-[#0B1120] border border-rose-500/40 text-rose-400 font-black font-mono text-base flex items-center gap-2">
+                  <div className="mt-3 px-4 py-1.5 rounded-xl bg-[#0A0B0E] border border-crimson/40 text-crimson font-bold font-mono tabular-nums text-base flex items-center gap-2">
                     <Clock size={15} />
                     <span>{formatTimer(payosTimeLeft)}</span>
                   </div>
                 </div>
 
                 <div className="space-y-3 text-sm">
-                  <h2 className="text-lg font-black text-emerald-400 flex items-center gap-2">
+                  <h2 className="font-display text-lg font-bold text-jade flex items-center gap-2">
                     <QrCode size={20} /> Quét Mã QR Để Hoàn Tất
                   </h2>
-                  <div className="space-y-2 bg-[#0B1120] p-3.5 rounded-xl border border-slate-800">
+                  <div className="space-y-2.5 bg-[#171A21] p-4 rounded-xl border border-white/[0.07]">
                     <div className="flex justify-between gap-2">
-                      <span className="text-slate-400">Ngân hàng:</span>
-                      <span className="font-bold text-white text-right">{BANK_NAMES[payosData.bin] || payosData.bin}</span>
+                      <span className="text-[#9CA3AF]">Ngân hàng</span>
+                      <span className="font-semibold text-[#F3F4F6] text-right">{BANK_NAMES[payosData.bin] || payosData.bin}</span>
                     </div>
                     <div className="flex justify-between gap-2">
-                      <span className="text-slate-400">Số TK:</span>
-                      <button type="button" onClick={() => copyToClipboard(payosData.accountNumber)} className="font-bold text-emerald-400 flex items-center gap-1.5">
+                      <span className="text-[#9CA3AF]">Số TK</span>
+                      <button type="button" onClick={() => copyToClipboard(payosData.accountNumber)} className="font-mono tabular-nums font-bold text-jade flex items-center gap-1.5 hover:underline">
                         {payosData.accountNumber} <Copy size={13} />
                       </button>
                     </div>
                     <div className="flex justify-between gap-2">
-                      <span className="text-slate-400">Nội dung:</span>
-                      <button type="button" onClick={() => copyToClipboard(payosData.description)} className="font-bold text-rose-400 flex items-center gap-1.5">
+                      <span className="text-[#9CA3AF]">Nội dung</span>
+                      <button type="button" onClick={() => copyToClipboard(payosData.description)} className="font-mono tabular-nums font-bold text-gold flex items-center gap-1.5 hover:underline">
                         {payosData.description} <Copy size={13} />
                       </button>
                     </div>
-                    <div className="flex justify-between gap-2 pt-1.5 border-t border-slate-800">
-                      <span className="text-slate-400">Số tiền:</span>
-                      <span className="font-black text-amber-300 text-base">{formatVND(payosData.amount)}</span>
+                    <div className="flex justify-between items-center gap-2 pt-2 border-t border-white/[0.07]">
+                      <span className="text-[#9CA3AF]">Số tiền</span>
+                      <span className="font-mono tabular-nums font-bold text-gold text-base">{formatVND(payosData.amount)}</span>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-[#9CA3AF] leading-relaxed">
                     Mở App Ngân hàng hoặc Ví MoMo quét mã để chuyển khoản, giữ nguyên màn hình 1–2 giây để xác nhận tự động.
                   </p>
                   <button
                     type="button"
                     onClick={() => setPayosData(null)}
-                    className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors"
+                    className="w-full min-h-[44px] py-2.5 rounded-xl bg-[#1E222C] hover:bg-white/10 border border-white/10 text-[#F3F4F6] font-semibold text-xs transition-colors"
                   >
                     Quay lại chỉnh sửa
                   </button>
@@ -596,12 +598,12 @@ const DonateLiveScreen = ({
                 {/* 1. Tài khoản TikTok của bạn */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-bold text-white">Tài khoản TikTok của bạn</label>
+                    <label className="text-sm font-bold text-[#F3F4F6]">Tài khoản TikTok của bạn</label>
                     {!linkedUid && currentUser && (
                       <button
                         type="button"
                         onClick={() => setCurrentView('bossgame')}
-                        className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+                        className="text-xs text-jade hover:underline font-semibold flex items-center gap-1"
                       >
                         <LinkIcon size={12} /> Liên kết tài khoản
                       </button>
@@ -609,7 +611,7 @@ const DonateLiveScreen = ({
                   </div>
 
                   {selectedDonor ? (
-                    <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/40">
+                    <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-jade/10 border border-jade/35">
                       <div className="flex items-center gap-3 min-w-0">
                         <img
                           src={sanitizePublicAvatarUrl(selectedDonor.avatar_url) || fallbackAvatarSvg(selectedDonor.user_id)}
@@ -619,14 +621,14 @@ const DonateLiveScreen = ({
                             if (e.currentTarget.src !== fb) e.currentTarget.src = fb;
                           }}
                           alt={selectedDonor.nickname}
-                          className="w-10 h-10 rounded-full object-cover border border-emerald-400 shrink-0"
+                          className="w-10 h-10 rounded-full object-cover border border-jade/50 shrink-0"
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="font-extrabold text-white text-sm truncate">{selectedDonor.nickname}</span>
-                            {selectedDonor.verified && <ShieldCheck size={14} className="text-emerald-400 shrink-0" />}
+                            <span className="font-bold text-[#F3F4F6] text-sm truncate">{selectedDonor.nickname}</span>
+                            {selectedDonor.verified && <ShieldCheck size={14} className="text-jade shrink-0" />}
                           </div>
-                          <div className="text-xs text-slate-400 truncate">@{selectedDonor.user_id}</div>
+                          <div className="font-mono text-xs text-[#9CA3AF] truncate">@{selectedDonor.user_id}</div>
                         </div>
                       </div>
                       {!linkedUid && (
@@ -636,7 +638,7 @@ const DonateLiveScreen = ({
                             setSelectedDonor(null);
                             setSuggestions([]);
                           }}
-                          className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-[#0B1120] border border-slate-700 shrink-0"
+                          className="text-xs text-[#D1D5DB] hover:text-[#F3F4F6] px-3 min-h-[34px] rounded-lg bg-[#0A0B0E] border border-white/10 shrink-0 transition-colors"
                         >
                           Đổi
                         </button>
@@ -649,17 +651,17 @@ const DonateLiveScreen = ({
                           type="text"
                           value={tiktokInput}
                           onChange={(e) => setTiktokInput(e.target.value)}
-                          placeholder="Nhập @ID TikTok của bạn (VD: nguyenvana)"
-                          className="w-full px-4 py-3 bg-[#0B1120] border border-slate-700 focus:border-emerald-500 rounded-xl text-sm text-white outline-none pr-10"
+                          placeholder="Nhập @ID TikTok (VD: nguyenvana)"
+                          className="w-full px-4 py-3 min-h-[44px] bg-[#0A0B0E] border border-white/10 focus:border-jade focus:ring-2 focus:ring-jade/20 rounded-xl text-sm text-[#F3F4F6] placeholder-[#6B7280] outline-none pr-10 transition-colors"
                         />
                         {isLookingUp && (
-                          <RefreshCw size={15} className="animate-spin text-emerald-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+                          <RefreshCw size={15} className="animate-spin text-jade absolute right-3.5 top-1/2 -translate-y-1/2" />
                         )}
                       </div>
 
                       {suggestions.length > 0 && (
-                        <div className="bg-[#0B1120] border border-slate-700/80 rounded-xl p-1.5 space-y-1">
-                          <div className="px-2.5 py-1 text-[11px] text-slate-400 font-semibold">
+                        <div className="bg-[#171A21] border border-white/10 rounded-xl p-1.5 space-y-1">
+                          <div className="px-2.5 py-1 text-[11px] text-[#9CA3AF] font-semibold">
                             Bấm để chọn tài khoản của bạn:
                           </div>
                           {suggestions.map((p) => (
@@ -670,7 +672,7 @@ const DonateLiveScreen = ({
                                 setSelectedDonor(p);
                                 setSuggestions([]);
                               }}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-emerald-500/15 text-left transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-jade/15 text-left transition-colors"
                             >
                               <img
                                 src={sanitizePublicAvatarUrl(p.avatar_url) || fallbackAvatarSvg(p.user_id)}
@@ -680,11 +682,11 @@ const DonateLiveScreen = ({
                                   if (e.currentTarget.src !== fb) e.currentTarget.src = fb;
                                 }}
                                 alt={p.nickname}
-                                className="w-8 h-8 rounded-full object-cover border border-emerald-500/40 shrink-0"
+                                className="w-8 h-8 rounded-full object-cover border border-jade/40 shrink-0"
                               />
                               <div className="min-w-0 flex-1">
-                                <div className="text-xs font-bold text-white truncate">{p.nickname}</div>
-                                <div className="text-[11px] text-slate-400 truncate">@{p.user_id}</div>
+                                <div className="text-xs font-bold text-[#F3F4F6] truncate">{p.nickname}</div>
+                                <div className="font-mono text-[11px] text-[#9CA3AF] truncate">@{p.user_id}</div>
                               </div>
                             </button>
                           ))}
@@ -695,7 +697,7 @@ const DonateLiveScreen = ({
                         <button
                           type="button"
                           onClick={() => setShowCustomNick((v) => !v)}
-                          className="text-xs text-slate-400 hover:text-emerald-400 transition-colors"
+                          className="text-xs text-[#9CA3AF] hover:text-jade transition-colors py-1"
                         >
                           {showCustomNick ? '− Ẩn tên hiển thị tùy chỉnh' : '+ Tùy chỉnh tên hiển thị (nếu muốn)'}
                         </button>
@@ -707,7 +709,7 @@ const DonateLiveScreen = ({
                           value={customNick}
                           onChange={(e) => setCustomNick(e.target.value)}
                           placeholder="Tên hiển thị trên bảng (bỏ trống sẽ tự lấy tên TikTok)"
-                          className="w-full px-4 py-2.5 bg-[#0B1120] border border-slate-700 focus:border-emerald-500 rounded-xl text-sm text-white outline-none"
+                          className="w-full px-4 py-2.5 min-h-[44px] bg-[#0A0B0E] border border-white/10 focus:border-jade focus:ring-2 focus:ring-jade/20 rounded-xl text-sm text-[#F3F4F6] placeholder-[#6B7280] outline-none transition-colors"
                         />
                       )}
                     </div>
@@ -716,17 +718,17 @@ const DonateLiveScreen = ({
 
                 {/* 2. Số tiền ủng hộ */}
                 <div>
-                  <label className="block text-sm font-bold text-white mb-2">Số tiền ủng hộ</label>
+                  <label className="block text-sm font-bold text-[#F3F4F6] mb-2">Số tiền ủng hộ</label>
                   <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-2.5">
                     {QUICK_AMOUNTS.map((amt) => (
                       <button
                         key={amt}
                         type="button"
                         onClick={() => setAmountInput(String(amt))}
-                        className={`py-2 rounded-xl text-xs font-extrabold border transition-all ${
+                        className={`min-h-[44px] py-2 rounded-xl font-mono tabular-nums text-xs font-bold border transition-colors ${
                           Number(amountInput) === amt
-                            ? 'bg-emerald-600 text-white border-amber-300 shadow-[0_0_12px_rgba(16,185,129,0.35)]'
-                            : 'bg-[#0B1120] text-slate-300 border-slate-700 hover:border-emerald-500/50'
+                            ? 'bg-jade text-[#0A0B0E] border-jade'
+                            : 'bg-[#0A0B0E] text-[#D1D5DB] border-white/10 hover:border-jade/50 hover:text-[#F3F4F6]'
                         }`}
                       >
                         {amt >= 1000 ? `${amt / 1000}K` : amt}
@@ -741,16 +743,16 @@ const DonateLiveScreen = ({
                       value={amountInput}
                       onChange={(e) => setAmountInput(e.target.value)}
                       placeholder="Nhập số tiền (tối thiểu 5.000đ)"
-                      className="w-full px-4 py-3 pr-14 bg-[#0B1120] border border-emerald-500/40 focus:border-amber-400 rounded-xl text-lg font-black text-amber-300 outline-none"
+                      className="w-full px-4 py-3 min-h-[48px] pr-14 bg-[#0A0B0E] border border-jade/40 focus:border-gold focus:ring-2 focus:ring-gold/20 rounded-xl font-mono tabular-nums text-lg font-bold text-gold outline-none transition-colors"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-400">
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-[#9CA3AF]">
                       VNĐ
                     </span>
                   </div>
                   {!parsedAmtInfo.ok ? (
-                    <p className="text-xs text-rose-400 font-bold mt-1.5">{parsedAmtInfo.error}</p>
+                    <p className="text-xs text-crimson font-semibold mt-1.5">{parsedAmtInfo.error}</p>
                   ) : isVipTier ? (
-                    <p className="text-xs text-amber-300 font-semibold mt-1.5 flex items-center gap-1.5">
+                    <p className="text-xs text-gold font-semibold mt-1.5 flex items-center gap-1.5">
                       <Sparkles size={13} className="shrink-0" />
                       <span>Mức VIP — Hiện hiệu ứng pháo hoa nổi bật trên sóng Live</span>
                     </p>
@@ -760,22 +762,24 @@ const DonateLiveScreen = ({
                 {/* 3. Lời nhắn */}
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <label className="text-sm font-bold text-white">Lời nhắn gửi lên Live <span className="text-xs font-normal text-slate-400">(tùy chọn)</span></label>
+                    <label className="text-sm font-bold text-[#F3F4F6]">
+                      Lời nhắn gửi lên Live <span className="text-xs font-normal text-[#9CA3AF]">(tùy chọn)</span>
+                    </label>
                     <div className="flex items-center gap-1.5 shrink-0">
                       {bonusMessageChars > 0 && (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/40 text-emerald-300 text-[10px] font-extrabold">
+                        <span className="px-2 py-0.5 rounded-md bg-jade/15 border border-jade/35 text-jade font-mono tabular-nums text-[11px] font-bold">
                           +{bonusMessageChars} ký tự
                         </span>
                       )}
-                      <span className={`text-[11px] font-semibold ${messageInput.length > maxMessageLen ? 'text-rose-400' : 'text-slate-400'}`}>
+                      <span className={`font-mono tabular-nums text-xs font-semibold ${messageInput.length > maxMessageLen ? 'text-crimson' : 'text-[#9CA3AF]'}`}>
                         {messageInput.length} / {maxMessageLen}
                       </span>
                     </div>
                   </div>
-                  <p className="text-[11px] text-slate-400 mb-2">
-                    Mặc định <span className="text-white font-semibold">150 ký tự</span> • Cứ mỗi <span className="text-amber-300 font-bold">10.000đ</span> được cộng thêm <span className="text-emerald-300 font-bold">+50 ký tự</span>
+                  <p className="text-xs text-[#9CA3AF] mb-2">
+                    Mặc định <span className="text-[#F3F4F6] font-mono tabular-nums font-semibold">150</span> ký tự • Cứ mỗi <span className="text-gold font-mono tabular-nums font-bold">10.000đ</span> cộng thêm <span className="text-jade font-mono tabular-nums font-bold">+50</span> ký tự
                     {bonusMessageChars > 0 && (
-                      <span> • Hiện mở tối đa <span className="text-emerald-300 font-bold">{maxMessageLen} ký tự</span></span>
+                      <span> • Hiện mở tối đa <span className="text-jade font-mono tabular-nums font-bold">{maxMessageLen}</span> ký tự</span>
                     )}
                   </p>
                   <textarea
@@ -784,52 +788,129 @@ const DonateLiveScreen = ({
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     placeholder="Gửi lời nhắn tới Tiến Gaming..."
-                    className="w-full px-4 py-3 bg-[#0B1120] border border-slate-700 focus:border-emerald-500 rounded-xl text-sm text-white outline-none resize-none"
+                    className="w-full px-4 py-3 bg-[#0A0B0E] border border-white/10 focus:border-jade focus:ring-2 focus:ring-jade/20 rounded-xl text-sm text-[#F3F4F6] placeholder-[#6B7280] outline-none resize-none transition-colors"
                   />
                   {!parsedMsgInfo.ok && (
-                    <p className="text-xs text-rose-400 font-bold mt-1.5 flex items-center gap-1">
+                    <p className="text-xs text-crimson font-semibold mt-1.5 flex items-center gap-1">
                       <AlertCircle size={13} /> {parsedMsgInfo.error}
                     </p>
                   )}
                 </div>
 
                 {/* 4. Chọn giọng đọc lời nhắn */}
-                <div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                    <div>
-                      <label className="text-sm font-bold text-white block">Giọng đọc lời nhắn trên Live</label>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Mở khóa chọn 74 giọng từ <span className="text-amber-300 font-bold">10.000đ</span> • Dưới 10.000đ dùng giọng mặc định Chị Review Phim
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 text-[11px]">
+                <div
+                  className={`rounded-xl border transition-colors ${
+                    !isVoiceUnlocked
+                      ? 'bg-[#0A0B0E]/60 border-white/[0.06] opacity-55'
+                      : isCustomVoiceExpanded
+                        ? 'bg-[#111318] border-jade/55'
+                        : 'bg-[#111318] border-jade/35 hover:border-jade/60 hover:bg-[#171A21]'
+                  }`}
+                >
+                  <label
+                    className={`flex items-center justify-between gap-3 px-3.5 py-3 min-h-[54px] select-none ${
+                      isVoiceUnlocked ? 'cursor-pointer' : 'cursor-not-allowed'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={isCustomVoiceExpanded}
+                        disabled={!isVoiceUnlocked}
+                        onChange={(e) => {
+                          if (!isVoiceUnlocked) return;
+                          setIsCustomVoiceEnabled(e.target.checked);
+                        }}
+                        className="peer sr-only"
+                      />
                       <span
-                        className={`px-2.5 py-0.5 rounded-full border font-bold inline-flex items-center gap-1 ${
-                          isVoiceUnlocked
-                            ? 'bg-emerald-500/15 border-emerald-500/40 text-amber-300'
-                            : 'bg-amber-500/15 border-amber-400/45 text-amber-300'
+                        aria-hidden="true"
+                        className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-jade/50 ${
+                          !isVoiceUnlocked
+                            ? 'bg-[#111318] border-white/15 text-transparent'
+                            : isCustomVoiceExpanded
+                              ? 'bg-jade border-jade text-[#0A0B0E]'
+                              : 'bg-[#0A0B0E] border-jade/70 text-transparent'
                         }`}
                       >
-                        {isVoiceUnlocked ? <Unlock size={11} /> : <Lock size={11} />}
-                        <span>{isVoiceUnlocked ? `Đang chọn: ${selectedVoiceObj.label}` : 'Mặc định: Chị Review Phim'}</span>
+                        {isCustomVoiceExpanded && <Check size={14} strokeWidth={3} />}
                       </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`text-sm font-bold leading-snug ${
+                              isVoiceUnlocked ? 'text-[#F3F4F6]' : 'text-[#9CA3AF]'
+                            }`}
+                          >
+                            Đổi giọng đọc lời nhắn
+                          </span>
+                          {!isCustomVoiceExpanded && (
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+                                isVoiceUnlocked
+                                  ? 'bg-jade/10 border-jade/30 text-jade'
+                                  : 'bg-[#171A21] border-white/[0.08] text-[#6B7280]'
+                              }`}
+                            >
+                              74 giọng
+                            </span>
+                          )}
+                        </div>
+                        <p
+                          className={`text-xs mt-0.5 leading-snug ${
+                            isVoiceUnlocked ? 'text-[#9CA3AF]' : 'text-[#6B7280]'
+                          }`}
+                        >
+                          {!isVoiceUnlocked ? (
+                            <>
+                              Mặc định: Chị Review Phim • Donate từ{' '}
+                              <span className="font-mono tabular-nums font-semibold">10.000đ</span> để mở khóa
+                            </>
+                          ) : isCustomVoiceExpanded ? (
+                            <>
+                              Mở khóa chọn 74 giọng từ{' '}
+                              <span className="text-gold font-mono tabular-nums font-bold">10.000đ</span> • Bỏ tích để dùng giọng mặc định Chị Review Phim
+                            </>
+                          ) : (
+                            'Mặc định: Chị Review Phim • Tích để chọn giọng khác'
+                          )}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="relative rounded-xl">
-                    <div
-                      aria-hidden={!isVoiceUnlocked}
-                      className={!isVoiceUnlocked ? 'opacity-40 blur-[1.2px] pointer-events-none select-none transition-all' : 'transition-all'}
-                    >
-                      <div className="flex flex-wrap gap-1.5 mb-2">
+
+                    <div className="shrink-0 flex items-center gap-1.5">
+                      {!isVoiceUnlocked ? (
+                        <span className="px-2 py-1 rounded-lg bg-[#171A21] border border-white/[0.08] text-[#6B7280] text-[11px] font-semibold inline-flex items-center gap-1 whitespace-nowrap">
+                          <Lock size={11} />
+                          <span className="font-mono tabular-nums">Từ 10K</span>
+                        </span>
+                      ) : (
+                        <ChevronDown
+                          size={16}
+                          className={`text-jade transition-transform ${isCustomVoiceExpanded ? 'rotate-180' : ''}`}
+                        />
+                      )}
+                    </div>
+                  </label>
+
+                  {isCustomVoiceExpanded && (
+                    <div className="px-3.5 pb-3.5 pt-3 border-t border-white/[0.07]">
+                      <div className="mb-2.5 flex items-center">
+                        <span className="px-2.5 py-1 rounded-lg border font-semibold inline-flex items-center gap-1.5 bg-jade/15 border-jade/35 text-jade text-xs">
+                          <Unlock size={12} />
+                          <span>Đang chọn: {selectedVoiceObj.label}</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mb-2.5">
                         {VOICE_CATEGORIES.map((cat) => (
                           <button
                             key={cat.id}
                             type="button"
                             onClick={() => setVoiceCategory(cat.id)}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors ${
+                            className={`min-h-[36px] px-3 py-1 rounded-lg text-xs font-semibold border transition-colors ${
                               voiceCategory === cat.id
-                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400'
-                                : 'bg-[#0B1120] text-slate-400 border-slate-700/80 hover:text-white hover:border-slate-500'
+                                ? 'bg-jade/15 text-jade border-jade/50 font-bold'
+                                : 'bg-[#0A0B0E] text-[#9CA3AF] border-white/10 hover:text-[#F3F4F6] hover:border-white/20'
                             }`}
                           >
                             {cat.label}
@@ -841,94 +922,74 @@ const DonateLiveScreen = ({
                         value={voiceSearch}
                         onChange={(e) => setVoiceSearch(e.target.value)}
                         placeholder="Tìm nhanh giọng đọc (VD: Review Phim, ChatGPT, Ghostface, Nhật, Hàn...)"
-                        className="w-full px-3 py-2 mb-2 bg-[#0B1120] border border-slate-700/80 focus:border-emerald-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none"
+                        className="w-full px-3.5 py-2.5 min-h-[42px] mb-2.5 bg-[#0A0B0E] border border-white/10 focus:border-jade focus:ring-2 focus:ring-jade/20 rounded-xl text-xs text-[#F3F4F6] placeholder-[#6B7280] outline-none transition-colors"
                       />
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[272px] overflow-y-auto pr-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[272px] overflow-y-auto pr-1 custom-scrollbar">
                         {filteredVoices.length === 0 ? (
-                          <div className="sm:col-span-2 text-center py-6 text-xs text-slate-400 bg-[#0B1120] rounded-xl border border-slate-800">
+                          <div className="sm:col-span-2 text-center py-6 text-xs text-[#9CA3AF] bg-[#0A0B0E] rounded-xl border border-white/[0.07]">
                             Không tìm thấy giọng đọc phù hợp với từ khóa “{voiceSearch}”.
                           </div>
                         ) : (
                           filteredVoices.map((v) => {
-                          const isSel = selectedVoice === v.id;
-                          const isPlay = playingVoiceId === v.id;
-                          return (
-                            <div
-                              key={v.id}
-                              role="button"
-                              tabIndex={isVoiceUnlocked ? 0 : -1}
-                              onClick={() => isVoiceUnlocked && setSelectedVoice(v.id)}
-                              onKeyDown={(ev) => {
-                                if (isVoiceUnlocked && (ev.key === 'Enter' || ev.key === ' ')) {
-                                  ev.preventDefault();
-                                  setSelectedVoice(v.id);
-                                }
-                              }}
-                              className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border cursor-pointer transition-all ${
-                                isSel
-                                  ? 'bg-emerald-500/15 border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
-                                  : 'bg-[#0B1120] border-slate-700/80 hover:border-emerald-500/45'
-                              }`}
-                            >
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className={`text-xs font-extrabold truncate ${isSel ? 'text-amber-300' : 'text-white'}`}>
-                                    {v.label}
-                                  </span>
-                                  <span className="shrink-0 px-1.5 py-0.5 rounded bg-slate-800/90 border border-slate-700 text-[10px] font-bold text-slate-300">
-                                    {v.badge}
-                                  </span>
-                                </div>
-                                <div className="text-[11px] text-slate-400 truncate mt-0.5">{v.desc}</div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={(e) => isVoiceUnlocked && handlePreviewVoice(e, v)}
-                                className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 border transition-colors ${
-                                  isPlay
-                                    ? 'bg-amber-500/20 text-amber-300 border-amber-400'
-                                    : 'bg-slate-800 hover:bg-slate-700 text-emerald-300 border-slate-600'
+                            const isSel = selectedVoice === v.id;
+                            const isPlay = playingVoiceId === v.id;
+                            return (
+                              <div
+                                key={v.id}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setSelectedVoice(v.id)}
+                                onKeyDown={(ev) => {
+                                  if (ev.key === 'Enter' || ev.key === ' ') {
+                                    ev.preventDefault();
+                                    setSelectedVoice(v.id);
+                                  }
+                                }}
+                                className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border cursor-pointer transition-colors ${
+                                  isSel
+                                    ? 'bg-jade/15 border-jade/60'
+                                    : 'bg-[#0A0B0E] border-white/[0.08] hover:border-jade/40'
                                 }`}
                               >
-                                {isPlay ? <Square size={11} className="fill-current" /> : <Volume2 size={12} />}
-                                <span>{isPlay ? 'Dừng' : 'Nghe thử'}</span>
-                              </button>
-                            </div>
-                          );
-                        })
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`text-xs font-bold truncate ${isSel ? 'text-gold' : 'text-[#F3F4F6]'}`}>
+                                      {v.label}
+                                    </span>
+                                    <span className="shrink-0 px-1.5 py-0.5 rounded bg-[#171A21] border border-white/10 text-[10px] font-semibold text-[#D1D5DB]">
+                                      {v.badge}
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] text-[#9CA3AF] truncate mt-0.5">{v.desc}</div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handlePreviewVoice(e, v)}
+                                  className={`shrink-0 min-h-[34px] px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 border transition-colors ${
+                                    isPlay
+                                      ? 'bg-gold/15 text-gold border-gold/50'
+                                      : 'bg-[#171A21] hover:bg-[#1E222C] text-jade border-white/10'
+                                  }`}
+                                >
+                                  {isPlay ? <Square size={11} className="fill-current" /> : <Volume2 size={12} />}
+                                  <span>{isPlay ? 'Dừng' : 'Nghe thử'}</span>
+                                </button>
+                              </div>
+                            );
+                          })
                         )}
                       </div>
                     </div>
-                    {!isVoiceUnlocked && (
-                      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 rounded-xl bg-[#0B1120]/60 backdrop-blur-[1.5px] border border-amber-400/35 text-center">
-                        <div className="w-10 h-10 rounded-full bg-amber-500/15 border border-amber-400/50 flex items-center justify-center mb-2">
-                          <Lock size={18} className="text-amber-300" />
-                        </div>
-                        <div className="text-sm font-black text-amber-300">
-                          Mở khóa chọn 74 giọng từ 10.000đ
-                        </div>
-                        <p className="text-xs text-slate-300 mt-1 max-w-[340px]">
-                          Dưới 10.000đ hệ thống đọc bằng giọng mặc định <span className="font-bold text-white">Chị Review Phim</span>. Ủng hộ từ 10.000đ để nghe thử &amp; chọn trọn bộ 74 giọng hài, ChatGPT, TikTok Hát!
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setAmountInput(String(CUSTOM_VOICE_MIN_AMOUNT))}
-                          className="mt-3 px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/70 text-amber-200 font-extrabold text-xs transition-colors"
-                        >
-                          Chọn 10.000đ để mở khóa ngay
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
 
                 <button
                   type="submit"
                   disabled={isCreatingQr || !parsedAmtInfo.ok || !parsedMsgInfo.ok}
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-amber-500 hover:brightness-110 text-white font-black text-base shadow-[0_6px_25px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full min-h-[48px] py-3.5 rounded-xl bg-jade hover:bg-jade-hover text-[#0A0B0E] font-extrabold text-base shadow-obsidian-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isCreatingQr ? <RefreshCw size={18} className="animate-spin" /> : <QrCode size={18} />}
-                  <span>
+                  <span className="font-mono tabular-nums">
                     {parsedAmtInfo.ok ? `Ủng Hộ ${formatVND(parsedAmtInfo.amount)} • Lấy Mã QR` : 'Lấy Mã QR Ủng Hộ'}
                   </span>
                 </button>
@@ -938,14 +999,14 @@ const DonateLiveScreen = ({
 
           {/* RIGHT (5 cols): TOP 5 & RECENT DONATIONS */}
           <div className="lg:col-span-5 space-y-5">
-            <div className="bg-[#151D2F] border border-emerald-500/30 rounded-2xl p-5 shadow-xl">
-              <h2 className="text-base font-black text-amber-300 flex items-center gap-2 mb-3.5">
-                <Crown size={18} className="text-amber-400" />
+            <div className="obsidian-surface border-gold/25 rounded-2xl p-5">
+              <h2 className="font-display text-base font-bold text-gold flex items-center gap-2 mb-3.5">
+                <Crown size={18} className="text-gold shrink-0" />
                 <span>{boardState.season_label}</span>
               </h2>
 
               {boardState.top_donators.length === 0 ? (
-                <div className="text-center py-6 text-slate-400 text-xs bg-[#0B1120] rounded-xl border border-slate-800">
+                <div className="text-center py-6 text-[#9CA3AF] text-xs bg-[#0A0B0E] rounded-xl border border-white/[0.07]">
                   Chưa có lượt ủng hộ nào — hãy mở bát Top 1 nhé!
                 </div>
               ) : (
@@ -955,15 +1016,23 @@ const DonateLiveScreen = ({
                       key={d.user_key || idx}
                       className={`flex items-center justify-between gap-3 p-3 rounded-xl border ${
                         idx === 0
-                          ? 'bg-gradient-to-r from-emerald-950/90 to-amber-950/45 border-amber-400/65'
+                          ? 'bg-[#171A21] border-gold/50'
                           : idx === 1
-                            ? 'bg-teal-950/45 border-teal-400/45'
-                            : 'bg-[#0B1120] border-slate-800'
+                            ? 'bg-[#171A21] border-white/20'
+                            : idx === 2
+                              ? 'bg-[#171A21] border-[#CD7F32]/40'
+                              : 'bg-[#0A0B0E] border-white/[0.07]'
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${
-                          idx === 0 ? 'bg-amber-400 text-slate-950' : idx === 1 ? 'bg-teal-300 text-slate-950' : 'bg-slate-800 text-slate-300'
+                        <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-mono tabular-nums font-bold text-xs shrink-0 ${
+                          idx === 0
+                            ? 'bg-gold text-[#0A0B0E]'
+                            : idx === 1
+                              ? 'bg-[#D1D5DB] text-[#0A0B0E]'
+                              : idx === 2
+                                ? 'bg-[#CD7F32] text-[#0A0B0E]'
+                                : 'bg-[#1E222C] text-[#D1D5DB]'
                         }`}>
                           #{idx + 1}
                         </span>
@@ -975,14 +1044,14 @@ const DonateLiveScreen = ({
                             if (e.currentTarget.src !== fb) e.currentTarget.src = fb;
                           }}
                           alt={d.nickname}
-                          className="w-9 h-9 rounded-full object-cover border border-emerald-400/60 shrink-0"
+                          className="w-9 h-9 rounded-full object-cover border border-white/15 shrink-0"
                         />
                         <div className="min-w-0">
-                          <div className="font-extrabold text-white text-sm truncate">{d.nickname}</div>
-                          <div className="text-[11px] text-slate-400 truncate">@{d.user_key}</div>
+                          <div className="font-bold text-[#F3F4F6] text-sm truncate">{d.nickname}</div>
+                          <div className="font-mono text-[11px] text-[#9CA3AF] truncate">@{d.user_key}</div>
                         </div>
                       </div>
-                      <span className={`font-black text-sm shrink-0 ${idx === 0 ? 'text-amber-300' : 'text-emerald-400'}`}>
+                      <span className={`font-mono tabular-nums font-bold text-sm shrink-0 ${idx === 0 ? 'text-gold' : 'text-jade'}`}>
                         {formatVND(d.amount)}
                       </span>
                     </div>
@@ -991,22 +1060,23 @@ const DonateLiveScreen = ({
               )}
             </div>
 
-            <div className="bg-[#151D2F] border border-slate-800 rounded-2xl p-5 shadow-xl">
-              <h3 className="text-sm font-extrabold text-white mb-3 flex items-center gap-2">
-                <span>💬</span> Ủng Hộ Gần Đây
+            <div className="obsidian-surface rounded-2xl p-5">
+              <h3 className="font-display text-sm font-bold text-[#F3F4F6] mb-3 flex items-center gap-2">
+                <MessageCircle size={16} className="text-jade shrink-0" />
+                <span>Ủng Hộ Gần Đây</span>
               </h3>
               {boardState.recent_donations.length === 0 ? (
-                <div className="text-center py-5 text-slate-500 text-xs">Chưa có lượt ủng hộ gần đây.</div>
+                <div className="text-center py-5 text-[#9CA3AF] text-xs">Chưa có lượt ủng hộ gần đây.</div>
               ) : (
-                <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
                   {boardState.recent_donations.map((tx, idx) => (
-                    <div key={tx.tx_id || idx} className="p-2.5 rounded-xl bg-[#0B1120] border border-slate-800/90 space-y-1">
+                    <div key={tx.tx_id || idx} className="p-3 rounded-xl bg-[#171A21] border border-white/[0.07] space-y-1">
                       <div className="flex items-center justify-between gap-2 text-xs">
-                        <span className="font-extrabold text-white truncate">{tx.nickname}</span>
-                        <span className="font-black text-emerald-400 shrink-0">+{formatVND(tx.delta)}</span>
+                        <span className="font-bold text-[#F3F4F6] truncate">{tx.nickname}</span>
+                        <span className="font-mono tabular-nums font-bold text-jade shrink-0">+{formatVND(tx.delta)}</span>
                       </div>
                       {tx.message && (
-                        <div className="text-xs text-slate-300 italic">“{tx.message}”</div>
+                        <div className="text-xs text-[#D1D5DB] italic leading-relaxed">“{tx.message}”</div>
                       )}
                     </div>
                   ))}
