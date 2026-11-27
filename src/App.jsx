@@ -4512,9 +4512,9 @@ const App = () => {
 
               <div className="relative z-10 w-full p-6 md:p-10 flex flex-col lg:flex-row items-center justify-between gap-8">
                 <div className="flex-1 text-left">
-                  <h2 className="text-4xl md:text-5xl font-black text-white mb-4 uppercase leading-tight drop-shadow-lg">
-                    TRẢI NGHIỆM GAMING <br className="hidden md:block" />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-rose-400">ĐỈNH CAO NHẤT</span>
+                  <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-5 uppercase leading-[1.3] md:leading-[1.28] tracking-wide drop-shadow-lg">
+                    <span className="block">TRẢI NGHIỆM GAMING</span>
+                    <span className="block mt-1.5 md:mt-2 py-0.5 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-rose-400">ĐỈNH CAO NHẤT</span>
                   </h2>
                   <p className="text-slate-300 mb-8 max-w-xl text-sm md:text-base leading-relaxed">Hệ thống Shop Tiến Gaming uy tín chất lượng số 1 Việt Nam. Hàng ngàn tài khoản VIP cho thuê và mua bán với giá cực sinh viên. Mua ngay nhận tài khoản trong 1 giây, bảo hành 1 đổi 1 nếu sai thông tin.</p>
 
@@ -4541,43 +4541,6 @@ const App = () => {
                 </div>
               </div>
             </section>
-
-            {/* Ô BANNER THAM GIA SERVER DISCORD ĐỂ CHƠI GAME TẠI ĐÂY */}
-            <div className="relative overflow-hidden rounded-2xl border-2 border-[#5865F2]/50 bg-gradient-to-r from-[#171933] via-[#1a1f3d] to-[#12162a] p-5 sm:p-6 shadow-[0_0_35px_rgba(88,101,242,0.25)] flex flex-col md:flex-row items-center justify-between gap-5 transition-all hover:border-[#5865F2] hover:shadow-[0_0_45px_rgba(88,101,242,0.35)]">
-              <div className="absolute top-0 right-0 w-80 h-32 bg-[#5865F2]/10 blur-3xl pointer-events-none"></div>
-              <div className="flex items-center gap-4 text-left w-full md:w-auto relative z-10">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#5865F2] to-[#404eed] flex items-center justify-center shrink-0 shadow-[0_0_25px_rgba(88,101,242,0.7)] border border-indigo-300/30 animate-pulse">
-                  <DiscordIcon className="w-8 h-8 sm:w-9 sm:h-9 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#5865F2]/25 border border-[#5865F2]/50 text-indigo-300">
-                      🎮 CỘNG ĐỒNG GAME THỦ 24/7
-                    </span>
-                    <span className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> BOT ĐANG HOẠT ĐỘNG
-                    </span>
-                  </div>
-                  <h3 className="text-lg sm:text-xl md:text-2xl font-black text-white uppercase tracking-tight">
-                    Tham Gia Server Discord Để Chơi Game Tại Đây
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-                    Chiến game săn Boss Mộng Thiên Huyễn, gõ lệnh nhận lượt đánh, mở rương thần binh khủng và giao lưu cộng đồng cực vui cùng hàng ngàn game thủ!
-                  </p>
-                </div>
-              </div>
-
-              <a
-                href={DISCORD_INVITE_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full md:w-auto shrink-0 px-6 py-3.5 bg-gradient-to-r from-[#5865F2] via-indigo-600 to-[#4752C4] hover:from-[#4752C4] hover:to-[#3b439c] text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-[0_0_25px_rgba(88,101,242,0.6)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer relative z-10"
-              >
-                <DiscordIcon className="w-5 h-5 text-white shrink-0" />
-                <span>Tham Gia Server Discord Ngay</span>
-                <ArrowRight size={18} />
-              </a>
-            </div>
 
             <section>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
