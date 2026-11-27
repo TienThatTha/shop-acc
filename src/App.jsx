@@ -4512,61 +4512,6 @@ const App = () => {
 
               <div className="relative z-10 w-full p-6 md:p-10 flex flex-col lg:flex-row items-center justify-between gap-8">
                 <div className="flex-1 text-left">
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <div className="inline-block px-4 py-1 bg-rose-500/20 text-rose-400 font-bold text-xs rounded-full border border-rose-500/30 backdrop-blur-sm shadow-[0_0_10px_rgba(225,29,72,0.3)]">🔥 UY TÍN - TỐC ĐỘ - BẢO MẬT</div>
-                    <div
-                      onClick={() => { requireAuth('naptien'); setDepositMethod('card'); }}
-                      className="inline-block px-4 py-1 bg-emerald-500/20 text-emerald-400 font-bold text-xs rounded-full border border-emerald-500/30 backdrop-blur-sm shadow-[0_0_10px_rgba(16,185,129,0.3)] cursor-pointer hover:bg-emerald-500/30 transition-colors"
-                    >
-                      💳 HỖ TRỢ NẠP THẺ CÀO TỰ ĐỘNG
-                    </div>
-                    {hasActiveWheelRewards && isWheelEventPublicOpen && (
-                      <div
-                        onClick={() => setCurrentView('vongquay')}
-                        className="inline-flex items-center gap-1.5 px-4 py-1 bg-gradient-to-r from-rose-500/30 via-pink-500/30 to-amber-500/30 text-amber-300 font-extrabold text-xs rounded-full border border-rose-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(244,63,94,0.4)] cursor-pointer hover:scale-105 transition-all animate-pulse"
-                        title="Hạn chót đúng 23h59 ngày 16/10"
-                      >
-                        <span className="text-sm">👟</span>
-                        <span>VÒNG QUAY GIÀY THẦN TỐC (CÒN {wheelCountdown.days}N {wheelCountdown.hours}:{wheelCountdown.minutes}:{wheelCountdown.seconds})</span>
-                      </div>
-                    )}
-                    <div
-                      onClick={() => { requireAuth('bossgame'); setCurrentView('bossgame'); }}
-                      className="inline-block px-4 py-1 bg-gradient-to-r from-amber-500/30 to-rose-500/30 text-amber-300 font-extrabold text-xs rounded-full border border-amber-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(245,158,11,0.5)] cursor-pointer hover:scale-105 transition-all animate-pulse"
-                    >
-                      ⚔️ NẠP GAME MỘNG THIÊN HUYỄN (TỰ ĐỘNG)
-                    </div>
-                    <div
-                      onClick={() => {
-                        requireAuth('bossgame');
-                        setCurrentView('bossgame');
-                        fetchAuctionMarketData();
-                        setShowAuctionModal(true);
-                      }}
-                      className="inline-block px-4 py-1 bg-gradient-to-r from-orange-500/30 to-amber-500/30 text-orange-300 font-extrabold text-xs rounded-full border border-orange-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(249,115,22,0.5)] cursor-pointer hover:scale-105 transition-all"
-                    >
-                      🏛️ SÀN ĐẤU GIÁ (CHỢ XU 20%)
-                    </div>
-                    <div
-                      onClick={() => {
-                        requireAuth('bossgame');
-                        setCurrentView('bossgame');
-                        if (!bossPlayerSummary) handleGenerateLinkOtp(); else setShowBagModal(true);
-                      }}
-                      className="inline-block px-4 py-1 bg-gradient-to-r from-purple-500/30 to-indigo-500/30 text-purple-300 font-extrabold text-xs rounded-full border border-purple-400/50 backdrop-blur-sm shadow-[0_0_15px_rgba(168,85,247,0.5)] cursor-pointer hover:scale-105 transition-all"
-                    >
-                      {bossPlayerSummary ? '🎒 TÚI ĐỒ & QUẢN LÝ TRANG BỊ' : '🔗 LIÊN KẾT TÀI KHOẢN GAME (OTP)'}
-                    </div>
-                    <a
-                      href={DISCORD_INVITE_URL}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-1 bg-gradient-to-r from-[#5865F2]/40 via-indigo-600/40 to-[#4752C4]/40 hover:from-[#5865F2]/70 hover:to-[#4752C4]/70 text-white font-extrabold text-xs rounded-full border border-[#5865F2]/60 backdrop-blur-sm shadow-[0_0_15px_rgba(88,101,242,0.4)] cursor-pointer hover:scale-105 transition-all"
-                    >
-                      <DiscordIcon className="w-3.5 h-3.5 text-white shrink-0" />
-                      <span>🎮 THAM GIA DISCORD CHƠI GAME</span>
-                    </a>
-                  </div>
                   <h2 className="text-4xl md:text-5xl font-black text-white mb-4 uppercase leading-tight drop-shadow-lg">
                     TRẢI NGHIỆM GAMING <br className="hidden md:block" />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-rose-400">ĐỈNH CAO NHẤT</span>
