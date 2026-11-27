@@ -3660,72 +3660,158 @@ const App = () => {
   );
 
   const renderFooter = () => (
-    <footer className="w-full max-w-[1500px] mx-auto mt-16 mb-4 px-4 flex flex-col items-center justify-center gap-10 pb-8 border-t border-slate-800 pt-12">
+    <footer
+      className="w-full bg-[#090E1A] border-t border-slate-800/80 mt-16 text-slate-300"
+      style={{ fontFamily: "'Be Vietnam Pro', sans-serif" }}
+    >
+      <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 lg:pr-20 2xl:px-8 pt-10 pb-24 md:pb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+          {/* Cột 1: Thương hiệu & giờ hỗ trợ */}
+          <div className="sm:col-span-2 lg:col-span-4 space-y-3.5 text-left">
+            <img
+              src="/Tiengaming.png"
+              alt="Shop Tiến Gaming"
+              className="h-10 w-auto object-contain"
+            />
+            <p className="text-sm text-slate-400 leading-relaxed max-w-sm">
+              Mua bán, cho thuê tài khoản game, cày thuê và trung gian giao dịch tự động. Nhận thông tin ngay sau khi thanh toán, bảo hành 1 đổi 1 nếu sai dữ liệu.
+            </p>
+            <div className="flex items-center gap-2 text-xs text-slate-400 pt-1">
+              <Clock size={14} className="text-slate-500 shrink-0" aria-hidden="true" />
+              <span>
+                Hỗ trợ trực tiếp <strong className="text-slate-200 font-medium tabular-nums">08:00 – 23:00</strong> · Hệ thống tự động 24/7
+              </span>
+            </div>
+          </div>
 
-      {/* CỘT TRÁI: LOGO & SLOGAN */}
-      <div className="flex-shrink-0 flex flex-col items-center justify-center w-full max-w-2xl gap-5">
+          {/* Cột 2: Dịch vụ */}
+          <div className="lg:col-span-2 text-left">
+            <h4 className="text-sm font-semibold text-white mb-3.5">Dịch vụ</h4>
+            <ul className="space-y-2.5 text-sm text-slate-400">
+              <li>
+                <button
+                  type="button"
+                  onClick={() => { setCurrentView('dashboard'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  className="hover:text-white transition-colors duration-150 text-left"
+                >
+                  Mua bán &amp; thuê acc
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => { requireAuth('bossgame'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  className="hover:text-white transition-colors duration-150 text-left"
+                >
+                  Nạp Mộng Thiên Huyễn
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => { setCurrentView('caythue'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  className="hover:text-white transition-colors duration-150 text-left"
+                >
+                  Cày thuê rank &amp; sự kiện
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => { setCurrentView('donate'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  className="hover:text-white transition-colors duration-150 text-left"
+                >
+                  Donate Live
+                </button>
+              </li>
+            </ul>
+          </div>
 
-        {/* CÂU SLOGAN TRÊN CÙNG ĐƯỢC TÙY BIẾN THÀNH CÁC THẺ (PILLS) */}
-        <div className="w-full max-w-[650px] flex flex-wrap justify-center gap-2 md:gap-3 px-2 mb-2">
-          <span className="px-4 py-2 bg-[#151D2F] border border-blue-500/30 text-blue-400 text-[11px] sm:text-[13px] md:text-sm rounded-full font-black shadow-[0_0_15px_rgba(59,130,246,0.15)] flex items-center gap-2 hover:bg-blue-500/10 hover:scale-105 transition-all cursor-default">
-            <Gamepad2 size={18} /> Mua Bán Acc Game
-          </span>
-          <span className="px-4 py-2 bg-[#151D2F] border border-rose-500/30 text-rose-400 text-[11px] sm:text-[13px] md:text-sm rounded-full font-black shadow-[0_0_15px_rgba(244,63,94,0.15)] flex items-center gap-2 hover:bg-rose-500/10 hover:scale-105 transition-all cursor-default">
-            <TrendingUp size={18} /> Cày Thuê Rank & Sự Kiện
-          </span>
-          <span className="px-4 py-2 bg-[#151D2F] border border-emerald-500/30 text-emerald-400 text-[11px] sm:text-[13px] md:text-sm rounded-full font-black shadow-[0_0_15px_rgba(16,185,129,0.15)] flex items-center gap-2 hover:bg-emerald-500/10 hover:scale-105 transition-all cursor-default">
-            <Target size={18} /> Tìm Acc Theo Yêu Cầu
-          </span>
-          <span className="px-4 py-2 bg-[#151D2F] border border-yellow-500/30 text-yellow-400 text-[11px] sm:text-[13px] md:text-sm rounded-full font-black shadow-[0_0_15px_rgba(234,179,8,0.15)] flex items-center gap-2 hover:bg-yellow-500/10 hover:scale-105 transition-all cursor-default">
-            <ShieldCheck size={18} /> Trung Gian Cực Rẻ - Phí Chỉ Từ 2.5%
-          </span>
+          {/* Cột 3: Tài khoản */}
+          <div className="lg:col-span-2 text-left">
+            <h4 className="text-sm font-semibold text-white mb-3.5">Tài khoản</h4>
+            <ul className="space-y-2.5 text-sm text-slate-400">
+              <li>
+                <button
+                  type="button"
+                  onClick={() => { requireAuth('naptien'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  className="hover:text-white transition-colors duration-150 text-left"
+                >
+                  Nạp tiền ví
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => { requireAuth('lichsu'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  className="hover:text-white transition-colors duration-150 text-left"
+                >
+                  Lịch sử giao dịch
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => { setCurrentView('vip_info'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  className="hover:text-white transition-colors duration-150 text-left"
+                >
+                  Đặc quyền VIP
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => { requireAuth('security'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  className="hover:text-white transition-colors duration-150 text-left"
+                >
+                  Bảo mật &amp; hỗ trợ
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          {/* Cột 4: Liên hệ trực tiếp & trung gian */}
+          <div className="sm:col-span-2 lg:col-span-4 text-left">
+            <h4 className="text-sm font-semibold text-white mb-3.5">Liên hệ trực tiếp</h4>
+            <div className="divide-y divide-slate-800/80 border-y border-slate-800/80">
+              <a
+                href="https://zalo.me/0938240332"
+                target="_blank"
+                rel="noreferrer"
+                className="py-2.5 flex items-center justify-between gap-4 text-sm group"
+              >
+                <span className="text-slate-400 group-hover:text-slate-300 transition-colors">Zalo hỗ trợ</span>
+                <span className="text-white font-medium tabular-nums group-hover:text-blue-400 transition-colors">0938.240.332</span>
+              </a>
+              <a
+                href="https://www.facebook.com/giatien2408/"
+                target="_blank"
+                rel="noreferrer"
+                className="py-2.5 flex items-center justify-between gap-4 text-sm group"
+              >
+                <span className="text-slate-400 group-hover:text-slate-300 transition-colors">Facebook Admin</span>
+                <span className="text-white font-medium group-hover:text-blue-400 transition-colors">Nhâm Gia Tiến</span>
+              </a>
+              <a
+                href={DISCORD_INVITE_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="py-2.5 flex items-center justify-between gap-4 text-sm group"
+              >
+                <span className="text-slate-400 group-hover:text-slate-300 transition-colors">Cộng đồng</span>
+                <span className="text-white font-medium group-hover:text-blue-400 transition-colors">Server Discord</span>
+              </a>
+            </div>
+            <p className="text-xs text-slate-500 mt-3 leading-relaxed">
+              Nhận tìm acc theo yêu cầu và trung gian giao dịch (phí từ 2,5%). Chỉ liên hệ qua các kênh trên để tránh giả mạo.
+            </p>
+          </div>
         </div>
 
-        <img src="/Logo.png" alt="Shop Tiến Gaming" className="w-[95%] sm:w-[85%] lg:w-[90%] max-w-[480px] object-contain hover:scale-105 transition-transform drop-shadow-[0_0_40px_rgba(37,99,235,0.3)]" />
-
-        {/* 3 Ô SLOGAN */}
-        <div className="flex justify-center gap-3 md:gap-4 w-full max-w-[480px]">
-          <div className="flex-1 bg-gradient-to-br from-blue-600/10 to-[#151D2F] border border-blue-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2 text-center shadow-lg hover:border-blue-400 hover:bg-blue-600/20 transition-all group">
-            <ShieldCheck size={28} className="text-blue-400 group-hover:scale-110 group-hover:animate-pulse transition-transform" />
-            <span className="text-white font-black text-[11px] md:text-[13px] uppercase tracking-wider">Tận Tâm</span>
-          </div>
-
-          <div className="flex-1 bg-gradient-to-br from-yellow-500/10 to-[#151D2F] border border-yellow-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2 text-center shadow-lg hover:border-yellow-400 hover:bg-yellow-500/20 transition-all group">
-            <Sparkles size={28} className="text-yellow-400 group-hover:scale-110 group-hover:animate-pulse transition-transform" />
-            <span className="text-white font-black text-[11px] md:text-[13px] uppercase tracking-wider">Chất Lượng</span>
-          </div>
-
-          <div className="flex-1 bg-gradient-to-br from-rose-500/10 to-[#151D2F] border border-rose-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2 text-center shadow-lg hover:border-rose-400 hover:bg-rose-500/20 transition-all group">
-            <Gift size={28} className="text-rose-400 group-hover:scale-110 group-hover:animate-pulse transition-transform" />
-            <span className="text-white font-black text-[11px] md:text-[13px] uppercase tracking-wider">Hậu Mãi</span>
-          </div>
-        </div>
-      </div>
-
-      {/* CỘT PHẢI: THÔNG TIN */}
-      <div className="flex flex-col items-center justify-center w-full max-w-2xl gap-6">
-        <div className="flex flex-col sm:flex-row gap-4 w-full justify-center mt-2">
-          <a href="https://zalo.me/0938240332" target="_blank" rel="noreferrer" className="flex-1 lg:max-w-[280px] flex items-center justify-center lg:justify-start gap-4 bg-[#151D2F] hover:bg-[#1a233a] px-5 py-3.5 rounded-xl border border-blue-500/20 hover:border-blue-500/50 transition-all shadow-lg group relative overflow-hidden">
-            <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform z-10 shrink-0">
-              <span className="text-[#0068FF] font-black text-[11px]">Zalo</span>
-            </div>
-            <div className="text-left z-10">
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Hỗ trợ Zalo</p>
-              <p className="text-white font-black tracking-wider text-base">0938.240.332</p>
-            </div>
-          </a>
-
-          <a href="https://www.facebook.com/giatien2408/" target="_blank" rel="noreferrer" className="flex-1 lg:max-w-[280px] flex items-center justify-center lg:justify-start gap-4 bg-[#151D2F] hover:bg-[#1a233a] px-5 py-3.5 rounded-xl border border-blue-500/20 hover:border-blue-500/50 transition-all shadow-lg group relative overflow-hidden">
-            <div className="absolute inset-0 bg-[#1877F2]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div className="w-10 h-10 bg-gradient-to-b from-[#1877F2] to-[#145CE6] rounded-full flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform z-10 shrink-0">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="white" className="mt-0.5"><path d="M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z" /></svg>
-            </div>
-            <div className="text-left z-10">
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Admin Facebook</p>
-              <p className="text-white font-black tracking-wide text-base">Nhâm Gia Tiến</p>
-            </div>
-          </a>
+        {/* Thanh bản quyền đáy trang */}
+        <div className="mt-8 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-slate-500">
+          <p>© 2026 Shop Tiến Gaming. Bảo lưu mọi quyền.</p>
+          <p>shoptiengaming.com · Giao dịch tự động &amp; bảo mật</p>
         </div>
       </div>
     </footer>
