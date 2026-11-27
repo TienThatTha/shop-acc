@@ -923,276 +923,448 @@ export const LichsuScreen = ({
 
   // Cấu hình các Tab
   const tabs = [
-    { id: 'buy', name: 'Mua Acc', icon: <Gamepad2 size={16} />, data: historyBuy },
-    { id: 'bossgame', name: 'Nạp Game Boss', icon: <Swords size={16} />, data: historyBossGame },
-    { id: 'rent', name: 'Thuê Acc', icon: <Clock size={16} />, data: historyRent },
-    { id: 'spin', name: 'Vòng Quay', icon: <Gift size={16} />, data: historySpin },
-    { id: 'boost', name: 'Cày Thuê', icon: <Target size={16} />, data: historyBoost },
-    { id: 'deposit', name: 'Nạp Tiền', icon: <Wallet size={16} />, data: historyDeposit },
-    { id: 'transfer', name: 'Chuyển Tiền', icon: <ArrowLeftRight size={16} />, data: historyTransfer }
+    { id: 'buy', name: 'Mua Acc', icon: <Gamepad2 size={15} />, data: historyBuy },
+    { id: 'bossgame', name: 'Nạp Game Boss', icon: <Swords size={15} />, data: historyBossGame },
+    { id: 'rent', name: 'Thuê Acc', icon: <Clock size={15} />, data: historyRent },
+    { id: 'spin', name: 'Vòng Quay', icon: <Gift size={15} />, data: historySpin },
+    { id: 'boost', name: 'Cày Thuê', icon: <Target size={15} />, data: historyBoost },
+    { id: 'deposit', name: 'Nạp Tiền', icon: <Wallet size={15} />, data: historyDeposit },
+    { id: 'transfer', name: 'Chuyển Tiền', icon: <ArrowLeftRight size={15} />, data: historyTransfer }
   ];
 
-  const currentData = [...(tabs.find(t => t.id === historyTab)?.data || [])].sort((a, b) => getRecordTime(b) - getRecordTime(a));
-  const visibleData = currentData.slice(0, visibleHistoryCount); // Chỉ cắt lấy số lượng đang hiển thị
+  const activeTabObj = tabs.find(t => t.id === historyTab);
+  const currentData = [...(activeTabObj?.data || [])].sort((a, b) => getRecordTime(b) - getRecordTime(a));
+  const effectiveLimit = Math.max(visibleHistoryCount, 10);
+  const visibleData = currentData.slice(0, effectiveLimit);
+  const remainingCount = Math.max(0, currentData.length - visibleData.length);
 
   return (
     <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans pb-24 md:pb-10">
       {renderNavbar()}
-      <div className="w-full max-w-5xl mx-auto mt-4 md:mt-10 p-4 md:p-8 bg-[#151D2F] rounded-2xl border border-slate-800 text-center flex flex-col items-center shadow-xl">
-        <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-600/10 rounded-full flex items-center justify-center text-blue-500 mb-4 md:mb-6 shadow-inner"><History className="w-8 h-8 md:w-10 md:h-10" /></div>
-        <h2 className="text-xl md:text-2xl font-bold text-white mb-6 md:mb-8 uppercase tracking-wider">Lịch Sử Giao Dịch</h2>
+      <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 md:px-6 mt-4 md:mt-8">
+        <div className="w-full p-4 sm:p-5 md:p-7 bg-[#151D2F] rounded-2xl border border-slate-800 text-center flex flex-col items-center shadow-xl">
+          <div className="w-14 h-14 md:w-16 md:h-16 bg-blue-600/10 border border-blue-500/20 rounded-full flex items-center justify-center text-blue-400 mb-3 shadow-inner">
+            <History className="w-7 h-7 md:w-8 md:h-8" />
+          </div>
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-1.5 uppercase tracking-wider">Lịch Sử Giao Dịch</h2>
+          <p className="text-xs md:text-sm text-slate-400 mb-5">
+            {activeTabObj?.name || 'Giao dịch'}: <span className="text-blue-400 font-semibold tabular-nums">{currentData.length}</span> giao dịch
+          </p>
 
-        {/* MENU CÁC TAB LỊCH SỬ */}
-        <div className="flex gap-2 overflow-x-auto w-full pb-3 mb-6 border-b border-slate-800 scrollbar-hide justify-start md:justify-center">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => { setHistoryTab(tab.id); setVisibleHistoryCount(5); setExpandedTx(null); }} // Reset về 5 khi đổi tab
-              className={`px-4 py-2.5 font-bold rounded-lg whitespace-nowrap flex items-center gap-2 text-sm transition-all ${historyTab === tab.id ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] border border-blue-500' : 'bg-[#0B1120] text-slate-400 border border-slate-700 hover:text-white hover:bg-slate-800'}`}
-            >
-              {tab.icon} {tab.name} <span className="text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full">{tab.data.length}</span>
-            </button>
-          ))}
-        </div>
+          {/* MENU CÁC TAB LỊCH SỬ */}
+          <div
+            role="tablist"
+            aria-label="Danh mục lịch sử giao dịch"
+            className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 w-full pb-4 mb-5 border-b border-slate-800"
+          >
+            {tabs.map(tab => {
+              const isActive = historyTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => { setHistoryTab(tab.id); setVisibleHistoryCount(10); setExpandedTx(null); }}
+                  className={`shrink-0 px-2.5 py-2 font-semibold rounded-lg whitespace-nowrap inline-flex items-center gap-1.5 text-xs sm:text-[13px] transition-all border ${
+                    isActive
+                      ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.35)] border-blue-500'
+                      : 'bg-[#0B1120] text-slate-300 border-slate-700/80 hover:text-white hover:bg-slate-800/80 hover:border-slate-600'
+                  }`}
+                >
+                  {tab.icon}
+                  <span>{tab.name}</span>
+                  <span className={`text-[11px] font-bold tabular-nums px-1.5 py-0.5 rounded-full leading-none ${isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                    {tab.data.length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-        {/* KHUNG DANH SÁCH & CUỘN VÔ HẠN */}
-        <div
-          className="w-full text-left bg-[#0B1120] rounded-xl overflow-auto max-h-[500px] border border-slate-800 custom-scrollbar relative"
-          onScroll={(e) => {
-            const { scrollTop, scrollHeight, clientHeight } = e.target;
-            if (scrollTop + clientHeight >= scrollHeight - 20) setVisibleHistoryCount(prev => prev + 5); // Kéo xuống đáy nảy thêm 5 dòng
-          }}
-        >
-          {visibleData.length === 0 ? (
-            <div className="p-10 text-center flex flex-col items-center justify-center text-slate-500 h-full min-h-[200px]">
-              <AlertCircle size={40} className="mb-3 opacity-30" />
-              <p>Chưa có giao dịch nào ở mục này.</p>
-            </div>
-          ) : (
-            <div className="flex flex-col">
-              {/* 1. RENDER LỊCH SỬ MUA ACC (CÓ TÍNH NĂNG MỞ RỘNG XEM PASS) */}
-              {historyTab === 'bossgame' && visibleData.map(tx => {
-                const details = tx.accDetails || {};
-                return (
-                  <div key={tx.id} className="bg-[#1A233A] border border-slate-700/60 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-amber-500/40 transition-colors text-left">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-                        <Swords size={20} />
-                      </div>
-                      <div>
-                        <h4 className="text-white font-bold">{tx.action}</h4>
-                        <p className="text-xs text-slate-400">{tx.date} • Mã đơn: <span className="font-mono text-slate-300">{tx.id}</span></p>
-                        {details.rewards && (
-                          <p className="text-xs text-amber-400 font-semibold mt-1">
-                            Quà: {details.rewards.attacks ? `+${new Intl.NumberFormat('vi-VN').format(details.rewards.attacks)} lượt` : ''}
-                            {details.rewards.royal_chests ? ` • +${details.rewards.royal_chests} Rương HK` : ''}
-                            {details.rewards.coins ? ` • +${new Intl.NumberFormat('vi-VN').format(details.rewards.coins)} Xu` : ''}
+          {/* KHUNG DANH SÁCH & CUỘN VÔ HẠN */}
+          <div
+            className="w-full text-left bg-[#0B1120] rounded-xl overflow-y-auto max-h-[560px] border border-slate-800 custom-scrollbar relative"
+            onScroll={(e) => {
+              const { scrollTop, scrollHeight, clientHeight } = e.target;
+              if (scrollTop + clientHeight >= scrollHeight - 24 && remainingCount > 0) {
+                setVisibleHistoryCount(prev => Math.max(prev, 10) + 10);
+              }
+            }}
+          >
+            {visibleData.length === 0 ? (
+              <div className="p-10 text-center flex flex-col items-center justify-center text-slate-500 h-full min-h-[200px]">
+                <AlertCircle size={40} className="mb-3 opacity-30" />
+                <p>Chưa có giao dịch nào ở mục này.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col divide-y divide-slate-800/80">
+                {/* 0. RENDER LỊCH SỬ NẠP GAME BOSS */}
+                {historyTab === 'bossgame' && visibleData.map(tx => {
+                  const details = tx.accDetails || {};
+                  return (
+                    <div key={tx.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-2.5 md:gap-4 hover:bg-slate-800/40 transition-colors">
+                      <div className="min-w-0 flex-1 flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
+                          <Swords size={17} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-white text-sm md:text-[15px] leading-snug break-words">{tx.action}</p>
+                          <p className="text-[11px] md:text-xs text-slate-400 mt-1 tabular-nums">
+                            {tx.date} • Mã đơn: <span className="font-mono text-slate-300">{tx.id}</span>
                           </p>
+                          {details.rewards && (
+                            <p className="text-xs text-amber-400 font-semibold mt-1">
+                              Quà: {details.rewards.attacks ? `+${new Intl.NumberFormat('vi-VN').format(details.rewards.attacks)} lượt` : ''}
+                              {details.rewards.royal_chests ? ` • +${details.rewards.royal_chests} Rương HK` : ''}
+                              {details.rewards.coins ? ` • +${new Intl.NumberFormat('vi-VN').format(details.rewards.coins)} Xu` : ''}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t border-slate-800/60 md:border-t-0">
+                        <div className="flex items-center justify-between flex-1 md:flex-none md:flex-col md:items-end gap-2">
+                          <span className="font-black text-base md:text-[17px] text-rose-500 tabular-nums whitespace-nowrap">
+                            -{new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ
+                          </span>
+                          <span className="text-[11px] font-bold inline-block px-2.5 py-0.5 rounded text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                            {tx.status || 'Thành công'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* 1. RENDER LỊCH SỬ MUA ACC / GÓI IN-GAME (CÓ MỞ RỘNG CHI TIẾT) */}
+                {historyTab === 'buy' && visibleData.map(tx => {
+                  const hasDetails = Boolean(tx.accDetails);
+                  const isExpanded = hasDetails && expandedTx === tx.id;
+                  const isIngameTopup = Boolean(
+                    tx.accDetails &&
+                    !tx.accDetails.username &&
+                    (tx.accDetails.game_no || tx.accDetails.order_desc || tx.accDetails.role_name || tx.accDetails.game)
+                  );
+                  return (
+                    <div key={tx.id} className="flex flex-col">
+                      <div
+                        className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-2.5 md:gap-4 hover:bg-slate-800/40 transition-colors ${hasDetails ? 'cursor-pointer' : ''}`}
+                        onClick={() => hasDetails && setExpandedTx(isExpanded ? null : tx.id)}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-white text-sm md:text-[15px] leading-snug break-words">{tx.action}</p>
+                          <p className="text-[11px] md:text-xs text-slate-400 mt-1 tabular-nums">{tx.date}</p>
+                        </div>
+                        <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t border-slate-800/60 md:border-t-0">
+                          <div className="flex items-center justify-between flex-1 md:flex-none md:flex-col md:items-end gap-2">
+                            <span className="font-black text-base md:text-[17px] text-rose-500 tabular-nums whitespace-nowrap">
+                              -{new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ
+                            </span>
+                            <span className="text-[11px] font-bold inline-block px-2.5 py-0.5 rounded text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                              {tx.status || 'Thành công'}
+                            </span>
+                          </div>
+                          {hasDetails && (
+                            <span
+                              aria-hidden="true"
+                              className="w-7 h-7 rounded-lg bg-slate-800/70 border border-slate-700/60 flex items-center justify-center text-blue-400 shrink-0"
+                            >
+                              {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {isExpanded && tx.accDetails && (
+                        isIngameTopup ? (
+                          <div className="bg-slate-900/80 p-4 border-t border-slate-800 animate-fade-in text-sm">
+                            <p className="text-emerald-400 font-bold mb-3 flex items-center gap-2">
+                              <CheckCircle2 size={16} /> Thông tin gói nạp in-game
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                              <div className="bg-[#0B1120] border border-slate-800 rounded-lg px-3 py-2.5">
+                                <span className="text-slate-400 block mb-0.5">Trò chơi</span>
+                                <span className="text-white font-semibold">{tx.accDetails.game || 'Mộng Thiên Cửu H5'}</span>
+                              </div>
+                              <div className="bg-[#0B1120] border border-slate-800 rounded-lg px-3 py-2.5">
+                                <span className="text-slate-400 block mb-0.5">Gói đã mua</span>
+                                <span className="text-amber-300 font-semibold">{tx.accDetails.order_desc || '—'}</span>
+                              </div>
+                              <div className="bg-[#0B1120] border border-slate-800 rounded-lg px-3 py-2.5">
+                                <span className="text-slate-400 block mb-0.5">Nhân vật</span>
+                                <span className="text-white font-semibold">{tx.accDetails.role_name || '—'}</span>
+                              </div>
+                              <div className="bg-[#0B1120] border border-slate-800 rounded-lg px-3 py-2.5">
+                                <span className="text-slate-400 block mb-0.5">Máy chủ</span>
+                                <span className="text-white font-semibold">{tx.accDetails.server_name || '—'}</span>
+                              </div>
+                              <div className="sm:col-span-2 bg-[#0B1120] border border-slate-800 rounded-lg px-3 py-2.5 flex items-center justify-between gap-2">
+                                <div className="min-w-0">
+                                  <span className="text-slate-400 block mb-0.5">Mã đơn</span>
+                                  <span className="text-slate-200 font-mono break-all">{tx.accDetails.game_no || tx.id}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); copyToClipboard(String(tx.accDetails.game_no || tx.id)); }}
+                                  className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded border border-slate-700 transition-colors inline-flex items-center gap-1 shrink-0"
+                                >
+                                  <Copy size={14} />
+                                  <span>Copy</span>
+                                </button>
+                              </div>
+                            </div>
+                            {copiedText && <p className="text-emerald-400 text-xs mt-3 italic animate-pulse text-center bg-emerald-500/10 py-1 rounded">Đã copy vào khay nhớ tạm!</p>}
+                          </div>
+                        ) : (
+                          <div className="bg-slate-900/80 p-4 border-t border-slate-800 animate-fade-in text-sm">
+                            <p className="text-emerald-400 font-bold mb-3 flex items-center gap-2"><CheckCircle2 size={16} /> Thông tin tài khoản bạn đã mua (Mã: #{tx.accDetails.code || tx.id}):</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-slate-400 text-xs font-bold">Tài khoản Game:</span>
+                                  <div className="flex items-center">
+                                    <input readOnly value={tx.accDetails.username || '—'} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono" />
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.username || ''); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16} /></button>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-slate-400 text-xs font-bold">Mật khẩu Game:</span>
+                                  <div className="flex items-center">
+                                    <input readOnly value={tx.accDetails.password || '—'} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono" />
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.password || ''); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16} /></button>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="space-y-3 border-t sm:border-t-0 sm:border-l border-slate-800 pt-3 sm:pt-0 sm:pl-4">
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-slate-400 text-xs font-bold">Email đăng ký:</span>
+                                  <div className="flex items-center">
+                                    <input readOnly value={tx.accDetails.email || '—'} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono" />
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.email || ''); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16} /></button>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-slate-400 text-xs font-bold">SĐT xác minh:</span>
+                                  <div className="flex items-center">
+                                    <input readOnly value={tx.accDetails.phone || '—'} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono" />
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.phone || ''); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16} /></button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            {copiedText && <p className="text-emerald-400 text-xs mt-3 italic animate-pulse text-center bg-emerald-500/10 py-1 rounded">Đã copy vào khay nhớ tạm!</p>}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* 2. RENDER LỊCH SỬ THUÊ ACC */}
+                {historyTab === 'rent' && visibleData.map(tx => (
+                  <div key={tx.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-2.5 md:gap-4 hover:bg-slate-800/40 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-white text-sm md:text-[15px] leading-snug break-words">{tx.action}</p>
+                      <p className="text-[11px] md:text-xs text-slate-400 mt-1 tabular-nums">{tx.date}</p>
+                    </div>
+                    <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t border-slate-800/60 md:border-t-0">
+                      <div className="flex items-center justify-between flex-1 md:flex-none md:flex-col md:items-end gap-2">
+                        <span className={`font-black text-base md:text-[17px] tabular-nums whitespace-nowrap ${tx.amount > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                          {tx.amount > 0 ? '-' : '+'}{new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ
+                        </span>
+                        <span className={`text-[11px] font-bold inline-block px-2.5 py-0.5 rounded border ${
+                          tx.status?.includes('+') || tx.status === 'Thành công'
+                            ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                            : tx.status?.includes('cọc')
+                              ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20'
+                              : 'text-blue-400 bg-blue-500/10 border-blue-500/20'
+                        }`}>
+                          {tx.status || 'Thành công'}
+                        </span>
+                        {tx.accDetails && tx.accDetails.balanceAfter !== undefined && (
+                          <div className="flex flex-wrap gap-x-3 md:justify-end text-[11px]">
+                            <p className="text-slate-400">Dư ví: <span className="font-bold text-emerald-400 tabular-nums">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.balanceAfter)}đ</span></p>
+                            {tx.accDetails.fundAfter !== undefined && (
+                              <p className="text-slate-400">Dư quỹ: <span className="font-bold text-yellow-400 tabular-nums">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.fundAfter)}đ</span></p>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-rose-400 font-black text-base">-{new Intl.NumberFormat('vi-VN').format(tx.amount)}đ</span>
-                      <div className="mt-1">
-                        <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  </div>
+                ))}
+
+                {/* 3. RENDER LỊCH SỬ VÒNG QUAY (TRÚNG THƯỞNG) */}
+                {historyTab === 'spin' && visibleData.map(tx => (
+                  <div key={tx.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-2.5 md:gap-4 hover:bg-slate-800/40 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-white text-sm md:text-[15px] leading-snug break-words">
+                        <Gift size={14} className="inline mr-1.5 text-rose-500 align-text-bottom" />{tx.action}
+                      </p>
+                      <p className="text-[11px] md:text-xs text-slate-400 mt-1 tabular-nums">{tx.date}</p>
+                    </div>
+                    <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t border-slate-800/60 md:border-t-0">
+                      <div className="flex items-center justify-between flex-1 md:flex-none md:flex-col md:items-end gap-2">
+                        <span className="font-black text-base md:text-[17px] text-emerald-400 tabular-nums whitespace-nowrap">
+                          {tx.isSpinCost ? `+${Math.abs(tx.amount)} Lượt` : `+${new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ`}
+                        </span>
+                        <span className="text-[11px] font-bold inline-block px-2.5 py-0.5 rounded text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
                           {tx.status || 'Thành công'}
                         </span>
                       </div>
                     </div>
                   </div>
-                );
-              })}
+                ))}
 
-              {historyTab === 'buy' && visibleData.map(tx => (
-                <div key={tx.id} className="border-b border-slate-800 flex flex-col">
-                  <div
-                    className="p-4 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors cursor-pointer"
-                    onClick={() => setExpandedTx(expandedTx === tx.id ? null : tx.id)}
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-bold text-white text-sm md:text-base">{tx.action}</p>
-                        {expandedTx === tx.id ? <ChevronUp size={16} className="text-blue-400" /> : <ChevronDown size={16} className="text-blue-400" />}
+                {/* 4. RENDER LỊCH SỬ CÀY THUÊ */}
+                {historyTab === 'boost' && visibleData.map(req => (
+                  <div key={req.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-2.5 md:gap-4 hover:bg-slate-800/40 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-black rounded shadow-sm shrink-0">GÓI ĐẶT</span>
+                        <p className="font-semibold text-white text-sm md:text-[15px] leading-snug break-words">{req.boostingTitle}</p>
                       </div>
-                      <p className="text-[10px] md:text-xs text-slate-500 mt-1">{tx.date}</p>
+                      {req.info?.username && (
+                        <p className="text-[11px] md:text-xs text-slate-400 mt-1">
+                          {req.info.loginMethod === 'Không Cần' ? (
+                            <>Mã sự kiện / Link: <span className="font-mono text-white break-all">{req.info.username}</span></>
+                          ) : (
+                            <>TK: <span className="font-mono text-white">{req.info.username}</span> | Nền tảng: <span className="text-white">{req.info.loginMethod}</span></>
+                          )}
+                        </p>
+                      )}
+                      <p className="text-[11px] md:text-xs text-slate-400 mt-1 tabular-nums">{req.date}</p>
                     </div>
-                    <div className="text-left md:text-right">
-                      <p className="font-black text-base md:text-lg text-rose-500">-{new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ</p>
-                      <p className="text-[10px] md:text-xs font-bold inline-block px-2 py-0.5 rounded mt-1 text-emerald-500 bg-emerald-500/10">Thành công</p>
+                    <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t border-slate-800/60 md:border-t-0">
+                      <div className="flex items-center justify-between flex-1 md:flex-none md:flex-col md:items-end gap-2">
+                        {req.status === 'Đã hủy' && req.info?.amount > 0 && (
+                          <span className="text-xs text-emerald-400 font-bold tabular-nums whitespace-nowrap">
+                            Đã hoàn +{new Intl.NumberFormat('vi-VN').format(req.info.amount)}đ
+                          </span>
+                        )}
+                        <span className={`text-xs font-bold inline-flex items-center gap-1 px-3 py-1 rounded border ${
+                          req.status === 'Hoàn thành'
+                            ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                            : req.status === 'Đang cày'
+                              ? 'text-blue-400 bg-blue-500/10 border-blue-500/20'
+                              : req.status === 'Đã hủy'
+                                ? 'text-rose-400 bg-rose-500/10 border-rose-500/20'
+                                : 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20'
+                        }`}>
+                          {req.status === 'Hoàn thành' ? <CheckCircle2 size={12} /> : req.status === 'Đang cày' ? <RefreshCw size={12} className="animate-spin" /> : req.status === 'Đã hủy' ? <RotateCcw size={12} /> : <Clock size={12} />}
+                          <span>{req.status || 'Chờ xử lý'}</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  {expandedTx === tx.id && tx.accDetails && (
-                    <div className="bg-slate-900/80 p-4 border-t border-slate-800 animate-fade-in text-sm">
-                      <p className="text-emerald-400 font-bold mb-3 flex items-center gap-2"><CheckCircle2 size={16} /> Thông tin tài khoản bạn đã mua (Mã: #{tx.accDetails.code}):</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-3">
-                          <div className="flex flex-col gap-1">
-                            <span className="text-slate-400 text-xs font-bold">Tài khoản Game:</span>
-                            <div className="flex items-center">
-                              <input readOnly value={tx.accDetails.username} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono" />
-                              <button onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.username); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16} /></button>
-                            </div>
+                ))}
+
+                {/* 5. RENDER LỊCH SỬ NẠP TIỀN */}
+                {historyTab === 'deposit' && visibleData.map(d => {
+                  const isCard = d.type === 'card' || (d.details && d.details.toLowerCase().includes('thẻ')) || String(d.id).startsWith('CARD');
+                  const isSuccess = d.status === 'Thành công';
+                  const isFail = d.status === 'Từ chối' || d.status === 'Thất bại' || d.status === 'Đã hủy';
+                  const friendlyErr = isFail && d.details ? getCustomerFriendlyError(d.details) : null;
+                  const recordMs = getRecordTime(d) || (Number(d.id) > 1000000000000 ? Number(d.id) : 0);
+                  const depositDateText = recordMs > 0
+                    ? new Date(recordMs).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })
+                    : (d.date || '—');
+                  return (
+                    <div key={d.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-2.5 md:gap-4 hover:bg-slate-800/40 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-white text-sm md:text-[15px] leading-snug flex items-center gap-1.5">
+                          <Wallet size={14} className="text-emerald-400 shrink-0" />
+                          <span>{isCard ? 'Nạp tiền thẻ cào' : 'Nạp tiền chuyển khoản'}</span>
+                        </p>
+                        {friendlyErr && (
+                          <p className="text-xs text-rose-400 mt-1 leading-tight">{friendlyErr}</p>
+                        )}
+                        <p className="text-[11px] md:text-xs text-slate-400 mt-1 tabular-nums">
+                          {depositDateText}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t border-slate-800/60 md:border-t-0">
+                        <div className="flex items-center justify-between flex-1 md:flex-none md:flex-col md:items-end gap-2">
+                          <div className="text-left md:text-right">
+                            <span className={`font-black text-base md:text-[17px] tabular-nums whitespace-nowrap ${isFail ? 'text-slate-400' : 'text-emerald-400'}`}>
+                              +{new Intl.NumberFormat('vi-VN').format(Math.abs(d.amount))}đ
+                            </span>
+                            {d.bonusAmount > 0 && (
+                              <p className="text-[11px] text-amber-400 font-bold tabular-nums">+{new Intl.NumberFormat('vi-VN').format(d.bonusAmount)}đ (Voucher)</p>
+                            )}
                           </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="text-slate-400 text-xs font-bold">Mật khẩu Game:</span>
-                            <div className="flex items-center">
-                              <input readOnly value={tx.accDetails.password} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono" />
-                              <button onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.password); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16} /></button>
-                            </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[11px] font-bold inline-block px-2.5 py-0.5 rounded border ${
+                              isSuccess
+                                ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                                : isFail
+                                  ? 'text-rose-400 bg-rose-500/10 border-rose-500/20'
+                                  : 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20'
+                            }`}>
+                              {d.status === 'Chờ duyệt' && d.type === 'banking' ? 'Chờ thanh toán' : d.status}
+                            </span>
+                            {d.status === 'Chờ duyệt' && (
+                              <button type="button" onClick={() => handleCancelDepositClient(d.id)} className="text-xs text-rose-400 hover:text-rose-300 underline font-bold">
+                                Hủy đơn
+                              </button>
+                            )}
                           </div>
                         </div>
-                        <div className="space-y-3 border-t sm:border-t-0 sm:border-l border-slate-800 pt-3 sm:pt-0 sm:pl-4">
-                          <div className="flex flex-col gap-1">
-                            <span className="text-slate-400 text-xs font-bold">Email đăng ký:</span>
-                            <div className="flex items-center">
-                              <input readOnly value={tx.accDetails.email} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono" />
-                              <button onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.email); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16} /></button>
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="text-slate-400 text-xs font-bold">SĐT xác minh:</span>
-                            <div className="flex items-center">
-                              <input readOnly value={tx.accDetails.phone} className="w-full bg-[#0B1120] text-white p-2 rounded-l border border-slate-700 outline-none font-mono" />
-                              <button onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.accDetails.phone); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-r border border-slate-700 transition-colors"><Copy size={16} /></button>
-                            </div>
-                          </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* 6. RENDER LỊCH SỬ CHUYỂN TIỀN */}
+                {historyTab === 'transfer' && visibleData.map(tx => {
+                  const isOut = tx.type === 'transfer_out';
+                  return (
+                    <div key={tx.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-2.5 md:gap-4 hover:bg-slate-800/40 transition-colors">
+                      <div className="min-w-0 flex-1 flex items-start gap-2.5">
+                        <span className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${isOut ? 'bg-rose-500/10' : 'bg-emerald-500/10'}`}>
+                          <ArrowLeftRight size={14} className={isOut ? 'text-rose-400' : 'text-emerald-400'} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-white text-sm md:text-[15px] leading-snug break-words">{tx.action}</p>
+                          <p className="text-[11px] md:text-xs text-slate-400 mt-1 tabular-nums">{tx.date}</p>
                         </div>
                       </div>
-                      {copiedText && <p className="text-emerald-400 text-xs mt-3 italic animate-pulse text-center bg-emerald-500/10 py-1 rounded">Đã copy vào khay nhớ tạm!</p>}
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* 2. RENDER LỊCH SỬ THUÊ ACC */}
-              {historyTab === 'rent' && visibleData.map(tx => (
-                <div key={tx.id} className="p-4 border-b border-slate-800 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors">
-                  <div>
-                    <p className="font-bold text-white text-sm md:text-base">{tx.action}</p>
-                    <p className="text-[10px] md:text-xs text-slate-500 mt-1">{tx.date}</p>
-                  </div>
-                  <div className="text-left md:text-right">
-                    <p className={`font-black text-base md:text-lg ${tx.amount > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                      {tx.amount > 0 ? '-' : '+'}{new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ
-                    </p>
-                    <p className={`text-[10px] md:text-xs font-bold inline-block px-2 py-0.5 rounded mt-1 
-                      ${tx.status.includes('+') || tx.status === 'Thành công' ? 'text-emerald-500 bg-emerald-500/10'
-                        : tx.status.includes('cọc') ? 'text-yellow-500 bg-yellow-500/10' : 'text-blue-400 bg-blue-500/10'}`}>
-                      {tx.status}
-                    </p>
-                    {tx.accDetails && tx.accDetails.balanceAfter !== undefined && (
-                      <div className="mt-1.5 flex flex-col md:items-end text-[10px]">
-                        <p className="text-slate-400">Dư ví: <span className="font-bold text-emerald-400">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.balanceAfter)}đ</span></p>
-                        {tx.accDetails.fundAfter !== undefined && (
-                          <p className="text-slate-400">Dư quỹ: <span className="font-bold text-yellow-400">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.fundAfter)}đ</span></p>
-                        )}
+                      <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t border-slate-800/60 md:border-t-0">
+                        <div className="flex items-center justify-between flex-1 md:flex-none md:flex-col md:items-end gap-2">
+                          <span className={`font-black text-base md:text-[17px] tabular-nums whitespace-nowrap ${isOut ? 'text-rose-500' : 'text-emerald-400'}`}>
+                            {isOut ? '-' : '+'}{new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ
+                          </span>
+                          <span className="text-[11px] font-bold inline-block px-2.5 py-0.5 rounded text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                            {tx.status || 'Thành công'}
+                          </span>
+                          {tx.accDetails && tx.accDetails.balanceAfter !== undefined && (
+                            <div className="flex flex-wrap gap-x-3 md:justify-end text-[11px]">
+                              <p className="text-slate-400">Dư ví: <span className="font-bold text-emerald-400 tabular-nums">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.balanceAfter)}đ</span></p>
+                              {tx.accDetails.fee > 0 && (
+                                <p className="text-slate-400">Phí: <span className="font-bold text-rose-400 tabular-nums">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.fee)}đ</span></p>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {/* 3. RENDER LỊCH SỬ VÒNG QUAY (TRÚNG THƯỞNG) */}
-              {historyTab === 'spin' && visibleData.map(tx => (
-                <div key={tx.id} className="p-4 border-b border-slate-800 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors">
-                  <div>
-                    <p className="font-bold text-white text-sm md:text-base"><Gift size={14} className="inline mr-1 text-rose-500" /> {tx.action}</p>
-                    <p className="text-[10px] md:text-xs text-slate-500 mt-1">{tx.date}</p>
-                  </div>
-                  <div className="text-left md:text-right">
-                    <p className="font-black text-base md:text-lg text-emerald-400">
-                      {tx.isSpinCost ? `+${Math.abs(tx.amount)} Lượt` : `+${new Intl.NumberFormat('vi-VN').format(Math.abs(tx.amount))}đ`}
-                    </p>
-                    <p className="text-[10px] md:text-xs font-bold inline-block px-2 py-0.5 rounded mt-1 text-emerald-500 bg-emerald-500/10">{tx.status}</p>
-                  </div>
-                </div>
-              ))}
-
-              {/* 4. RENDER LỊCH SỬ CÀY THUÊ */}
-              {historyTab === 'boost' && visibleData.map(req => (
-                <div key={req.id} className="p-4 border-b border-slate-800 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-black rounded shadow-sm">GÓI ĐẶT</span>
-                      <p className="font-bold text-white text-sm md:text-base">{req.boostingTitle}</p>
                     </div>
-                    {req.info?.username && (
-                      <p className="text-[10px] md:text-xs text-slate-400 mt-1">
-                        {req.info.loginMethod === 'Không Cần' ? (
-                          <>Mã sự kiện / Link: <span className="font-mono text-white">{req.info.username}</span></>
-                        ) : (
-                          <>TK: <span className="font-mono text-white">{req.info.username}</span> | Nền tảng: <span className="text-white">{req.info.loginMethod}</span></>
-                        )}
-                      </p>
-                    )}
-                    <p className="text-[10px] text-slate-500 mt-1.5">{req.date}</p>
-                  </div>
-                  <div className="text-left md:text-right">
-                    {req.status === 'Đã hủy' && req.info?.amount > 0 && (
-                      <p className="text-xs text-emerald-400 font-bold mb-1">Đã hoàn +{new Intl.NumberFormat('vi-VN').format(req.info.amount)}đ</p>
-                    )}
-                    <p className={`text-xs font-bold inline-block px-3 py-1 rounded mt-1 
-                      ${req.status === 'Hoàn thành' ? 'text-emerald-500 bg-emerald-500/10' : req.status === 'Đang cày' ? 'text-blue-400 bg-blue-500/10' : req.status === 'Đã hủy' ? 'text-rose-400 bg-rose-500/10' : 'text-yellow-500 bg-yellow-500/10'}`}>
-                      {req.status === 'Hoàn thành' ? <CheckCircle2 size={12} className="inline mr-1" /> : req.status === 'Đang cày' ? <RefreshCw size={12} className="inline mr-1 animate-spin" /> : req.status === 'Đã hủy' ? <RotateCcw size={12} className="inline mr-1" /> : <Clock size={12} className="inline mr-1" />}
-                      {req.status || 'Chờ xử lý'}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                  );
+                })}
 
-              {/* 5. RENDER LỊCH SỬ NẠP TIỀN */}
-              {historyTab === 'deposit' && visibleData.map(d => (
-                <div key={d.id} className="p-4 border-b border-slate-800 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors">
-                  <div>
-                    <p className="font-bold text-white text-sm md:text-base"><Wallet size={14} className="inline mr-1 text-emerald-500" /> Nạp tiền chuyển khoản</p>
-                    <p className="text-[10px] md:text-xs text-slate-500 mt-1">{new Date(d.id).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
+                {remainingCount > 0 && (
+                  <div className="p-3 text-center bg-[#0D1425]">
+                    <button
+                      type="button"
+                      onClick={() => setVisibleHistoryCount(prev => Math.max(prev, 10) + 10)}
+                      className="px-4 py-2 rounded-lg text-xs font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 transition-colors inline-flex items-center gap-1.5"
+                    >
+                      <ChevronDown size={14} />
+                      <span>Xem thêm {Math.min(remainingCount, 10)} giao dịch (còn {remainingCount})</span>
+                    </button>
                   </div>
-                  <div className="text-left md:text-right">
-                    <p className="font-black text-base md:text-lg text-emerald-400">
-                      +{new Intl.NumberFormat('vi-VN').format(d.amount)}đ
-                    </p>
-                    {d.bonusAmount > 0 && <p className="text-[10px] text-rose-400 font-bold mb-1">+ {new Intl.NumberFormat('vi-VN').format(d.bonusAmount)}đ (Voucher)</p>}
-                    <p className={`text-[10px] md:text-xs font-bold inline-block px-2 py-0.5 rounded mt-1 
-                      ${d.status === 'Thành công' ? 'text-emerald-500 bg-emerald-500/10' : d.status === 'Từ chối' || d.status === 'Đã hủy' ? 'text-rose-400 bg-rose-500/10' : 'text-yellow-500 bg-yellow-500/10'}`}>
-                      {d.status}
-                    </p>
-                    {d.status === 'Chờ duyệt' && (
-                      <button onClick={() => handleCancelDepositClient(d.id)} className="text-[10px] text-rose-400 hover:text-rose-300 underline font-bold ml-2 block md:inline-block">Hủy đơn</button>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {/* 6. RENDER LỊCH SỬ CHUYỂN TIỀN */}
-              {historyTab === 'transfer' && visibleData.map(tx => (
-                <div key={tx.id} className="p-4 border-b border-slate-800 flex flex-col md:flex-row justify-between md:items-center hover:bg-slate-800/50 gap-2 transition-colors">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className={`p-1.5 rounded-lg ${tx.type === 'transfer_out' ? 'bg-rose-500/10' : 'bg-emerald-500/10'}`}>
-                        <ArrowLeftRight size={14} className={tx.type === 'transfer_out' ? 'text-rose-400' : 'text-emerald-400'} />
-                      </span>
-                      <p className="font-bold text-white text-sm md:text-base">{tx.action}</p>
-                    </div>
-                    <p className="text-[10px] md:text-xs text-slate-500 mt-1 ml-9">{tx.date}</p>
-                  </div>
-                  <div className="text-left md:text-right">
-                    <p className={`font-black text-base md:text-lg ${tx.type === 'transfer_out' ? 'text-rose-500' : 'text-emerald-400'}`}>
-                      {tx.type === 'transfer_out' ? '-' : '+'}{new Intl.NumberFormat('vi-VN').format(tx.amount)}đ
-                    </p>
-                    <p className="text-[10px] md:text-xs font-bold inline-block px-2 py-0.5 rounded mt-1 text-emerald-500 bg-emerald-500/10">{tx.status}</p>
-                    {tx.accDetails && tx.accDetails.balanceAfter !== undefined && (
-                      <div className="mt-1.5 flex flex-col md:items-end text-[10px]">
-                        <p className="text-slate-400">Dư ví: <span className="font-bold text-emerald-400">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.balanceAfter)}đ</span></p>
-                        {tx.accDetails.fee > 0 && (
-                          <p className="text-slate-400">Phí: <span className="font-bold text-rose-400">{new Intl.NumberFormat('vi-VN').format(tx.accDetails.fee)}đ</span></p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       {renderFooter()}
