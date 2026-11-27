@@ -494,7 +494,10 @@ const DonateLiveScreen = ({
     <div className="min-h-screen bg-obsidian-canvas text-[#F3F4F6] font-sans pb-24 md:pb-12">
       {renderNavbar()}
 
-      <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:pr-24 pt-6 md:pt-8">
+      <div
+        className="max-w-[1200px] mx-auto px-4 md:px-6 lg:pr-24 pt-6 md:pt-8"
+        style={{ fontFamily: "'Be Vietnam Pro', sans-serif" }}
+      >
         {/* Compact Donor Header */}
         <div className="flex items-center gap-4 mb-6 pb-5 border-b border-white/[0.07]">
           <img
@@ -522,7 +525,7 @@ const DonateLiveScreen = ({
                   <CheckCircle2 size={24} className="text-jade shrink-0" />
                   <div>
                     <div className="font-bold text-[#F3F4F6] text-sm md:text-base">
-                      Cảm ơn {donateSuccessData.nickname} đã ủng hộ <span className="font-mono tabular-nums text-jade">{formatVND(donateSuccessData.amount)}</span>!
+                      Cảm ơn {donateSuccessData.nickname} đã ủng hộ <span className="tabular-nums text-jade">{formatVND(donateSuccessData.amount)}</span>!
                     </div>
                     <div className="text-xs text-[#D1D5DB] mt-0.5">
                       Tên và lời nhắn của bạn đang lên sóng Live.
@@ -549,7 +552,7 @@ const DonateLiveScreen = ({
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  <div className="mt-3 px-4 py-1.5 rounded-xl bg-[#0A0B0E] border border-crimson/40 text-crimson font-bold font-mono tabular-nums text-base flex items-center gap-2">
+                  <div className="mt-3 px-4 py-1.5 rounded-xl bg-[#0A0B0E] border border-crimson/40 text-crimson font-bold tabular-nums text-base flex items-center gap-2">
                     <Clock size={15} />
                     <span>{formatTimer(payosTimeLeft)}</span>
                   </div>
@@ -566,19 +569,19 @@ const DonateLiveScreen = ({
                     </div>
                     <div className="flex justify-between gap-2">
                       <span className="text-[#9CA3AF]">Số TK</span>
-                      <button type="button" onClick={() => copyToClipboard(payosData.accountNumber)} className="font-mono tabular-nums font-bold text-jade flex items-center gap-1.5 hover:underline">
+                      <button type="button" onClick={() => copyToClipboard(payosData.accountNumber)} className="tabular-nums font-bold text-jade flex items-center gap-1.5 hover:underline">
                         {payosData.accountNumber} <Copy size={13} />
                       </button>
                     </div>
                     <div className="flex justify-between gap-2">
                       <span className="text-[#9CA3AF]">Nội dung</span>
-                      <button type="button" onClick={() => copyToClipboard(payosData.description)} className="font-mono tabular-nums font-bold text-gold flex items-center gap-1.5 hover:underline">
+                      <button type="button" onClick={() => copyToClipboard(payosData.description)} className="tabular-nums font-bold text-gold flex items-center gap-1.5 hover:underline">
                         {payosData.description} <Copy size={13} />
                       </button>
                     </div>
                     <div className="flex justify-between items-center gap-2 pt-2 border-t border-white/[0.07]">
                       <span className="text-[#9CA3AF]">Số tiền</span>
-                      <span className="font-mono tabular-nums font-bold text-gold text-base">{formatVND(payosData.amount)}</span>
+                      <span className="tabular-nums font-bold text-gold text-base">{formatVND(payosData.amount)}</span>
                     </div>
                   </div>
                   <p className="text-xs text-[#9CA3AF] leading-relaxed">
@@ -628,7 +631,7 @@ const DonateLiveScreen = ({
                             <span className="font-bold text-[#F3F4F6] text-sm truncate">{selectedDonor.nickname}</span>
                             {selectedDonor.verified && <ShieldCheck size={14} className="text-jade shrink-0" />}
                           </div>
-                          <div className="font-mono text-xs text-[#9CA3AF] truncate">@{selectedDonor.user_id}</div>
+                          <div className="text-xs text-[#9CA3AF] truncate">@{selectedDonor.user_id}</div>
                         </div>
                       </div>
                       {!linkedUid && (
@@ -686,7 +689,7 @@ const DonateLiveScreen = ({
                               />
                               <div className="min-w-0 flex-1">
                                 <div className="text-xs font-bold text-[#F3F4F6] truncate">{p.nickname}</div>
-                                <div className="font-mono text-[11px] text-[#9CA3AF] truncate">@{p.user_id}</div>
+                                <div className="text-[11px] text-[#9CA3AF] truncate">@{p.user_id}</div>
                               </div>
                             </button>
                           ))}
@@ -725,7 +728,7 @@ const DonateLiveScreen = ({
                         key={amt}
                         type="button"
                         onClick={() => setAmountInput(String(amt))}
-                        className={`min-h-[44px] py-2 rounded-xl font-mono tabular-nums text-xs font-bold border transition-colors ${
+                        className={`min-h-[44px] py-2 rounded-xl tabular-nums text-xs font-bold border transition-colors ${
                           Number(amountInput) === amt
                             ? 'bg-jade text-[#0A0B0E] border-jade'
                             : 'bg-[#0A0B0E] text-[#D1D5DB] border-white/10 hover:border-jade/50 hover:text-[#F3F4F6]'
@@ -743,7 +746,7 @@ const DonateLiveScreen = ({
                       value={amountInput}
                       onChange={(e) => setAmountInput(e.target.value)}
                       placeholder="Nhập số tiền (tối thiểu 5.000đ)"
-                      className="w-full px-4 py-3 min-h-[48px] pr-14 bg-[#0A0B0E] border border-jade/40 focus:border-gold focus:ring-2 focus:ring-gold/20 rounded-xl font-mono tabular-nums text-lg font-bold text-gold outline-none transition-colors"
+                      className="w-full px-4 py-3 min-h-[48px] pr-14 bg-[#0A0B0E] border border-jade/40 focus:border-gold focus:ring-2 focus:ring-gold/20 rounded-xl tabular-nums text-lg font-bold text-gold outline-none transition-colors"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-[#9CA3AF]">
                       VNĐ
@@ -767,19 +770,19 @@ const DonateLiveScreen = ({
                     </label>
                     <div className="flex items-center gap-1.5 shrink-0">
                       {bonusMessageChars > 0 && (
-                        <span className="px-2 py-0.5 rounded-md bg-jade/15 border border-jade/35 text-jade font-mono tabular-nums text-[11px] font-bold">
+                        <span className="px-2 py-0.5 rounded-md bg-jade/15 border border-jade/35 text-jade tabular-nums text-[11px] font-bold">
                           +{bonusMessageChars} ký tự
                         </span>
                       )}
-                      <span className={`font-mono tabular-nums text-xs font-semibold ${messageInput.length > maxMessageLen ? 'text-crimson' : 'text-[#9CA3AF]'}`}>
+                      <span className={`tabular-nums text-xs font-semibold ${messageInput.length > maxMessageLen ? 'text-crimson' : 'text-[#9CA3AF]'}`}>
                         {messageInput.length} / {maxMessageLen}
                       </span>
                     </div>
                   </div>
                   <p className="text-xs text-[#9CA3AF] mb-2">
-                    Mặc định <span className="text-[#F3F4F6] font-mono tabular-nums font-semibold">150</span> ký tự • Cứ mỗi <span className="text-gold font-mono tabular-nums font-bold">10.000đ</span> cộng thêm <span className="text-jade font-mono tabular-nums font-bold">+50</span> ký tự
+                    Mặc định <span className="text-[#F3F4F6] tabular-nums font-semibold">150</span> ký tự • Cứ mỗi <span className="text-gold tabular-nums font-bold">10.000đ</span> cộng thêm <span className="text-jade tabular-nums font-bold">+50</span> ký tự
                     {bonusMessageChars > 0 && (
-                      <span> • Hiện mở tối đa <span className="text-jade font-mono tabular-nums font-bold">{maxMessageLen}</span> ký tự</span>
+                      <span> • Hiện mở tối đa <span className="text-jade tabular-nums font-bold">{maxMessageLen}</span> ký tự</span>
                     )}
                   </p>
                   <textarea
@@ -864,12 +867,12 @@ const DonateLiveScreen = ({
                           {!isVoiceUnlocked ? (
                             <>
                               Mặc định: Chị Review Phim • Donate từ{' '}
-                              <span className="font-mono tabular-nums font-semibold">10.000đ</span> để mở khóa
+                              <span className="tabular-nums font-semibold">10.000đ</span> để mở khóa
                             </>
                           ) : isCustomVoiceExpanded ? (
                             <>
                               Mở khóa chọn 74 giọng từ{' '}
-                              <span className="text-gold font-mono tabular-nums font-bold">10.000đ</span> • Bỏ tích để dùng giọng mặc định Chị Review Phim
+                              <span className="text-gold tabular-nums font-bold">10.000đ</span> • Bỏ tích để dùng giọng mặc định Chị Review Phim
                             </>
                           ) : (
                             'Mặc định: Chị Review Phim • Tích để chọn giọng khác'
@@ -882,7 +885,7 @@ const DonateLiveScreen = ({
                       {!isVoiceUnlocked ? (
                         <span className="px-2 py-1 rounded-lg bg-[#171A21] border border-white/[0.08] text-[#6B7280] text-[11px] font-semibold inline-flex items-center gap-1 whitespace-nowrap">
                           <Lock size={11} />
-                          <span className="font-mono tabular-nums">Từ 10K</span>
+                          <span className="tabular-nums">Từ 10K</span>
                         </span>
                       ) : (
                         <ChevronDown
@@ -989,7 +992,7 @@ const DonateLiveScreen = ({
                   className="w-full min-h-[48px] py-3.5 rounded-xl bg-jade hover:bg-jade-hover text-[#0A0B0E] font-extrabold text-base shadow-obsidian-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isCreatingQr ? <RefreshCw size={18} className="animate-spin" /> : <QrCode size={18} />}
-                  <span className="font-mono tabular-nums">
+                  <span className="tabular-nums">
                     {parsedAmtInfo.ok ? `Ủng Hộ ${formatVND(parsedAmtInfo.amount)} • Lấy Mã QR` : 'Lấy Mã QR Ủng Hộ'}
                   </span>
                 </button>
@@ -1000,7 +1003,7 @@ const DonateLiveScreen = ({
           {/* RIGHT (5 cols): TOP 5 & RECENT DONATIONS */}
           <div className="lg:col-span-5 space-y-5">
             <div className="obsidian-surface border-gold/25 rounded-2xl p-5">
-              <h2 className="font-display text-base font-bold text-gold flex items-center gap-2 mb-3.5">
+              <h2 className="font-display text-base font-bold text-gold tracking-wide flex items-center gap-2 mb-3.5">
                 <Crown size={18} className="text-gold shrink-0" />
                 <span>{boardState.season_label}</span>
               </h2>
@@ -1025,7 +1028,7 @@ const DonateLiveScreen = ({
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-mono tabular-nums font-bold text-xs shrink-0 ${
+                        <span className={`w-7 h-7 rounded-lg flex items-center justify-center tabular-nums font-bold text-xs shrink-0 ${
                           idx === 0
                             ? 'bg-gold text-[#0A0B0E]'
                             : idx === 1
@@ -1048,10 +1051,10 @@ const DonateLiveScreen = ({
                         />
                         <div className="min-w-0">
                           <div className="font-bold text-[#F3F4F6] text-sm truncate">{d.nickname}</div>
-                          <div className="font-mono text-[11px] text-[#9CA3AF] truncate">@{d.user_key}</div>
+                          <div className="text-[11px] text-[#9CA3AF] truncate">@{d.user_key}</div>
                         </div>
                       </div>
-                      <span className={`font-mono tabular-nums font-bold text-sm shrink-0 ${idx === 0 ? 'text-gold' : 'text-jade'}`}>
+                      <span className={`tabular-nums font-bold text-sm shrink-0 ${idx === 0 ? 'text-gold' : 'text-jade'}`}>
                         {formatVND(d.amount)}
                       </span>
                     </div>
@@ -1073,7 +1076,7 @@ const DonateLiveScreen = ({
                     <div key={tx.tx_id || idx} className="p-3 rounded-xl bg-[#171A21] border border-white/[0.07] space-y-1">
                       <div className="flex items-center justify-between gap-2 text-xs">
                         <span className="font-bold text-[#F3F4F6] truncate">{tx.nickname}</span>
-                        <span className="font-mono tabular-nums font-bold text-jade shrink-0">+{formatVND(tx.delta)}</span>
+                        <span className="tabular-nums font-bold text-jade shrink-0">+{formatVND(tx.delta)}</span>
                       </div>
                       {tx.message && (
                         <div className="text-xs text-[#D1D5DB] italic leading-relaxed">“{tx.message}”</div>
